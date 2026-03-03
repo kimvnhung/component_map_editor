@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GRAPHCOMMAND_H
+#define GRAPHCOMMAND_H
 
 #include <QString>
 
@@ -29,3 +30,5 @@ public:
 private:
     QString m_text;
 };
+
+#endif // GRAPHCOMMAND_H

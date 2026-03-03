@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VALIDATIONSERVICE_H
+#define VALIDATIONSERVICE_H
 
 #include <QObject>
 #include <QStringList>
@@ -20,3 +21,5 @@ public:
     // Returns a list of human-readable error messages, empty if valid.
     Q_INVOKABLE QStringList validationErrors(GraphModel *graph);
 };
+
+#endif // VALIDATIONSERVICE_H

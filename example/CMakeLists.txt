@@ -16,6 +16,5 @@ target_link_libraries(example_app
     PRIVATE
         Qt6::Quick
         Qt6::QuickControls2
-        componentmapeditor
-        componentmapeditorplugin
+        libComponentMapEditor
 )

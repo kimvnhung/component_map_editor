@@ -1,8 +1,9 @@
-#pragma once
+#ifndef EDGEMODEL_H
+#define EDGEMODEL_H
 
 #include <QObject>
 #include <QString>
-#include <qqml.h>
+#include <QQmlEngine>
 
 class EdgeModel : public QObject
 {
@@ -44,3 +45,5 @@ private:
     QString m_targetId;
     QString m_label;
 };
+
+#endif // EDGEMODEL_H

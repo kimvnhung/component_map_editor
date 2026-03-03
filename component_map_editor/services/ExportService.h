@@ -1,4 +1,5 @@
-#pragma once
+#ifndef EXPORTSERVICE_H
+#define EXPORTSERVICE_H
 
 #include <QObject>
 #include <QString>
@@ -21,3 +22,5 @@ public:
     // Returns true on success, false on parse error.
     Q_INVOKABLE bool importFromJson(GraphModel *graph, const QString &json);
 };
+
+#endif // EXPORTSERVICE_H

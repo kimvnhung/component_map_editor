@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GRAPHCOMMANDS_H
+#define GRAPHCOMMANDS_H
 
 #include <QPointF>
 
@@ -99,3 +100,5 @@ private:
     EdgeModel  *m_edge  = nullptr;
     bool        m_owned = false;
 };
+
+#endif // GRAPHCOMMANDS_H

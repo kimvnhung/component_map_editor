@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NODEMODEL_H
+#define NODEMODEL_H
 
 #include <QObject>
 #include <QString>
@@ -58,3 +59,5 @@ private:
     QString m_color{ QStringLiteral("#4fc3f7") };
     QString m_type{ QStringLiteral("default") };
 };
+
+#endif // NODEMODEL_H

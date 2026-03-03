@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UNDOSTACK_H
+#define UNDOSTACK_H
 
 #include <QObject>
 #include <QList>
@@ -54,4 +55,6 @@ private:
     QList<GraphCommand *> m_commands;
     int m_index = -1; // index of the last executed command (-1 = empty)
 };
+
+#endif // UNDOSTACK_H
 

@@ -1,9 +1,9 @@
-#pragma once
+#ifndef GRAPHMODEL_H
+#define GRAPHMODEL_H
 
 #include <QObject>
 #include <QList>
 #include <QVariantList>
-#include <qqml.h>
 
 #include "NodeModel.h"
 #include "EdgeModel.h"
@@ -52,3 +52,5 @@ private:
     QList<NodeModel *> m_nodes;
     QList<EdgeModel *> m_edges;
 };
+
+#endif // GRAPHMODEL_H
