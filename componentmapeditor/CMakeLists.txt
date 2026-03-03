@@ -5,6 +5,7 @@ qt_add_library(componentmapeditor STATIC)
 qt_add_qml_module(componentmapeditor
     URI ComponentMapEditor
     VERSION 1.0
+    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ComponentMapEditor"
     QML_FILES
         ui/GraphCanvas.qml
         ui/Node.qml
