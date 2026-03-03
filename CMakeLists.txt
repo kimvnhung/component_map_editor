@@ -10,5 +10,5 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
-add_subdirectory(jobdesigner)
+add_subdirectory(componentmapeditor)
 add_subdirectory(example)

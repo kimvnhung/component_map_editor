@@ -11,11 +11,11 @@ qt_add_qml_module(example_app
         main.qml
 )
 
-# Link against the JobDesigner backing library and its generated QML plugin.
+# Link against the ComponentMapEditor backing library and its generated QML plugin.
 target_link_libraries(example_app
     PRIVATE
         Qt6::Quick
         Qt6::QuickControls2
-        jobdesigner
-        jobdesignerplugin
+        componentmapeditor
+        componentmapeditorplugin
 )

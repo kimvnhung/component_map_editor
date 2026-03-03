@@ -4,7 +4,7 @@
 
 /**
  * GraphCommand is a lightweight abstract undo/redo command used by the
- * JobDesigner module.  It intentionally avoids a dependency on Qt Widgets
+ * ComponentMapEditor module.  It intentionally avoids a dependency on Qt Widgets
  * (QUndoCommand) so that the module can be used in QML-only applications.
  */
 class GraphCommand

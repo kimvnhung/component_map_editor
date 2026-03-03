@@ -3,7 +3,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import JobDesigner
+import ComponentMapEditor
 
 Rectangle {
     id: root
@@ -28,7 +28,7 @@ Rectangle {
     function _addNode(label, color, type) {
         if (!graph) return
         var node = Qt.createQmlObject(
-            'import JobDesigner; NodeModel {}', graph)
+            'import ComponentMapEditor; NodeModel {}', graph)
         node.id    = "node_" + root._idCounter++
         node.label = label
         node.color = color

@@ -2,7 +2,7 @@
 // Place it inside any Item and set the four coordinate properties.
 import QtQuick
 import QtQuick.Shapes
-import JobDesigner
+import ComponentMapEditor
 
 Item {
     id: root

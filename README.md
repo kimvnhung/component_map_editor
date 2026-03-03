@@ -1,6 +1,6 @@
 # component_map_editor
 
-A reusable **Qt / QML module** (`JobDesigner`) for building interactive
+A reusable **Qt / QML module** (`ComponentMapEditor`) for building interactive
 graph / component-map editors.  The module exposes C++ models, services and
 commands together with a set of ready-made QML components that can be dropped
 into any Qt 6 CMake project.
@@ -10,7 +10,7 @@ into any Qt 6 CMake project.
 ## Project structure
 
 ```
-jobdesigner/                   ← reusable QML module (URI: JobDesigner)
+componentmapeditor/                   ← reusable QML module (URI: ComponentMapEditor)
 ├── models/
 │   ├── NodeModel              QML element – a graph node (id, label, x, y, color, type)
 │   ├── EdgeModel              QML element – a directed edge (id, sourceId, targetId, label)
@@ -60,20 +60,20 @@ The example application is built automatically as `build/example/example_app`.
 
 ```cmake
 # In your CMakeLists.txt
-add_subdirectory(path/to/component_map_editor/jobdesigner)
+add_subdirectory(path/to/component_map_editor/componentmapeditor)
 
-target_link_libraries(my_app PRIVATE jobdesigner jobdesignerplugin)
+target_link_libraries(my_app PRIVATE componentmapeditor componentmapeditorplugin)
 ```
 
 In `main.cpp` add:
 ```cpp
 #include <QtPlugin>
-Q_IMPORT_QML_PLUGIN(JobDesignerPlugin)
+Q_IMPORT_QML_PLUGIN(ComponentMapEditorPlugin)
 ```
 
 Then in QML:
 ```qml
-import JobDesigner
+import ComponentMapEditor
 
 GraphModel  { id: graph }
 UndoStack   { id: undoStack }

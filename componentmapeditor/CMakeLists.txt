@@ -1,9 +1,9 @@
 find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 
-qt_add_library(jobdesigner STATIC)
+qt_add_library(componentmapeditor STATIC)
 
-qt_add_qml_module(jobdesigner
-    URI JobDesigner
+qt_add_qml_module(componentmapeditor
+    URI ComponentMapEditor
     VERSION 1.0
     QML_FILES
         ui/GraphCanvas.qml
@@ -22,12 +22,12 @@ qt_add_qml_module(jobdesigner
         commands/GraphCommands.h commands/GraphCommands.cpp
 )
 
-target_include_directories(jobdesigner
+target_include_directories(componentmapeditor
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:include/jobdesigner>
+        $<INSTALL_INTERFACE:include/componentmapeditor>
 )
 
-target_link_libraries(jobdesigner
+target_link_libraries(componentmapeditor
     PUBLIC Qt6::Core Qt6::Quick
 )

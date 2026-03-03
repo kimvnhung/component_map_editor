@@ -1,6 +1,6 @@
 // Node.qml — A draggable node card displayed on the GraphCanvas.
 import QtQuick
-import JobDesigner
+import ComponentMapEditor
 
 Item {
     id: root

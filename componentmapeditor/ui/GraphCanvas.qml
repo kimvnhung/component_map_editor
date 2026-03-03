@@ -2,7 +2,7 @@
 // Displays a grid background, draws edges imperatively via a Canvas item,
 // and renders nodes as interactive Node delegates.
 import QtQuick
-import JobDesigner
+import ComponentMapEditor
 
 Item {
     id: root
