@@ -8,7 +8,7 @@ qt_add_qml_module(example_app
     URI ExampleApp
     VERSION 1.0
     QML_FILES
-        main.qml
+        Main.qml
 )
 
 # Link against the ComponentMapEditor backing library and its generated QML plugin.

@@ -5,7 +5,7 @@
 #include <QStringList>
 #include <qqml.h>
 
-#include "../models/GraphModel.h"
+#include "models/GraphModel.h"
 
 class ValidationService : public QObject
 {

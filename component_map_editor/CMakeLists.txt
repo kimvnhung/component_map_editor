@@ -4,9 +4,14 @@ project(libComponentMapEditor VERSION 1.0.0 LANGUAGES CXX)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 
-file(GLOB_RECURSE COMPONENT_MAP_EDITOR_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+# set headers
+file(GLOB_RECURSE COMPONENT_MAP_EDITOR_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    *.h
+)
+
+# set sources
+file(GLOB_RECURSE COMPONENT_MAP_EDITOR_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    *.cpp
 )
 
 file(GLOB_RECURSE COMPONENT_MAP_EDITOR_QML RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -20,6 +25,7 @@ qt_add_qml_module(${PROJECT_NAME}
     QML_FILES
         ${COMPONENT_MAP_EDITOR_QML}
     SOURCES
+        ${COMPONENT_MAP_EDITOR_HEADERS}
         ${COMPONENT_MAP_EDITOR_SOURCES}
 )
 
@@ -29,8 +35,16 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Quick
 )
 
+# Copy HEADER_FILES to folder include in build directory
+foreach(HEADER_FILE ${COMPONENT_MAP_EDITOR_HEADERS})
+    get_filename_component(HEADER_FILE_NAME ${HEADER_FILE} NAME)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER_FILE}
+        ${CMAKE_CURRENT_BINARY_DIR}/include/${HEADER_FILE_NAME}
+        COPYONLY)
+endforeach()
+
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:include>
+        ${CMAKE_CURRENT_BINARY_DIR}/include
 )

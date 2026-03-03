@@ -4,9 +4,9 @@
 #include <QPointF>
 
 #include "GraphCommand.h"
-#include "../models/GraphModel.h"
-#include "../models/NodeModel.h"
-#include "../models/EdgeModel.h"
+#include "models/GraphModel.h"
+#include "models/NodeModel.h"
+#include "models/EdgeModel.h"
 
 // ---------------------------------------------------------------------------
 // AddNodeCommand

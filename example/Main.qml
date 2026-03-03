@@ -4,7 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import ComponentMapEditor
 
-Window {
+ApplicationWindow {
     id: window
     width: 1100
     height: 720

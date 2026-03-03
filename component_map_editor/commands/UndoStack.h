@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QList>
-#include <qqml.h>
+#include <QQmlEngine>
 
 #include "GraphCommand.h"
 

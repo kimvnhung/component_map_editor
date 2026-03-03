@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QString>
-#include <qqml.h>
+#include <QQmlEngine>
 
 class NodeModel : public QObject
 {

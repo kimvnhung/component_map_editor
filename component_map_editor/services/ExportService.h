@@ -3,9 +3,9 @@
 
 #include <QObject>
 #include <QString>
-#include <qqml.h>
+#include <QQmlEngine>
 
-#include "../models/GraphModel.h"
+#include "models/GraphModel.h"
 
 class ExportService : public QObject
 {
