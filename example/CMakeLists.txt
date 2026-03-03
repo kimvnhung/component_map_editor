@@ -1,4 +1,4 @@
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2)
 
 qt_add_executable(example_app
     main.cpp
@@ -15,6 +15,7 @@ qt_add_qml_module(example_app
 target_link_libraries(example_app
     PRIVATE
         Qt6::Quick
+        Qt6::QuickControls2
         jobdesigner
         jobdesignerplugin
 )
