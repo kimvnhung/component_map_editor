@@ -12,7 +12,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2)
 
 qt_standard_project_setup(REQUIRES 6.5)
-qt_policy(SET QTP0004 NEW)
 
 add_subdirectory(component_map_editor)
 add_subdirectory(example)
