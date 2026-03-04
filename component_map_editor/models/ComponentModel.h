@@ -1,11 +1,11 @@
-#ifndef NODEMODEL_H
-#define NODEMODEL_H
+#ifndef COMPONENTMODEL_H
+#define COMPONENTMODEL_H
 
 #include <QObject>
 #include <QString>
 #include <QQmlEngine>
 
-class NodeModel : public QObject
+class ComponentModel : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
@@ -18,12 +18,12 @@ class NodeModel : public QObject
     Q_PROPERTY(QString type READ type WRITE setType NOTIFY typeChanged FINAL)
 
 public:
-    explicit NodeModel(QObject *parent = nullptr);
-    NodeModel(const QString &id, const QString &label,
-              qreal x, qreal y,
-              const QString &color = QStringLiteral("#4fc3f7"),
-              const QString &type = QStringLiteral("default"),
-              QObject *parent = nullptr);
+    explicit ComponentModel(QObject *parent = nullptr);
+    ComponentModel(const QString &id, const QString &label,
+                   qreal x, qreal y,
+                   const QString &color = QStringLiteral("#4fc3f7"),
+                   const QString &type = QStringLiteral("default"),
+                   QObject *parent = nullptr);
 
     QString id() const;
     void setId(const QString &id);
@@ -60,4 +60,4 @@ private:
     QString m_type{ QStringLiteral("default") };
 };
 
-#endif // NODEMODEL_H
+#endif // COMPONENTMODEL_H

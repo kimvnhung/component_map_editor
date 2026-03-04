@@ -1,97 +1,97 @@
 #include "GraphCommands.h"
 
 // ---------------------------------------------------------------------------
-// AddNodeCommand
+// AddComponentCommand
 // ---------------------------------------------------------------------------
-AddNodeCommand::AddNodeCommand(GraphModel *graph, NodeModel *node)
-    : GraphCommand(QObject::tr("Add Node"))
+AddComponentCommand::AddComponentCommand(GraphModel *graph, ComponentModel *component)
+    : GraphCommand(QObject::tr("Add Component"))
     , m_graph(graph)
-    , m_node(node)
+    , m_component(component)
     , m_owned(false)
 {}
 
-AddNodeCommand::~AddNodeCommand()
+AddComponentCommand::~AddComponentCommand()
 {
     if (m_owned)
-        delete m_node;
+        delete m_component;
 }
 
-void AddNodeCommand::redo()
+void AddComponentCommand::redo()
 {
-    m_graph->addNode(m_node);
+    m_graph->addComponent(m_component);
     m_owned = false;
 }
 
-void AddNodeCommand::undo()
+void AddComponentCommand::undo()
 {
-    m_graph->removeNode(m_node->id());
+    m_graph->removeComponent(m_component->id());
     m_owned = true;
 }
 
 // ---------------------------------------------------------------------------
-// RemoveNodeCommand
+// RemoveComponentCommand
 // ---------------------------------------------------------------------------
-RemoveNodeCommand::RemoveNodeCommand(GraphModel *graph, const QString &nodeId)
-    : GraphCommand(QObject::tr("Remove Node"))
+RemoveComponentCommand::RemoveComponentCommand(GraphModel *graph, const QString &componentId)
+    : GraphCommand(QObject::tr("Remove Component"))
     , m_graph(graph)
-    , m_nodeId(nodeId)
+    , m_componentId(componentId)
 {}
 
-RemoveNodeCommand::~RemoveNodeCommand()
+RemoveComponentCommand::~RemoveComponentCommand()
 {
     if (m_owned)
-        delete m_node;
+        delete m_component;
 }
 
-void RemoveNodeCommand::redo()
+void RemoveComponentCommand::redo()
 {
-    m_node = m_graph->nodeById(m_nodeId);
-    m_graph->removeNode(m_nodeId);
+    m_component = m_graph->componentById(m_componentId);
+    m_graph->removeComponent(m_componentId);
     m_owned = true;
 }
 
-void RemoveNodeCommand::undo()
+void RemoveComponentCommand::undo()
 {
-    if (m_node) {
-        m_graph->addNode(m_node);
+    if (m_component) {
+        m_graph->addComponent(m_component);
         m_owned = false;
     }
 }
 
 // ---------------------------------------------------------------------------
-// MoveNodeCommand
+// MoveComponentCommand
 // ---------------------------------------------------------------------------
-MoveNodeCommand::MoveNodeCommand(GraphModel *graph, const QString &nodeId,
-                                 qreal oldX, qreal oldY, qreal newX, qreal newY)
-    : GraphCommand(QObject::tr("Move Node"))
+MoveComponentCommand::MoveComponentCommand(GraphModel *graph, const QString &componentId,
+                                           qreal oldX, qreal oldY, qreal newX, qreal newY)
+    : GraphCommand(QObject::tr("Move Component"))
     , m_graph(graph)
-    , m_nodeId(nodeId)
+    , m_componentId(componentId)
     , m_oldX(oldX), m_oldY(oldY)
     , m_newX(newX), m_newY(newY)
 {}
 
-void MoveNodeCommand::redo()
+void MoveComponentCommand::redo()
 {
-    if (NodeModel *node = m_graph->nodeById(m_nodeId)) {
-        node->setX(m_newX);
-        node->setY(m_newY);
+    if (ComponentModel *component = m_graph->componentById(m_componentId)) {
+        component->setX(m_newX);
+        component->setY(m_newY);
     }
 }
 
-void MoveNodeCommand::undo()
+void MoveComponentCommand::undo()
 {
-    if (NodeModel *node = m_graph->nodeById(m_nodeId)) {
-        node->setX(m_oldX);
-        node->setY(m_oldY);
+    if (ComponentModel *component = m_graph->componentById(m_componentId)) {
+        component->setX(m_oldX);
+        component->setY(m_oldY);
     }
 }
 
-bool MoveNodeCommand::mergeWith(const GraphCommand *newer)
+bool MoveComponentCommand::mergeWith(const GraphCommand *newer)
 {
     if (newer->id() != CommandId)
         return false;
-    const auto *cmd = static_cast<const MoveNodeCommand *>(newer);
-    if (cmd->m_nodeId != m_nodeId)
+    const auto *cmd = static_cast<const MoveComponentCommand *>(newer);
+    if (cmd->m_componentId != m_componentId)
         return false;
     m_newX = cmd->m_newX;
     m_newY = cmd->m_newY;
@@ -99,59 +99,59 @@ bool MoveNodeCommand::mergeWith(const GraphCommand *newer)
 }
 
 // ---------------------------------------------------------------------------
-// AddEdgeCommand
+// AddConnectionCommand
 // ---------------------------------------------------------------------------
-AddEdgeCommand::AddEdgeCommand(GraphModel *graph, EdgeModel *edge)
-    : GraphCommand(QObject::tr("Add Edge"))
+AddConnectionCommand::AddConnectionCommand(GraphModel *graph, ConnectionModel *connection)
+    : GraphCommand(QObject::tr("Add Connection"))
     , m_graph(graph)
-    , m_edge(edge)
+    , m_connection(connection)
     , m_owned(false)
 {}
 
-AddEdgeCommand::~AddEdgeCommand()
+AddConnectionCommand::~AddConnectionCommand()
 {
     if (m_owned)
-        delete m_edge;
+        delete m_connection;
 }
 
-void AddEdgeCommand::redo()
+void AddConnectionCommand::redo()
 {
-    m_graph->addEdge(m_edge);
+    m_graph->addConnection(m_connection);
     m_owned = false;
 }
 
-void AddEdgeCommand::undo()
+void AddConnectionCommand::undo()
 {
-    m_graph->removeEdge(m_edge->id());
+    m_graph->removeConnection(m_connection->id());
     m_owned = true;
 }
 
 // ---------------------------------------------------------------------------
-// RemoveEdgeCommand
+// RemoveConnectionCommand
 // ---------------------------------------------------------------------------
-RemoveEdgeCommand::RemoveEdgeCommand(GraphModel *graph, const QString &edgeId)
-    : GraphCommand(QObject::tr("Remove Edge"))
+RemoveConnectionCommand::RemoveConnectionCommand(GraphModel *graph, const QString &connectionId)
+    : GraphCommand(QObject::tr("Remove Connection"))
     , m_graph(graph)
-    , m_edgeId(edgeId)
+    , m_connectionId(connectionId)
 {}
 
-RemoveEdgeCommand::~RemoveEdgeCommand()
+RemoveConnectionCommand::~RemoveConnectionCommand()
 {
     if (m_owned)
-        delete m_edge;
+        delete m_connection;
 }
 
-void RemoveEdgeCommand::redo()
+void RemoveConnectionCommand::redo()
 {
-    m_edge = m_graph->edgeById(m_edgeId);
-    m_graph->removeEdge(m_edgeId);
+    m_connection = m_graph->connectionById(m_connectionId);
+    m_graph->removeConnection(m_connectionId);
     m_owned = true;
 }
 
-void RemoveEdgeCommand::undo()
+void RemoveConnectionCommand::undo()
 {
-    if (m_edge) {
-        m_graph->addEdge(m_edge);
+    if (m_connection) {
+        m_graph->addConnection(m_connection);
         m_owned = false;
     }
 }

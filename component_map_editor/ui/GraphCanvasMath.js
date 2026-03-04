@@ -1,6 +1,6 @@
 .pragma library
 
-// Shared visual style for edge drawing. Keeping this centralized avoids
+// Shared visual style for connection drawing. Keeping this centralized avoids
 // repeating styling literals at each call site.
 var EDGE_STYLE = {
     strokeWidth: 2,
@@ -19,7 +19,7 @@ function clamp(value, minValue, maxValue) {
 }
 
 // Converts from screen space (pixels in the viewport) to world space
-// (persistent graph coordinates used by NodeModel.x/y).
+// (persistent graph coordinates used by ComponentModel.x/y).
 function screenToWorld(screenX, screenY, panX, panY, zoom) {
     return Qt.point((screenX - panX) / zoom,
                     (screenY - panY) / zoom)
@@ -74,16 +74,16 @@ function zoomAtCursor(screenX, screenY,
     }
 }
 
-// Computes node center in world coordinates for edge endpoint placement.
-function nodeCenter(node, nodeHalfW, nodeHalfH) {
-    return Qt.point(node.x + nodeHalfW,
-                    node.y + nodeHalfH)
+// Computes component center in world coordinates for connection endpoint placement.
+function componentCenter(component, componentHalfW, componentHalfH) {
+    return Qt.point(component.x + componentHalfW,
+                    component.y + componentHalfH)
 }
 
-// Draws a directed edge (line + arrow + optional label) on a 2D canvas.
+// Draws a directed connection (line + arrow + optional label) on a 2D canvas.
 // Style values come from EDGE_STYLE by default, and can be overridden by
 // passing a custom style object.
-function drawEdge(ctx, sx, sy, tx, ty, label, isSelected, style) {
+function drawConnection(ctx, sx, sy, tx, ty, label, isSelected, style) {
     var edgeStyle = style || EDGE_STYLE
     var strokeColor = isSelected ? edgeStyle.selectedColor : edgeStyle.normalColor
     var strokeWidth = isSelected ? edgeStyle.strokeWidthSelected : edgeStyle.strokeWidth
@@ -119,17 +119,17 @@ function drawEdge(ctx, sx, sy, tx, ty, label, isSelected, style) {
     }
 }
 
-// Optional helper for a future fully-canvas node renderer.
-// Current implementation uses Node.qml delegates, so this is not used yet.
-function drawNode(ctx, node) {
-    var x = node.x
-    var y = node.y
-    var width = node.width
-    var height = node.height
-    var radius = node.radius
-    var fillColor = node.fillColor
-    var borderColor = node.borderColor
-    var borderWidth = node.borderWidth
+// Optional helper for a future fully-canvas component renderer.
+// Current implementation uses ComponentItem.qml delegates, so this is not used yet.
+function drawComponent(ctx, component) {
+    var x = component.x
+    var y = component.y
+    var width = component.width
+    var height = component.height
+    var radius = component.radius
+    var fillColor = component.fillColor
+    var borderColor = component.borderColor
+    var borderWidth = component.borderWidth
 
     ctx.beginPath()
     ctx.moveTo(x + radius, y)

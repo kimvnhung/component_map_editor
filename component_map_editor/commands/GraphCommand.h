@@ -20,7 +20,7 @@ public:
     virtual QString text() const { return m_text; }
 
     // Return a non-negative id to enable merging of successive commands of the
-    // same type (e.g. continuous node-drag moves).  Default -1 = no merging.
+    // same type (e.g. continuous component-drag moves).  Default -1 = no merging.
     virtual int id() const { return -1; }
 
     // Called on the *older* command when a newer command with the same id() is

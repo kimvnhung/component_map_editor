@@ -18,52 +18,52 @@ ApplicationWindow {
         id: graph
 
         Component.onCompleted: {
-            // Seed some initial nodes
-            var n1 = Qt.createQmlObject('import ComponentMapEditor; NodeModel {}', graph)
+            // Seed some initial components
+            var n1 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
             n1.id = "n1"; n1.label = "Start";   n1.x = 80;  n1.y = 220
             n1.color = "#26a69a"; n1.type = "start"
-            graph.addNode(n1)
+            graph.addComponent(n1)
 
-            var n2 = Qt.createQmlObject('import ComponentMapEditor; NodeModel {}', graph)
+            var n2 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
             n2.id = "n2"; n2.label = "Process A"; n2.x = 280; n2.y = 140
             n2.color = "#5c6bc0"; n2.type = "process"
-            graph.addNode(n2)
+            graph.addComponent(n2)
 
-            var n3 = Qt.createQmlObject('import ComponentMapEditor; NodeModel {}', graph)
+            var n3 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
             n3.id = "n3"; n3.label = "Process B"; n3.x = 280; n3.y = 300
             n3.color = "#5c6bc0"; n3.type = "process"
-            graph.addNode(n3)
+            graph.addComponent(n3)
 
-            var n4 = Qt.createQmlObject('import ComponentMapEditor; NodeModel {}', graph)
+            var n4 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
             n4.id = "n4"; n4.label = "Decide";  n4.x = 480; n4.y = 220
             n4.color = "#ab47bc"; n4.type = "decision"
-            graph.addNode(n4)
+            graph.addComponent(n4)
 
-            var n5 = Qt.createQmlObject('import ComponentMapEditor; NodeModel {}', graph)
+            var n5 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
             n5.id = "n5"; n5.label = "End";     n5.x = 680; n5.y = 220
             n5.color = "#ef5350"; n5.type = "end"
-            graph.addNode(n5)
+            graph.addComponent(n5)
 
-            // Seed some edges
-            var e1 = Qt.createQmlObject('import ComponentMapEditor; EdgeModel {}', graph)
+            // Seed some connections
+            var e1 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
             e1.id = "e1"; e1.sourceId = "n1"; e1.targetId = "n2"; e1.label = "path A"
-            graph.addEdge(e1)
+            graph.addConnection(e1)
 
-            var e2 = Qt.createQmlObject('import ComponentMapEditor; EdgeModel {}', graph)
+            var e2 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
             e2.id = "e2"; e2.sourceId = "n1"; e2.targetId = "n3"; e2.label = "path B"
-            graph.addEdge(e2)
+            graph.addConnection(e2)
 
-            var e3 = Qt.createQmlObject('import ComponentMapEditor; EdgeModel {}', graph)
+            var e3 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
             e3.id = "e3"; e3.sourceId = "n2"; e3.targetId = "n4"
-            graph.addEdge(e3)
+            graph.addConnection(e3)
 
-            var e4 = Qt.createQmlObject('import ComponentMapEditor; EdgeModel {}', graph)
+            var e4 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
             e4.id = "e4"; e4.sourceId = "n3"; e4.targetId = "n4"
-            graph.addEdge(e4)
+            graph.addConnection(e4)
 
-            var e5 = Qt.createQmlObject('import ComponentMapEditor; EdgeModel {}', graph)
+            var e5 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
             e5.id = "e5"; e5.sourceId = "n4"; e5.targetId = "n5"; e5.label = "done"
-            graph.addEdge(e5)
+            graph.addConnection(e5)
         }
     }
 
@@ -159,20 +159,20 @@ ApplicationWindow {
             Layout.fillHeight: true
             graph:        graph
             undoStack:    undoStack
-            selectedNode: propertyPanel.node
-            selectedEdge: propertyPanel.edge
+            selectedComponent: propertyPanel.component
+            selectedConnection: propertyPanel.connection
 
-            onNodeSelected: node => {
-                propertyPanel.node = node
-                propertyPanel.edge = null
+            onComponentSelected: component => {
+                propertyPanel.component = component
+                propertyPanel.connection = null
             }
-            onEdgeSelected: edge => {
-                propertyPanel.edge = edge
-                propertyPanel.node = null
+            onConnectionSelected: connection => {
+                propertyPanel.connection = connection
+                propertyPanel.component = null
             }
             onBackgroundClicked: {
-                propertyPanel.node = null
-                propertyPanel.edge = null
+                propertyPanel.component = null
+                propertyPanel.connection = null
             }
         }
 

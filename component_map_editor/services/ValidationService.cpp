@@ -14,40 +14,40 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
         return errors;
     }
 
-    // Collect node ids and check for duplicates
-    QSet<QString> nodeIds;
-    for (NodeModel *node : graph->nodeList()) {
-        if (node->id().isEmpty()) {
-            errors << QStringLiteral("Node has an empty id");
+    // Collect component ids and check for duplicates
+    QSet<QString> componentIds;
+    for (ComponentModel *component : graph->componentList()) {
+        if (component->id().isEmpty()) {
+            errors << QStringLiteral("Component has an empty id");
             continue;
         }
-        if (nodeIds.contains(node->id()))
-            errors << QStringLiteral("Duplicate node id: %1").arg(node->id());
+        if (componentIds.contains(component->id()))
+            errors << QStringLiteral("Duplicate component id: %1").arg(component->id());
         else
-            nodeIds.insert(node->id());
+            componentIds.insert(component->id());
     }
 
-    // Collect edge ids and validate references
-    QSet<QString> edgeIds;
-    for (EdgeModel *edge : graph->edgeList()) {
-        if (edge->id().isEmpty())
-            errors << QStringLiteral("Edge has an empty id");
+    // Collect connection ids and validate references
+    QSet<QString> connectionIds;
+    for (ConnectionModel *connection : graph->connectionList()) {
+        if (connection->id().isEmpty())
+            errors << QStringLiteral("Connection has an empty id");
 
-        if (!nodeIds.contains(edge->sourceId()))
-            errors << QStringLiteral("Edge '%1' references unknown source node '%2'")
-                          .arg(edge->id(), edge->sourceId());
+        if (!componentIds.contains(connection->sourceId()))
+            errors << QStringLiteral("Connection '%1' references unknown source component '%2'")
+                          .arg(connection->id(), connection->sourceId());
 
-        if (!nodeIds.contains(edge->targetId()))
-            errors << QStringLiteral("Edge '%1' references unknown target node '%2'")
-                          .arg(edge->id(), edge->targetId());
+        if (!componentIds.contains(connection->targetId()))
+            errors << QStringLiteral("Connection '%1' references unknown target component '%2'")
+                          .arg(connection->id(), connection->targetId());
 
-        if (edge->sourceId() == edge->targetId())
-            errors << QStringLiteral("Edge '%1' is a self-loop").arg(edge->id());
+        if (connection->sourceId() == connection->targetId())
+            errors << QStringLiteral("Connection '%1' is a self-loop").arg(connection->id());
 
-        if (edgeIds.contains(edge->id()))
-            errors << QStringLiteral("Duplicate edge id: %1").arg(edge->id());
+        if (connectionIds.contains(connection->id()))
+            errors << QStringLiteral("Duplicate connection id: %1").arg(connection->id());
         else
-            edgeIds.insert(edge->id());
+            connectionIds.insert(connection->id());
     }
 
     return errors;

@@ -1,5 +1,5 @@
 // PropertyPanel.qml — Shows and edits properties of the currently selected
-// node or edge.
+// component or connection.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -8,8 +8,8 @@ import ComponentMapEditor
 Rectangle {
     id: root
 
-    property NodeModel node: null
-    property EdgeModel edge: null
+    property ComponentModel component: null
+    property ConnectionModel connection: null
 
     color: "#ffffff"
     border.color: "#e0e0e0"
@@ -28,118 +28,118 @@ Rectangle {
             bottomPadding: 4
         }
 
-        // ---------- Node properties ----------
+        // ---------- Component properties ----------
         Loader {
-            active: root.node !== null
+            active: root.component !== null
             Layout.fillWidth: true
-            sourceComponent: nodeProps
+            sourceComponent: componentProps
         }
 
         Component {
-            id: nodeProps
+            id: componentProps
 
             ColumnLayout {
                 spacing: 6
                 width: parent ? parent.width : 0
 
-                Label { text: "Node"; font.bold: true; font.pixelSize: 11; color: "#888" }
+                Label { text: "Component"; font.bold: true; font.pixelSize: 11; color: "#888" }
 
                 Label { text: "ID" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.node ? root.node.id : ""
-                    onEditingFinished: if (root.node) root.node.id = text
+                    text: root.component ? root.component.id : ""
+                    onEditingFinished: if (root.component) root.component.id = text
                 }
 
                 Label { text: "Label" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.node ? root.node.label : ""
-                    onEditingFinished: if (root.node) root.node.label = text
+                    text: root.component ? root.component.label : ""
+                    onEditingFinished: if (root.component) root.component.label = text
                 }
 
                 Label { text: "Color" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.node ? root.node.color : ""
-                    onEditingFinished: if (root.node) root.node.color = text
+                    text: root.component ? root.component.color : ""
+                    onEditingFinished: if (root.component) root.component.color = text
                 }
 
                 Label { text: "Type" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.node ? root.node.type : ""
-                    onEditingFinished: if (root.node) root.node.type = text
+                    text: root.component ? root.component.type : ""
+                    onEditingFinished: if (root.component) root.component.type = text
                 }
 
                 Label { text: "X" }
                 SpinBox {
                     Layout.fillWidth: true
                     from: -9999; to: 9999
-                    value: root.node ? Math.round(root.node.x) : 0
-                    onValueModified: if (root.node) root.node.x = value
+                    value: root.component ? Math.round(root.component.x) : 0
+                    onValueModified: if (root.component) root.component.x = value
                 }
 
                 Label { text: "Y" }
                 SpinBox {
                     Layout.fillWidth: true
                     from: -9999; to: 9999
-                    value: root.node ? Math.round(root.node.y) : 0
-                    onValueModified: if (root.node) root.node.y = value
+                    value: root.component ? Math.round(root.component.y) : 0
+                    onValueModified: if (root.component) root.component.y = value
                 }
             }
         }
 
-        // ---------- Edge properties ----------
+        // ---------- Connection properties ----------
         Loader {
-            active: root.edge !== null
+            active: root.connection !== null
             Layout.fillWidth: true
-            sourceComponent: edgeProps
+            sourceComponent: connectionProps
         }
 
         Component {
-            id: edgeProps
+            id: connectionProps
 
             ColumnLayout {
                 spacing: 6
                 width: parent ? parent.width : 0
 
-                Label { text: "Edge"; font.bold: true; font.pixelSize: 11; color: "#888" }
+                Label { text: "Connection"; font.bold: true; font.pixelSize: 11; color: "#888" }
 
                 Label { text: "ID" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.edge ? root.edge.id : ""
-                    onEditingFinished: if (root.edge) root.edge.id = text
+                    text: root.connection ? root.connection.id : ""
+                    onEditingFinished: if (root.connection) root.connection.id = text
                 }
 
                 Label { text: "Source" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.edge ? root.edge.sourceId : ""
-                    onEditingFinished: if (root.edge) root.edge.sourceId = text
+                    text: root.connection ? root.connection.sourceId : ""
+                    onEditingFinished: if (root.connection) root.connection.sourceId = text
                 }
 
                 Label { text: "Target" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.edge ? root.edge.targetId : ""
-                    onEditingFinished: if (root.edge) root.edge.targetId = text
+                    text: root.connection ? root.connection.targetId : ""
+                    onEditingFinished: if (root.connection) root.connection.targetId = text
                 }
 
                 Label { text: "Label" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.edge ? root.edge.label : ""
-                    onEditingFinished: if (root.edge) root.edge.label = text
+                    text: root.connection ? root.connection.label : ""
+                    onEditingFinished: if (root.connection) root.connection.label = text
                 }
             }
         }
 
         // Placeholder when nothing is selected
         Label {
-            visible: root.node === null && root.edge === null
-            text: "Select a node or edge\nto view its properties."
+            visible: root.component === null && root.connection === null
+            text: "Select a component or connection\nto view its properties."
             wrapMode: Text.WordWrap
             color: "#aaa"
             font.pixelSize: 12

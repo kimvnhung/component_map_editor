@@ -1,4 +1,4 @@
-// Edge.qml — A standalone directed-edge component drawn with QtQuick.Shapes.
+// Connection.qml — A standalone directed-connection component drawn with QtQuick.Shapes.
 // Place it inside any Item and set the four coordinate properties.
 import QtQuick
 import QtQuick.Shapes
@@ -7,7 +7,7 @@ import ComponentMapEditor
 Item {
     id: root
 
-    property EdgeModel edge: null
+    property ConnectionModel connection: null
     property real sourceX: 0
     property real sourceY: 0
     property real targetX: 100
@@ -54,10 +54,10 @@ Item {
         }
     }
 
-    // Edge label
+    // Connection label
     Text {
-        visible: root.edge && root.edge.label.length > 0
-        text: root.edge ? root.edge.label : ""
+        visible: root.connection && root.connection.label.length > 0
+        text: root.connection ? root.connection.label : ""
         x: (root.sourceX + root.targetX) / 2 - width / 2
         y: (root.sourceY + root.targetY) / 2 - height - 3
         color: root.selected ? "#ff5722" : "#607d8b"

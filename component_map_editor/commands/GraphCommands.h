@@ -5,54 +5,54 @@
 
 #include "GraphCommand.h"
 #include "models/GraphModel.h"
-#include "models/NodeModel.h"
-#include "models/EdgeModel.h"
+#include "models/ComponentModel.h"
+#include "models/ConnectionModel.h"
 
 // ---------------------------------------------------------------------------
-// AddNodeCommand
+// AddComponentCommand
 // ---------------------------------------------------------------------------
-class AddNodeCommand : public GraphCommand
+class AddComponentCommand : public GraphCommand
 {
 public:
-    AddNodeCommand(GraphModel *graph, NodeModel *node);
-    ~AddNodeCommand() override;
+    AddComponentCommand(GraphModel *graph, ComponentModel *component);
+    ~AddComponentCommand() override;
     void undo() override;
     void redo() override;
 
 private:
     GraphModel *m_graph;
-    NodeModel  *m_node;
-    bool        m_owned = false; // true while the command owns the node
+    ComponentModel  *m_component;
+    bool             m_owned = false; // true while the command owns the component
 };
 
 // ---------------------------------------------------------------------------
-// RemoveNodeCommand
+// RemoveComponentCommand
 // ---------------------------------------------------------------------------
-class RemoveNodeCommand : public GraphCommand
+class RemoveComponentCommand : public GraphCommand
 {
 public:
-    RemoveNodeCommand(GraphModel *graph, const QString &nodeId);
-    ~RemoveNodeCommand() override;
+    RemoveComponentCommand(GraphModel *graph, const QString &componentId);
+    ~RemoveComponentCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel *m_graph;
-    QString     m_nodeId;
-    NodeModel  *m_node   = nullptr;
-    bool        m_owned  = false;
+    GraphModel     *m_graph;
+    QString         m_componentId;
+    ComponentModel *m_component = nullptr;
+    bool            m_owned = false;
 };
 
 // ---------------------------------------------------------------------------
-// MoveNodeCommand — mergeable so that continuous drags collapse into one step
+// MoveComponentCommand — mergeable so that continuous drags collapse into one step
 // ---------------------------------------------------------------------------
-class MoveNodeCommand : public GraphCommand
+class MoveComponentCommand : public GraphCommand
 {
 public:
     static constexpr int CommandId = 1001;
 
-    MoveNodeCommand(GraphModel *graph, const QString &nodeId,
-                    qreal oldX, qreal oldY, qreal newX, qreal newY);
+    MoveComponentCommand(GraphModel *graph, const QString &componentId,
+                         qreal oldX, qreal oldY, qreal newX, qreal newY);
 
     void undo() override;
     void redo() override;
@@ -61,44 +61,44 @@ public:
 
 private:
     GraphModel *m_graph;
-    QString     m_nodeId;
+    QString     m_componentId;
     qreal       m_oldX, m_oldY;
     qreal       m_newX, m_newY;
 };
 
 // ---------------------------------------------------------------------------
-// AddEdgeCommand
+// AddConnectionCommand
 // ---------------------------------------------------------------------------
-class AddEdgeCommand : public GraphCommand
+class AddConnectionCommand : public GraphCommand
 {
 public:
-    AddEdgeCommand(GraphModel *graph, EdgeModel *edge);
-    ~AddEdgeCommand() override;
+    AddConnectionCommand(GraphModel *graph, ConnectionModel *connection);
+    ~AddConnectionCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel *m_graph;
-    EdgeModel  *m_edge;
-    bool        m_owned = false;
+    GraphModel      *m_graph;
+    ConnectionModel *m_connection;
+    bool             m_owned = false;
 };
 
 // ---------------------------------------------------------------------------
-// RemoveEdgeCommand
+// RemoveConnectionCommand
 // ---------------------------------------------------------------------------
-class RemoveEdgeCommand : public GraphCommand
+class RemoveConnectionCommand : public GraphCommand
 {
 public:
-    RemoveEdgeCommand(GraphModel *graph, const QString &edgeId);
-    ~RemoveEdgeCommand() override;
+    RemoveConnectionCommand(GraphModel *graph, const QString &connectionId);
+    ~RemoveConnectionCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel *m_graph;
-    QString     m_edgeId;
-    EdgeModel  *m_edge  = nullptr;
-    bool        m_owned = false;
+    GraphModel      *m_graph;
+    QString          m_connectionId;
+    ConnectionModel *m_connection = nullptr;
+    bool             m_owned = false;
 };
 
 #endif // GRAPHCOMMANDS_H

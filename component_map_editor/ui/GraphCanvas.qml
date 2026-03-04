@@ -1,6 +1,6 @@
 // GraphCanvas.qml — The main editing surface.
-// Displays a grid background, draws edges imperatively via a Canvas item,
-// and renders nodes as interactive Node delegates.
+// Displays a grid background, draws connections imperatively via a Canvas item,
+// and renders components as interactive ComponentItem delegates.
 import QtQuick
 import ComponentMapEditor
 import "GraphCanvasMath.js" as GraphCanvasMath
@@ -8,9 +8,9 @@ import "GraphCanvasMath.js" as GraphCanvasMath
 Item {
     id: root
 
-    // Half-size of a node card, used to centre edge endpoints on node centres.
-    readonly property int nodeHalfW: 60
-    readonly property int nodeHalfH: 20
+    // Half-size of a component card, used to centre connection endpoints.
+    readonly property int componentHalfW: 60
+    readonly property int componentHalfH: 20
 
     // Camera tuning constants (world <-> screen transform behavior).
     readonly property real defaultZoom: 1.0
@@ -26,8 +26,8 @@ Item {
     readonly property real panStartThreshold: 3
 
     property GraphModel  graph: null
-    property NodeModel   selectedNode: null
-    property EdgeModel   selectedEdge: null
+    property ComponentModel selectedComponent: null
+    property ConnectionModel selectedConnection: null
     property UndoStack   undoStack: null
     property real zoom: defaultZoom
     property real minZoom: 0.35
@@ -36,8 +36,8 @@ Item {
     property real panY: 0
     readonly property point worldOrigin: screenToWorld(0, 0)
 
-    signal nodeSelected(NodeModel node)
-    signal edgeSelected(EdgeModel edge)
+    signal componentSelected(ComponentModel component)
+    signal connectionSelected(ConnectionModel connection)
     signal backgroundClicked(real x, real y)
     signal viewTransformChanged(real panX, real panY, real zoom)
 
@@ -148,8 +148,8 @@ Item {
 
         onReleased: mouse => {
             if (!panning) {
-                root.selectedNode = null
-                root.selectedEdge = null
+                root.selectedComponent = null
+                root.selectedConnection = null
                 var worldPos = root.screenToWorld(mouse.x, mouse.y)
                 root.backgroundClicked(worldPos.x, worldPos.y)
             }
@@ -169,8 +169,8 @@ Item {
         y: root.panY
         scale: root.zoom
 
-        // Edges — drawn imperatively so that moving a node instantly updates all
-        // connected edges without requiring per-edge property bindings.
+        // Connections — drawn imperatively so that moving a component instantly
+        // updates all connected lines without requiring per-connection bindings.
         Canvas {
             id: edgeCanvas
             anchors.fill: parent
@@ -182,45 +182,45 @@ Item {
                 ctx.clearRect(0, 0, width, height)
                 if (!root.graph) return
 
-                var edges = root.graph.edges
-                for (var i = 0; i < edges.length; i++) {
-                    var edge = edges[i]
-                    var src  = root.graph.nodeById(edge.sourceId)
-                    var tgt  = root.graph.nodeById(edge.targetId)
+                var connections = root.graph.connections
+                for (var i = 0; i < connections.length; i++) {
+                    var connection = connections[i]
+                    var src  = root.graph.componentById(connection.sourceId)
+                    var tgt  = root.graph.componentById(connection.targetId)
                     if (!src || !tgt) continue
 
-                    var srcCenter = GraphCanvasMath.nodeCenter(src, root.nodeHalfW, root.nodeHalfH)
-                    var tgtCenter = GraphCanvasMath.nodeCenter(tgt, root.nodeHalfW, root.nodeHalfH)
+                    var srcCenter = GraphCanvasMath.componentCenter(src, root.componentHalfW, root.componentHalfH)
+                    var tgtCenter = GraphCanvasMath.componentCenter(tgt, root.componentHalfW, root.componentHalfH)
 
-                    var isSel = (root.selectedEdge === edge)
-                    GraphCanvasMath.drawEdge(
+                    var isSel = (root.selectedConnection === connection)
+                    GraphCanvasMath.drawConnection(
                         ctx,
                         srcCenter.x,
                         srcCenter.y,
                         tgtCenter.x,
                         tgtCenter.y,
-                        edge.label,
+                        connection.label,
                         isSel
                     )
                 }
             }
         }
 
-        // Nodes
+        // Components
         Repeater {
-            model: root.graph ? root.graph.nodes : []
+            model: root.graph ? root.graph.components : []
 
-            delegate: Node {
+            delegate: ComponentItem {
                 required property var modelData
 
-                node:      modelData
-                selected:  root.selectedNode === modelData
+                component: modelData
+                selected:  root.selectedComponent === modelData
                 undoStack: root.undoStack
 
-                onNodeClicked: clickedNode => {
-                    root.selectedEdge = null
-                    root.selectedNode = clickedNode
-                    root.nodeSelected(clickedNode)
+                onComponentClicked: clickedComponent => {
+                    root.selectedConnection = null
+                    root.selectedComponent = clickedComponent
+                    root.componentSelected(clickedComponent)
                     edgeCanvas.repaint()
                 }
 
@@ -234,11 +234,11 @@ Item {
         target: root.graph
         enabled: root.graph !== null
 
-        function onNodesChanged() { edgeCanvas.repaint() }
-        function onEdgesChanged() { edgeCanvas.repaint() }
+        function onComponentsChanged() { edgeCanvas.repaint() }
+        function onConnectionsChanged() { edgeCanvas.repaint() }
     }
 
-    onSelectedEdgeChanged: edgeCanvas.repaint()
+    onSelectedConnectionChanged: edgeCanvas.repaint()
     onGraphChanged:        edgeCanvas.repaint()
     onPanXChanged: {
         gridCanvas.requestPaint()

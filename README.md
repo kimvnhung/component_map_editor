@@ -1,106 +1,62 @@
 # component_map_editor
 
-A reusable **Qt / QML module** (`ComponentMapEditor`) for building interactive
-graph / component-map editors.  The module exposes C++ models, services and
-commands together with a set of ready-made QML components that can be dropped
-into any Qt 6 CMake project.
-
----
+A reusable Qt/QML module (ComponentMapEditor) for building interactive graph or component-map editors.
+The module exposes C++ models, services, and commands together with ready-made QML components.
 
 ## Project structure
 
-```
-componentmapeditor/                   ← reusable QML module (URI: ComponentMapEditor)
-├── models/
-│   ├── NodeModel              QML element – a graph node (id, label, x, y, color, type)
-│   ├── EdgeModel              QML element – a directed edge (id, sourceId, targetId, label)
-│   └── GraphModel             QML element – holds node + edge lists; CRUD methods
-├── services/
-│   ├── ValidationService      QML element – validates graph integrity
-│   └── ExportService          QML element – JSON serialisation / deserialisation
-├── ui/
-│   ├── GraphCanvas.qml        Interactive canvas: grid, draggable nodes, edge rendering
-│   ├── Node.qml               Draggable node card
-│   ├── Edge.qml               Directed-edge Shape component
-│   ├── Palette.qml            Sidebar for adding new node types
-│   └── PropertyPanel.qml      Inspector panel for the selected node / edge
-└── commands/
-    ├── UndoStack               QML element — custom undo/redo stack (no Qt Widgets dependency)
-    └── GraphCommands           C++ GraphCommand subclasses (Add/Remove/Move node & edge)
+component_map_editor/
+- models/
+  - ComponentModel: QML element for a graph component (id, label, x, y, color, type)
+  - ConnectionModel: QML element for a directed connection (id, sourceId, targetId, label)
+  - GraphModel: QML element holding component + connection lists and CRUD methods
+- services/
+  - ValidationService: validates graph integrity
+  - ExportService: JSON serialization/deserialization
+- ui/
+  - GraphCanvas.qml: interactive canvas (grid, draggable components, connection rendering)
+  - ComponentItem.qml: draggable component card delegate
+  - Connection.qml: directed-connection Shape component
+  - Palette.qml: sidebar for adding new component types
+  - PropertyPanel.qml: inspector panel for selected component/connection
+- commands/
+  - UndoStack: custom undo/redo stack (no Qt Widgets dependency)
+  - GraphCommands: GraphCommand subclasses (Add/Remove/Move component & connection)
 
-example/                       ← standalone demo application
-```
-
----
+example/
+- standalone demo application
 
 ## Requirements
 
-| Dependency | Minimum version |
-|------------|----------------|
-| Qt         | 6.5            |
-| CMake      | 3.21           |
-| C++        | 17             |
+- Qt: 6.5+
+- CMake: 3.21+
+- C++: 17
 
----
+## Build
 
-## Building
-
-```bash
 cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt6
 cmake --build build
-```
 
-The example application is built automatically as `build/example/example_app`.
-
----
-
-## Using the module in your own project
-
-### Option A – add_subdirectory
-
-```cmake
-# In your CMakeLists.txt
-add_subdirectory(path/to/component_map_editor/componentmapeditor)
-
-target_link_libraries(my_app PRIVATE componentmapeditor componentmapeditorplugin)
-```
-
-In `main.cpp` add:
-```cpp
-#include <QtPlugin>
-Q_IMPORT_QML_PLUGIN(ComponentMapEditorPlugin)
-```
-
-Then in QML:
-```qml
-import ComponentMapEditor
-
-GraphModel  { id: graph }
-UndoStack   { id: undoStack }
-GraphCanvas { graph: graph; undoStack: undoStack; anchors.fill: parent }
-```
-
-### Option B – install & find_package *(coming soon)*
-
----
+The example application is built as build/example/example_app.
 
 ## QML API summary
 
-| Type               | Key properties / methods |
-|--------------------|--------------------------|
-| `NodeModel`        | `id`, `label`, `x`, `y`, `color`, `type` |
-| `EdgeModel`        | `id`, `sourceId`, `targetId`, `label` |
-| `GraphModel`       | `nodes`, `edges`, `addNode()`, `removeNode()`, `addEdge()`, `removeEdge()`, `nodeById()`, `edgeById()`, `clear()` |
-| `ValidationService`| `validate(graph)`, `validationErrors(graph)` |
-| `ExportService`    | `exportToJson(graph)`, `importFromJson(graph, json)` |
-| `UndoStack`        | `canUndo`, `canRedo`, `undoText`, `redoText`, `undo()`, `redo()`, `clear()` |
-| `GraphCanvas`      | `graph`, `undoStack`, `selectedNode`, `selectedEdge` |
-| `Node`             | `node`, `selected`, `undoStack` |
-| `Edge`             | `edge`, `sourceX/Y`, `targetX/Y`, `selected` |
-| `Palette`          | `graph`, `undoStack` |
-| `PropertyPanel`    | `node`, `edge` |
+- ComponentModel: id, label, x, y, color, type
+- ConnectionModel: id, sourceId, targetId, label
+- GraphModel: components, connections, addComponent(), removeComponent(), addConnection(), removeConnection(), componentById(), connectionById(), clear()
+- ValidationService: validate(graph), validationErrors(graph)
+- ExportService: exportToJson(graph), importFromJson(graph, json)
+- UndoStack: canUndo, canRedo, undoText, redoText, undo(), redo(), clear()
+- GraphCanvas: graph, undoStack, selectedComponent, selectedConnection
+- ComponentItem: component, selected, undoStack
+- Connection: connection, sourceX/Y, targetX/Y, selected
+- Palette: graph, undoStack
+- PropertyPanel: component, connection
 
----
+## Naming note
+
+- The project intentionally avoids creating a QML type named Component because QtQuick already provides a built-in Component type.
+- The visual delegate is named ComponentItem to avoid ambiguity, while model naming uses ComponentModel.
 
 ## License
 

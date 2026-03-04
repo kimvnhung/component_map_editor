@@ -4,104 +4,104 @@ GraphModel::GraphModel(QObject *parent)
     : QObject(parent)
 {}
 
-QVariantList GraphModel::nodesVariant() const
+QVariantList GraphModel::componentsVariant() const
 {
     QVariantList list;
-    list.reserve(m_nodes.size());
-    for (NodeModel *n : m_nodes)
-        list.append(QVariant::fromValue(n));
+    list.reserve(m_components.size());
+    for (ComponentModel *component : m_components)
+        list.append(QVariant::fromValue(component));
     return list;
 }
 
-QVariantList GraphModel::edgesVariant() const
+QVariantList GraphModel::connectionsVariant() const
 {
     QVariantList list;
-    list.reserve(m_edges.size());
-    for (EdgeModel *e : m_edges)
-        list.append(QVariant::fromValue(e));
+    list.reserve(m_connections.size());
+    for (ConnectionModel *connection : m_connections)
+        list.append(QVariant::fromValue(connection));
     return list;
 }
 
-int GraphModel::nodeCount() const { return m_nodes.size(); }
-int GraphModel::edgeCount() const { return m_edges.size(); }
+int GraphModel::componentCount() const { return m_components.size(); }
+int GraphModel::connectionCount() const { return m_connections.size(); }
 
-const QList<NodeModel *> &GraphModel::nodeList() const { return m_nodes; }
-const QList<EdgeModel *> &GraphModel::edgeList() const { return m_edges; }
+const QList<ComponentModel *> &GraphModel::componentList() const { return m_components; }
+const QList<ConnectionModel *> &GraphModel::connectionList() const { return m_connections; }
 
-void GraphModel::addNode(NodeModel *node)
+void GraphModel::addComponent(ComponentModel *component)
 {
-    if (!node || nodeById(node->id()))
+    if (!component || componentById(component->id()))
         return;
-    node->setParent(this);
-    m_nodes.append(node);
-    emit nodeAdded(node);
-    emit nodesChanged();
+    component->setParent(this);
+    m_components.append(component);
+    emit componentAdded(component);
+    emit componentsChanged();
 }
 
-bool GraphModel::removeNode(const QString &id)
+bool GraphModel::removeComponent(const QString &id)
 {
-    for (int i = 0; i < m_nodes.size(); ++i) {
-        if (m_nodes.at(i)->id() == id) {
-            NodeModel *node = m_nodes.takeAt(i);
-            emit nodeRemoved(id);
-            emit nodesChanged();
-            node->setParent(nullptr);
+    for (int i = 0; i < m_components.size(); ++i) {
+        if (m_components.at(i)->id() == id) {
+            ComponentModel *component = m_components.takeAt(i);
+            emit componentRemoved(id);
+            emit componentsChanged();
+            component->setParent(nullptr);
             return true;
         }
     }
     return false;
 }
 
-NodeModel *GraphModel::nodeById(const QString &id) const
+ComponentModel *GraphModel::componentById(const QString &id) const
 {
-    for (NodeModel *n : m_nodes) {
-        if (n->id() == id)
-            return n;
+    for (ComponentModel *component : m_components) {
+        if (component->id() == id)
+            return component;
     }
     return nullptr;
 }
 
-void GraphModel::addEdge(EdgeModel *edge)
+void GraphModel::addConnection(ConnectionModel *connection)
 {
-    if (!edge || edgeById(edge->id()))
+    if (!connection || connectionById(connection->id()))
         return;
-    edge->setParent(this);
-    m_edges.append(edge);
-    emit edgeAdded(edge);
-    emit edgesChanged();
+    connection->setParent(this);
+    m_connections.append(connection);
+    emit connectionAdded(connection);
+    emit connectionsChanged();
 }
 
-bool GraphModel::removeEdge(const QString &id)
+bool GraphModel::removeConnection(const QString &id)
 {
-    for (int i = 0; i < m_edges.size(); ++i) {
-        if (m_edges.at(i)->id() == id) {
-            EdgeModel *edge = m_edges.takeAt(i);
-            emit edgeRemoved(id);
-            emit edgesChanged();
-            edge->setParent(nullptr);
+    for (int i = 0; i < m_connections.size(); ++i) {
+        if (m_connections.at(i)->id() == id) {
+            ConnectionModel *connection = m_connections.takeAt(i);
+            emit connectionRemoved(id);
+            emit connectionsChanged();
+            connection->setParent(nullptr);
             return true;
         }
     }
     return false;
 }
 
-EdgeModel *GraphModel::edgeById(const QString &id) const
+ConnectionModel *GraphModel::connectionById(const QString &id) const
 {
-    for (EdgeModel *e : m_edges) {
-        if (e->id() == id)
-            return e;
+    for (ConnectionModel *connection : m_connections) {
+        if (connection->id() == id)
+            return connection;
     }
     return nullptr;
 }
 
 void GraphModel::clear()
 {
-    if (!m_edges.isEmpty()) {
-        m_edges.clear();
-        emit edgesChanged();
+    if (!m_connections.isEmpty()) {
+        m_connections.clear();
+        emit connectionsChanged();
     }
-    if (!m_nodes.isEmpty()) {
-        m_nodes.clear();
-        emit nodesChanged();
+    if (!m_components.isEmpty()) {
+        m_components.clear();
+        emit componentsChanged();
     }
 }

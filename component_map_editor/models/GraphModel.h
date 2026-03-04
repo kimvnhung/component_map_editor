@@ -5,52 +5,52 @@
 #include <QList>
 #include <QVariantList>
 
-#include "NodeModel.h"
-#include "EdgeModel.h"
+#include "ComponentModel.h"
+#include "ConnectionModel.h"
 
 class GraphModel : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(QVariantList nodes READ nodesVariant NOTIFY nodesChanged FINAL)
-    Q_PROPERTY(QVariantList edges READ edgesVariant NOTIFY edgesChanged FINAL)
-    Q_PROPERTY(int nodeCount READ nodeCount NOTIFY nodesChanged FINAL)
-    Q_PROPERTY(int edgeCount READ edgeCount NOTIFY edgesChanged FINAL)
+    Q_PROPERTY(QVariantList components READ componentsVariant NOTIFY componentsChanged FINAL)
+    Q_PROPERTY(QVariantList connections READ connectionsVariant NOTIFY connectionsChanged FINAL)
+    Q_PROPERTY(int componentCount READ componentCount NOTIFY componentsChanged FINAL)
+    Q_PROPERTY(int connectionCount READ connectionCount NOTIFY connectionsChanged FINAL)
 
 public:
     explicit GraphModel(QObject *parent = nullptr);
 
-    QVariantList nodesVariant() const;
-    QVariantList edgesVariant() const;
+    QVariantList componentsVariant() const;
+    QVariantList connectionsVariant() const;
 
-    int nodeCount() const;
-    int edgeCount() const;
+    int componentCount() const;
+    int connectionCount() const;
 
-    const QList<NodeModel *> &nodeList() const;
-    const QList<EdgeModel *> &edgeList() const;
+    const QList<ComponentModel *> &componentList() const;
+    const QList<ConnectionModel *> &connectionList() const;
 
-    Q_INVOKABLE void addNode(NodeModel *node);
-    Q_INVOKABLE bool removeNode(const QString &id);
-    Q_INVOKABLE NodeModel *nodeById(const QString &id) const;
+    Q_INVOKABLE void addComponent(ComponentModel *component);
+    Q_INVOKABLE bool removeComponent(const QString &id);
+    Q_INVOKABLE ComponentModel *componentById(const QString &id) const;
 
-    Q_INVOKABLE void addEdge(EdgeModel *edge);
-    Q_INVOKABLE bool removeEdge(const QString &id);
-    Q_INVOKABLE EdgeModel *edgeById(const QString &id) const;
+    Q_INVOKABLE void addConnection(ConnectionModel *connection);
+    Q_INVOKABLE bool removeConnection(const QString &id);
+    Q_INVOKABLE ConnectionModel *connectionById(const QString &id) const;
 
     Q_INVOKABLE void clear();
 
 signals:
-    void nodeAdded(NodeModel *node);
-    void nodeRemoved(const QString &id);
-    void edgeAdded(EdgeModel *edge);
-    void edgeRemoved(const QString &id);
-    void nodesChanged();
-    void edgesChanged();
+    void componentAdded(ComponentModel *component);
+    void componentRemoved(const QString &id);
+    void connectionAdded(ConnectionModel *connection);
+    void connectionRemoved(const QString &id);
+    void componentsChanged();
+    void connectionsChanged();
 
 private:
-    QList<NodeModel *> m_nodes;
-    QList<EdgeModel *> m_edges;
+    QList<ComponentModel *> m_components;
+    QList<ConnectionModel *> m_connections;
 };
 
 #endif // GRAPHMODEL_H

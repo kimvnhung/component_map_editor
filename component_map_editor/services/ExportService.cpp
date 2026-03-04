@@ -13,31 +13,31 @@ QString ExportService::exportToJson(GraphModel *graph)
     if (!graph)
         return QStringLiteral("{}");
 
-    QJsonArray nodesArray;
-    for (const NodeModel *node : graph->nodeList()) {
+    QJsonArray componentsArray;
+    for (const ComponentModel *component : graph->componentList()) {
         QJsonObject obj;
-        obj[QStringLiteral("id")]    = node->id();
-        obj[QStringLiteral("label")] = node->label();
-        obj[QStringLiteral("x")]     = node->x();
-        obj[QStringLiteral("y")]     = node->y();
-        obj[QStringLiteral("color")] = node->color();
-        obj[QStringLiteral("type")]  = node->type();
-        nodesArray.append(obj);
+        obj[QStringLiteral("id")]    = component->id();
+        obj[QStringLiteral("label")] = component->label();
+        obj[QStringLiteral("x")]     = component->x();
+        obj[QStringLiteral("y")]     = component->y();
+        obj[QStringLiteral("color")] = component->color();
+        obj[QStringLiteral("type")]  = component->type();
+        componentsArray.append(obj);
     }
 
-    QJsonArray edgesArray;
-    for (const EdgeModel *edge : graph->edgeList()) {
+    QJsonArray connectionsArray;
+    for (const ConnectionModel *connection : graph->connectionList()) {
         QJsonObject obj;
-        obj[QStringLiteral("id")]       = edge->id();
-        obj[QStringLiteral("sourceId")] = edge->sourceId();
-        obj[QStringLiteral("targetId")] = edge->targetId();
-        obj[QStringLiteral("label")]    = edge->label();
-        edgesArray.append(obj);
+        obj[QStringLiteral("id")]       = connection->id();
+        obj[QStringLiteral("sourceId")] = connection->sourceId();
+        obj[QStringLiteral("targetId")] = connection->targetId();
+        obj[QStringLiteral("label")]    = connection->label();
+        connectionsArray.append(obj);
     }
 
     QJsonObject root;
-    root[QStringLiteral("nodes")] = nodesArray;
-    root[QStringLiteral("edges")] = edgesArray;
+    root[QStringLiteral("components")] = componentsArray;
+    root[QStringLiteral("connections")] = connectionsArray;
 
     return QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Indented));
 }
@@ -56,28 +56,28 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
 
     graph->clear();
 
-    const QJsonArray nodes = root[QStringLiteral("nodes")].toArray();
-    for (const QJsonValue &v : nodes) {
+    const QJsonArray components = root[QStringLiteral("components")].toArray();
+    for (const QJsonValue &v : components) {
         const QJsonObject obj = v.toObject();
-        auto *node = new NodeModel(
+        auto *component = new ComponentModel(
             obj[QStringLiteral("id")].toString(),
             obj[QStringLiteral("label")].toString(),
             obj[QStringLiteral("x")].toDouble(),
             obj[QStringLiteral("y")].toDouble(),
             obj[QStringLiteral("color")].toString(QStringLiteral("#4fc3f7")),
             obj[QStringLiteral("type")].toString(QStringLiteral("default")));
-        graph->addNode(node);
+        graph->addComponent(component);
     }
 
-    const QJsonArray edges = root[QStringLiteral("edges")].toArray();
-    for (const QJsonValue &v : edges) {
+    const QJsonArray connections = root[QStringLiteral("connections")].toArray();
+    for (const QJsonValue &v : connections) {
         const QJsonObject obj = v.toObject();
-        auto *edge = new EdgeModel(
+        auto *connection = new ConnectionModel(
             obj[QStringLiteral("id")].toString(),
             obj[QStringLiteral("sourceId")].toString(),
             obj[QStringLiteral("targetId")].toString(),
             obj[QStringLiteral("label")].toString());
-        graph->addEdge(edge);
+        graph->addConnection(connection);
     }
 
     return true;

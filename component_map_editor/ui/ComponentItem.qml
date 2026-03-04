@@ -1,51 +1,51 @@
-// Node.qml — A draggable node card displayed on the GraphCanvas.
+// ComponentItem.qml — A draggable component card displayed on the GraphCanvas.
 import QtQuick
 import ComponentMapEditor
 
 Item {
     id: root
 
-    property NodeModel node: null
+    property ComponentModel component: null
     property bool selected: false
     property UndoStack undoStack: null
 
-    // Dimensions used by GraphCanvas to compute edge endpoints.
-    readonly property int nodeWidth:  120
-    readonly property int nodeHeight: 40
+    // Dimensions used by GraphCanvas to compute connection endpoints.
+    readonly property int componentWidth:  120
+    readonly property int componentHeight: 40
 
-    signal nodeClicked(NodeModel node)
-    // Emitted after a drag finishes so the canvas can redraw edges.
+    signal componentClicked(ComponentModel component)
+    // Emitted after a drag finishes so the canvas can redraw connections.
     signal positionChanged()
 
-    width:  nodeWidth
-    height: nodeHeight
+    width:  componentWidth
+    height: componentHeight
     z: selected ? 2 : 1
 
     // Initialise position from the model; don't bind so dragging works.
     Component.onCompleted: {
-        if (root.node) {
-            x = root.node.x
-            y = root.node.y
+        if (root.component) {
+            x = root.component.x
+            y = root.component.y
         }
     }
 
     // Keep position in sync when the model is updated externally.
     Connections {
-        target: root.node
-        function onXChanged() { if (!dragArea.drag.active) root.x = root.node.x }
-        function onYChanged() { if (!dragArea.drag.active) root.y = root.node.y }
+        target: root.component
+        function onXChanged() { if (!dragArea.drag.active) root.x = root.component.x }
+        function onYChanged() { if (!dragArea.drag.active) root.y = root.component.y }
     }
 
     Rectangle {
         anchors.fill: parent
         radius: 6
-        color: root.node ? root.node.color : "#4fc3f7"
+        color: root.component ? root.component.color : "#4fc3f7"
         border.color: root.selected ? "#ff5722" : Qt.darker(color, 1.4)
         border.width: root.selected ? 2.5 : 1.5
 
         Text {
             anchors.centerIn: parent
-            text: root.node ? root.node.label : ""
+            text: root.component ? root.component.label : ""
             color: "white"
             font.bold: true
             font.pixelSize: 13
@@ -60,12 +60,12 @@ Item {
             drag.target: root
             drag.threshold: 4
 
-            onClicked: root.nodeClicked(root.node)
+            onClicked: root.componentClicked(root.component)
 
             onReleased: {
-                if (drag.active && root.node) {
-                    root.node.x = root.x
-                    root.node.y = root.y
+                if (drag.active && root.component) {
+                    root.component.x = root.x
+                    root.component.y = root.y
                     root.positionChanged()
                 }
             }

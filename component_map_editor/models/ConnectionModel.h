@@ -1,11 +1,11 @@
-#ifndef EDGEMODEL_H
-#define EDGEMODEL_H
+#ifndef CONNECTIONMODEL_H
+#define CONNECTIONMODEL_H
 
 #include <QObject>
 #include <QString>
 #include <QQmlEngine>
 
-class EdgeModel : public QObject
+class ConnectionModel : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
@@ -16,10 +16,10 @@ class EdgeModel : public QObject
     Q_PROPERTY(QString label READ label WRITE setLabel NOTIFY labelChanged FINAL)
 
 public:
-    explicit EdgeModel(QObject *parent = nullptr);
-    EdgeModel(const QString &id, const QString &sourceId,
-              const QString &targetId, const QString &label = QString(),
-              QObject *parent = nullptr);
+    explicit ConnectionModel(QObject *parent = nullptr);
+    ConnectionModel(const QString &id, const QString &sourceId,
+                    const QString &targetId, const QString &label = QString(),
+                    QObject *parent = nullptr);
 
     QString id() const;
     void setId(const QString &id);
@@ -46,4 +46,4 @@ private:
     QString m_label;
 };
 
-#endif // EDGEMODEL_H
+#endif // CONNECTIONMODEL_H
