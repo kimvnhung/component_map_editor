@@ -92,6 +92,7 @@ Item {
             anchors.fill: parent
             drag.target: root
             drag.threshold: 4
+            cursorShape: pressed || drag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
 
             onClicked: root.componentClicked(root.component)
 

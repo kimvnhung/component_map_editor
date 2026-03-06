@@ -111,6 +111,7 @@ Item {
         anchors.fill: parent
         z: 0
         acceptedButtons: Qt.LeftButton
+        cursorShape: panning ? Qt.ClosedHandCursor : Qt.ArrowCursor
 
         property real pressX: 0
         property real pressY: 0
@@ -149,6 +150,8 @@ Item {
                 var worldPos = root.screenToWorld(mouse.x, mouse.y)
                 root.backgroundClicked(worldPos.x, worldPos.y)
             }
+
+            panning = false
         }
 
         onWheel: wheel => {
