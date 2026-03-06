@@ -20,6 +20,8 @@ ResizableItem {
     minItemHeight: minComponentHeight
     handleSize: 10
     handlesVisible: selected
+    moveEnabled: true
+    moveDragThreshold: 4
 
     // Model space uses Y-up, while Qt item space uses Y-down.
     function modelYToSceneTop(modelY) {
@@ -49,6 +51,11 @@ ResizableItem {
     height: defaultComponentHeight
     z: selected ? 2 : 1
 
+    onClicked: root.componentClicked(root.component)
+    onMoveFinished: {
+        if (root.component)
+            syncModelFromItemGeometry()
+    }
     onResized: syncModelFromItemGeometry()
 
     // Initialise position from the model; don't bind so dragging works.
@@ -65,21 +72,21 @@ ResizableItem {
     Connections {
         target: root.component
         function onXChanged() {
-            if (!dragArea.drag.active && !root.resizing)
+            if (!root.moving && !root.resizing)
                 root.x = root.component.x - (root.width / 2)
         }
         function onYChanged() {
-            if (!dragArea.drag.active && !root.resizing)
+            if (!root.moving && !root.resizing)
                 root.y = modelYToSceneTop(root.component.y)
         }
         function onWidthChanged() {
-            if (!dragArea.drag.active && !root.resizing) {
+            if (!root.moving && !root.resizing) {
                 root.width = root.component.width
                 root.x = root.component.x - (root.width / 2)
             }
         }
         function onHeightChanged() {
-            if (!dragArea.drag.active && !root.resizing) {
+            if (!root.moving && !root.resizing) {
                 root.height = root.component.height
                 root.y = modelYToSceneTop(root.component.y)
             }
@@ -111,22 +118,6 @@ ResizableItem {
             elide: Text.ElideRight
             width: parent.width - 12
             horizontalAlignment: Text.AlignHCenter
-        }
-
-        MouseArea {
-            id: dragArea
-            anchors.fill: parent
-            drag.target: root
-            drag.threshold: 4
-            cursorShape: pressed || drag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
-
-            onClicked: root.componentClicked(root.component)
-
-            onReleased: {
-                if (drag.active && root.component) {
-                    syncModelFromItemGeometry()
-                }
-            }
         }
 
         Repeater {

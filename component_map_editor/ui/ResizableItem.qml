@@ -3,13 +3,20 @@ import QtQuick
 Item {
     id: root
 
+    property bool moveEnabled: true
     property bool resizeEnabled: true
     property bool handlesVisible: false
     property real minItemWidth: 40
     property real minItemHeight: 24
     property real handleSize: 10
+    property real moveDragThreshold: 4
+    property bool moving: false
     property bool resizing: false
 
+    signal clicked()
+    signal moveStarted()
+    signal moved()
+    signal moveFinished()
     signal resizeStarted()
     signal resized()
     signal resizeFinished()
@@ -42,6 +49,42 @@ Item {
     Item {
         id: contentHost
         anchors.fill: parent
+    }
+
+    MouseArea {
+        id: moveArea
+        anchors.fill: parent
+        enabled: root.moveEnabled && !root.resizing
+        drag.target: root
+        drag.threshold: root.moveDragThreshold
+        cursorShape: pressed || drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+
+        onPressed: {
+            root.moving = false
+        }
+
+        onPositionChanged: {
+            if (!root.moving && drag.active) {
+                root.moving = true
+                root.moveStarted()
+            }
+
+            if (root.moving)
+                root.moved()
+        }
+
+        onClicked: {
+            root.clicked()
+        }
+
+        function finishMove() {
+            if (root.moving)
+                root.moveFinished()
+            root.moving = false
+        }
+
+        onReleased: finishMove()
+        onCanceled: finishMove()
     }
 
     Item {
