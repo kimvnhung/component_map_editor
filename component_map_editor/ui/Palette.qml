@@ -34,7 +34,7 @@ Rectangle {
         component.color = color
         component.type  = type
         component.x     = 150 + Math.random() * 200
-        component.y     = 100 + Math.random() * 200
+        component.y     = -(100 + Math.random() * 200)
         // AddComponentCommand (C++) can be used by callers wanting undoable adds.
         graph.addComponent(component)
     }

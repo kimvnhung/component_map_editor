@@ -22,13 +22,13 @@ function clamp(value, minValue, maxValue) {
 // (persistent graph coordinates used by ComponentModel.x/y).
 function screenToWorld(screenX, screenY, panX, panY, zoom) {
     return Qt.point((screenX - panX) / zoom,
-                    (screenY - panY) / zoom)
+                    -(screenY - panY) / zoom)
 }
 
 // Converts from world space (graph coordinates) to screen space (viewport).
 function worldToScreen(worldX, worldY, panX, panY, zoom) {
     return Qt.point(worldX * zoom + panX,
-                    worldY * zoom + panY)
+                    -worldY * zoom + panY)
 }
 
 // Returns a positive modulo in [0, modulus), useful for stable grid offsets
@@ -70,7 +70,7 @@ function zoomAtCursor(screenX, screenY,
         changed: true,
         zoom: nextZoom,
         panX: screenX - anchorWorld.x * nextZoom,
-        panY: screenY - anchorWorld.y * nextZoom
+        panY: screenY + anchorWorld.y * nextZoom
     }
 }
 

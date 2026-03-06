@@ -14,6 +14,15 @@ Item {
     readonly property real connectionPointRadius: 3
     readonly property bool isRounded: !root.component || root.component.shape === "rounded"
 
+    // Model space uses Y-up, while Qt item space uses Y-down.
+    function modelYToSceneTop(modelY) {
+        return -modelY - (root.height / 2)
+    }
+
+    function sceneTopToModelY(sceneTop) {
+        return -(sceneTop + (root.height / 2))
+    }
+
     signal componentClicked(ComponentModel component)
     // Emitted after a drag finishes so the canvas can redraw connections.
     signal positionChanged()
@@ -26,7 +35,7 @@ Item {
     Component.onCompleted: {
         if (root.component) {
             x = root.component.x - (root.width / 2)
-            y = root.component.y - (root.height / 2)
+            y = modelYToSceneTop(root.component.y)
         }
     }
 
@@ -39,7 +48,7 @@ Item {
         }
         function onYChanged() {
             if (!dragArea.drag.active)
-                root.y = root.component.y - (root.height / 2)
+                root.y = modelYToSceneTop(root.component.y)
         }
         function onWidthChanged() {
             if (!dragArea.drag.active)
@@ -47,7 +56,7 @@ Item {
         }
         function onHeightChanged() {
             if (!dragArea.drag.active)
-                root.y = root.component.y - (root.height / 2)
+                root.y = modelYToSceneTop(root.component.y)
         }
     }
 
@@ -89,7 +98,7 @@ Item {
             onReleased: {
                 if (drag.active && root.component) {
                     root.component.x = root.x + (root.width / 2)
-                    root.component.y = root.y + (root.height / 2)
+                    root.component.y = sceneTopToModelY(root.y)
                     root.positionChanged()
                 }
             }

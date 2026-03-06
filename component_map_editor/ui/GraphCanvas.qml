@@ -160,7 +160,8 @@ Item {
 
     Item {
         id: contentLayer
-        anchors.fill: parent
+        width: parent.width
+        height: parent.height
         x: root.panX
         y: root.panY
         scale: root.zoom

@@ -20,7 +20,7 @@ ApplicationWindow {
         Component.onCompleted: {
             // Seed some initial components
             var n1 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            n1.id = "n1"; n1.label = "Start";   n1.x = 80;  n1.y = 220
+            n1.id = "n1"; n1.label = "Start";   n1.x = 80;  n1.y = -220
             n1.color = "#26a69a"; n1.type = "start"
             graph.addComponent(n1)
 
