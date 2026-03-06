@@ -2,7 +2,7 @@
 import QtQuick
 import ComponentMapEditor
 
-Item {
+ResizableItem {
     id: root
 
     property ComponentModel component: null
@@ -11,8 +11,15 @@ Item {
 
     readonly property int defaultComponentWidth: 120
     readonly property int defaultComponentHeight: 40
+    readonly property int minComponentWidth: 40
+    readonly property int minComponentHeight: 24
     readonly property real connectionPointRadius: 3
     readonly property bool isRounded: !root.component || root.component.shape === "rounded"
+
+    minItemWidth: minComponentWidth
+    minItemHeight: minComponentHeight
+    handleSize: 10
+    handlesVisible: selected
 
     // Model space uses Y-up, while Qt item space uses Y-down.
     function modelYToSceneTop(modelY) {
@@ -27,13 +34,28 @@ Item {
     // Emitted after a drag finishes so the canvas can redraw connections.
     signal positionChanged()
 
-    width:  root.component ? root.component.width : defaultComponentWidth
-    height: root.component ? root.component.height : defaultComponentHeight
+    function syncModelFromItemGeometry() {
+        if (!root.component)
+            return
+
+        root.component.x = root.x + (root.width / 2)
+        root.component.y = sceneTopToModelY(root.y)
+        root.component.width = root.width
+        root.component.height = root.height
+        root.positionChanged()
+    }
+
+    width: defaultComponentWidth
+    height: defaultComponentHeight
     z: selected ? 2 : 1
+
+    onResized: syncModelFromItemGeometry()
 
     // Initialise position from the model; don't bind so dragging works.
     Component.onCompleted: {
         if (root.component) {
+            root.width = root.component.width
+            root.height = root.component.height
             x = root.component.x - (root.width / 2)
             y = modelYToSceneTop(root.component.y)
         }
@@ -43,20 +65,24 @@ Item {
     Connections {
         target: root.component
         function onXChanged() {
-            if (!dragArea.drag.active)
+            if (!dragArea.drag.active && !root.resizing)
                 root.x = root.component.x - (root.width / 2)
         }
         function onYChanged() {
-            if (!dragArea.drag.active)
+            if (!dragArea.drag.active && !root.resizing)
                 root.y = modelYToSceneTop(root.component.y)
         }
         function onWidthChanged() {
-            if (!dragArea.drag.active)
+            if (!dragArea.drag.active && !root.resizing) {
+                root.width = root.component.width
                 root.x = root.component.x - (root.width / 2)
+            }
         }
         function onHeightChanged() {
-            if (!dragArea.drag.active)
+            if (!dragArea.drag.active && !root.resizing) {
+                root.height = root.component.height
                 root.y = modelYToSceneTop(root.component.y)
+            }
         }
     }
 
@@ -98,9 +124,7 @@ Item {
 
             onReleased: {
                 if (drag.active && root.component) {
-                    root.component.x = root.x + (root.width / 2)
-                    root.component.y = sceneTopToModelY(root.y)
-                    root.positionChanged()
+                    syncModelFromItemGeometry()
                 }
             }
         }
