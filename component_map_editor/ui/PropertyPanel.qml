@@ -77,7 +77,9 @@ Rectangle {
                     Layout.fillWidth: true
                     model: ["rounded", "rectangle"]
                     currentIndex: root.component && root.component.shape === "rectangle" ? 1 : 0
-                    onActivated: if (root.component) root.component.shape = model[index]
+                    onActivated: function(index) {
+                        if (root.component) root.component.shape = model[index]
+                    }
                 }
 
                 Label { text: "X" }

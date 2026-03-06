@@ -106,10 +106,10 @@ Item {
 
         Repeater {
             model: [
-                Qt.point(width / 2, 0),
-                Qt.point(width, height / 2),
-                Qt.point(width / 2, height),
-                Qt.point(0, height / 2)
+                Qt.point(root.width / 2, 0),
+                Qt.point(root.width, root.height / 2),
+                Qt.point(root.width / 2, root.height),
+                Qt.point(0, root.height / 2)
             ]
 
             delegate: Rectangle {
