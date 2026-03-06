@@ -20,6 +20,9 @@ QString ExportService::exportToJson(GraphModel *graph)
         obj[QStringLiteral("label")] = component->label();
         obj[QStringLiteral("x")]     = component->x();
         obj[QStringLiteral("y")]     = component->y();
+        obj[QStringLiteral("width")] = component->width();
+        obj[QStringLiteral("height")] = component->height();
+        obj[QStringLiteral("shape")] = component->shape();
         obj[QStringLiteral("color")] = component->color();
         obj[QStringLiteral("type")]  = component->type();
         componentsArray.append(obj);
@@ -66,6 +69,11 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
             obj[QStringLiteral("y")].toDouble(),
             obj[QStringLiteral("color")].toString(QStringLiteral("#4fc3f7")),
             obj[QStringLiteral("type")].toString(QStringLiteral("default")));
+
+        component->setWidth(obj[QStringLiteral("width")].toDouble(120.0));
+        component->setHeight(obj[QStringLiteral("height")].toDouble(40.0));
+        component->setShape(obj[QStringLiteral("shape")].toString(QStringLiteral("rounded")));
+
         graph->addComponent(component);
     }
 

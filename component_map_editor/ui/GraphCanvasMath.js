@@ -75,9 +75,51 @@ function zoomAtCursor(screenX, screenY,
 }
 
 // Computes component center in world coordinates for connection endpoint placement.
-function componentCenter(component, componentHalfW, componentHalfH) {
-    return Qt.point(component.x + componentHalfW,
-                    component.y + componentHalfH)
+function componentCenter(component) {
+    return Qt.point(component.x, component.y)
+}
+
+// Returns the four canonical connection points on a component bounding box.
+// Component x/y are interpreted as the center of the box.
+function componentConnectionPoints(component) {
+    var center = componentCenter(component)
+    var halfW = component.width / 2
+    var halfH = component.height / 2
+
+    return {
+        left: Qt.point(center.x - halfW, center.y),
+        right: Qt.point(center.x + halfW, center.y),
+        top: Qt.point(center.x, center.y - halfH),
+        bottom: Qt.point(center.x, center.y + halfH)
+    }
+}
+
+// Chooses boundary endpoints for a connection between two components.
+// The side selection follows dominant axis direction from source to target.
+function connectionEndpointsOnBounding(sourceComponent, targetComponent) {
+    var srcCenter = componentCenter(sourceComponent)
+    var tgtCenter = componentCenter(targetComponent)
+    var dx = tgtCenter.x - srcCenter.x
+    var dy = tgtCenter.y - srcCenter.y
+
+    var srcPoints = componentConnectionPoints(sourceComponent)
+    var tgtPoints = componentConnectionPoints(targetComponent)
+
+    var sourcePoint
+    var targetPoint
+
+    if (Math.abs(dx) >= Math.abs(dy)) {
+        sourcePoint = dx >= 0 ? srcPoints.right : srcPoints.left
+        targetPoint = dx >= 0 ? tgtPoints.left : tgtPoints.right
+    } else {
+        sourcePoint = dy >= 0 ? srcPoints.bottom : srcPoints.top
+        targetPoint = dy >= 0 ? tgtPoints.top : tgtPoints.bottom
+    }
+
+    return {
+        source: sourcePoint,
+        target: targetPoint
+    }
 }
 
 // Draws a directed connection (line + arrow + optional label) on a 2D canvas.

@@ -72,6 +72,14 @@ Rectangle {
                     onEditingFinished: if (root.component) root.component.type = text
                 }
 
+                Label { text: "Shape" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["rounded", "rectangle"]
+                    currentIndex: root.component && root.component.shape === "rectangle" ? 1 : 0
+                    onActivated: if (root.component) root.component.shape = model[index]
+                }
+
                 Label { text: "X" }
                 SpinBox {
                     Layout.fillWidth: true
@@ -86,6 +94,22 @@ Rectangle {
                     from: -9999; to: 9999
                     value: root.component ? Math.round(root.component.y) : 0
                     onValueModified: if (root.component) root.component.y = value
+                }
+
+                Label { text: "Width" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 10; to: 9999
+                    value: root.component ? Math.round(root.component.width) : 120
+                    onValueModified: if (root.component) root.component.width = value
+                }
+
+                Label { text: "Height" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 10; to: 9999
+                    value: root.component ? Math.round(root.component.height) : 40
+                    onValueModified: if (root.component) root.component.height = value
                 }
             }
         }

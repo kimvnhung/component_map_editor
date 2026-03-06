@@ -25,6 +25,12 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
             errors << QStringLiteral("Duplicate component id: %1").arg(component->id());
         else
             componentIds.insert(component->id());
+
+        if (component->width() <= 0.0)
+            errors << QStringLiteral("Component '%1' has non-positive width").arg(component->id());
+
+        if (component->height() <= 0.0)
+            errors << QStringLiteral("Component '%1' has non-positive height").arg(component->id());
     }
 
     // Collect connection ids and validate references

@@ -8,10 +8,6 @@ import "GraphCanvasMath.js" as GraphCanvasMath
 Item {
     id: root
 
-    // Half-size of a component card, used to centre connection endpoints.
-    readonly property int componentHalfW: 60
-    readonly property int componentHalfH: 20
-
     // Camera tuning constants (world <-> screen transform behavior).
     readonly property real defaultZoom: 1.0
     readonly property real zoomStepFactor: 1.15
@@ -189,16 +185,15 @@ Item {
                     var tgt  = root.graph.componentById(connection.targetId)
                     if (!src || !tgt) continue
 
-                    var srcCenter = GraphCanvasMath.componentCenter(src, root.componentHalfW, root.componentHalfH)
-                    var tgtCenter = GraphCanvasMath.componentCenter(tgt, root.componentHalfW, root.componentHalfH)
+                    var endpoints = GraphCanvasMath.connectionEndpointsOnBounding(src, tgt)
 
                     var isSel = (root.selectedConnection === connection)
                     GraphCanvasMath.drawConnection(
                         ctx,
-                        srcCenter.x,
-                        srcCenter.y,
-                        tgtCenter.x,
-                        tgtCenter.y,
+                        endpoints.source.x,
+                        endpoints.source.y,
+                        endpoints.target.x,
+                        endpoints.target.y,
                         connection.label,
                         isSel
                     )
