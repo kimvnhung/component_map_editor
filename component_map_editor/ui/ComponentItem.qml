@@ -35,10 +35,30 @@ ResizableItem {
         return -(sceneTop + (root.height / 2))
     }
 
+    function directionToScenePoint(direction) {
+        switch (direction) {
+        case 0:
+            // up
+            return root.mapToItem(null, root.width / 2, 0)
+        case 1:
+            // right
+            return root.mapToItem(null, root.width, root.height / 2)
+        case 2:
+            // down
+            return root.mapToItem(null, root.width / 2, root.height)
+        case 3:
+            // left
+            return root.mapToItem(null, 0, root.height / 2)
+        }
+
+        return root.mapToItem(null, root.width / 2, root.height / 2)
+    }
+
     signal componentClicked(ComponentModel component)
 
-    signal connectionDragged(ComponentModel sourceComponent, int direction, real sceneX, real sceneY)
-    signal connectionDropped(ComponentModel sourceComponent, int direction, real sceneX, real sceneY)
+    // startP and targetP are in scene coordinates relative to the top-left of the view.
+    signal connectionDragged(ComponentModel sourceComponent, point startP, point targetP)
+    signal connectionDropped(ComponentModel sourceComponent, point startP, point targetP)
 
     function syncModelFromItemGeometry() {
         if (!root.component)
@@ -54,7 +74,12 @@ ResizableItem {
     height: defaultComponentHeight
     z: selected ? 2 : 1
 
-    onClicked: root.componentClicked(root.component)
+    onClicked: {
+        console.log("Component clicked:",
+                    root.component ? root.component.label : "null")
+        root.componentClicked(root.component)
+    }
+
     onMoveFinished: {
         if (root.component)
             syncModelFromItemGeometry()
@@ -131,12 +156,14 @@ ResizableItem {
             id: connectionHandler
             anchors.fill: parent
             onArrowDragged: function (direction, scenePos) {
-                root.connectionDragged(root.component, direction, scenePos.x,
-                                       scenePos.y)
+                root.connectionDragged(root.component,
+                                       root.directionToScenePoint(direction),
+                                       scenePos)
             }
             onArrowDropped: function (direction, scenePos) {
-                root.connectionDropped(root.component, direction, scenePos.x,
-                                       scenePos.y)
+                root.connectionDropped(root.component,
+                                       root.directionToScenePoint(direction),
+                                       scenePos)
             }
 
             onArrowActivatedChanged: {

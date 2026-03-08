@@ -274,19 +274,19 @@ Item {
                         root.enabledBackgroundDrag = !focused
                 }
 
-                onConnectionDragged: function (sourceComponent, direction, sceneX, sceneY) {
+                onConnectionDragged: function (sourceComponent, startP, targetP) {
                     root.tempConnectionDragging = true
-                    root.tempStart = root.componentCenterInContent(
-                                sourceComponent)
-                    root.tempEnd = root.sceneToContent(sceneX, sceneY)
+                    // Convert scene coordinates to content coordinates
+                    root.tempStart = root.sceneToContent(startP.x, startP.y)
+                    root.tempEnd = root.sceneToContent(targetP.x, targetP.y)
                     edgeCanvas.repaint()
                 }
-                onConnectionDropped: function (sourceComponent, direction, sceneX, sceneY) {
+                onConnectionDropped: function (sourceComponent, startP, targetP) {
                     root.tempConnectionDragging = false
                     root.tempStart = Qt.point(0, 0)
                     root.tempEnd = Qt.point(0, 0)
 
-                    var component = root.componentAtScene(sceneX, sceneY,
+                    var component = root.componentAtScene(targetP.x, targetP.y,
                                                           sourceComponent)
                     if (!component) {
                         console.log("Drop ignored: no target component")
