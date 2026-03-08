@@ -14,7 +14,8 @@ ResizableItem {
     readonly property int minComponentWidth: 40
     readonly property int minComponentHeight: 24
     readonly property real connectionPointRadius: 3
-    readonly property bool isRounded: !root.component || root.component.shape === "rounded"
+    readonly property bool isRounded: !root.component
+                                      || root.component.shape === "rounded"
 
     minItemWidth: minComponentWidth
     minItemHeight: minComponentHeight
@@ -34,7 +35,7 @@ ResizableItem {
 
     signal componentClicked(ComponentModel component)
     // Emitted after a drag finishes so the canvas can redraw connections.
-    signal positionChanged()
+    signal positionChanged
 
     function syncModelFromItemGeometry() {
         if (!root.component)
@@ -57,6 +58,10 @@ ResizableItem {
             syncModelFromItemGeometry()
     }
     onResized: syncModelFromItemGeometry()
+    onHoveredChanged: {
+        if (hovered)
+            connectionHandler.arrowActivated = true
+    }
 
     // Initialise position from the model; don't bind so dragging works.
     Component.onCompleted: {
@@ -121,6 +126,7 @@ ResizableItem {
         }
 
         ConnectionHandler {
+            id: connectionHandler
             anchors.fill: parent
         }
     }

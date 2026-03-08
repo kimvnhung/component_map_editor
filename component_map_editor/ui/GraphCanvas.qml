@@ -21,15 +21,16 @@ Item {
     // Interaction thresholds.
     readonly property real panStartThreshold: 3
 
-    property GraphModel  graph: null
+    property GraphModel graph: null
     property ComponentModel selectedComponent: null
     property ConnectionModel selectedConnection: null
-    property UndoStack   undoStack: null
+    property UndoStack undoStack: null
     property real zoom: defaultZoom
     property real minZoom: 0.35
     property real maxZoom: 3.0
     property real panX: 0
     property real panY: 0
+    property bool enabledBackgroundDrag: true
     readonly property point worldOrigin: screenToWorld(0, 0)
 
     signal componentSelected(ComponentModel component)
@@ -50,17 +51,9 @@ Item {
     }
 
     function zoomAt(screenX, screenY, zoomFactor) {
-        var state = GraphCanvasMath.zoomAtCursor(
-            screenX,
-            screenY,
-            panX,
-            panY,
-            zoom,
-            zoomFactor,
-            minZoom,
-            maxZoom,
-            zoomEpsilon
-        )
+        var state = GraphCanvasMath.zoomAtCursor(screenX, screenY, panX, panY,
+                                                 zoom, zoomFactor, minZoom,
+                                                 maxZoom, zoomEpsilon)
         if (!state.changed)
             return
 
@@ -87,20 +80,23 @@ Item {
             ctx.strokeStyle = "#e0e0e0"
             ctx.lineWidth = 0.5
             var step = GraphCanvasMath.normalizedGridStep(
-                root.baseGridStep,
-                root.zoom,
-                root.minGridPixelStep,
-                root.maxGridPixelStep
-            )
+                        root.baseGridStep, root.zoom, root.minGridPixelStep,
+                        root.maxGridPixelStep)
 
             var offsetX = GraphCanvasMath.positiveModulo(root.panX, step)
             var offsetY = GraphCanvasMath.positiveModulo(root.panY, step)
 
             for (var gx = -step + offsetX; gx < width + step; gx += step) {
-                ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, height); ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(gx, 0)
+                ctx.lineTo(gx, height)
+                ctx.stroke()
             }
             for (var gy = -step + offsetY; gy < height + step; gy += step) {
-                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(width, gy); ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(0, gy)
+                ctx.lineTo(width, gy)
+                ctx.stroke()
             }
         }
     }
@@ -119,6 +115,7 @@ Item {
 
         DragHandler {
             id: panDrag
+            enabled: root.enabledBackgroundDrag
             target: null
             acceptedButtons: Qt.LeftButton
             dragThreshold: root.panStartThreshold
@@ -139,19 +136,21 @@ Item {
         TapHandler {
             acceptedButtons: Qt.LeftButton
             onTapped: point => {
-                root.selectedComponent = null
-                root.selectedConnection = null
-                var worldPos = root.screenToWorld(point.position.x, point.position.y)
-                root.backgroundClicked(worldPos.x, worldPos.y)
-            }
+                          root.selectedComponent = null
+                          root.selectedConnection = null
+                          var worldPos = root.screenToWorld(point.position.x,
+                                                            point.position.y)
+                          root.backgroundClicked(worldPos.x, worldPos.y)
+                      }
         }
 
         WheelHandler {
             onWheel: event => {
-                var factor = event.angleDelta.y > 0 ? root.zoomStepFactor : 1 / root.zoomStepFactor
-                root.zoomAt(event.x, event.y, factor)
-                event.accepted = true
-            }
+                         var factor = event.angleDelta.y
+                         > 0 ? root.zoomStepFactor : 1 / root.zoomStepFactor
+                         root.zoomAt(event.x, event.y, factor)
+                         event.accepted = true
+                     }
         }
     }
 
@@ -169,32 +168,33 @@ Item {
             id: edgeCanvas
             anchors.fill: parent
 
-            function repaint() { requestPaint() }
+            function repaint() {
+                requestPaint()
+            }
 
             onPaint: {
                 var ctx = getContext("2d")
                 ctx.clearRect(0, 0, width, height)
-                if (!root.graph) return
+                if (!root.graph)
+                    return
 
                 var connections = root.graph.connections
                 for (var i = 0; i < connections.length; i++) {
                     var connection = connections[i]
-                    var src  = root.graph.componentById(connection.sourceId)
-                    var tgt  = root.graph.componentById(connection.targetId)
-                    if (!src || !tgt) continue
+                    var src = root.graph.componentById(connection.sourceId)
+                    var tgt = root.graph.componentById(connection.targetId)
+                    if (!src || !tgt)
+                        continue
 
-                    var endpoints = GraphCanvasMath.connectionEndpointsOnBounding(src, tgt)
+                    var endpoints = GraphCanvasMath.connectionEndpointsOnBounding(
+                                src, tgt)
 
                     var isSel = (root.selectedConnection === connection)
-                    GraphCanvasMath.drawConnection(
-                        ctx,
-                        endpoints.source.x,
-                        endpoints.source.y,
-                        endpoints.target.x,
-                        endpoints.target.y,
-                        connection.label,
-                        isSel
-                    )
+                    GraphCanvasMath.drawConnection(ctx, endpoints.source.x,
+                                                   endpoints.source.y,
+                                                   endpoints.target.x,
+                                                   endpoints.target.y,
+                                                   connection.label, isSel)
                 }
             }
         }
@@ -207,14 +207,18 @@ Item {
                 required property var modelData
 
                 component: modelData
-                selected:  root.selectedComponent === modelData
+                selected: root.selectedComponent === modelData
                 undoStack: root.undoStack
 
                 onComponentClicked: clickedComponent => {
-                    root.selectedConnection = null
-                    root.selectedComponent = clickedComponent
-                    root.componentSelected(clickedComponent)
-                    edgeCanvas.repaint()
+                                        root.selectedConnection = null
+                                        root.selectedComponent = clickedComponent
+                                        root.componentSelected(clickedComponent)
+                                        edgeCanvas.repaint()
+                                    }
+
+                onHoveredChanged: {
+                    root.enabledBackgroundDrag = !hovered
                 }
 
                 onPositionChanged: edgeCanvas.repaint()
@@ -227,12 +231,16 @@ Item {
         target: root.graph
         enabled: root.graph !== null
 
-        function onComponentsChanged() { edgeCanvas.repaint() }
-        function onConnectionsChanged() { edgeCanvas.repaint() }
+        function onComponentsChanged() {
+            edgeCanvas.repaint()
+        }
+        function onConnectionsChanged() {
+            edgeCanvas.repaint()
+        }
     }
 
     onSelectedConnectionChanged: edgeCanvas.repaint()
-    onGraphChanged:        edgeCanvas.repaint()
+    onGraphChanged: edgeCanvas.repaint()
     onPanXChanged: {
         gridCanvas.requestPaint()
         edgeCanvas.repaint()

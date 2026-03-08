@@ -4,7 +4,6 @@ import "items"
 Item {
     id: root
     property real boundingWidth: 20
-    property bool contentHovered: false
     property bool arrowActivated: false
 
     // 0: up, 1: right, 2: down, 3: left
@@ -61,15 +60,6 @@ Item {
                         parent.opacity = hovered ? 1 : 0.3
                     }
                 }
-            }
-        }
-    }
-
-    HoverHandler {
-        id: contentHandler
-        onHoveredChanged: {
-            if (hovered) {
-                root.arrowActivated = true
             }
         }
     }
