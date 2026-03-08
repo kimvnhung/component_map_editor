@@ -71,12 +71,15 @@ Rectangle {
                     font.pixelSize: 13
                 }
 
-                MouseArea {
-                    anchors.fill: parent
+                HoverHandler {
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root._addComponent(modelData.label,
-                                                 modelData.color,
-                                                 modelData.type)
+                }
+
+                TapHandler {
+                    acceptedButtons: Qt.LeftButton
+                    onTapped: root._addComponent(modelData.label,
+                                                modelData.color,
+                                                modelData.type)
                 }
             }
         }

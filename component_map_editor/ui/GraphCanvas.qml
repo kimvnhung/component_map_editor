@@ -105,59 +105,53 @@ Item {
         }
     }
 
-    // Background mouse area (pans and deselects)
-    MouseArea {
-        id: panArea
+    Item {
+        id: interactionLayer
         anchors.fill: parent
         z: 0
-        acceptedButtons: Qt.LeftButton
-        cursorShape: panning ? Qt.ClosedHandCursor : Qt.ArrowCursor
 
-        property real pressX: 0
-        property real pressY: 0
         property real startPanX: 0
         property real startPanY: 0
-        property bool panning: false
 
-        onPressed: mouse => {
-            pressX = mouse.x
-            pressY = mouse.y
-            startPanX = root.panX
-            startPanY = root.panY
-            panning = false
+        HoverHandler {
+            cursorShape: panDrag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
         }
 
-        onPositionChanged: mouse => {
-            if (!(mouse.buttons & Qt.LeftButton))
-                return
+        DragHandler {
+            id: panDrag
+            target: null
+            acceptedButtons: Qt.LeftButton
+            dragThreshold: root.panStartThreshold
 
-            var dx = mouse.x - pressX
-            var dy = mouse.y - pressY
+            onActiveChanged: {
+                if (active) {
+                    interactionLayer.startPanX = root.panX
+                    interactionLayer.startPanY = root.panY
+                }
+            }
 
-            if (!panning && (Math.abs(dx) > root.panStartThreshold || Math.abs(dy) > root.panStartThreshold))
-                panning = true
-
-            if (panning) {
-                root.panX = startPanX + dx
-                root.panY = startPanY + dy
+            onTranslationChanged: {
+                root.panX = interactionLayer.startPanX + translation.x
+                root.panY = interactionLayer.startPanY + translation.y
             }
         }
 
-        onReleased: mouse => {
-            if (!panning) {
+        TapHandler {
+            acceptedButtons: Qt.LeftButton
+            onTapped: point => {
                 root.selectedComponent = null
                 root.selectedConnection = null
-                var worldPos = root.screenToWorld(mouse.x, mouse.y)
+                var worldPos = root.screenToWorld(point.position.x, point.position.y)
                 root.backgroundClicked(worldPos.x, worldPos.y)
             }
-
-            panning = false
         }
 
-        onWheel: wheel => {
-            var factor = wheel.angleDelta.y > 0 ? root.zoomStepFactor : 1 / root.zoomStepFactor
-            root.zoomAt(wheel.x, wheel.y, factor)
-            wheel.accepted = true
+        WheelHandler {
+            onWheel: event => {
+                var factor = event.angleDelta.y > 0 ? root.zoomStepFactor : 1 / root.zoomStepFactor
+                root.zoomAt(event.x, event.y, factor)
+                event.accepted = true
+            }
         }
     }
 

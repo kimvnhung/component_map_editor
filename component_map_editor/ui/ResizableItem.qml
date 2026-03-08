@@ -12,6 +12,7 @@ Item {
     property real moveDragThreshold: 4
     property bool moving: false
     property bool resizing: false
+    property bool hovered: false
 
     signal clicked()
     signal moveStarted()
@@ -51,40 +52,41 @@ Item {
         anchors.fill: parent
     }
 
-    MouseArea {
-        id: moveArea
-        anchors.fill: parent
+    HoverHandler {
+        id: moveHover
         enabled: root.moveEnabled && !root.resizing
-        drag.target: root
-        drag.threshold: root.moveDragThreshold
-        cursorShape: pressed || drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        cursorShape: moveDrag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        onHoveredChanged: root.hovered = hovered
+    }
 
-        onPressed: {
-            root.moving = false
-        }
+    DragHandler {
+        id: moveDrag
+        enabled: root.moveEnabled && !root.resizing
+        target: root
+        acceptedButtons: Qt.LeftButton
+        dragThreshold: root.moveDragThreshold
 
-        onPositionChanged: {
-            if (!root.moving && drag.active) {
+        onActiveChanged: {
+            if (active) {
                 root.moving = true
                 root.moveStarted()
+            } else {
+                if (root.moving)
+                    root.moveFinished()
+                root.moving = false
             }
+        }
 
-            if (root.moving)
+        onTranslationChanged: {
+            if (active)
                 root.moved()
         }
+    }
 
-        onClicked: {
-            root.clicked()
-        }
-
-        function finishMove() {
-            if (root.moving)
-                root.moveFinished()
-            root.moving = false
-        }
-
-        onReleased: finishMove()
-        onCanceled: finishMove()
+    TapHandler {
+        enabled: root.moveEnabled && !root.resizing
+        acceptedButtons: Qt.LeftButton
+        onTapped: root.clicked()
     }
 
     Item {
@@ -104,7 +106,7 @@ Item {
                 { xFactor: 0.0, yFactor: 0.5, dirX: -1, dirY:  0, cursor: Qt.SizeHorCursor }
             ]
 
-            delegate: MouseArea {
+            delegate: Item {
                 required property var modelData
 
                 id: resizeHandle
@@ -112,81 +114,77 @@ Item {
                 height: root.handleSize
                 x: modelData.xFactor * root.width - (width / 2)
                 y: modelData.yFactor * root.height - (height / 2)
-                cursorShape: modelData.cursor
-                hoverEnabled: true
 
-                property real startMouseX: 0
-                property real startMouseY: 0
                 property real startX: 0
                 property real startY: 0
                 property real startWidth: 0
                 property real startHeight: 0
 
-                onPressed: mouse => {
-                    var p = resizeHandle.mapToItem(root, mouse.x, mouse.y)
-                    startMouseX = p.x
-                    startMouseY = p.y
-                    startX = root.x
-                    startY = root.y
-                    startWidth = root.width
-                    startHeight = root.height
-                    root.resizing = true
-                    root.resizeStarted()
-                    mouse.accepted = true
+                HoverHandler {
+                    cursorShape: resizeHandle.modelData.cursor
                 }
 
-                onPositionChanged: mouse => {
-                    if (!(mouse.buttons & Qt.LeftButton))
-                        return
+                DragHandler {
+                    id: resizeDrag
+                    target: null
+                    acceptedButtons: Qt.LeftButton
 
-                    var p = resizeHandle.mapToItem(root, mouse.x, mouse.y)
-                    var dx = p.x - startMouseX
-                    var dy = p.y - startMouseY
-
-                    var newX = startX
-                    var newY = startY
-                    var newWidth = startWidth
-                    var newHeight = startHeight
-
-                    if (modelData.dirX < 0) {
-                        newX = startX + dx
-                        newWidth = startWidth - dx
-                    } else if (modelData.dirX > 0) {
-                        newWidth = startWidth + dx
+                    onActiveChanged: {
+                        if (active) {
+                            resizeHandle.startX = root.x
+                            resizeHandle.startY = root.y
+                            resizeHandle.startWidth = root.width
+                            resizeHandle.startHeight = root.height
+                            root.resizing = true
+                            root.resizeStarted()
+                        } else {
+                            if (!root.resizing)
+                                return
+                            root.resizing = false
+                            root.resizeFinished()
+                        }
                     }
 
-                    if (modelData.dirY < 0) {
-                        newY = startY + dy
-                        newHeight = startHeight - dy
-                    } else if (modelData.dirY > 0) {
-                        newHeight = startHeight + dy
+                    onTranslationChanged: {
+                        if (!active)
+                            return
+
+                        var dx = translation.x
+                        var dy = translation.y
+
+                        var newX = resizeHandle.startX
+                        var newY = resizeHandle.startY
+                        var newWidth = resizeHandle.startWidth
+                        var newHeight = resizeHandle.startHeight
+
+                        if (resizeHandle.modelData.dirX < 0) {
+                            newX = resizeHandle.startX + dx
+                            newWidth = resizeHandle.startWidth - dx
+                        } else if (resizeHandle.modelData.dirX > 0) {
+                            newWidth = resizeHandle.startWidth + dx
+                        }
+
+                        if (resizeHandle.modelData.dirY < 0) {
+                            newY = resizeHandle.startY + dy
+                            newHeight = resizeHandle.startHeight - dy
+                        } else if (resizeHandle.modelData.dirY > 0) {
+                            newHeight = resizeHandle.startHeight + dy
+                        }
+
+                        root.applyResizedGeometry(
+                            newX,
+                            newY,
+                            newWidth,
+                            newHeight,
+                            resizeHandle.modelData.dirX,
+                            resizeHandle.modelData.dirY,
+                            resizeHandle.startX,
+                            resizeHandle.startY,
+                            resizeHandle.startWidth,
+                            resizeHandle.startHeight
+                        )
                     }
-
-                    root.applyResizedGeometry(
-                        newX,
-                        newY,
-                        newWidth,
-                        newHeight,
-                        modelData.dirX,
-                        modelData.dirY,
-                        startX,
-                        startY,
-                        startWidth,
-                        startHeight
-                    )
-
-                    mouse.accepted = true
                 }
-
-                function finishResize() {
-                    if (!root.resizing)
-                        return
-                    root.resizing = false
-                    root.resizeFinished()
-                }
-
-                onReleased: finishResize()
-                onCanceled: finishResize()
             }
         }
     }

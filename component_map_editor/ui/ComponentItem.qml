@@ -120,26 +120,8 @@ ResizableItem {
             horizontalAlignment: Text.AlignHCenter
         }
 
-        Repeater {
-            model: [
-                Qt.point(root.width / 2, 0),
-                Qt.point(root.width, root.height / 2),
-                Qt.point(root.width / 2, root.height),
-                Qt.point(0, root.height / 2)
-            ]
-
-            delegate: Rectangle {
-                required property point modelData
-                width: root.connectionPointRadius * 2
-                height: root.connectionPointRadius * 2
-                radius: root.connectionPointRadius
-                x: modelData.x - root.connectionPointRadius
-                y: modelData.y - root.connectionPointRadius
-                color: "#ffffff"
-                border.color: "#607d8b"
-                border.width: 1
-                visible: root.selected
-            }
+        ConnectionHandler {
+            anchors.fill: parent
         }
     }
 }
