@@ -17,6 +17,8 @@ ResizableItem {
     readonly property bool isRounded: !root.component
                                       || root.component.shape === "rounded"
 
+    property bool focused: false
+
     minItemWidth: minComponentWidth
     minItemHeight: minComponentHeight
     handleSize: 10
@@ -34,8 +36,9 @@ ResizableItem {
     }
 
     signal componentClicked(ComponentModel component)
-    // Emitted after a drag finishes so the canvas can redraw connections.
-    signal positionChanged
+
+    signal connectionDragged(ComponentModel sourceComponent, int direction, real sceneX, real sceneY)
+    signal connectionDropped(ComponentModel sourceComponent, int direction, real sceneX, real sceneY)
 
     function syncModelFromItemGeometry() {
         if (!root.component)
@@ -45,7 +48,6 @@ ResizableItem {
         root.component.y = sceneTopToModelY(root.y)
         root.component.width = root.width
         root.component.height = root.height
-        root.positionChanged()
     }
 
     width: defaultComponentWidth
@@ -128,6 +130,18 @@ ResizableItem {
         ConnectionHandler {
             id: connectionHandler
             anchors.fill: parent
+            onArrowDragged: function (direction, scenePos) {
+                root.connectionDragged(root.component, direction, scenePos.x,
+                                       scenePos.y)
+            }
+            onArrowDropped: function (direction, scenePos) {
+                root.connectionDropped(root.component, direction, scenePos.x,
+                                       scenePos.y)
+            }
+
+            onArrowActivatedChanged: {
+                root.focused = arrowActivated
+            }
         }
     }
 }

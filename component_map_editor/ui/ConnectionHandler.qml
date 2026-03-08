@@ -7,7 +7,8 @@ Item {
     property bool arrowActivated: false
 
     // 0: up, 1: right, 2: down, 3: left
-    signal arrowClicked(int direction)
+    signal arrowDragged(int direction, point scenePos)
+    signal arrowDropped(int direction, point scenePos)
     Item {
         id: boundingBox
         width: parent.width + boundingWidth * 2 + 2
@@ -49,10 +50,25 @@ Item {
                     arrowColor: "#ff5722"
                 }
 
-                TapHandler {
-                    onTapped: {
-                        root.arrowClicked(index)
+                DragHandler {
+                    id: arrowDrag
+                    target: null
+                    acceptedButtons: Qt.LeftButton
+
+                    function scencePos() {
+                        // mapToItem with null maps to the scene coordinates
+                        // centroid.position is the center of the bounding box, which is where the arrow visually appears to be dragged from
+                        return parent.mapToItem(null, centroid.position)
                     }
+
+                    onActiveChanged: {
+                        if (active)
+                            root.arrowDragged(index, scencePos())
+                        else
+                            root.arrowDropped(index, scencePos())
+                    }
+
+                    onTranslationChanged: root.arrowDragged(index, scencePos())
                 }
 
                 HoverHandler {

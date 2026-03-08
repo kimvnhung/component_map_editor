@@ -25,6 +25,12 @@ Item {
     property ComponentModel selectedComponent: null
     property ConnectionModel selectedConnection: null
     property UndoStack undoStack: null
+
+    // Temp connection
+    property point tempStart: Qt.point(0, 0)
+    property point tempEnd: Qt.point(0, 0)
+    property bool tempConnectionDragging: false
+
     property real zoom: defaultZoom
     property real minZoom: 0.35
     property real maxZoom: 3.0
@@ -60,6 +66,41 @@ Item {
         zoom = state.zoom
         panX = state.panX
         panY = state.panY
+    }
+
+    function sceneToContent(sceneX, sceneY) {
+        var p = contentLayer.mapFromItem(null, sceneX, sceneY)
+        return Qt.point(p.x, p.y)
+    }
+
+    function componentAtScene(sceneX, sceneY, excludedComponent) {
+        var contentPoint = sceneToContent(sceneX, sceneY)
+        for (var i = contentLayer.children.length - 1; i >= 0; --i) {
+            var item = contentLayer.children[i]
+            if (!item || !item.component)
+                continue
+            if (excludedComponent && item.component === excludedComponent)
+                continue
+
+            var local = item.mapFromItem(contentLayer, contentPoint.x,
+                                         contentPoint.y)
+            if (local.x >= 0 && local.x <= item.width && local.y >= 0
+                    && local.y <= item.height)
+                return item.component
+        }
+        return null
+    }
+
+    function componentCenterInContent(component) {
+        for (var i = 0; i < contentLayer.children.length; ++i) {
+            var item = contentLayer.children[i]
+            if (!item || !item.component)
+                continue
+            if (item.component === component)
+                return item.mapToItem(contentLayer, item.width / 2,
+                                      item.height / 2)
+        }
+        return Qt.point(0, 0)
     }
 
     clip: true
@@ -186,8 +227,11 @@ Item {
                     if (!src || !tgt)
                         continue
 
-                    var endpoints = GraphCanvasMath.connectionEndpointsOnBounding(
-                                src, tgt)
+                    // For simple, just using center to center connections.
+                    var endpoints = {
+                        "source": root.componentCenterInContent(src),
+                        "target": root.componentCenterInContent(tgt)
+                    }
 
                     var isSel = (root.selectedConnection === connection)
                     GraphCanvasMath.drawConnection(ctx, endpoints.source.x,
@@ -195,6 +239,14 @@ Item {
                                                    endpoints.target.x,
                                                    endpoints.target.y,
                                                    connection.label, isSel)
+                }
+
+                if (root.tempConnectionDragging) {
+                    GraphCanvasMath.drawConnection(ctx, root.tempStart.x,
+                                                   root.tempStart.y,
+                                                   root.tempEnd.x,
+                                                   root.tempEnd.y, "", false,
+                                                   true, "#90caf9")
                 }
             }
         }
@@ -217,11 +269,58 @@ Item {
                                         edgeCanvas.repaint()
                                     }
 
-                onHoveredChanged: {
-                    root.enabledBackgroundDrag = !hovered
+                onFocusedChanged: {
+                    if (!root.tempConnectionDragging)
+                        root.enabledBackgroundDrag = !focused
                 }
 
-                onPositionChanged: edgeCanvas.repaint()
+                onConnectionDragged: function (sourceComponent, direction, sceneX, sceneY) {
+                    root.tempConnectionDragging = true
+                    root.tempStart = root.componentCenterInContent(
+                                sourceComponent)
+                    root.tempEnd = root.sceneToContent(sceneX, sceneY)
+                    edgeCanvas.repaint()
+                }
+                onConnectionDropped: function (sourceComponent, direction, sceneX, sceneY) {
+                    root.tempConnectionDragging = false
+                    root.tempStart = Qt.point(0, 0)
+                    root.tempEnd = Qt.point(0, 0)
+
+                    var component = root.componentAtScene(sceneX, sceneY,
+                                                          sourceComponent)
+                    if (!component) {
+                        console.log("Drop ignored: no target component")
+                        edgeCanvas.repaint()
+                        return
+                    }
+
+                    if (component === sourceComponent) {
+                        console.log("Drop ignored: source equals target")
+                        edgeCanvas.repaint()
+                        return
+                    }
+
+                    var connectionId = "conn_" + sourceComponent.id + "_" + component.id
+                    if (root.graph.connectionById(connectionId)) {
+                        console.log("Drop ignored: connection already exists",
+                                    connectionId)
+                        edgeCanvas.repaint()
+                        return
+                    }
+
+                    // Add connection from sourceComponent to component.
+                    var e1 = Qt.createQmlObject(
+                                'import ComponentMapEditor; ConnectionModel {}',
+                                root.graph)
+                    e1.id = connectionId
+                    e1.sourceId = sourceComponent.id
+                    e1.targetId = component.id
+                    e1.label = "path A"
+                    root.graph.addConnection(e1)
+                    edgeCanvas.repaint()
+                }
+
+                onMoved: edgeCanvas.repaint()
             }
         }
     }
