@@ -13,7 +13,6 @@ ResizableItem {
     readonly property int defaultComponentHeight: 40
     readonly property int minComponentWidth: 40
     readonly property int minComponentHeight: 24
-    readonly property real connectionPointRadius: 3
     readonly property bool isRounded: !root.component
                                       || root.component.shape === "rounded"
 
@@ -74,11 +73,7 @@ ResizableItem {
     height: defaultComponentHeight
     z: selected ? 2 : 1
 
-    onClicked: {
-        console.log("Component clicked:",
-                    root.component ? root.component.label : "null")
-        root.componentClicked(root.component)
-    }
+    onClicked: root.componentClicked(root.component)
 
     onMoveFinished: {
         if (root.component)
@@ -132,6 +127,7 @@ ResizableItem {
         border.color: root.selected ? "#ff5722" : Qt.darker(color, 1.4)
         border.width: root.selected ? 2.5 : 1.5
 
+        // Overlay to indicate selection with a semi-transparent border, since the main border can be hard to see against some colors.
         Rectangle {
             anchors.fill: parent
             color: "transparent"

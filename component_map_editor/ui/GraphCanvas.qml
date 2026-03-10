@@ -177,6 +177,15 @@ Item {
         TapHandler {
             acceptedButtons: Qt.LeftButton
             onTapped: point => {
+                          // Check if the tap hit any component; if so, ignore since the component's own TapHandler will handle it.
+                          var scenePos = mapToItem(null, point.position.x,
+                                                   point.position.y)
+                          var hitComponent = root.componentAtScene(scenePos.x,
+                                                                   scenePos.y)
+                          if (hitComponent) {
+                              return
+                          }
+
                           root.selectedComponent = null
                           root.selectedConnection = null
                           var worldPos = root.screenToWorld(point.position.x,
