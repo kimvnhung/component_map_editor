@@ -14,7 +14,7 @@ Item {
     property real moveDragThreshold: 4
     property bool moving: false
     // Set to true while an item is actively being resized.
-    // This is smaller case of handlesVisible, which is true for the entire duration that resize handles are shown, while resizing is only true during the active drag.
+    // This is a smaller case of handlesVisible, which is true for the entire duration that resize handles are shown, while resizing is only true during the active drag.
     property bool resizing: false
     property bool hovered: false
     // True when the cursor is hovering over any resize handle, independent of whether a drag is active.
