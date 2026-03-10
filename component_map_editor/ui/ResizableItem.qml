@@ -17,6 +17,9 @@ Item {
     // This is smaller case of handlesVisible, which is true for the entire duration that resize handles are shown, while resizing is only true during the active drag.
     property bool resizing: false
     property bool hovered: false
+    // True when the cursor is hovering over any resize handle, independent of whether a drag is active.
+    readonly property bool handleHovered: _handleHoverCount > 0
+    property int _handleHoverCount: 0
 
     signal clicked
     signal moveStarted
@@ -163,7 +166,7 @@ Item {
 
                 HoverHandler {
                     cursorShape: resizeHandle.modelData.cursor
-                    onHoveredChanged: root.resizing = hovered
+                    onHoveredChanged: root._handleHoverCount = Math.max(0, root._handleHoverCount + (hovered ? 1 : -1))
                 }
 
                 DragHandler {
