@@ -53,6 +53,10 @@ ResizableItem {
         return root.mapToItem(null, root.width / 2, root.height / 2)
     }
 
+    function refreshFocused() {
+        focused = selected || connectionHandler.arrowActivated
+    }
+
     signal componentClicked(ComponentModel component)
 
     // startP and targetP are in scene coordinates relative to the top-left of the view.
@@ -84,6 +88,7 @@ ResizableItem {
         if (hovered)
             connectionHandler.arrowActivated = true
     }
+    onSelectedChanged: root.refreshFocused()
 
     // Initialise position from the model; don't bind so dragging works.
     Component.onCompleted: {
@@ -162,9 +167,7 @@ ResizableItem {
                                        scenePos)
             }
 
-            onArrowActivatedChanged: {
-                root.focused = arrowActivated
-            }
+            onArrowActivatedChanged: root.refreshFocused()
         }
     }
 }

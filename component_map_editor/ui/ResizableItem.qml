@@ -5,28 +5,30 @@ Item {
 
     property bool moveEnabled: true
     property bool resizeEnabled: true
+    // Whether to show the resize handles.
+    // Resize can still be enabled without showing the handles, but it won't be discoverable to users without other visual affordances.
     property bool handlesVisible: false
     property real minItemWidth: 40
     property real minItemHeight: 24
     property real handleSize: 10
     property real moveDragThreshold: 4
     property bool moving: false
+    // Set to true while an item is actively being resized.
+    // This is smaller case of handlesVisible, which is true for the entire duration that resize handles are shown, while resizing is only true during the active drag.
     property bool resizing: false
     property bool hovered: false
 
-    signal clicked()
-    signal moveStarted()
-    signal moved()
-    signal moveFinished()
-    signal resizeStarted()
-    signal resized()
-    signal resizeFinished()
+    signal clicked
+    signal moveStarted
+    signal moved
+    signal moveFinished
+    signal resizeStarted
+    signal resized
+    signal resizeFinished
 
     default property alias contentData: contentHost.data
 
-    function applyResizedGeometry(newX, newY, newWidth, newHeight,
-                                  dirX, dirY,
-                                  startX, startY, startWidth, startHeight) {
+    function applyResizedGeometry(newX, newY, newWidth, newHeight, dirX, dirY, startX, startY, startWidth, startHeight) {
         var clampedWidth = Math.max(minItemWidth, newWidth)
         var clampedHeight = Math.max(minItemHeight, newHeight)
         var finalX = newX
@@ -54,7 +56,7 @@ Item {
 
     HoverHandler {
         id: moveHover
-        enabled: root.moveEnabled && !root.resizing
+        enabled: root.moveEnabled
         cursorShape: moveDrag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         onHoveredChanged: root.hovered = hovered
     }
@@ -95,16 +97,55 @@ Item {
         z: 100
 
         Repeater {
-            model: [
-                { xFactor: 0.0, yFactor: 0.0, dirX: -1, dirY: -1, cursor: Qt.SizeFDiagCursor },
-                { xFactor: 0.5, yFactor: 0.0, dirX:  0, dirY: -1, cursor: Qt.SizeVerCursor },
-                { xFactor: 1.0, yFactor: 0.0, dirX:  1, dirY: -1, cursor: Qt.SizeBDiagCursor },
-                { xFactor: 1.0, yFactor: 0.5, dirX:  1, dirY:  0, cursor: Qt.SizeHorCursor },
-                { xFactor: 1.0, yFactor: 1.0, dirX:  1, dirY:  1, cursor: Qt.SizeFDiagCursor },
-                { xFactor: 0.5, yFactor: 1.0, dirX:  0, dirY:  1, cursor: Qt.SizeVerCursor },
-                { xFactor: 0.0, yFactor: 1.0, dirX: -1, dirY:  1, cursor: Qt.SizeBDiagCursor },
-                { xFactor: 0.0, yFactor: 0.5, dirX: -1, dirY:  0, cursor: Qt.SizeHorCursor }
-            ]
+            model: [{
+                    "xFactor": 0.0,
+                    "yFactor": 0.0,
+                    "dirX": -1,
+                    "dirY": -1,
+                    "cursor": Qt.SizeFDiagCursor
+                }, {
+                    "xFactor": 0.5,
+                    "yFactor": 0.0,
+                    "dirX": 0,
+                    "dirY": -1,
+                    "cursor": Qt.SizeVerCursor
+                }, {
+                    "xFactor": 1.0,
+                    "yFactor": 0.0,
+                    "dirX": 1,
+                    "dirY": -1,
+                    "cursor": Qt.SizeBDiagCursor
+                }, {
+                    "xFactor": 1.0,
+                    "yFactor": 0.5,
+                    "dirX": 1,
+                    "dirY": 0,
+                    "cursor": Qt.SizeHorCursor
+                }, {
+                    "xFactor": 1.0,
+                    "yFactor": 1.0,
+                    "dirX": 1,
+                    "dirY": 1,
+                    "cursor": Qt.SizeFDiagCursor
+                }, {
+                    "xFactor": 0.5,
+                    "yFactor": 1.0,
+                    "dirX": 0,
+                    "dirY": 1,
+                    "cursor": Qt.SizeVerCursor
+                }, {
+                    "xFactor": 0.0,
+                    "yFactor": 1.0,
+                    "dirX": -1,
+                    "dirY": 1,
+                    "cursor": Qt.SizeBDiagCursor
+                }, {
+                    "xFactor": 0.0,
+                    "yFactor": 0.5,
+                    "dirX": -1,
+                    "dirY": 0,
+                    "cursor": Qt.SizeHorCursor
+                }]
 
             delegate: Item {
                 required property var modelData
@@ -122,6 +163,7 @@ Item {
 
                 HoverHandler {
                     cursorShape: resizeHandle.modelData.cursor
+                    onHoveredChanged: root.resizing = hovered
                 }
 
                 DragHandler {
@@ -171,18 +213,14 @@ Item {
                             newHeight = resizeHandle.startHeight + dy
                         }
 
-                        root.applyResizedGeometry(
-                            newX,
-                            newY,
-                            newWidth,
-                            newHeight,
-                            resizeHandle.modelData.dirX,
-                            resizeHandle.modelData.dirY,
-                            resizeHandle.startX,
-                            resizeHandle.startY,
-                            resizeHandle.startWidth,
-                            resizeHandle.startHeight
-                        )
+                        root.applyResizedGeometry(newX, newY, newWidth,
+                                                  newHeight,
+                                                  resizeHandle.modelData.dirX,
+                                                  resizeHandle.modelData.dirY,
+                                                  resizeHandle.startX,
+                                                  resizeHandle.startY,
+                                                  resizeHandle.startWidth,
+                                                  resizeHandle.startHeight)
                     }
                 }
             }
