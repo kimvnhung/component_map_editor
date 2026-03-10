@@ -36,7 +36,7 @@ Item {
     property real maxZoom: 3.0
     property real panX: 0
     property real panY: 0
-    property bool enabledBackgroundDrag: true
+    property bool enableBackgroundDrag: true
     readonly property point worldOrigin: screenToWorld(0, 0)
 
     signal componentSelected(ComponentModel component)
@@ -156,7 +156,7 @@ Item {
 
         DragHandler {
             id: panDrag
-            enabled: root.enabledBackgroundDrag
+            enabled: root.enableBackgroundDrag
             target: null
             acceptedButtons: Qt.LeftButton
             dragThreshold: root.panStartThreshold
@@ -177,6 +177,15 @@ Item {
         TapHandler {
             acceptedButtons: Qt.LeftButton
             onTapped: point => {
+                          // Check if the tap hit any component; if so, ignore since the component's own TapHandler will handle it.
+                          var scenePos = mapToItem(null, point.position.x,
+                                                   point.position.y)
+                          var hitComponent = root.componentAtScene(scenePos.x,
+                                                                   scenePos.y)
+                          if (hitComponent) {
+                              return
+                          }
+
                           root.selectedComponent = null
                           root.selectedConnection = null
                           var worldPos = root.screenToWorld(point.position.x,
@@ -270,8 +279,7 @@ Item {
                                     }
 
                 onFocusedChanged: {
-                    if (!root.tempConnectionDragging)
-                        root.enabledBackgroundDrag = !focused
+                    root.enableBackgroundDrag = !focused
                 }
 
                 onConnectionDragged: function (sourceComponent, startP, targetP) {

@@ -13,7 +13,6 @@ ResizableItem {
     readonly property int defaultComponentHeight: 40
     readonly property int minComponentWidth: 40
     readonly property int minComponentHeight: 24
-    readonly property real connectionPointRadius: 3
     readonly property bool isRounded: !root.component
                                       || root.component.shape === "rounded"
 
@@ -54,6 +53,10 @@ ResizableItem {
         return root.mapToItem(null, root.width / 2, root.height / 2)
     }
 
+    function refreshFocused() {
+        focused = selected || connectionHandler.arrowActivated
+    }
+
     signal componentClicked(ComponentModel component)
 
     // startP and targetP are in scene coordinates relative to the top-left of the view.
@@ -74,11 +77,7 @@ ResizableItem {
     height: defaultComponentHeight
     z: selected ? 2 : 1
 
-    onClicked: {
-        console.log("Component clicked:",
-                    root.component ? root.component.label : "null")
-        root.componentClicked(root.component)
-    }
+    onClicked: root.componentClicked(root.component)
 
     onMoveFinished: {
         if (root.component)
@@ -89,6 +88,7 @@ ResizableItem {
         if (hovered)
             connectionHandler.arrowActivated = true
     }
+    onSelectedChanged: root.refreshFocused()
 
     // Initialise position from the model; don't bind so dragging works.
     Component.onCompleted: {
@@ -132,6 +132,7 @@ ResizableItem {
         border.color: root.selected ? "#ff5722" : Qt.darker(color, 1.4)
         border.width: root.selected ? 2.5 : 1.5
 
+        // Overlay to indicate selection with a semi-transparent border, since the main border can be hard to see against some colors.
         Rectangle {
             anchors.fill: parent
             color: "transparent"
@@ -166,9 +167,7 @@ ResizableItem {
                                        scenePos)
             }
 
-            onArrowActivatedChanged: {
-                root.focused = arrowActivated
-            }
+            onArrowActivatedChanged: root.refreshFocused()
         }
     }
 }

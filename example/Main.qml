@@ -19,9 +19,14 @@ ApplicationWindow {
 
         Component.onCompleted: {
             // Seed some initial components
-            var n1 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            n1.id = "n1"; n1.label = "Start";   n1.x = 80;  n1.y = -220
-            n1.color = "#26a69a"; n1.type = "start"
+            var n1 = Qt.createQmlObject(
+                        'import ComponentMapEditor; ComponentModel {}', graph)
+            n1.id = "n1"
+            n1.label = "Start"
+            n1.x = 80
+            n1.y = -220
+            n1.color = "#26a69a"
+            n1.type = "start"
             graph.addComponent(n1)
 
             // var n2 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
@@ -67,16 +72,26 @@ ApplicationWindow {
         }
     }
 
-    UndoStack        { id: undoStack }
-    ValidationService { id: validator }
-    ExportService    { id: exporter }
+    UndoStack {
+        id: undoStack
+    }
+    ValidationService {
+        id: validator
+    }
+    ExportService {
+        id: exporter
+    }
 
     // -----------------------------------------------------------------------
     // Toolbar
     // -----------------------------------------------------------------------
     header: ToolBar {
         RowLayout {
-            anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+            anchors {
+                fill: parent
+                leftMargin: 6
+                rightMargin: 6
+            }
             spacing: 4
 
             ToolButton {
@@ -101,10 +116,10 @@ ApplicationWindow {
                 onClicked: {
                     var errs = validator.validationErrors(graph)
                     if (errs.length === 0) {
-                        statusLabel.text  = "✓ Graph is valid"
+                        statusLabel.text = "✓ Graph is valid"
                         statusLabel.color = "#2e7d32"
                     } else {
-                        statusLabel.text  = "✗ " + errs.join("  |  ")
+                        statusLabel.text = "✗ " + errs.join("  |  ")
                         statusLabel.color = "#c62828"
                     }
                 }
@@ -121,10 +136,15 @@ ApplicationWindow {
 
             ToolButton {
                 text: "Clear"
-                onClicked: { graph.clear(); undoStack.clear() }
+                onClicked: {
+                    graph.clear()
+                    undoStack.clear()
+                }
             }
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
 
             Label {
                 id: statusLabel
@@ -151,25 +171,27 @@ ApplicationWindow {
         }
 
         // Thin separator
-        Rectangle { width: 1; Layout.fillHeight: true; color: "#e0e0e0" }
+        Rectangle {
+            width: 1
+            Layout.fillHeight: true
+            color: "#e0e0e0"
+        }
 
         GraphCanvas {
             id: canvas
             Layout.fillWidth: true
             Layout.fillHeight: true
-            graph:        graph
-            undoStack:    undoStack
-            selectedComponent: propertyPanel.component
-            selectedConnection: propertyPanel.connection
+            graph: graph
+            undoStack: undoStack
 
             onComponentSelected: component => {
-                propertyPanel.component = component
-                propertyPanel.connection = null
-            }
+                                     propertyPanel.component = component
+                                     propertyPanel.connection = null
+                                 }
             onConnectionSelected: connection => {
-                propertyPanel.connection = connection
-                propertyPanel.component = null
-            }
+                                      propertyPanel.connection = connection
+                                      propertyPanel.component = null
+                                  }
             onBackgroundClicked: {
                 propertyPanel.component = null
                 propertyPanel.connection = null
@@ -177,7 +199,11 @@ ApplicationWindow {
         }
 
         // Thin separator
-        Rectangle { width: 1; Layout.fillHeight: true; color: "#e0e0e0" }
+        Rectangle {
+            width: 1
+            Layout.fillHeight: true
+            color: "#e0e0e0"
+        }
 
         PropertyPanel {
             id: propertyPanel
