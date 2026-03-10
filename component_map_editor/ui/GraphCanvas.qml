@@ -37,23 +37,29 @@ Item {
     property real panX: 0
     property real panY: 0
     property bool enableBackgroundDrag: true
-    readonly property point worldOrigin: screenToWorld(0, 0)
+    property point mouseScenePos: Qt.point(0, 0)
+    property point mouseWorldPos: Qt.point(0, 0)
+    readonly property point worldOrigin: sceneToWorld(0, 0)
 
     signal componentSelected(ComponentModel component)
     signal connectionSelected(ConnectionModel connection)
     signal backgroundClicked(real x, real y)
     signal viewTransformChanged(real panX, real panY, real zoom)
 
+    // Coordinate-space contract:
+    // - world: model coordinates (Y-up), stored in ComponentModel.
+    // - scene: viewport/screen coordinates in GraphCanvas (Y-down).
+    // - content: contentLayer-local coordinates used by edgeCanvas (Y-down).
     function clampZoom(value) {
         return GraphCanvasMath.clamp(value, minZoom, maxZoom)
     }
 
-    function screenToWorld(screenX, screenY) {
-        return GraphCanvasMath.screenToWorld(screenX, screenY, panX, panY, zoom)
+    function sceneToWorld(sceneX, sceneY) {
+        return GraphCanvasMath.sceneToWorld(sceneX, sceneY, panX, panY, zoom)
     }
 
-    function worldToScreen(worldX, worldY) {
-        return GraphCanvasMath.worldToScreen(worldX, worldY, panX, panY, zoom)
+    function worldToScene(worldX, worldY) {
+        return GraphCanvasMath.worldToScene(worldX, worldY, panX, panY, zoom)
     }
 
     function zoomAt(screenX, screenY, zoomFactor) {
@@ -69,8 +75,18 @@ Item {
     }
 
     function sceneToContent(sceneX, sceneY) {
-        var p = contentLayer.mapFromItem(null, sceneX, sceneY)
-        return Qt.point(p.x, p.y)
+        return GraphCanvasMath.sceneToContent(sceneX, sceneY, panX, panY, zoom)
+    }
+
+    function contentToScene(contentX, contentY) {
+        return GraphCanvasMath.contentToScene(contentX, contentY, panX,
+                                              panY, zoom)
+    }
+
+    function childToScene(childItem, childX, childY) {
+        if (!childItem)
+            return Qt.point(0, 0)
+        return childItem.mapToItem(root, childX, childY)
     }
 
     function componentAtScene(sceneX, sceneY, excludedComponent) {
@@ -152,6 +168,10 @@ Item {
 
         HoverHandler {
             cursorShape: panDrag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
+            onPointChanged: {
+                root.mouseScenePos = root.contentToScene(point.position.x,
+                                                         point.position.y)
+            }
         }
 
         DragHandler {
@@ -178,8 +198,9 @@ Item {
             acceptedButtons: Qt.LeftButton
             onTapped: point => {
                           // Check if the tap hit any component; if so, ignore since the component's own TapHandler will handle it.
-                          var scenePos = mapToItem(null, point.position.x,
-                                                   point.position.y)
+                          var scenePos = root.contentToScene(point.position.x,
+                                                             point.position.y)
+
                           var hitComponent = root.componentAtScene(scenePos.x,
                                                                    scenePos.y)
                           if (hitComponent) {
@@ -188,8 +209,8 @@ Item {
 
                           root.selectedComponent = null
                           root.selectedConnection = null
-                          var worldPos = root.screenToWorld(point.position.x,
-                                                            point.position.y)
+                          var worldPos = root.sceneToWorld(point.position.x,
+                                                           point.position.y)
                           root.backgroundClicked(worldPos.x, worldPos.y)
                       }
         }
@@ -329,8 +350,26 @@ Item {
                 }
 
                 onMoved: edgeCanvas.repaint()
+
+                onHoverPositionChanged: function (hoverX, hoverY) {
+                    root.mouseScenePos = root.childToScene(this, hoverX, hoverY)
+                }
             }
         }
+    }
+
+    GraphStatusBar {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        z: 200
+        componentCount: root.graph ? root.graph.components.length : 0
+        connectionCount: root.graph ? root.graph.connections.length : 0
+        selectedComponentLabel: root.selectedComponent ? root.selectedComponent.label : "none"
+        selectedConnectionLabel: root.selectedConnection ? root.selectedConnection.id : "none"
+        mouseScenePos: root.mouseScenePos
+        mouseWorldPos: root.mouseWorldPos
+        zoom: root.zoom
     }
 
     // React to graph-level changes
@@ -362,5 +401,9 @@ Item {
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
+    }
+    onMouseScenePosChanged: {
+        root.mouseWorldPos = root.sceneToWorld(root.mouseScenePos.x,
+                                               root.mouseScenePos.y)
     }
 }

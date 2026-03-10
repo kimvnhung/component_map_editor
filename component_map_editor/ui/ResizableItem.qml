@@ -28,6 +28,7 @@ Item {
     signal resizeStarted
     signal resized
     signal resizeFinished
+    signal hoverPositionChanged(real hoverX, real hoverY)
 
     default property alias contentData: contentHost.data
 
@@ -62,6 +63,8 @@ Item {
         enabled: root.moveEnabled
         cursorShape: moveDrag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         onHoveredChanged: root.hovered = hovered
+        onPointChanged: root.hoverPositionChanged(point.position.x,
+                                                  point.position.y)
     }
 
     DragHandler {
@@ -166,7 +169,9 @@ Item {
 
                 HoverHandler {
                     cursorShape: resizeHandle.modelData.cursor
-                    onHoveredChanged: root._handleHoverCount = Math.max(0, root._handleHoverCount + (hovered ? 1 : -1))
+                    onHoveredChanged: root._handleHoverCount = Math.max(
+                                          0,
+                                          root._handleHoverCount + (hovered ? 1 : -1))
                 }
 
                 DragHandler {

@@ -168,6 +168,10 @@ ResizableItem {
             }
 
             onArrowActivatedChanged: root.refreshFocused()
+            onHoveredPositionChanged: function (internalPos) {
+                var rootPos = connectionHandler.mapToItem(root, internalPos)
+                root.hoverPositionChanged(rootPos.x, rootPos.y)
+            }
         }
     }
 }

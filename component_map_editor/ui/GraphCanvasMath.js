@@ -18,17 +18,42 @@ function clamp(value, minValue, maxValue) {
     return Math.max(minValue, Math.min(maxValue, value))
 }
 
-// Converts from screen space (pixels in the viewport) to world space
+// Converts from scene space (pixels in the viewport) to world space
 // (persistent graph coordinates used by ComponentModel.x/y).
-function screenToWorld(screenX, screenY, panX, panY, zoom) {
-    return Qt.point((screenX - panX) / zoom,
-                    -(screenY - panY) / zoom)
+function sceneToWorld(sceneX, sceneY, panX, panY, zoom) {
+    return Qt.point((sceneX - panX) / zoom,
+                    -(sceneY - panY) / zoom)
 }
 
-// Converts from world space (graph coordinates) to screen space (viewport).
-function worldToScreen(worldX, worldY, panX, panY, zoom) {
+// Converts from world space (graph coordinates) to scene space (viewport).
+function worldToScene(worldX, worldY, panX, panY, zoom) {
     return Qt.point(worldX * zoom + panX,
                     -worldY * zoom + panY)
+}
+
+// Converts from scene/screen coordinates to content-layer local coordinates
+// (Y-down, pre-scale coordinates used for Canvas drawing in contentLayer).
+function sceneToContent(sceneX, sceneY, panX, panY, zoom) {
+    return Qt.point((sceneX - panX) / zoom,
+                    (sceneY - panY) / zoom)
+}
+
+// Converts from content-layer local coordinates (Y-down) to scene/screen.
+function contentToScene(contentX, contentY, panX, panY, zoom) {
+    return Qt.point(contentX * zoom + panX,
+                    contentY * zoom + panY)
+}
+
+// Converts content-layer local coordinates (Y-down) to world coordinates
+// (Y-up, model space).
+function contentToWorld(contentX, contentY) {
+    return Qt.point(contentX, -contentY)
+}
+
+// Converts world coordinates (Y-up, model space) to content-layer local
+// coordinates (Y-down).
+function worldToContent(worldX, worldY) {
+    return Qt.point(worldX, -worldY)
 }
 
 // Returns a positive modulo in [0, modulus), useful for stable grid offsets
@@ -50,12 +75,12 @@ function normalizedGridStep(baseStep, zoom, minPixelStep, maxPixelStep) {
 
 // Computes the camera state after zooming at a cursor position so that the
 // world point under the cursor remains fixed on screen.
-function zoomAtCursor(screenX, screenY,
+function zoomAtCursor(sceneX, sceneY,
                       panX, panY,
                       zoom, zoomFactor,
                       minZoom, maxZoom,
                       epsilon) {
-    var anchorWorld = screenToWorld(screenX, screenY, panX, panY, zoom)
+    var anchorWorld = sceneToWorld(sceneX, sceneY, panX, panY, zoom)
     var nextZoom = clamp(zoom * zoomFactor, minZoom, maxZoom)
     if (Math.abs(nextZoom - zoom) < epsilon) {
         return {
@@ -69,8 +94,8 @@ function zoomAtCursor(screenX, screenY,
     return {
         changed: true,
         zoom: nextZoom,
-        panX: screenX - anchorWorld.x * nextZoom,
-        panY: screenY + anchorWorld.y * nextZoom
+        panX: sceneX - anchorWorld.x * nextZoom,
+        panY: sceneY + anchorWorld.y * nextZoom
     }
 }
 

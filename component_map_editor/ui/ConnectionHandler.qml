@@ -9,6 +9,7 @@ Item {
     // 0: up, 1: right, 2: down, 3: left
     signal arrowDragged(int direction, point scenePos)
     signal arrowDropped(int direction, point scenePos)
+    signal hoveredPositionChanged(point scenePos)
     Item {
         id: boundingBox
         width: parent.width + boundingWidth * 2 + 2
@@ -22,6 +23,8 @@ Item {
                     root.arrowActivated = false
                 }
             }
+            onPointChanged: root.hoveredPositionChanged(
+                                parent.mapToItem(root, point.position))
         }
 
         Repeater {
@@ -75,6 +78,8 @@ Item {
                     onHoveredChanged: {
                         parent.opacity = hovered ? 1 : 0.3
                     }
+                    onPointChanged: root.hoveredPositionChanged(
+                                        parent.mapToItem(root, point.position))
                 }
             }
         }
