@@ -26,7 +26,7 @@ Item {
     property ConnectionModel selectedConnection: null
     property UndoStack undoStack: null
 
-    // Temp connection
+    // Temp connection points in GraphCanvas scene coordinates (Y-down).
     property point tempStart: Qt.point(0, 0)
     property point tempEnd: Qt.point(0, 0)
     property bool tempConnectionDragging: false
@@ -49,7 +49,6 @@ Item {
     // Coordinate-space contract:
     // - world: model coordinates (Y-up), stored in ComponentModel.
     // - scene: viewport/screen coordinates in GraphCanvas (Y-down).
-    // - content: contentLayer-local coordinates used by edgeCanvas (Y-down).
     function clampZoom(value) {
         return GraphCanvasMath.clamp(value, minZoom, maxZoom)
     }
@@ -74,32 +73,34 @@ Item {
         panY = state.panY
     }
 
-    function sceneToContent(sceneX, sceneY) {
-        return GraphCanvasMath.sceneToContent(sceneX, sceneY, panX, panY, zoom)
-    }
-
-    function contentToScene(contentX, contentY) {
-        return GraphCanvasMath.contentToScene(contentX, contentY, panX,
-                                              panY, zoom)
-    }
-
     function childToScene(childItem, childX, childY) {
         if (!childItem)
             return Qt.point(0, 0)
         return childItem.mapToItem(root, childX, childY)
     }
 
+    function windowSceneToCanvasScene(scenePoint) {
+        return root.mapFromItem(null, scenePoint.x, scenePoint.y)
+    }
+
+    function componentItemFor(component) {
+        for (var i = 0; i < componentLayer.children.length; ++i) {
+            var item = componentLayer.children[i]
+            if (item && item.component === component)
+                return item
+        }
+        return null
+    }
+
     function componentAtScene(sceneX, sceneY, excludedComponent) {
-        var contentPoint = sceneToContent(sceneX, sceneY)
-        for (var i = contentLayer.children.length - 1; i >= 0; --i) {
-            var item = contentLayer.children[i]
+        for (var i = componentLayer.children.length - 1; i >= 0; --i) {
+            var item = componentLayer.children[i]
             if (!item || !item.component)
                 continue
             if (excludedComponent && item.component === excludedComponent)
                 continue
 
-            var local = item.mapFromItem(contentLayer, contentPoint.x,
-                                         contentPoint.y)
+            var local = item.mapFromItem(root, sceneX, sceneY)
             if (local.x >= 0 && local.x <= item.width && local.y >= 0
                     && local.y <= item.height)
                 return item.component
@@ -107,16 +108,26 @@ Item {
         return null
     }
 
-    function componentCenterInContent(component) {
-        for (var i = 0; i < contentLayer.children.length; ++i) {
-            var item = contentLayer.children[i]
-            if (!item || !item.component)
-                continue
-            if (item.component === component)
-                return item.mapToItem(contentLayer, item.width / 2,
-                                      item.height / 2)
+    function connectionEndpointsInScene(sourceComponent, targetComponent) {
+        var sourceItem = componentItemFor(sourceComponent)
+        var targetItem = componentItemFor(targetComponent)
+
+        if (sourceItem && targetItem) {
+            var sourceCenter = sourceItem.mapToItem(root, sourceItem.width / 2,
+                                                    sourceItem.height / 2)
+            var targetCenter = targetItem.mapToItem(root, targetItem.width / 2,
+                                                    targetItem.height / 2)
+            return GraphCanvasMath.connectionEndpointsBetweenRects(
+                        sourceCenter, sourceItem.width, sourceItem.height,
+                        targetCenter, targetItem.width, targetItem.height)
         }
-        return Qt.point(0, 0)
+
+        var endpoints = GraphCanvasMath.connectionEndpointsOnBounding(
+                    sourceComponent, targetComponent)
+        return {
+            "source": worldToScene(endpoints.source.x, endpoints.source.y),
+            "target": worldToScene(endpoints.target.x, endpoints.target.y)
+        }
     }
 
     clip: true
@@ -169,8 +180,8 @@ Item {
         HoverHandler {
             cursorShape: panDrag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
             onPointChanged: {
-                root.mouseScenePos = root.contentToScene(point.position.x,
-                                                         point.position.y)
+                root.mouseScenePos = Qt.point(point.position.x,
+                                              point.position.y)
             }
         }
 
@@ -198,8 +209,8 @@ Item {
             acceptedButtons: Qt.LeftButton
             onTapped: point => {
                           // Check if the tap hit any component; if so, ignore since the component's own TapHandler will handle it.
-                          var scenePos = root.contentToScene(point.position.x,
-                                                             point.position.y)
+                          var scenePos = Qt.point(point.position.x,
+                                                  point.position.y)
 
                           var hitComponent = root.componentAtScene(scenePos.x,
                                                                    scenePos.y)
@@ -225,61 +236,54 @@ Item {
         }
     }
 
+    Canvas {
+        id: edgeCanvas
+        anchors.fill: parent
+        z: 1
+
+        function repaint() {
+            requestPaint()
+        }
+
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            if (!root.graph)
+                return
+
+            var connections = root.graph.connections
+            for (var i = 0; i < connections.length; i++) {
+                var connection = connections[i]
+                var src = root.graph.componentById(connection.sourceId)
+                var tgt = root.graph.componentById(connection.targetId)
+                if (!src || !tgt)
+                    continue
+
+                var endpoints = root.connectionEndpointsInScene(src, tgt)
+
+                var isSel = (root.selectedConnection === connection)
+                GraphCanvasMath.drawConnection(ctx, endpoints.source,
+                                               endpoints.target,
+                                               GraphCanvasMath.CONNECTION_TYPE.real,
+                                               connection.label, isSel)
+            }
+
+            if (root.tempConnectionDragging) {
+                GraphCanvasMath.drawConnection(ctx, root.tempStart,
+                                               root.tempEnd,
+                                               GraphCanvasMath.CONNECTION_TYPE.temp,
+                                               "", false)
+            }
+        }
+    }
+
     Item {
-        id: contentLayer
+        id: componentLayer
         width: parent.width
         height: parent.height
         x: root.panX
         y: root.panY
         scale: root.zoom
-
-        // Connections — drawn imperatively so that moving a component instantly
-        // updates all connected lines without requiring per-connection bindings.
-        Canvas {
-            id: edgeCanvas
-            anchors.fill: parent
-
-            function repaint() {
-                requestPaint()
-            }
-
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.clearRect(0, 0, width, height)
-                if (!root.graph)
-                    return
-
-                var connections = root.graph.connections
-                for (var i = 0; i < connections.length; i++) {
-                    var connection = connections[i]
-                    var src = root.graph.componentById(connection.sourceId)
-                    var tgt = root.graph.componentById(connection.targetId)
-                    if (!src || !tgt)
-                        continue
-
-                    // For simple, just using center to center connections.
-                    var endpoints = {
-                        "source": root.componentCenterInContent(src),
-                        "target": root.componentCenterInContent(tgt)
-                    }
-
-                    var isSel = (root.selectedConnection === connection)
-                    GraphCanvasMath.drawConnection(ctx, endpoints.source.x,
-                                                   endpoints.source.y,
-                                                   endpoints.target.x,
-                                                   endpoints.target.y,
-                                                   connection.label, isSel)
-                }
-
-                if (root.tempConnectionDragging) {
-                    GraphCanvasMath.drawConnection(ctx, root.tempStart.x,
-                                                   root.tempStart.y,
-                                                   root.tempEnd.x,
-                                                   root.tempEnd.y, "", false,
-                                                   true, "#90caf9")
-                }
-            }
-        }
 
         // Components
         Repeater {
@@ -305,9 +309,8 @@ Item {
 
                 onConnectionDragged: function (sourceComponent, startP, targetP) {
                     root.tempConnectionDragging = true
-                    // Convert scene coordinates to content coordinates
-                    root.tempStart = root.sceneToContent(startP.x, startP.y)
-                    root.tempEnd = root.sceneToContent(targetP.x, targetP.y)
+                    root.tempStart = root.windowSceneToCanvasScene(startP)
+                    root.tempEnd = root.windowSceneToCanvasScene(targetP)
                     edgeCanvas.repaint()
                 }
                 onConnectionDropped: function (sourceComponent, startP, targetP) {
@@ -315,7 +318,9 @@ Item {
                     root.tempStart = Qt.point(0, 0)
                     root.tempEnd = Qt.point(0, 0)
 
-                    var component = root.componentAtScene(targetP.x, targetP.y,
+                    var dropPoint = root.windowSceneToCanvasScene(targetP)
+                    var component = root.componentAtScene(dropPoint.x,
+                                                          dropPoint.y,
                                                           sourceComponent)
                     if (!component) {
                         console.log("Drop ignored: no target component")

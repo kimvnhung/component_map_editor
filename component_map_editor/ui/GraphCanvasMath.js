@@ -3,14 +3,42 @@
 // Shared visual style for connection drawing. Keeping this centralized avoids
 // repeating styling literals at each call site.
 var EDGE_STYLE = {
-    strokeWidth: 2,
-    strokeWidthSelected: 3,
-    arrowLength: 12,
-    arrowAngleOffset: 0.4,
-    labelYOffset: 3,
-    normalColor: "#607d8b",
-    selectedColor: "#ff5722",
-    labelFont: "11px sans-serif"
+    "strokeWidth": 2,
+    "strokeWidthSelected": 3,
+    "arrowLength": 12,
+    "arrowAngleOffset": 0.4,
+    "labelYOffset": 3,
+    "normalColor": "#607d8b",
+    "selectedColor": "#ff5722",
+    "labelFont": "11px sans-serif"
+}
+
+var CONNECTION_TYPE = {
+    "real": "real",
+    "temp": "temp"
+}
+
+var CONNECTION_TYPE_STYLE = {
+    "real": {
+        "normalColor": EDGE_STYLE.normalColor,
+        "selectedColor": EDGE_STYLE.selectedColor,
+        "strokeWidth": EDGE_STYLE.strokeWidth,
+        "strokeWidthSelected": EDGE_STYLE.strokeWidthSelected,
+        "arrowLength": EDGE_STYLE.arrowLength,
+        "arrowAngleOffset": EDGE_STYLE.arrowAngleOffset,
+        "labelYOffset": EDGE_STYLE.labelYOffset,
+        "labelFont": EDGE_STYLE.labelFont
+    },
+    "temp": {
+        "normalColor": "#90caf9",
+        "selectedColor": "#90caf9",
+        "strokeWidth": EDGE_STYLE.strokeWidth,
+        "strokeWidthSelected": EDGE_STYLE.strokeWidth,
+        "arrowLength": EDGE_STYLE.arrowLength,
+        "arrowAngleOffset": EDGE_STYLE.arrowAngleOffset,
+        "labelYOffset": EDGE_STYLE.labelYOffset,
+        "labelFont": EDGE_STYLE.labelFont
+    }
 }
 
 // Clamps a numeric value inside [minValue, maxValue].
@@ -21,39 +49,12 @@ function clamp(value, minValue, maxValue) {
 // Converts from scene space (pixels in the viewport) to world space
 // (persistent graph coordinates used by ComponentModel.x/y).
 function sceneToWorld(sceneX, sceneY, panX, panY, zoom) {
-    return Qt.point((sceneX - panX) / zoom,
-                    -(sceneY - panY) / zoom)
+    return Qt.point((sceneX - panX) / zoom, -(sceneY - panY) / zoom)
 }
 
 // Converts from world space (graph coordinates) to scene space (viewport).
 function worldToScene(worldX, worldY, panX, panY, zoom) {
-    return Qt.point(worldX * zoom + panX,
-                    -worldY * zoom + panY)
-}
-
-// Converts from scene/screen coordinates to content-layer local coordinates
-// (Y-down, pre-scale coordinates used for Canvas drawing in contentLayer).
-function sceneToContent(sceneX, sceneY, panX, panY, zoom) {
-    return Qt.point((sceneX - panX) / zoom,
-                    (sceneY - panY) / zoom)
-}
-
-// Converts from content-layer local coordinates (Y-down) to scene/screen.
-function contentToScene(contentX, contentY, panX, panY, zoom) {
-    return Qt.point(contentX * zoom + panX,
-                    contentY * zoom + panY)
-}
-
-// Converts content-layer local coordinates (Y-down) to world coordinates
-// (Y-up, model space).
-function contentToWorld(contentX, contentY) {
-    return Qt.point(contentX, -contentY)
-}
-
-// Converts world coordinates (Y-up, model space) to content-layer local
-// coordinates (Y-down).
-function worldToContent(worldX, worldY) {
-    return Qt.point(worldX, -worldY)
+    return Qt.point(worldX * zoom + panX, -worldY * zoom + panY)
 }
 
 // Returns a positive modulo in [0, modulus), useful for stable grid offsets
@@ -75,27 +76,23 @@ function normalizedGridStep(baseStep, zoom, minPixelStep, maxPixelStep) {
 
 // Computes the camera state after zooming at a cursor position so that the
 // world point under the cursor remains fixed on screen.
-function zoomAtCursor(sceneX, sceneY,
-                      panX, panY,
-                      zoom, zoomFactor,
-                      minZoom, maxZoom,
-                      epsilon) {
+function zoomAtCursor(sceneX, sceneY, panX, panY, zoom, zoomFactor, minZoom, maxZoom, epsilon) {
     var anchorWorld = sceneToWorld(sceneX, sceneY, panX, panY, zoom)
     var nextZoom = clamp(zoom * zoomFactor, minZoom, maxZoom)
     if (Math.abs(nextZoom - zoom) < epsilon) {
         return {
-            changed: false,
-            panX: panX,
-            panY: panY,
-            zoom: zoom
+            "changed": false,
+            "panX": panX,
+            "panY": panY,
+            "zoom": zoom
         }
     }
 
     return {
-        changed: true,
-        zoom: nextZoom,
-        panX: sceneX - anchorWorld.x * nextZoom,
-        panY: sceneY + anchorWorld.y * nextZoom
+        "changed": true,
+        "zoom": nextZoom,
+        "panX": sceneX - anchorWorld.x * nextZoom,
+        "panY": sceneY + anchorWorld.y * nextZoom
     }
 }
 
@@ -112,10 +109,24 @@ function componentConnectionPoints(component) {
     var halfH = component.height / 2
 
     return {
-        left: Qt.point(center.x - halfW, center.y),
-        right: Qt.point(center.x + halfW, center.y),
-        top: Qt.point(center.x, center.y - halfH),
-        bottom: Qt.point(center.x, center.y + halfH)
+        "left": Qt.point(center.x - halfW, center.y),
+        "right": Qt.point(center.x + halfW, center.y),
+        "top": Qt.point(center.x, center.y - halfH),
+        "bottom": Qt.point(center.x, center.y + halfH)
+    }
+}
+
+// Returns the four canonical connection points for a rectangle expressed in
+// the current drawing coordinate space. centerPoint uses that same space.
+function rectangleConnectionPoints(centerPoint, width, height) {
+    var halfW = width / 2
+    var halfH = height / 2
+
+    return {
+        "left": Qt.point(centerPoint.x - halfW, centerPoint.y),
+        "right": Qt.point(centerPoint.x + halfW, centerPoint.y),
+        "top": Qt.point(centerPoint.x, centerPoint.y - halfH),
+        "bottom": Qt.point(centerPoint.x, centerPoint.y + halfH)
     }
 }
 
@@ -142,21 +153,57 @@ function connectionEndpointsOnBounding(sourceComponent, targetComponent) {
     }
 
     return {
-        source: sourcePoint,
-        target: targetPoint
+        "source": sourcePoint,
+        "target": targetPoint
     }
 }
 
+// Chooses boundary endpoints between two rectangles in the active drawing
+// coordinate space. This is used for live delegate geometry during dragging.
+function connectionEndpointsBetweenRects(sourceCenter, sourceWidth, sourceHeight, targetCenter, targetWidth, targetHeight) {
+    var dx = targetCenter.x - sourceCenter.x
+    var dy = targetCenter.y - sourceCenter.y
+
+    var srcPoints = rectangleConnectionPoints(sourceCenter, sourceWidth,
+                                              sourceHeight)
+    var tgtPoints = rectangleConnectionPoints(targetCenter, targetWidth,
+                                              targetHeight)
+
+    var sourcePoint
+    var targetPoint
+
+    if (Math.abs(dx) >= Math.abs(dy)) {
+        sourcePoint = dx >= 0 ? srcPoints.right : srcPoints.left
+        targetPoint = dx >= 0 ? tgtPoints.left : tgtPoints.right
+    } else {
+        sourcePoint = dy >= 0 ? srcPoints.bottom : srcPoints.top
+        targetPoint = dy >= 0 ? tgtPoints.top : tgtPoints.bottom
+    }
+
+    return {
+        "source": sourcePoint,
+        "target": targetPoint
+    }
+}
+
+function connectionStyle(connectionType) {
+    return CONNECTION_TYPE_STYLE[connectionType] || CONNECTION_TYPE_STYLE.real
+}
+
 // Draws a directed connection (line + arrow + optional label) on a 2D canvas.
-// Style values come from EDGE_STYLE by default, and can be overridden by
-// passing a custom style object.
-function drawConnection(ctx, sx, sy, tx, ty, label, isSelected, style) {
-    var edgeStyle = style || EDGE_STYLE
+// All coordinates are scene coordinates in the GraphCanvas space (Y-down).
+function drawConnection(ctx, startPoint, endPoint, connectionType, label,
+                        isSelected) {
+    var edgeStyle = connectionStyle(connectionType)
     var strokeColor = isSelected ? edgeStyle.selectedColor : edgeStyle.normalColor
     var strokeWidth = isSelected ? edgeStyle.strokeWidthSelected : edgeStyle.strokeWidth
     var arrowLength = edgeStyle.arrowLength
     var arrowAngleOffset = edgeStyle.arrowAngleOffset
     var labelYOffset = edgeStyle.labelYOffset
+    var sx = startPoint.x
+    var sy = startPoint.y
+    var tx = endPoint.x
+    var ty = endPoint.y
 
     ctx.strokeStyle = strokeColor
     ctx.lineWidth = strokeWidth
