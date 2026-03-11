@@ -76,8 +76,10 @@ function normalizedGridStep(baseStep, zoom, minPixelStep, maxPixelStep) {
 
 // Computes the camera state after zooming at a cursor position so that the
 // world point under the cursor remains fixed on screen.
-function zoomAtCursor(sceneX, sceneY, panX, panY, zoom, zoomFactor, minZoom, maxZoom, epsilon) {
-    var anchorWorld = sceneToWorld(sceneX, sceneY, panX, panY, zoom)
+function zoomAtCursor(anchorWorldX, anchorWorldY, panX, panY, zoom,
+                      zoomFactor, minZoom, maxZoom, epsilon) {
+    var anchorScene = worldToScene(anchorWorldX, anchorWorldY, panX, panY,
+                                   zoom)
     var nextZoom = clamp(zoom * zoomFactor, minZoom, maxZoom)
     if (Math.abs(nextZoom - zoom) < epsilon) {
         return {
@@ -88,12 +90,24 @@ function zoomAtCursor(sceneX, sceneY, panX, panY, zoom, zoomFactor, minZoom, max
         }
     }
 
+    // Recompute pan from scene = world * zoom + pan so the same world point
+    // remains under the original scene anchor after zoom changes.
     return {
         "changed": true,
         "zoom": nextZoom,
-        "panX": sceneX - anchorWorld.x * nextZoom,
-        "panY": sceneY + anchorWorld.y * nextZoom
+        "panX": anchorScene.x - anchorWorldX * nextZoom,
+        "panY": anchorScene.y + anchorWorldY * nextZoom
     }
+}
+
+// Maps a point from an item's local coordinates to scene coordinates. If item is
+function scenePoint(item, localX, localY) {
+    if (item === null) {
+        console.warn("sceneCoordinate called with null item, returning the input point as-is")
+        return Qt.point(localX, localY)
+    }
+
+    return item.mapToItem(null, localX, localY)
 }
 
 // Computes component center in world coordinates for connection endpoint placement.
@@ -192,8 +206,7 @@ function connectionStyle(connectionType) {
 
 // Draws a directed connection (line + arrow + optional label) on a 2D canvas.
 // All coordinates are scene coordinates in the GraphCanvas space (Y-down).
-function drawConnection(ctx, startPoint, endPoint, connectionType, label,
-                        isSelected) {
+function drawConnection(ctx, startPoint, endPoint, connectionType, label, isSelected) {
     var edgeStyle = connectionStyle(connectionType)
     var strokeColor = isSelected ? edgeStyle.selectedColor : edgeStyle.normalColor
     var strokeWidth = isSelected ? edgeStyle.strokeWidthSelected : edgeStyle.strokeWidth

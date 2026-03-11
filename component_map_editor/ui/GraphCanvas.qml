@@ -61,8 +61,15 @@ Item {
         return GraphCanvasMath.worldToScene(worldX, worldY, panX, panY, zoom)
     }
 
-    function zoomAt(screenX, screenY, zoomFactor) {
-        var state = GraphCanvasMath.zoomAtCursor(screenX, screenY, panX, panY,
+    function updateMouseWorldPos() {
+        root.mouseWorldPos = root.sceneToWorld(root.mouseScenePos.x,
+                                               root.mouseScenePos.y)
+    }
+
+    // Zooms around a world-space anchor sampled from the cursor position.
+    function zoomAtCursor(zoomFactor) {
+        var state = GraphCanvasMath.zoomAtCursor(mouseWorldPos.x,
+                                                 mouseWorldPos.y, panX, panY,
                                                  zoom, zoomFactor, minZoom,
                                                  maxZoom, zoomEpsilon)
         if (!state.changed)
@@ -180,8 +187,8 @@ Item {
         HoverHandler {
             cursorShape: panDrag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
             onPointChanged: {
-                root.mouseScenePos = Qt.point(point.position.x,
-                                              point.position.y)
+                root.mouseScenePos = GraphCanvasMath.scenePoint(
+                            parent, point.position.x, point.position.y)
             }
         }
 
@@ -230,7 +237,8 @@ Item {
             onWheel: event => {
                          var factor = event.angleDelta.y
                          > 0 ? root.zoomStepFactor : 1 / root.zoomStepFactor
-                         root.zoomAt(event.x, event.y, factor)
+
+                         root.zoomAtCursor(factor)
                          event.accepted = true
                      }
         }
@@ -262,17 +270,16 @@ Item {
                 var endpoints = root.connectionEndpointsInScene(src, tgt)
 
                 var isSel = (root.selectedConnection === connection)
-                GraphCanvasMath.drawConnection(ctx, endpoints.source,
-                                               endpoints.target,
-                                               GraphCanvasMath.CONNECTION_TYPE.real,
-                                               connection.label, isSel)
+                GraphCanvasMath.drawConnection(
+                            ctx, endpoints.source, endpoints.target,
+                            GraphCanvasMath.CONNECTION_TYPE.real,
+                            connection.label, isSel)
             }
 
             if (root.tempConnectionDragging) {
-                GraphCanvasMath.drawConnection(ctx, root.tempStart,
-                                               root.tempEnd,
-                                               GraphCanvasMath.CONNECTION_TYPE.temp,
-                                               "", false)
+                GraphCanvasMath.drawConnection(
+                            ctx, root.tempStart, root.tempEnd,
+                            GraphCanvasMath.CONNECTION_TYPE.temp, "", false)
             }
         }
     }
@@ -395,20 +402,22 @@ Item {
     onPanXChanged: {
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
+        root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onPanYChanged: {
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
+        root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onZoomChanged: {
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
+        root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onMouseScenePosChanged: {
-        root.mouseWorldPos = root.sceneToWorld(root.mouseScenePos.x,
-                                               root.mouseScenePos.y)
+        root.updateMouseWorldPos()
     }
 }
