@@ -4,6 +4,7 @@
 import QtQuick
 import ComponentMapEditor
 import "GraphCanvasMath.js" as GraphCanvasMath
+import "components"
 
 Item {
     id: root
@@ -26,7 +27,7 @@ Item {
     property ConnectionModel selectedConnection: null
     property UndoStack undoStack: null
 
-    // Temp connection points in GraphCanvas scene coordinates (Y-down).
+    // Temp connection points in GraphCanvas view coordinates (Y-down).
     property point tempStart: Qt.point(0, 0)
     property point tempEnd: Qt.point(0, 0)
     property bool tempConnectionDragging: false
@@ -37,9 +38,9 @@ Item {
     property real panX: 0
     property real panY: 0
     property bool enableBackgroundDrag: true
-    property point mouseScenePos: Qt.point(0, 0)
+    property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
-    readonly property point worldOrigin: sceneToWorld(0, 0)
+    readonly property point worldOrigin: viewToWorld(0, 0)
 
     signal componentSelected(ComponentModel component)
     signal connectionSelected(ConnectionModel connection)
@@ -47,26 +48,36 @@ Item {
     signal viewTransformChanged(real panX, real panY, real zoom)
 
     // Coordinate-space contract:
-    // - world: model coordinates (Y-up), stored in ComponentModel.
-    // - scene: viewport/screen coordinates in GraphCanvas (Y-down).
+    // - world: model coordinates (component centers, Y-down), stored in ComponentModel.
+    // - view: viewport coordinates in GraphCanvas local space (Y-down).
+    // - scene: Qt window-scene coordinates (only for mapToItem/mapFromItem use-cases).
+    //
+    // Current camera transform:
+    //   viewX = worldX * zoom + panX
+    //   viewY = worldY * zoom + panY
+    //   worldX = (viewX - panX) / zoom
+    //   worldY = (viewY - panY) / zoom
     function clampZoom(value) {
         return GraphCanvasMath.clamp(value, minZoom, maxZoom)
     }
 
-    function sceneToWorld(sceneX, sceneY) {
-        return GraphCanvasMath.sceneToWorld(sceneX, sceneY, panX, panY, zoom)
+    function viewToWorld(viewX, viewY) {
+        return GraphCanvasMath.viewToWorld(viewX, viewY, panX, panY, zoom)
     }
 
-    function worldToScene(worldX, worldY) {
-        return GraphCanvasMath.worldToScene(worldX, worldY, panX, panY, zoom)
+    function worldToView(worldX, worldY) {
+        return GraphCanvasMath.worldToView(worldX, worldY, panX, panY, zoom)
     }
 
     function updateMouseWorldPos() {
-        root.mouseWorldPos = root.sceneToWorld(root.mouseScenePos.x,
-                                               root.mouseScenePos.y)
+        root.mouseWorldPos = root.viewToWorld(root.mouseViewPos.x,
+                                              root.mouseViewPos.y)
     }
 
     // Zooms around a world-space anchor sampled from the cursor position.
+    // If the cursor is currently over a component center in world coordinates,
+    // zooming keeps that same world point under the cursor, so the visible
+    // component center remains visually pinned to the mouse.
     function zoomAtCursor(zoomFactor) {
         var state = GraphCanvasMath.zoomAtCursor(mouseWorldPos.x,
                                                  mouseWorldPos.y, panX, panY,
@@ -80,14 +91,14 @@ Item {
         panY = state.panY
     }
 
-    function childToScene(childItem, childX, childY) {
+    function childToView(childItem, childX, childY) {
         if (!childItem)
             return Qt.point(0, 0)
         return childItem.mapToItem(root, childX, childY)
     }
 
-    function windowSceneToCanvasScene(scenePoint) {
-        return root.mapFromItem(null, scenePoint.x, scenePoint.y)
+    function windowSceneToView(windowScenePoint) {
+        return root.mapFromItem(null, windowScenePoint.x, windowScenePoint.y)
     }
 
     function componentItemFor(component) {
@@ -99,7 +110,7 @@ Item {
         return null
     }
 
-    function componentAtScene(sceneX, sceneY, excludedComponent) {
+    function componentAtView(viewX, viewY, excludedComponent) {
         for (var i = componentLayer.children.length - 1; i >= 0; --i) {
             var item = componentLayer.children[i]
             if (!item || !item.component)
@@ -107,7 +118,7 @@ Item {
             if (excludedComponent && item.component === excludedComponent)
                 continue
 
-            var local = item.mapFromItem(root, sceneX, sceneY)
+            var local = item.mapFromItem(root, viewX, viewY)
             if (local.x >= 0 && local.x <= item.width && local.y >= 0
                     && local.y <= item.height)
                 return item.component
@@ -115,7 +126,7 @@ Item {
         return null
     }
 
-    function connectionEndpointsInScene(sourceComponent, targetComponent) {
+    function connectionEndpointsInView(sourceComponent, targetComponent) {
         var sourceItem = componentItemFor(sourceComponent)
         var targetItem = componentItemFor(targetComponent)
 
@@ -132,8 +143,8 @@ Item {
         var endpoints = GraphCanvasMath.connectionEndpointsOnBounding(
                     sourceComponent, targetComponent)
         return {
-            "source": worldToScene(endpoints.source.x, endpoints.source.y),
-            "target": worldToScene(endpoints.target.x, endpoints.target.y)
+            "source": worldToView(endpoints.source.x, endpoints.source.y),
+            "target": worldToView(endpoints.target.x, endpoints.target.y)
         }
     }
 
@@ -187,8 +198,10 @@ Item {
         HoverHandler {
             cursorShape: panDrag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
             onPointChanged: {
-                root.mouseScenePos = GraphCanvasMath.scenePoint(
-                            parent, point.position.x, point.position.y)
+                // interactionLayer fills GraphCanvas at (0, 0), so the hover
+                // point is already in GraphCanvas view coordinates.
+                root.mouseViewPos = Qt.point(point.position.x,
+                                             point.position.y)
             }
         }
 
@@ -216,19 +229,19 @@ Item {
             acceptedButtons: Qt.LeftButton
             onTapped: point => {
                           // Check if the tap hit any component; if so, ignore since the component's own TapHandler will handle it.
-                          var scenePos = Qt.point(point.position.x,
-                                                  point.position.y)
+                          var viewPos = Qt.point(point.position.x,
+                                                 point.position.y)
 
-                          var hitComponent = root.componentAtScene(scenePos.x,
-                                                                   scenePos.y)
+                          var hitComponent = root.componentAtView(viewPos.x,
+                                                                  viewPos.y)
                           if (hitComponent) {
                               return
                           }
 
                           root.selectedComponent = null
                           root.selectedConnection = null
-                          var worldPos = root.sceneToWorld(point.position.x,
-                                                           point.position.y)
+                          var worldPos = root.viewToWorld(point.position.x,
+                                                          point.position.y)
                           root.backgroundClicked(worldPos.x, worldPos.y)
                       }
         }
@@ -267,7 +280,7 @@ Item {
                 if (!src || !tgt)
                     continue
 
-                var endpoints = root.connectionEndpointsInScene(src, tgt)
+                var endpoints = root.connectionEndpointsInView(src, tgt)
 
                 var isSel = (root.selectedConnection === connection)
                 GraphCanvasMath.drawConnection(
@@ -286,6 +299,19 @@ Item {
 
     Item {
         id: componentLayer
+        // componentLayer local coordinates are the canonical world drawing
+        // coordinates before camera transform is applied.
+        //
+        // That means:
+        // - a world point (wx, wy) maps to componentLayer local (wx, wy)
+        // - delegates place their top-left corners in this space
+        // - pan and zoom are applied by this layer's x/y/scale, not by
+        //   changing child coordinates
+        //
+        // Model note:
+        // - ComponentModel.x/y store component CENTER in world coordinates.
+        // - ComponentItem.x/y store TOP-LEFT in componentLayer coordinates.
+        // - Conversion is center <-> top-left only.
         width: parent.width
         height: parent.height
         x: root.panX
@@ -316,8 +342,8 @@ Item {
 
                 onConnectionDragged: function (sourceComponent, startP, targetP) {
                     root.tempConnectionDragging = true
-                    root.tempStart = root.windowSceneToCanvasScene(startP)
-                    root.tempEnd = root.windowSceneToCanvasScene(targetP)
+                    root.tempStart = root.windowSceneToView(startP)
+                    root.tempEnd = root.windowSceneToView(targetP)
                     edgeCanvas.repaint()
                 }
                 onConnectionDropped: function (sourceComponent, startP, targetP) {
@@ -325,10 +351,10 @@ Item {
                     root.tempStart = Qt.point(0, 0)
                     root.tempEnd = Qt.point(0, 0)
 
-                    var dropPoint = root.windowSceneToCanvasScene(targetP)
-                    var component = root.componentAtScene(dropPoint.x,
-                                                          dropPoint.y,
-                                                          sourceComponent)
+                    var dropPoint = root.windowSceneToView(targetP)
+                    var component = root.componentAtView(dropPoint.x,
+                                                         dropPoint.y,
+                                                         sourceComponent)
                     if (!component) {
                         console.log("Drop ignored: no target component")
                         edgeCanvas.repaint()
@@ -364,7 +390,7 @@ Item {
                 onMoved: edgeCanvas.repaint()
 
                 onHoverPositionChanged: function (hoverX, hoverY) {
-                    root.mouseScenePos = root.childToScene(this, hoverX, hoverY)
+                    root.mouseViewPos = root.childToView(this, hoverX, hoverY)
                 }
             }
         }
@@ -379,7 +405,7 @@ Item {
         connectionCount: root.graph ? root.graph.connections.length : 0
         selectedComponentLabel: root.selectedComponent ? root.selectedComponent.label : "none"
         selectedConnectionLabel: root.selectedConnection ? root.selectedConnection.id : "none"
-        mouseScenePos: root.mouseScenePos
+        mouseViewPos: root.mouseViewPos
         mouseWorldPos: root.mouseWorldPos
         zoom: root.zoom
     }
@@ -417,7 +443,7 @@ Item {
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
-    onMouseScenePosChanged: {
+    onMouseViewPosChanged: {
         root.updateMouseWorldPos()
     }
 }

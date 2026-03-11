@@ -25,13 +25,21 @@ ResizableItem {
     moveEnabled: true
     moveDragThreshold: 4
 
-    // Model space uses Y-up, while Qt item space uses Y-down.
-    function modelYToSceneTop(modelY) {
-        return -modelY - (root.height / 2)
+    // Coordinate contract:
+    // - ComponentModel.x/y store the COMPONENT CENTER in world coordinates.
+    // - ComponentItem.x/y store the TOP-LEFT corner in componentLayer coordinates.
+    // - Both spaces use Y-down, so only center<->top-left conversion is needed.
+    //
+    // Center Y -> top-left Y:
+    //   itemTopY = modelCenterY - height/2
+    function modelYToItemTop(modelY) {
+        return modelY - root.height / 2
     }
 
-    function sceneTopToModelY(sceneTop) {
-        return -(sceneTop + (root.height / 2))
+    // Top-left Y -> center Y:
+    //   modelCenterY = itemTopY + height/2
+    function itemTopToModelY(itemTopY) {
+        return itemTopY + root.height / 2
     }
 
     function directionToScenePoint(direction) {
@@ -57,21 +65,32 @@ ResizableItem {
         focused = selected || connectionHandler.arrowActivated
     }
 
+    // Writes item geometry back to the model.
+    // Item x/y are top-left in componentLayer coordinates.
+    // Model x/y store the component center in world coordinates.
+    // Therefore:
+    //   modelCenterX = itemX + width/2
+    //   modelCenterY = itemY + height/2
+    // Width/height are copied as-is.
+    function syncModelFromItemGeometry() {
+        if (!root.component)
+            return
+        root.component.x = root.x + root.width / 2
+        root.component.y = itemTopToModelY(root.y)
+        root.component.width = root.width
+        root.component.height = root.height
+    }
+
+    onMoved: syncModelFromItemGeometry()
+    onMoveFinished: syncModelFromItemGeometry()
+    onResized: syncModelFromItemGeometry()
+    onResizeFinished: syncModelFromItemGeometry()
+
     signal componentClicked(ComponentModel component)
 
     // startP and targetP are in scene coordinates relative to the top-left of the view.
     signal connectionDragged(ComponentModel sourceComponent, point startP, point targetP)
     signal connectionDropped(ComponentModel sourceComponent, point startP, point targetP)
-
-    function syncModelFromItemGeometry() {
-        if (!root.component)
-            return
-
-        root.component.x = root.x + (root.width / 2)
-        root.component.y = sceneTopToModelY(root.y)
-        root.component.width = root.width
-        root.component.height = root.height
-    }
 
     width: defaultComponentWidth
     height: defaultComponentHeight
@@ -79,48 +98,33 @@ ResizableItem {
 
     onClicked: root.componentClicked(root.component)
 
-    onMoveFinished: {
-        if (root.component)
-            syncModelFromItemGeometry()
-    }
-    onResized: syncModelFromItemGeometry()
     onHoveredChanged: {
         if (hovered)
             connectionHandler.arrowActivated = true
     }
     onSelectedChanged: root.refreshFocused()
 
-    // Initialise position from the model; don't bind so dragging works.
-    Component.onCompleted: {
-        if (root.component) {
-            root.width = root.component.width
-            root.height = root.component.height
-            x = root.component.x - (root.width / 2)
-            y = modelYToSceneTop(root.component.y)
-        }
-    }
-
     // Keep position in sync when the model is updated externally.
     Connections {
         target: root.component
         function onXChanged() {
             if (!root.moving && !root.resizing)
-                root.x = root.component.x - (root.width / 2)
+                root.x = root.component.x - root.width / 2
         }
         function onYChanged() {
             if (!root.moving && !root.resizing)
-                root.y = modelYToSceneTop(root.component.y)
+                root.y = modelYToItemTop(root.component.y)
         }
         function onWidthChanged() {
             if (!root.moving && !root.resizing) {
                 root.width = root.component.width
-                root.x = root.component.x - (root.width / 2)
+                root.x = root.component.x - root.width / 2
             }
         }
         function onHeightChanged() {
             if (!root.moving && !root.resizing) {
                 root.height = root.component.height
-                root.y = modelYToSceneTop(root.component.y)
+                root.y = modelYToItemTop(root.component.y)
             }
         }
     }

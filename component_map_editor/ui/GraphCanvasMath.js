@@ -1,5 +1,22 @@
 .pragma library
 
+// Coordinate-space contract used by this module:
+// - world: persistent graph/model coordinates using component centers (Y-down).
+// - view: GraphCanvas local pixel coordinates (Y-down, origin at canvas top-left).
+// - scene: Qt Quick window scene coordinates (used only when mapping via mapToItem/mapFromItem).
+//
+// Camera parameters:
+// - panX, panY: camera translation in view pixels.
+// - zoom: camera scale factor.
+//
+// Current world<->view transform in this codebase:
+//   viewX = worldX * zoom + panX
+//   viewY = worldY * zoom + panY
+//
+// Inverse transform:
+//   worldX = (viewX - panX) / zoom
+//   worldY = (viewY - panY) / zoom
+
 // Shared visual style for connection drawing. Keeping this centralized avoids
 // repeating styling literals at each call site.
 var EDGE_STYLE = {
@@ -46,26 +63,39 @@ function clamp(value, minValue, maxValue) {
     return Math.max(minValue, Math.min(maxValue, value))
 }
 
-// Converts from scene space (pixels in the viewport) to world space
-// (persistent graph coordinates used by ComponentModel.x/y).
-function sceneToWorld(sceneX, sceneY, panX, panY, zoom) {
-    return Qt.point((sceneX - panX) / zoom, -(sceneY - panY) / zoom)
+// Converts from GraphCanvas view space (Y-down) to world space (Y-down).
+// Formula:
+//   worldX = (viewX - panX) / zoom
+//   worldY = (viewY - panY) / zoom
+function viewToWorld(viewX, viewY, panX, panY, zoom) {
+    return Qt.point((viewX - panX) / zoom, (viewY - panY) / zoom)
 }
 
-// Converts from world space (graph coordinates) to scene space (viewport).
-function worldToScene(worldX, worldY, panX, panY, zoom) {
-    return Qt.point(worldX * zoom + panX, -worldY * zoom + panY)
+// Converts from world space (Y-down) to GraphCanvas view space (Y-down).
+// Formula:
+//   viewX = worldX * zoom + panX
+//   viewY = worldY * zoom + panY
+function worldToView(worldX, worldY, panX, panY, zoom) {
+    return Qt.point(worldX * zoom + panX, worldY * zoom + panY)
 }
 
 // Returns a positive modulo in [0, modulus), useful for stable grid offsets
 // even when pan is negative.
 function positiveModulo(value, modulus) {
+    // JavaScript % keeps the sign of the dividend, so negative values produce
+    // negative remainders. This normalization makes the result wrap into
+    // [0, modulus) with the equivalent expression:
+    //   ((value mod modulus) + modulus) mod modulus
     return ((value % modulus) + modulus) % modulus
 }
 
 // Adapts the grid pixel spacing to remain readable across zoom levels.
 // The power-of-two scaling keeps visual transitions smooth.
 function normalizedGridStep(baseStep, zoom, minPixelStep, maxPixelStep) {
+    // Start from the direct scaled spacing:
+    //   step = baseStep * zoom
+    // Then multiply/divide by 2 to keep the rendered spacing in a readable
+    // pixel interval while preserving stable powers-of-two transitions.
     var step = baseStep * zoom
     while (step < minPixelStep)
         step *= 2
@@ -78,8 +108,10 @@ function normalizedGridStep(baseStep, zoom, minPixelStep, maxPixelStep) {
 // world point under the cursor remains fixed on screen.
 function zoomAtCursor(anchorWorldX, anchorWorldY, panX, panY, zoom,
                       zoomFactor, minZoom, maxZoom, epsilon) {
-    var anchorScene = worldToScene(anchorWorldX, anchorWorldY, panX, panY,
-                                   zoom)
+    // Convert the world anchor to view space before applying a new zoom.
+    // This anchor is the pixel location that must remain stationary.
+    var anchorView = worldToView(anchorWorldX, anchorWorldY, panX, panY,
+                                 zoom)
     var nextZoom = clamp(zoom * zoomFactor, minZoom, maxZoom)
     if (Math.abs(nextZoom - zoom) < epsilon) {
         return {
@@ -90,17 +122,22 @@ function zoomAtCursor(anchorWorldX, anchorWorldY, panX, panY, zoom,
         }
     }
 
-    // Recompute pan from scene = world * zoom + pan so the same world point
-    // remains under the original scene anchor after zoom changes.
+    // Recompute pan from
+    //   viewX = worldX * zoom + panX
+    //   viewY = worldY * zoom + panY
+    // while keeping anchorView fixed after zoom changes:
+    //   panX' = anchorView.x - anchorWorldX * nextZoom
+    //   panY' = anchorView.y - anchorWorldY * nextZoom
     return {
         "changed": true,
         "zoom": nextZoom,
-        "panX": anchorScene.x - anchorWorldX * nextZoom,
-        "panY": anchorScene.y + anchorWorldY * nextZoom
+        "panX": anchorView.x - anchorWorldX * nextZoom,
+        "panY": anchorView.y - anchorWorldY * nextZoom
     }
 }
 
-// Maps a point from an item's local coordinates to scene coordinates. If item is
+// Maps an item's local point to Qt scene coordinates.
+// Note: this is window-scene space, not GraphCanvas view space.
 function scenePoint(item, localX, localY) {
     if (item === null) {
         console.warn("sceneCoordinate called with null item, returning the input point as-is")
@@ -118,6 +155,7 @@ function componentCenter(component) {
 // Returns the four canonical connection points on a component bounding box.
 // Component x/y are interpreted as the center of the box.
 function componentConnectionPoints(component) {
+    // Derive side anchors from center +/- half extents.
     var center = componentCenter(component)
     var halfW = component.width / 2
     var halfH = component.height / 2
@@ -133,6 +171,11 @@ function componentConnectionPoints(component) {
 // Returns the four canonical connection points for a rectangle expressed in
 // the current drawing coordinate space. centerPoint uses that same space.
 function rectangleConnectionPoints(centerPoint, width, height) {
+    // Generic rectangle equivalent of componentConnectionPoints:
+    //   left.x  = center.x - width/2
+    //   right.x = center.x + width/2
+    //   top.y   = center.y - height/2
+    //   bottom.y= center.y + height/2
     var halfW = width / 2
     var halfH = height / 2
 
@@ -158,6 +201,10 @@ function connectionEndpointsOnBounding(sourceComponent, targetComponent) {
     var sourcePoint
     var targetPoint
 
+    // Dominant-axis heuristic:
+    // - if |dx| >= |dy|, connect left<->right
+    // - else connect top<->bottom
+    // This avoids diagonal corner snapping and keeps links readable.
     if (Math.abs(dx) >= Math.abs(dy)) {
         sourcePoint = dx >= 0 ? srcPoints.right : srcPoints.left
         targetPoint = dx >= 0 ? tgtPoints.left : tgtPoints.right
@@ -186,6 +233,8 @@ function connectionEndpointsBetweenRects(sourceCenter, sourceWidth, sourceHeight
     var sourcePoint
     var targetPoint
 
+    // Same dominant-axis heuristic as connectionEndpointsOnBounding,
+    // but applied to already-available rectangle geometry in draw space.
     if (Math.abs(dx) >= Math.abs(dy)) {
         sourcePoint = dx >= 0 ? srcPoints.right : srcPoints.left
         targetPoint = dx >= 0 ? tgtPoints.left : tgtPoints.right
@@ -226,10 +275,16 @@ function drawConnection(ctx, startPoint, endPoint, connectionType, label, isSele
     ctx.lineTo(tx, ty)
     ctx.stroke()
 
+    // Direction angle of the segment in radians.
+    // atan2(dy, dx) is robust across all quadrants.
     var angle = Math.atan2(ty - sy, tx - sx)
     ctx.fillStyle = strokeColor
     ctx.beginPath()
     ctx.moveTo(tx, ty)
+    // Arrowhead points are rotated around the segment angle:
+    //   p1 = tip - L * [cos(a-d), sin(a-d)]
+    //   p2 = tip - L * [cos(a+d), sin(a+d)]
+    // where a is segment angle, d is half-arrow opening angle.
     ctx.lineTo(tx - arrowLength * Math.cos(angle - arrowAngleOffset),
                ty - arrowLength * Math.sin(angle - arrowAngleOffset))
     ctx.lineTo(tx - arrowLength * Math.cos(angle + arrowAngleOffset),
@@ -249,8 +304,10 @@ function drawConnection(ctx, startPoint, endPoint, connectionType, label, isSele
 // Optional helper for a future fully-canvas component renderer.
 // Current implementation uses ComponentItem.qml delegates, so this is not used yet.
 function drawComponent(ctx, component) {
-    var x = component.x
-    var y = component.y
+    // ComponentModel stores center coordinates, while Canvas drawing expects
+    // top-left rectangle coordinates.
+    var x = component.x - component.width / 2
+    var y = component.y - component.height / 2
     var width = component.width
     var height = component.height
     var radius = component.radius

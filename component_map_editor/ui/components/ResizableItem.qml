@@ -3,6 +3,10 @@ import QtQuick
 Item {
     id: root
 
+    // for zoom
+    // required property real zoom
+    // required property real panX
+    // required property real panY
     property bool moveEnabled: true
     property bool resizeEnabled: true
     // Whether to show the resize handles.

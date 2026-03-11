@@ -7,7 +7,7 @@ Rectangle {
     property int connectionCount: 0
     property string selectedComponentLabel: "none"
     property string selectedConnectionLabel: "none"
-    property point mouseScenePos: Qt.point(0, 0)
+    property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
     property real zoom: 1.0
 
@@ -31,8 +31,8 @@ Rectangle {
               + " | Connections: " + root.connectionCount
               + " | Selected Component: " + root.selectedComponentLabel
               + " | Selected Connection: " + root.selectedConnectionLabel
-              + " | Mouse (scene): [" + root.formatCoord(root.mouseScenePos.x)
-              + ", " + root.formatCoord(root.mouseScenePos.y) + "]"
+              + " | Mouse (view): [" + root.formatCoord(root.mouseViewPos.x)
+              + ", " + root.formatCoord(root.mouseViewPos.y) + "]"
               + " | Mouse (world): [" + root.formatCoord(root.mouseWorldPos.x)
               + ", " + root.formatCoord(root.mouseWorldPos.y) + "]"
               + " | Zoom: " + root.zoom.toFixed(2)
