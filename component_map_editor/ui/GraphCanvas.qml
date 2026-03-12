@@ -42,6 +42,11 @@ Item {
     property point mouseWorldPos: Qt.point(0, 0)
     readonly property point worldOrigin: viewToWorld(0, 0)
 
+    // Optional telemetry hook. Set to a PerformanceTelemetry instance to
+    // collect camera-update and drag-event interval samples for Phase 0 baseline.
+    // Leave null (default) for zero overhead in production.
+    property PerformanceTelemetry telemetry: null
+
     signal componentSelected(ComponentModel component)
     signal connectionSelected(ConnectionModel connection)
     signal backgroundClicked(real x, real y)
@@ -216,12 +221,16 @@ Item {
                 if (active) {
                     interactionLayer.startPanX = root.panX
                     interactionLayer.startPanY = root.panY
+                    if (root.telemetry) root.telemetry.notifyDragStarted()
+                } else {
+                    if (root.telemetry) root.telemetry.notifyDragEnded()
                 }
             }
 
             onTranslationChanged: {
                 root.panX = interactionLayer.startPanX + translation.x
                 root.panY = interactionLayer.startPanY + translation.y
+                if (root.telemetry) root.telemetry.notifyDragMoved()
             }
         }
 
@@ -387,7 +396,12 @@ Item {
                     edgeCanvas.repaint()
                 }
 
-                onMoved: edgeCanvas.repaint()
+                onMoveStarted: if (root.telemetry) root.telemetry.notifyDragStarted()
+                onMoved: {
+                    edgeCanvas.repaint()
+                    if (root.telemetry) root.telemetry.notifyDragMoved()
+                }
+                onMoveFinished: if (root.telemetry) root.telemetry.notifyDragEnded()
 
                 onHoverPositionChanged: function (hoverX, hoverY) {
                     root.mouseViewPos = root.childToView(this, hoverX, hoverY)
@@ -426,6 +440,7 @@ Item {
     onSelectedConnectionChanged: edgeCanvas.repaint()
     onGraphChanged: edgeCanvas.repaint()
     onPanXChanged: {
+        if (telemetry) telemetry.notifyCameraChanged()
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
         root.updateMouseWorldPos()
@@ -438,6 +453,7 @@ Item {
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onZoomChanged: {
+        if (telemetry) telemetry.notifyCameraChanged()
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
         root.updateMouseWorldPos()
