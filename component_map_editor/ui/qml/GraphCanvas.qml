@@ -13,6 +13,7 @@ Item {
     readonly property real defaultZoom: 1.0
     readonly property real zoomStepFactor: 1.15
     readonly property real zoomEpsilon: 0.000001
+    readonly property real viewportParityEpsilon: 0.0001
 
     // Grid tuning constants.
     readonly property real baseGridStep: 30
@@ -77,6 +78,49 @@ Item {
     function updateMouseWorldPos() {
         root.mouseWorldPos = root.viewToWorld(root.mouseViewPos.x,
                                               root.mouseViewPos.y)
+    }
+
+    function syncViewportCamera() {
+        if (!viewportSkeleton)
+            return
+        viewportSkeleton.panX = root.panX
+        viewportSkeleton.panY = root.panY
+        viewportSkeleton.zoom = root.zoom
+    }
+
+    // Phase 1 guardrail: verify C++ viewport camera math parity with the
+    // existing JS camera contract. If this warns, Phase 1 must be rolled back
+    // or fixed before continuing migration.
+    function verifyViewportParity() {
+        if (!viewportSkeleton)
+            return
+
+        // Keep C++ skeleton camera in lockstep before comparing transforms.
+        root.syncViewportCamera()
+
+        var sampleView = Qt.point(width * 0.37, height * 0.61)
+        var jsWorld = GraphCanvasMath.viewToWorld(sampleView.x, sampleView.y,
+                                                  panX, panY, zoom)
+        var cppWorld = viewportSkeleton.viewToWorld(sampleView.x, sampleView.y)
+
+        if (Math.abs(jsWorld.x - cppWorld.x) > viewportParityEpsilon
+                || Math.abs(jsWorld.y - cppWorld.y) > viewportParityEpsilon) {
+            console.warn("GraphViewportItem parity mismatch (viewToWorld):",
+                         "js=", jsWorld.x, jsWorld.y, "cpp=", cppWorld.x,
+                         cppWorld.y)
+        }
+
+        var sampleWorld = Qt.point(worldOrigin.x + 173.0, worldOrigin.y + 89.0)
+        var jsView = GraphCanvasMath.worldToView(sampleWorld.x, sampleWorld.y,
+                                                 panX, panY, zoom)
+        var cppView = viewportSkeleton.worldToView(sampleWorld.x, sampleWorld.y)
+
+        if (Math.abs(jsView.x - cppView.x) > viewportParityEpsilon
+                || Math.abs(jsView.y - cppView.y) > viewportParityEpsilon) {
+            console.warn("GraphViewportItem parity mismatch (worldToView):",
+                         "js=", jsView.x, jsView.y, "cpp=", cppView.x,
+                         cppView.y)
+        }
     }
 
     // Zooms around a world-space anchor sampled from the cursor position.
@@ -159,6 +203,16 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
+    }
+
+    // Phase 1 C++ viewport skeleton. It mirrors camera state only and does not
+    // render yet, so current QML rendering remains fully active.
+    GraphViewportItem {
+        id: viewportSkeleton
+        panX: 0
+        panY: 0
+        zoom: 1
+        visible: false
     }
 
     // Grid
@@ -440,6 +494,8 @@ Item {
     onSelectedConnectionChanged: edgeCanvas.repaint()
     onGraphChanged: edgeCanvas.repaint()
     onPanXChanged: {
+        root.syncViewportCamera()
+        root.verifyViewportParity()
         if (telemetry) telemetry.notifyCameraChanged()
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
@@ -447,12 +503,16 @@ Item {
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onPanYChanged: {
+        root.syncViewportCamera()
+        root.verifyViewportParity()
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onZoomChanged: {
+        root.syncViewportCamera()
+        root.verifyViewportParity()
         if (telemetry) telemetry.notifyCameraChanged()
         gridCanvas.requestPaint()
         edgeCanvas.repaint()
@@ -462,4 +522,6 @@ Item {
     onMouseViewPosChanged: {
         root.updateMouseWorldPos()
     }
+
+    Component.onCompleted: root.syncViewportCamera()
 }
