@@ -1,12 +1,18 @@
 #ifndef GRAPHVIEWPORTITEM_H
 #define GRAPHVIEWPORTITEM_H
 
+#include <QHash>
+#include <QPointer>
 #include <QPointF>
+#include <QRectF>
 #include <QQuickItem>
 #include <QQmlEngine>
+#include <QVector>
 
 class QSGGeometryNode;
 class QSGTransformNode;
+class ComponentModel;
+class ConnectionModel;
 
 // Phase 1 skeleton item for future C++ viewport rendering.
 // This class intentionally provides camera API only (panX/panY/zoom) and
@@ -84,6 +90,11 @@ public:
     // Requests scene graph rebuild on next frame.
     Q_INVOKABLE void repaint();
 
+    // Phase 3: indexed hit-testing in C++.
+    Q_INVOKABLE QObject *hitTestComponentAtView(qreal viewX, qreal viewY);
+    Q_INVOKABLE QObject *hitTestConnectionAtView(qreal viewX, qreal viewY,
+                                                 qreal tolerancePx = 8.0);
+
 protected:
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *updatePaintNodeData) override;
 
@@ -103,9 +114,32 @@ signals:
     void tempEndChanged();
 
 private:
+    struct IndexedComponent {
+        QPointer<ComponentModel> component;
+        QRectF worldRect;
+    };
+
+    struct IndexedConnection {
+        QPointer<ConnectionModel> connection;
+        QPointF sourceWorld;
+        QPointF targetWorld;
+        QRectF worldBounds;
+    };
+
     qreal normalizedGridStep() const;
     static qreal positiveModulo(qreal value, qreal modulus);
     void requestGraphRebuild();
+
+    void markSpatialIndexDirty();
+    void ensureSpatialIndex();
+    void rebuildSpatialIndex();
+    void clearComponentGeometryConnections();
+
+    static quint64 cellKey(int cx, int cy);
+    static QRect cellRangeForRect(const QRectF &rect, qreal cellSize);
+    static qreal distanceToSegmentSquared(const QPointF &point,
+                                          const QPointF &a,
+                                          const QPointF &b);
 
     // Called from updatePaintNode (render thread during sync).
     void updateGridGeometry();
@@ -131,6 +165,7 @@ private:
 
     QMetaObject::Connection m_componentsChangedConn;
     QMetaObject::Connection m_connectionsChangedConn;
+    QVector<QMetaObject::Connection> m_componentGeometryChangedConns;
 
     // Persistent scene-graph node cache (render-thread only).
     QSGNode          *m_rootNode              = nullptr;
@@ -143,6 +178,14 @@ private:
     // Dirty flags: written on main thread, read on render thread (sync phase).
     bool m_graphDirty  = true;   // edge/temp geometry must be rebuilt
     bool m_cameraDirty = true;   // grid geometry + edge transform matrix must update
+
+    // Spatial index (main thread only; used by QML hit-test invokables).
+    bool m_spatialIndexDirty = true;
+    qreal m_spatialCellSize = 300.0;
+    QVector<IndexedComponent> m_indexedComponents;
+    QVector<IndexedConnection> m_indexedConnections;
+    QHash<quint64, QVector<int>> m_componentCellToIndices;
+    QHash<quint64, QVector<int>> m_connectionCellToIndices;
 };
 
 #endif // GRAPHVIEWPORTITEM_H

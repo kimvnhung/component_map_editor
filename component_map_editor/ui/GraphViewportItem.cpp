@@ -7,12 +7,15 @@
 #include <QColor>
 #include <QHash>
 #include <QMatrix4x4>
+#include <QRect>
 #include <QSGFlatColorMaterial>
 #include <QSGGeometry>
 #include <QSGGeometryNode>
 #include <QSGTransformNode>
+#include <QSet>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <QtGlobal>
 #include <QtMath>
 
@@ -130,6 +133,7 @@ void GraphViewportItem::setGraph(QObject *value)
         QObject::disconnect(m_componentsChangedConn);
         QObject::disconnect(m_connectionsChangedConn);
     }
+    clearComponentGeometryConnections();
 
     m_graph = value;
     auto *graphModel = qobject_cast<GraphModel *>(m_graph);
@@ -143,6 +147,7 @@ void GraphViewportItem::setGraph(QObject *value)
     }
 
     emit graphChanged();
+    markSpatialIndexDirty();
     m_graphDirty = true;
     update();
 }
@@ -348,6 +353,83 @@ QPointF GraphViewportItem::viewToWorld(qreal viewX, qreal viewY) const
     return QPointF((viewX - m_panX) / m_zoom, (viewY - m_panY) / m_zoom);
 }
 
+QObject *GraphViewportItem::hitTestComponentAtView(qreal viewX, qreal viewY)
+{
+    ensureSpatialIndex();
+    if (m_indexedComponents.isEmpty())
+        return nullptr;
+
+    const QPointF worldPoint = viewToWorld(viewX, viewY);
+    const int cx = int(std::floor(worldPoint.x() / m_spatialCellSize));
+    const int cy = int(std::floor(worldPoint.y() / m_spatialCellSize));
+
+    const QVector<int> candidates = m_componentCellToIndices.value(cellKey(cx, cy));
+    for (int i = candidates.size() - 1; i >= 0; --i) {
+        const int idx = candidates.at(i);
+        if (idx < 0 || idx >= m_indexedComponents.size())
+            continue;
+        const IndexedComponent &entry = m_indexedComponents.at(idx);
+        if (!entry.component)
+            continue;
+        if (entry.worldRect.contains(worldPoint))
+            return entry.component;
+    }
+
+    return nullptr;
+}
+
+QObject *GraphViewportItem::hitTestConnectionAtView(qreal viewX, qreal viewY,
+                                                    qreal tolerancePx)
+{
+    ensureSpatialIndex();
+    if (m_indexedConnections.isEmpty())
+        return nullptr;
+
+    const QPointF worldPoint = viewToWorld(viewX, viewY);
+    const qreal safeZoom = qMax<qreal>(0.001, m_zoom);
+    const qreal tolWorld = qMax<qreal>(1.0, tolerancePx / safeZoom);
+    const qreal tolSq = tolWorld * tolWorld;
+
+    const QRectF probe(worldPoint.x() - tolWorld,
+                       worldPoint.y() - tolWorld,
+                       tolWorld * 2.0,
+                       tolWorld * 2.0);
+    const QRect cells = cellRangeForRect(probe, m_spatialCellSize);
+
+    QSet<int> visited;
+    QObject *bestConnection = nullptr;
+    qreal bestDistSq = std::numeric_limits<qreal>::max();
+
+    for (int cy = cells.top(); cy <= cells.bottom(); ++cy) {
+        for (int cx = cells.left(); cx <= cells.right(); ++cx) {
+            const QVector<int> indices = m_connectionCellToIndices.value(cellKey(cx, cy));
+            for (int idx : indices) {
+                if (idx < 0 || idx >= m_indexedConnections.size() || visited.contains(idx))
+                    continue;
+                visited.insert(idx);
+
+                const IndexedConnection &entry = m_indexedConnections.at(idx);
+                if (!entry.connection)
+                    continue;
+                if (!entry.worldBounds.adjusted(-tolWorld, -tolWorld,
+                                                tolWorld, tolWorld).contains(worldPoint)) {
+                    continue;
+                }
+
+                const qreal distSq = distanceToSegmentSquared(worldPoint,
+                                                              entry.sourceWorld,
+                                                              entry.targetWorld);
+                if (distSq <= tolSq && distSq < bestDistSq) {
+                    bestDistSq = distSq;
+                    bestConnection = entry.connection;
+                }
+            }
+        }
+    }
+
+    return bestConnection;
+}
+
 void GraphViewportItem::repaint()
 {
     m_cameraDirty = true;
@@ -356,6 +438,7 @@ void GraphViewportItem::repaint()
 
 void GraphViewportItem::requestGraphRebuild()
 {
+    markSpatialIndexDirty();
     m_graphDirty = true;
     update();
 }
@@ -613,5 +696,156 @@ void GraphViewportItem::updateTempEdgeGeometry()
     v[0].set(float(m_tempStart.x()), float(m_tempStart.y()));
     v[1].set(float(m_tempEnd.x()),   float(m_tempEnd.y()));
     m_tempEdgeGeomNode->markDirty(QSGNode::DirtyGeometry);
+}
+
+void GraphViewportItem::markSpatialIndexDirty()
+{
+    m_spatialIndexDirty = true;
+}
+
+void GraphViewportItem::ensureSpatialIndex()
+{
+    if (!m_spatialIndexDirty)
+        return;
+    rebuildSpatialIndex();
+}
+
+void GraphViewportItem::clearComponentGeometryConnections()
+{
+    for (const QMetaObject::Connection &conn : m_componentGeometryChangedConns)
+        QObject::disconnect(conn);
+    m_componentGeometryChangedConns.clear();
+}
+
+void GraphViewportItem::rebuildSpatialIndex()
+{
+    m_indexedComponents.clear();
+    m_indexedConnections.clear();
+    m_componentCellToIndices.clear();
+    m_connectionCellToIndices.clear();
+    clearComponentGeometryConnections();
+
+    auto *graphModel = qobject_cast<GraphModel *>(m_graph);
+    if (!graphModel) {
+        m_spatialIndexDirty = false;
+        return;
+    }
+
+    const auto &components = graphModel->componentList();
+    m_indexedComponents.reserve(components.size());
+
+    for (ComponentModel *component : components) {
+        if (!component)
+            continue;
+
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::xChanged,
+                    this, &GraphViewportItem::markSpatialIndexDirty));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::yChanged,
+                    this, &GraphViewportItem::markSpatialIndexDirty));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::widthChanged,
+                    this, &GraphViewportItem::markSpatialIndexDirty));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::heightChanged,
+                    this, &GraphViewportItem::markSpatialIndexDirty));
+
+        const QRectF rect(component->x() - component->width() / 2.0,
+                          component->y() - component->height() / 2.0,
+                          component->width(),
+                          component->height());
+
+        const int idx = m_indexedComponents.size();
+        m_indexedComponents.push_back(IndexedComponent { component, rect });
+
+        const QRect cells = cellRangeForRect(rect, m_spatialCellSize);
+        for (int cy = cells.top(); cy <= cells.bottom(); ++cy) {
+            for (int cx = cells.left(); cx <= cells.right(); ++cx)
+                m_componentCellToIndices[cellKey(cx, cy)].append(idx);
+        }
+    }
+
+    const auto &connections = graphModel->connectionList();
+    m_indexedConnections.reserve(connections.size());
+
+    QHash<QString, ComponentModel *> componentById;
+    componentById.reserve(components.size());
+    for (ComponentModel *component : components) {
+        if (component)
+            componentById.insert(component->id(), component);
+    }
+
+    for (ConnectionModel *connection : connections) {
+        if (!connection)
+            continue;
+
+        ComponentModel *src = componentById.value(connection->sourceId(), nullptr);
+        ComponentModel *tgt = componentById.value(connection->targetId(), nullptr);
+        if (!src || !tgt)
+            continue;
+
+        QPointF srcWorld;
+        QPointF tgtWorld;
+        connectionEndpointsOnBounding(src, tgt, srcWorld, tgtWorld);
+
+        const QRectF bounds(QPointF(qMin(srcWorld.x(), tgtWorld.x()),
+                                    qMin(srcWorld.y(), tgtWorld.y())),
+                            QPointF(qMax(srcWorld.x(), tgtWorld.x()),
+                                    qMax(srcWorld.y(), tgtWorld.y())));
+
+        const int idx = m_indexedConnections.size();
+        m_indexedConnections.push_back(IndexedConnection {
+            connection,
+            srcWorld,
+            tgtWorld,
+            bounds
+        });
+
+        const QRect cells = cellRangeForRect(bounds, m_spatialCellSize);
+        for (int cy = cells.top(); cy <= cells.bottom(); ++cy) {
+            for (int cx = cells.left(); cx <= cells.right(); ++cx)
+                m_connectionCellToIndices[cellKey(cx, cy)].append(idx);
+        }
+    }
+
+    m_spatialIndexDirty = false;
+}
+
+quint64 GraphViewportItem::cellKey(int cx, int cy)
+{
+    return (quint64(quint32(cx)) << 32) | quint32(cy);
+}
+
+QRect GraphViewportItem::cellRangeForRect(const QRectF &rect, qreal cellSize)
+{
+    if (cellSize <= 0.0)
+        return QRect(0, 0, 1, 1);
+
+    const int minX = int(std::floor(rect.left() / cellSize));
+    const int maxX = int(std::floor(rect.right() / cellSize));
+    const int minY = int(std::floor(rect.top() / cellSize));
+    const int maxY = int(std::floor(rect.bottom() / cellSize));
+    return QRect(minX, minY, maxX - minX + 1, maxY - minY + 1);
+}
+
+qreal GraphViewportItem::distanceToSegmentSquared(const QPointF &point,
+                                                  const QPointF &a,
+                                                  const QPointF &b)
+{
+    const QPointF ab = b - a;
+    const qreal abLenSq = ab.x() * ab.x() + ab.y() * ab.y();
+    if (qFuzzyIsNull(abLenSq)) {
+        const QPointF ap = point - a;
+        return ap.x() * ap.x() + ap.y() * ap.y();
+    }
+
+    const QPointF ap = point - a;
+    const qreal t = qBound<qreal>(0.0,
+                                  (ap.x() * ab.x() + ap.y() * ab.y()) / abLenSq,
+                                  1.0);
+    const QPointF closest(a.x() + ab.x() * t, a.y() + ab.y() * t);
+    const QPointF d = point - closest;
+    return d.x() * d.x() + d.y() * d.y();
 }
 

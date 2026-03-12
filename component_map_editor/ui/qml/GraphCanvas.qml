@@ -307,13 +307,27 @@ Item {
         TapHandler {
             acceptedButtons: Qt.LeftButton
             onTapped: point => {
-                          // Check if the tap hit any component; if so, ignore since the component's own TapHandler will handle it.
                           var viewPos = Qt.point(point.position.x,
                                                  point.position.y)
 
-                          var hitComponent = root.componentAtView(viewPos.x,
-                                                                  viewPos.y)
+                          var hitComponent = edgeViewport.hitTestComponentAtView(viewPos.x,
+                                                                                  viewPos.y)
                           if (hitComponent) {
+                              root.selectedConnection = null
+                              root.selectedComponent = hitComponent
+                              root.componentSelected(hitComponent)
+                              edgeCanvas.repaint()
+                              return
+                          }
+
+                          var hitConnection = edgeViewport.hitTestConnectionAtView(viewPos.x,
+                                                                                    viewPos.y,
+                                                                                    10.0)
+                          if (hitConnection) {
+                              root.selectedComponent = null
+                              root.selectedConnection = hitConnection
+                              root.connectionSelected(hitConnection)
+                              edgeCanvas.repaint()
                               return
                           }
 
