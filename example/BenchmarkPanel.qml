@@ -185,7 +185,22 @@ Rectangle {
                 font.pixelSize: 11
                 implicitHeight: 26
                 implicitWidth:  52
-                onClicked: { root.graph.clear(); root._captureBaseline() }
+                onClicked: {
+                    autoPanTimer.running = false
+                    root.autoPanRunning = false
+                    root.autoPanRemainingSec = 0
+                    root.telemetry.enabled = false
+                    root.frameTelemetry.enabled = false
+                    if (root.canvas) {
+                        root.canvas.tempConnectionDragging = false
+                        root.canvas.nodeInteractionActive = false
+                        root.canvas.enableBackgroundDrag = true
+                        root.canvas.selectedComponent = null
+                        root.canvas.selectedConnection = null
+                    }
+                    root.graph.clear()
+                    root._captureBaseline()
+                }
             }
         }
 

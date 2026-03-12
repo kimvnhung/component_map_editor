@@ -10,9 +10,12 @@
 #include <QVector>
 
 class QSGGeometryNode;
+class QSGNode;
+class QSGSimpleTextureNode;
 class QSGTransformNode;
 class ComponentModel;
 class ConnectionModel;
+class QSGTexture;
 
 // Phase 1 skeleton item for future C++ viewport rendering.
 // This class intentionally provides camera API only (panX/panY/zoom) and
@@ -29,12 +32,14 @@ class GraphViewportItem : public QQuickItem
 
     Q_PROPERTY(bool renderGrid READ renderGrid WRITE setRenderGrid NOTIFY renderGridChanged FINAL)
     Q_PROPERTY(bool renderEdges READ renderEdges WRITE setRenderEdges NOTIFY renderEdgesChanged FINAL)
+    Q_PROPERTY(bool renderNodes READ renderNodes WRITE setRenderNodes NOTIFY renderNodesChanged FINAL)
 
     Q_PROPERTY(qreal baseGridStep READ baseGridStep WRITE setBaseGridStep NOTIFY baseGridStepChanged FINAL)
     Q_PROPERTY(qreal minGridPixelStep READ minGridPixelStep WRITE setMinGridPixelStep NOTIFY minGridPixelStepChanged FINAL)
     Q_PROPERTY(qreal maxGridPixelStep READ maxGridPixelStep WRITE setMaxGridPixelStep NOTIFY maxGridPixelStepChanged FINAL)
 
     Q_PROPERTY(QObject *selectedConnection READ selectedConnection WRITE setSelectedConnection NOTIFY selectedConnectionChanged FINAL)
+    Q_PROPERTY(QObject *selectedComponent READ selectedComponent WRITE setSelectedComponent NOTIFY selectedComponentChanged FINAL)
     Q_PROPERTY(bool tempConnectionDragging READ tempConnectionDragging WRITE setTempConnectionDragging NOTIFY tempConnectionDraggingChanged FINAL)
     Q_PROPERTY(QPointF tempStart READ tempStart WRITE setTempStart NOTIFY tempStartChanged FINAL)
     Q_PROPERTY(QPointF tempEnd READ tempEnd WRITE setTempEnd NOTIFY tempEndChanged FINAL)
@@ -60,6 +65,9 @@ public:
     bool renderEdges() const;
     void setRenderEdges(bool value);
 
+    bool renderNodes() const;
+    void setRenderNodes(bool value);
+
     qreal baseGridStep() const;
     void setBaseGridStep(qreal value);
 
@@ -71,6 +79,9 @@ public:
 
     QObject *selectedConnection() const;
     void setSelectedConnection(QObject *value);
+
+    QObject *selectedComponent() const;
+    void setSelectedComponent(QObject *value);
 
     bool tempConnectionDragging() const;
     void setTempConnectionDragging(bool value);
@@ -105,10 +116,12 @@ signals:
     void zoomChanged();
     void renderGridChanged();
     void renderEdgesChanged();
+    void renderNodesChanged();
     void baseGridStepChanged();
     void minGridPixelStepChanged();
     void maxGridPixelStepChanged();
     void selectedConnectionChanged();
+    void selectedComponentChanged();
     void tempConnectionDraggingChanged();
     void tempStartChanged();
     void tempEndChanged();
@@ -134,6 +147,10 @@ private:
     void ensureSpatialIndex();
     void rebuildSpatialIndex();
     void clearComponentGeometryConnections();
+    QVector<int> visibleComponentIndices() const;
+    void updateNodeGeometry();
+    void updateLabelNodes();
+    QString labelCacheKey(const ComponentModel *component) const;
 
     static quint64 cellKey(int cx, int cy);
     static QRect cellRangeForRect(const QRectF &rect, qreal cellSize);
@@ -153,12 +170,14 @@ private:
 
     bool m_renderGrid = false;
     bool m_renderEdges = false;
+    bool m_renderNodes = false;
 
     qreal m_baseGridStep = 30.0;
     qreal m_minGridPixelStep = 16.0;
     qreal m_maxGridPixelStep = 96.0;
 
     QObject *m_selectedConnection = nullptr;
+    QObject *m_selectedComponent = nullptr;
     bool m_tempConnectionDragging = false;
     QPointF m_tempStart;
     QPointF m_tempEnd;
@@ -170,6 +189,10 @@ private:
     // Persistent scene-graph node cache (render-thread only).
     QSGNode          *m_rootNode              = nullptr;
     QSGGeometryNode  *m_gridGeomNode          = nullptr;
+    QSGNode          *m_nodesRootNode         = nullptr;
+    QSGGeometryNode  *m_nodeFillGeomNode      = nullptr;
+    QSGGeometryNode  *m_nodeOutlineGeomNode   = nullptr;
+    QSGNode          *m_nodeLabelsRootNode    = nullptr;
     QSGTransformNode *m_edgesTransformNode    = nullptr;
     QSGGeometryNode  *m_normalEdgesGeomNode   = nullptr;
     QSGGeometryNode  *m_selectedEdgesGeomNode = nullptr;
@@ -178,6 +201,7 @@ private:
     // Dirty flags: written on main thread, read on render thread (sync phase).
     bool m_graphDirty  = true;   // edge/temp geometry must be rebuilt
     bool m_cameraDirty = true;   // grid geometry + edge transform matrix must update
+    bool m_nodeDirty   = true;   // node fill/outline and label state must update
 
     // Spatial index (main thread only; used by QML hit-test invokables).
     bool m_spatialIndexDirty = true;
@@ -186,6 +210,9 @@ private:
     QVector<IndexedConnection> m_indexedConnections;
     QHash<quint64, QVector<int>> m_componentCellToIndices;
     QHash<quint64, QVector<int>> m_connectionCellToIndices;
+
+    QHash<QString, QSGTexture *> m_labelTextureCache;
+    QVector<QSGSimpleTextureNode *> m_labelNodes;
 };
 
 #endif // GRAPHVIEWPORTITEM_H

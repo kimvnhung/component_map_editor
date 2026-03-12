@@ -5,14 +5,23 @@
 #include "GraphModel.h"
 
 #include <QColor>
+#include <QFont>
+#include <QFontMetrics>
 #include <QHash>
+#include <QImage>
 #include <QMatrix4x4>
+#include <QPainter>
 #include <QRect>
+#include <QQuickWindow>
 #include <QSGFlatColorMaterial>
 #include <QSGGeometry>
 #include <QSGGeometryNode>
+#include <QSGSimpleTextureNode>
 #include <QSGTransformNode>
+#include <QSGTexture>
+#include <QSGVertexColorMaterial>
 #include <QSet>
+#include <QThread>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -110,6 +119,20 @@ QSGGeometryNode *createEmptyLineNode(const QColor &color, float lineWidth)
     return node;
 }
 
+QSGGeometryNode *createEmptyColoredNode()
+{
+    auto *geom = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0);
+    geom->setDrawingMode(QSGGeometry::DrawTriangles);
+
+    auto *material = new QSGVertexColorMaterial();
+
+    auto *node = new QSGGeometryNode();
+    node->setFlags(QSGNode::OwnsGeometry | QSGNode::OwnsMaterial, true);
+    node->setGeometry(geom);
+    node->setMaterial(material);
+    return node;
+}
+
 } // namespace
 
 GraphViewportItem::GraphViewportItem(QQuickItem *parent)
@@ -149,6 +172,7 @@ void GraphViewportItem::setGraph(QObject *value)
     emit graphChanged();
     markSpatialIndexDirty();
     m_graphDirty = true;
+    m_nodeDirty = true;
     update();
 }
 
@@ -234,6 +258,22 @@ void GraphViewportItem::setRenderEdges(bool value)
     update();
 }
 
+bool GraphViewportItem::renderNodes() const
+{
+    return m_renderNodes;
+}
+
+void GraphViewportItem::setRenderNodes(bool value)
+{
+    if (m_renderNodes == value)
+        return;
+    m_renderNodes = value;
+    emit renderNodesChanged();
+    m_nodeDirty = true;
+    m_cameraDirty = true;
+    update();
+}
+
 qreal GraphViewportItem::baseGridStep() const
 {
     return m_baseGridStep;
@@ -291,6 +331,21 @@ void GraphViewportItem::setSelectedConnection(QObject *value)
     m_selectedConnection = value;
     emit selectedConnectionChanged();
     m_graphDirty = true;
+    update();
+}
+
+QObject *GraphViewportItem::selectedComponent() const
+{
+    return m_selectedComponent;
+}
+
+void GraphViewportItem::setSelectedComponent(QObject *value)
+{
+    if (m_selectedComponent == value)
+        return;
+    m_selectedComponent = value;
+    emit selectedComponentChanged();
+    m_nodeDirty = true;
     update();
 }
 
@@ -439,7 +494,9 @@ void GraphViewportItem::repaint()
 void GraphViewportItem::requestGraphRebuild()
 {
     markSpatialIndexDirty();
+    ensureSpatialIndex();
     m_graphDirty = true;
+    m_nodeDirty = true;
     update();
 }
 
@@ -465,6 +522,15 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         m_gridGeomNode = createEmptyLineNode(QColor(QStringLiteral("#e0e0e0")), 1.0f);
         m_rootNode->appendChildNode(m_gridGeomNode);
 
+        m_nodesRootNode = new QSGNode();
+        m_nodeFillGeomNode = createEmptyColoredNode();
+        m_nodeOutlineGeomNode = createEmptyColoredNode();
+        m_nodeLabelsRootNode = new QSGNode();
+        m_nodesRootNode->appendChildNode(m_nodeFillGeomNode);
+        m_nodesRootNode->appendChildNode(m_nodeOutlineGeomNode);
+        m_nodesRootNode->appendChildNode(m_nodeLabelsRootNode);
+        m_rootNode->appendChildNode(m_nodesRootNode);
+
         m_edgesTransformNode    = new QSGTransformNode();
         m_normalEdgesGeomNode   = createEmptyLineNode(QColor(QStringLiteral("#607d8b")), 2.0f);
         m_selectedEdgesGeomNode = createEmptyLineNode(QColor(QStringLiteral("#ff5722")), 3.0f);
@@ -478,6 +544,7 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         // Force a full update on the first frame.
         m_graphDirty  = true;
         m_cameraDirty = true;
+        m_nodeDirty = true;
         oldNode = m_rootNode;
     }
 
@@ -492,6 +559,11 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         updateEdgesGeometry();
         updateTempEdgeGeometry();
         m_graphDirty = false;
+    }
+
+    if (m_nodeDirty || m_cameraDirty) {
+        updateNodeGeometry();
+        m_nodeDirty = false;
     }
 
     // -----------------------------------------------------------------------
@@ -698,6 +770,222 @@ void GraphViewportItem::updateTempEdgeGeometry()
     m_tempEdgeGeomNode->markDirty(QSGNode::DirtyGeometry);
 }
 
+QVector<int> GraphViewportItem::visibleComponentIndices() const
+{
+    QVector<int> result;
+    if (m_indexedComponents.isEmpty() || width() <= 0 || height() <= 0)
+        return result;
+
+    const QPointF worldTopLeft = viewToWorld(0.0, 0.0);
+    const QPointF worldBottomRight = viewToWorld(width(), height());
+    const qreal marginWorld = qMax<qreal>(40.0, 120.0 / qMax<qreal>(0.001, m_zoom));
+    const QRectF visibleWorld(qMin(worldTopLeft.x(), worldBottomRight.x()) - marginWorld,
+                              qMin(worldTopLeft.y(), worldBottomRight.y()) - marginWorld,
+                              qAbs(worldBottomRight.x() - worldTopLeft.x()) + marginWorld * 2.0,
+                              qAbs(worldBottomRight.y() - worldTopLeft.y()) + marginWorld * 2.0);
+
+    const QRect cells = cellRangeForRect(visibleWorld, m_spatialCellSize);
+    QSet<int> seen;
+    for (int cy = cells.top(); cy <= cells.bottom(); ++cy) {
+        for (int cx = cells.left(); cx <= cells.right(); ++cx) {
+            const QVector<int> indices = m_componentCellToIndices.value(cellKey(cx, cy));
+            for (int idx : indices) {
+                if (idx < 0 || idx >= m_indexedComponents.size() || seen.contains(idx))
+                    continue;
+                const IndexedComponent &entry = m_indexedComponents.at(idx);
+                if (!entry.component || !entry.worldRect.intersects(visibleWorld))
+                    continue;
+                seen.insert(idx);
+                result.append(idx);
+            }
+        }
+    }
+
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+void GraphViewportItem::updateNodeGeometry()
+{
+    auto clearColoredNode = [](QSGGeometryNode *node) {
+        if (node && node->geometry()->vertexCount() > 0) {
+            node->geometry()->allocate(0);
+            node->markDirty(QSGNode::DirtyGeometry);
+        }
+    };
+
+    if (!m_renderNodes || !m_nodesRootNode) {
+        clearColoredNode(m_nodeFillGeomNode);
+        clearColoredNode(m_nodeOutlineGeomNode);
+        updateLabelNodes();
+        return;
+    }
+
+    const QVector<int> visible = visibleComponentIndices();
+
+    const int fillVertexCount = visible.size() * 6;
+    if (m_nodeFillGeomNode->geometry()->vertexCount() != fillVertexCount)
+        m_nodeFillGeomNode->geometry()->allocate(fillVertexCount);
+
+    // Four border strips, each rendered as two triangles.
+    const int outlineVertexCount = visible.size() * 24;
+    if (m_nodeOutlineGeomNode->geometry()->vertexCount() != outlineVertexCount)
+        m_nodeOutlineGeomNode->geometry()->allocate(outlineVertexCount);
+
+    auto *fillVerts = m_nodeFillGeomNode->geometry()->vertexDataAsColoredPoint2D();
+    auto *outlineVerts = m_nodeOutlineGeomNode->geometry()->vertexDataAsColoredPoint2D();
+    int fillIdx = 0;
+    int outlineIdx = 0;
+
+    auto appendTriangleRect = [](QSGGeometry::ColoredPoint2D *verts, int &idx,
+                                 const QRectF &rect, const QColor &color) {
+        const unsigned char r = color.red();
+        const unsigned char g = color.green();
+        const unsigned char b = color.blue();
+        const unsigned char a = color.alpha();
+        const float left = float(rect.left());
+        const float right = float(rect.right());
+        const float top = float(rect.top());
+        const float bottom = float(rect.bottom());
+
+        verts[idx++].set(left, top, r, g, b, a);
+        verts[idx++].set(right, top, r, g, b, a);
+        verts[idx++].set(left, bottom, r, g, b, a);
+        verts[idx++].set(right, top, r, g, b, a);
+        verts[idx++].set(right, bottom, r, g, b, a);
+        verts[idx++].set(left, bottom, r, g, b, a);
+    };
+
+    for (int idx : visible) {
+        const IndexedComponent &entry = m_indexedComponents.at(idx);
+        ComponentModel *component = entry.component;
+        if (!component)
+            continue;
+
+        const QPointF topLeft = worldToView(entry.worldRect.left(), entry.worldRect.top());
+        const QRectF viewRect(topLeft.x(), topLeft.y(),
+                              entry.worldRect.width() * m_zoom,
+                              entry.worldRect.height() * m_zoom);
+
+        const QColor fillColor(component->color());
+        appendTriangleRect(fillVerts, fillIdx, viewRect, fillColor);
+
+        const bool selected = (static_cast<QObject *>(component) == m_selectedComponent);
+        const qreal borderWidth = selected ? 2.5 : 1.5;
+        const QColor borderColor = selected
+            ? QColor(QStringLiteral("#ff5722"))
+            : fillColor.darker(140);
+
+        appendTriangleRect(outlineVerts, outlineIdx,
+                           QRectF(viewRect.left(), viewRect.top(), viewRect.width(), borderWidth),
+                           borderColor);
+        appendTriangleRect(outlineVerts, outlineIdx,
+                           QRectF(viewRect.left(), viewRect.bottom() - borderWidth, viewRect.width(), borderWidth),
+                           borderColor);
+        appendTriangleRect(outlineVerts, outlineIdx,
+                           QRectF(viewRect.left(), viewRect.top() + borderWidth, borderWidth,
+                                  qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
+                           borderColor);
+        appendTriangleRect(outlineVerts, outlineIdx,
+                           QRectF(viewRect.right() - borderWidth, viewRect.top() + borderWidth, borderWidth,
+                                  qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
+                           borderColor);
+    }
+
+    m_nodeFillGeomNode->markDirty(QSGNode::DirtyGeometry);
+    m_nodeOutlineGeomNode->markDirty(QSGNode::DirtyGeometry);
+    updateLabelNodes();
+}
+
+QString GraphViewportItem::labelCacheKey(const ComponentModel *component) const
+{
+    if (!component)
+        return QString();
+    return component->label() + QStringLiteral("|")
+        + QString::number(int(std::round(component->width())))
+        + QStringLiteral("|") + QString::number(window() ? window()->effectiveDevicePixelRatio() : 1.0, 'f', 2);
+}
+
+void GraphViewportItem::updateLabelNodes()
+{
+    if (!m_nodeLabelsRootNode)
+        return;
+
+    const QVector<int> visible = (m_renderNodes ? visibleComponentIndices() : QVector<int>());
+
+    while (m_labelNodes.size() < visible.size()) {
+        auto *node = new QSGSimpleTextureNode();
+        m_nodeLabelsRootNode->appendChildNode(node);
+        m_labelNodes.append(node);
+    }
+
+    if (m_labelTextureCache.size() > 512)
+        m_labelTextureCache.clear();
+
+    const qreal devicePixelRatio = window() ? window()->effectiveDevicePixelRatio() : 1.0;
+    QFont font;
+    font.setBold(true);
+    font.setPixelSize(13);
+    QFontMetrics metrics(font);
+
+    for (int i = 0; i < m_labelNodes.size(); ++i) {
+        QSGSimpleTextureNode *node = m_labelNodes.at(i);
+        if (i >= visible.size() || !m_renderNodes) {
+            node->setRect(0, 0, 0, 0);
+            node->setTexture(nullptr);
+            continue;
+        }
+
+        const IndexedComponent &entry = m_indexedComponents.at(visible.at(i));
+        ComponentModel *component = entry.component;
+        if (!component) {
+            node->setRect(0, 0, 0, 0);
+            node->setTexture(nullptr);
+            continue;
+        }
+
+        const int availableWidth = qMax(16, int(std::round(component->width() * m_zoom - 12.0)));
+        if (availableWidth <= 0 || !window()) {
+            node->setRect(0, 0, 0, 0);
+            node->setTexture(nullptr);
+            continue;
+        }
+
+        const QString key = labelCacheKey(component) + QStringLiteral("|") + QString::number(availableWidth);
+        QSGTexture *texture = m_labelTextureCache.value(key, nullptr);
+        if (!texture) {
+            const int labelHeight = qMax(18, metrics.height() + 4);
+            QImage image(QSize(int(std::ceil(availableWidth * devicePixelRatio)),
+                               int(std::ceil(labelHeight * devicePixelRatio))),
+                         QImage::Format_ARGB32_Premultiplied);
+            image.setDevicePixelRatio(devicePixelRatio);
+            image.fill(Qt::transparent);
+
+            QPainter painter(&image);
+            painter.setRenderHint(QPainter::TextAntialiasing, true);
+            painter.setFont(font);
+            painter.setPen(Qt::white);
+            const QString elided = metrics.elidedText(component->label(), Qt::ElideRight, availableWidth);
+            painter.drawText(QRectF(0.0, 0.0, availableWidth, labelHeight),
+                             Qt::AlignCenter, elided);
+            painter.end();
+
+            texture = window()->createTextureFromImage(image);
+            if (texture)
+                m_labelTextureCache.insert(key, texture);
+        }
+
+        node->setTexture(texture);
+        const QPointF topLeft = worldToView(entry.worldRect.left(), entry.worldRect.top());
+        const qreal viewWidth = entry.worldRect.width() * m_zoom;
+        const qreal viewHeight = entry.worldRect.height() * m_zoom;
+        node->setRect(QRectF(topLeft.x() + 6.0,
+                             topLeft.y() + (viewHeight - 18.0) / 2.0,
+                             qMax<qreal>(8.0, viewWidth - 12.0),
+                             18.0));
+    }
+}
+
 void GraphViewportItem::markSpatialIndexDirty()
 {
     m_spatialIndexDirty = true;
@@ -707,6 +995,10 @@ void GraphViewportItem::ensureSpatialIndex()
 {
     if (!m_spatialIndexDirty)
         return;
+
+    if (QThread::currentThread() != thread())
+        return;
+
     rebuildSpatialIndex();
 }
 
@@ -740,16 +1032,16 @@ void GraphViewportItem::rebuildSpatialIndex()
 
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::xChanged,
-                    this, &GraphViewportItem::markSpatialIndexDirty));
+                    this, &GraphViewportItem::requestGraphRebuild));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::yChanged,
-                    this, &GraphViewportItem::markSpatialIndexDirty));
+                    this, &GraphViewportItem::requestGraphRebuild));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::widthChanged,
-                    this, &GraphViewportItem::markSpatialIndexDirty));
+                    this, &GraphViewportItem::requestGraphRebuild));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::heightChanged,
-                    this, &GraphViewportItem::markSpatialIndexDirty));
+                    this, &GraphViewportItem::requestGraphRebuild));
 
         const QRectF rect(component->x() - component->width() / 2.0,
                           component->y() - component->height() / 2.0,

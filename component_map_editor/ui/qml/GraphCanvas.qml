@@ -40,6 +40,8 @@ Item {
     property real panX: 0
     property real panY: 0
     property bool enableBackgroundDrag: true
+    property bool nodeInteractionActive: false
+    property bool pointerOverComponent: false
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
     readonly property point worldOrigin: viewToWorld(0, 0)
@@ -247,6 +249,20 @@ Item {
         tempEnd: Qt.point(root.tempEnd.x, root.tempEnd.y)
     }
 
+    GraphViewportItem {
+        id: nodeViewport
+        anchors.fill: parent
+        z: 0.2
+        graph: root.graph
+        panX: root.panX
+        panY: root.panY
+        zoom: root.zoom
+        renderGrid: false
+        renderEdges: false
+        renderNodes: false
+        selectedComponent: root.selectedComponent
+    }
+
     // Compatibility wrappers so existing repaint call sites remain intact.
     QtObject {
         id: gridCanvas
@@ -265,13 +281,12 @@ Item {
     Item {
         id: interactionLayer
         anchors.fill: parent
-        z: 0
+        z: 1
 
         property real startPanX: 0
         property real startPanY: 0
 
         HoverHandler {
-            cursorShape: panDrag.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
             onPointChanged: {
                 // interactionLayer fills GraphCanvas at (0, 0), so the hover
                 // point is already in GraphCanvas view coordinates.
@@ -283,6 +298,8 @@ Item {
         DragHandler {
             id: panDrag
             enabled: root.enableBackgroundDrag
+                     && !root.nodeInteractionActive
+                     && !root.pointerOverComponent
             target: null
             acceptedButtons: Qt.LeftButton
             dragThreshold: root.panStartThreshold
@@ -370,6 +387,7 @@ Item {
         x: root.panX
         y: root.panY
         scale: root.zoom
+        z: 2
 
         // Components
         Repeater {
@@ -383,11 +401,12 @@ Item {
                     id: itemLoader
                     active: root.componentVisible(modelData)
                             || root.selectedComponent === modelData
-                    asynchronous: true
+                    asynchronous: false
 
                     sourceComponent: ComponentItem {
                         component: modelData
                         selected: root.selectedComponent === modelData
+                        renderVisuals: true
                         undoStack: root.undoStack
 
                         onComponentClicked: clickedComponent => {
@@ -402,12 +421,16 @@ Item {
                         }
 
                         onConnectionDragged: function (sourceComponent, startP, targetP) {
+                            root.nodeInteractionActive = true
+                            root.enableBackgroundDrag = false
                             root.tempConnectionDragging = true
                             root.tempStart = root.windowSceneToView(startP)
                             root.tempEnd = root.windowSceneToView(targetP)
                             edgeCanvas.repaint()
                         }
                         onConnectionDropped: function (sourceComponent, startP, targetP) {
+                            root.nodeInteractionActive = false
+                            root.enableBackgroundDrag = !focused
                             root.tempConnectionDragging = false
                             root.tempStart = Qt.point(0, 0)
                             root.tempEnd = Qt.point(0, 0)
@@ -448,12 +471,29 @@ Item {
                             edgeCanvas.repaint()
                         }
 
-                        onMoveStarted: if (root.telemetry) root.telemetry.notifyDragStarted()
+                        onMoveStarted: {
+                            root.nodeInteractionActive = true
+                            root.enableBackgroundDrag = false
+                            if (root.telemetry) root.telemetry.notifyDragStarted()
+                        }
                         onMoved: {
                             edgeCanvas.repaint()
                             if (root.telemetry) root.telemetry.notifyDragMoved()
                         }
-                        onMoveFinished: if (root.telemetry) root.telemetry.notifyDragEnded()
+                        onMoveFinished: {
+                            root.nodeInteractionActive = false
+                            root.enableBackgroundDrag = !focused
+                            if (root.telemetry) root.telemetry.notifyDragEnded()
+                        }
+
+                        onResizeStarted: {
+                            root.nodeInteractionActive = true
+                            root.enableBackgroundDrag = false
+                        }
+                        onResizeFinished: {
+                            root.nodeInteractionActive = false
+                            root.enableBackgroundDrag = !focused
+                        }
 
                         onHoverPositionChanged: function (hoverX, hoverY) {
                             root.mouseViewPos = root.childToView(this, hoverX, hoverY)
@@ -484,9 +524,16 @@ Item {
         enabled: root.graph !== null
 
         function onComponentsChanged() {
+            root.nodeInteractionActive = false
+            root.enableBackgroundDrag = true
+            root.pointerOverComponent = false
+            if (root.selectedComponent && !root.graph.componentById(root.selectedComponent.id))
+                root.selectedComponent = null
             edgeCanvas.repaint()
         }
         function onConnectionsChanged() {
+            if (root.selectedConnection && !root.graph.connectionById(root.selectedConnection.id))
+                root.selectedConnection = null
             edgeCanvas.repaint()
         }
     }
@@ -514,6 +561,8 @@ Item {
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onMouseViewPosChanged: {
+        root.pointerOverComponent = edgeViewport.hitTestComponentAtView(root.mouseViewPos.x,
+                                                                        root.mouseViewPos.y) !== null
         root.updateMouseWorldPos()
     }
 
