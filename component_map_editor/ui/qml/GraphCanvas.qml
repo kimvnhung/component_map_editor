@@ -14,6 +14,7 @@ Item {
     readonly property real zoomStepFactor: 1.15
     readonly property real zoomEpsilon: 0.000001
     readonly property real viewportParityEpsilon: 0.0001
+    property bool enableViewportParityCheck: false
 
     // Grid tuning constants.
     readonly property real baseGridStep: 30
@@ -80,28 +81,17 @@ Item {
                                               root.mouseViewPos.y)
     }
 
-    function syncViewportCamera() {
-        if (!viewportSkeleton)
-            return
-        viewportSkeleton.panX = root.panX
-        viewportSkeleton.panY = root.panY
-        viewportSkeleton.zoom = root.zoom
-    }
-
     // Phase 1 guardrail: verify C++ viewport camera math parity with the
     // existing JS camera contract. If this warns, Phase 1 must be rolled back
     // or fixed before continuing migration.
     function verifyViewportParity() {
-        if (!viewportSkeleton)
+        if (!edgeViewport)
             return
-
-        // Keep C++ skeleton camera in lockstep before comparing transforms.
-        root.syncViewportCamera()
 
         var sampleView = Qt.point(width * 0.37, height * 0.61)
         var jsWorld = GraphCanvasMath.viewToWorld(sampleView.x, sampleView.y,
                                                   panX, panY, zoom)
-        var cppWorld = viewportSkeleton.viewToWorld(sampleView.x, sampleView.y)
+        var cppWorld = edgeViewport.viewToWorld(sampleView.x, sampleView.y)
 
         if (Math.abs(jsWorld.x - cppWorld.x) > viewportParityEpsilon
                 || Math.abs(jsWorld.y - cppWorld.y) > viewportParityEpsilon) {
@@ -113,7 +103,7 @@ Item {
         var sampleWorld = Qt.point(worldOrigin.x + 173.0, worldOrigin.y + 89.0)
         var jsView = GraphCanvasMath.worldToView(sampleWorld.x, sampleWorld.y,
                                                  panX, panY, zoom)
-        var cppView = viewportSkeleton.worldToView(sampleWorld.x, sampleWorld.y)
+        var cppView = edgeViewport.worldToView(sampleWorld.x, sampleWorld.y)
 
         if (Math.abs(jsView.x - cppView.x) > viewportParityEpsilon
                 || Math.abs(jsView.y - cppView.y) > viewportParityEpsilon) {
@@ -152,17 +142,36 @@ Item {
 
     function componentItemFor(component) {
         for (var i = 0; i < componentLayer.children.length; ++i) {
-            var item = componentLayer.children[i]
-            if (item && item.component === component)
+            var host = componentLayer.children[i]
+            var item = host && host.componentItem ? host.componentItem : host
+            if (item && item.component === component && item.visible)
                 return item
         }
         return null
     }
 
+    function componentVisible(component) {
+        if (!component)
+            return false
+
+        // Conservative culling in view space with margin to avoid flicker at edges.
+        var margin = 120
+        var halfW = component.width / 2
+        var halfH = component.height / 2
+        var left = (component.x - halfW) * zoom + panX
+        var right = (component.x + halfW) * zoom + panX
+        var top = (component.y - halfH) * zoom + panY
+        var bottom = (component.y + halfH) * zoom + panY
+
+        return right >= -margin && left <= root.width + margin
+                && bottom >= -margin && top <= root.height + margin
+    }
+
     function componentAtView(viewX, viewY, excludedComponent) {
         for (var i = componentLayer.children.length - 1; i >= 0; --i) {
-            var item = componentLayer.children[i]
-            if (!item || !item.component)
+            var host = componentLayer.children[i]
+            var item = host && host.componentItem ? host.componentItem : host
+            if (!item || !item.component || !item.visible)
                 continue
             if (excludedComponent && item.component === excludedComponent)
                 continue
@@ -205,44 +214,51 @@ Item {
         color: "#f8f9fa"
     }
 
-    // Phase 1 C++ viewport skeleton. It mirrors camera state only and does not
-    // render yet, so current QML rendering remains fully active.
+    // C++ viewport layers (Phase 2)
+    // - gridViewport: background grid
+    // - edgeViewport: connection lines + temp drag preview
     GraphViewportItem {
-        id: viewportSkeleton
-        panX: 0
-        panY: 0
-        zoom: 1
-        visible: false
+        id: gridViewport
+        anchors.fill: parent
+        graph: root.graph
+        panX: root.panX
+        panY: root.panY
+        zoom: root.zoom
+        renderGrid: true
+        renderEdges: false
+        baseGridStep: root.baseGridStep
+        minGridPixelStep: root.minGridPixelStep
+        maxGridPixelStep: root.maxGridPixelStep
     }
 
-    // Grid
-    Canvas {
-        id: gridCanvas
+    GraphViewportItem {
+        id: edgeViewport
         anchors.fill: parent
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            ctx.strokeStyle = "#e0e0e0"
-            ctx.lineWidth = 0.5
-            var step = GraphCanvasMath.normalizedGridStep(
-                        root.baseGridStep, root.zoom, root.minGridPixelStep,
-                        root.maxGridPixelStep)
+        z: 1
+        graph: root.graph
+        panX: root.panX
+        panY: root.panY
+        zoom: root.zoom
+        renderGrid: false
+        renderEdges: true
+        selectedConnection: root.selectedConnection
+        tempConnectionDragging: root.tempConnectionDragging
+        tempStart: Qt.point(root.tempStart.x, root.tempStart.y)
+        tempEnd: Qt.point(root.tempEnd.x, root.tempEnd.y)
+    }
 
-            var offsetX = GraphCanvasMath.positiveModulo(root.panX, step)
-            var offsetY = GraphCanvasMath.positiveModulo(root.panY, step)
+    // Compatibility wrappers so existing repaint call sites remain intact.
+    QtObject {
+        id: gridCanvas
+        function requestPaint() {
+            gridViewport.repaint()
+        }
+    }
 
-            for (var gx = -step + offsetX; gx < width + step; gx += step) {
-                ctx.beginPath()
-                ctx.moveTo(gx, 0)
-                ctx.lineTo(gx, height)
-                ctx.stroke()
-            }
-            for (var gy = -step + offsetY; gy < height + step; gy += step) {
-                ctx.beginPath()
-                ctx.moveTo(0, gy)
-                ctx.lineTo(width, gy)
-                ctx.stroke()
-            }
+    QtObject {
+        id: edgeCanvas
+        function repaint() {
+            edgeViewport.repaint()
         }
     }
 
@@ -320,46 +336,6 @@ Item {
         }
     }
 
-    Canvas {
-        id: edgeCanvas
-        anchors.fill: parent
-        z: 1
-
-        function repaint() {
-            requestPaint()
-        }
-
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            if (!root.graph)
-                return
-
-            var connections = root.graph.connections
-            for (var i = 0; i < connections.length; i++) {
-                var connection = connections[i]
-                var src = root.graph.componentById(connection.sourceId)
-                var tgt = root.graph.componentById(connection.targetId)
-                if (!src || !tgt)
-                    continue
-
-                var endpoints = root.connectionEndpointsInView(src, tgt)
-
-                var isSel = (root.selectedConnection === connection)
-                GraphCanvasMath.drawConnection(
-                            ctx, endpoints.source, endpoints.target,
-                            GraphCanvasMath.CONNECTION_TYPE.real,
-                            connection.label, isSel)
-            }
-
-            if (root.tempConnectionDragging) {
-                GraphCanvasMath.drawConnection(
-                            ctx, root.tempStart, root.tempEnd,
-                            GraphCanvasMath.CONNECTION_TYPE.temp, "", false)
-            }
-        }
-    }
-
     Item {
         id: componentLayer
         // componentLayer local coordinates are the canonical world drawing
@@ -385,80 +361,90 @@ Item {
         Repeater {
             model: root.graph ? root.graph.components : []
 
-            delegate: ComponentItem {
+            delegate: Item {
                 required property var modelData
+                property Item componentItem: itemLoader.item
 
-                component: modelData
-                selected: root.selectedComponent === modelData
-                undoStack: root.undoStack
+                Loader {
+                    id: itemLoader
+                    active: root.componentVisible(modelData)
+                            || root.selectedComponent === modelData
+                    asynchronous: true
 
-                onComponentClicked: clickedComponent => {
-                                        root.selectedConnection = null
-                                        root.selectedComponent = clickedComponent
-                                        root.componentSelected(clickedComponent)
-                                        edgeCanvas.repaint()
-                                    }
+                    sourceComponent: ComponentItem {
+                        component: modelData
+                        selected: root.selectedComponent === modelData
+                        undoStack: root.undoStack
 
-                onFocusedChanged: {
-                    root.enableBackgroundDrag = !focused
-                }
+                        onComponentClicked: clickedComponent => {
+                                                root.selectedConnection = null
+                                                root.selectedComponent = clickedComponent
+                                                root.componentSelected(clickedComponent)
+                                                edgeCanvas.repaint()
+                                            }
 
-                onConnectionDragged: function (sourceComponent, startP, targetP) {
-                    root.tempConnectionDragging = true
-                    root.tempStart = root.windowSceneToView(startP)
-                    root.tempEnd = root.windowSceneToView(targetP)
-                    edgeCanvas.repaint()
-                }
-                onConnectionDropped: function (sourceComponent, startP, targetP) {
-                    root.tempConnectionDragging = false
-                    root.tempStart = Qt.point(0, 0)
-                    root.tempEnd = Qt.point(0, 0)
+                        onFocusedChanged: {
+                            root.enableBackgroundDrag = !focused
+                        }
 
-                    var dropPoint = root.windowSceneToView(targetP)
-                    var component = root.componentAtView(dropPoint.x,
-                                                         dropPoint.y,
-                                                         sourceComponent)
-                    if (!component) {
-                        console.log("Drop ignored: no target component")
-                        edgeCanvas.repaint()
-                        return
+                        onConnectionDragged: function (sourceComponent, startP, targetP) {
+                            root.tempConnectionDragging = true
+                            root.tempStart = root.windowSceneToView(startP)
+                            root.tempEnd = root.windowSceneToView(targetP)
+                            edgeCanvas.repaint()
+                        }
+                        onConnectionDropped: function (sourceComponent, startP, targetP) {
+                            root.tempConnectionDragging = false
+                            root.tempStart = Qt.point(0, 0)
+                            root.tempEnd = Qt.point(0, 0)
+
+                            var dropPoint = root.windowSceneToView(targetP)
+                            var component = root.componentAtView(dropPoint.x,
+                                                                 dropPoint.y,
+                                                                 sourceComponent)
+                            if (!component) {
+                                console.log("Drop ignored: no target component")
+                                edgeCanvas.repaint()
+                                return
+                            }
+
+                            if (component === sourceComponent) {
+                                console.log("Drop ignored: source equals target")
+                                edgeCanvas.repaint()
+                                return
+                            }
+
+                            var connectionId = "conn_" + sourceComponent.id + "_" + component.id
+                            if (root.graph.connectionById(connectionId)) {
+                                console.log("Drop ignored: connection already exists",
+                                            connectionId)
+                                edgeCanvas.repaint()
+                                return
+                            }
+
+                            // Add connection from sourceComponent to component.
+                            var e1 = Qt.createQmlObject(
+                                        'import ComponentMapEditor; ConnectionModel {}',
+                                        root.graph)
+                            e1.id = connectionId
+                            e1.sourceId = sourceComponent.id
+                            e1.targetId = component.id
+                            e1.label = "path A"
+                            root.graph.addConnection(e1)
+                            edgeCanvas.repaint()
+                        }
+
+                        onMoveStarted: if (root.telemetry) root.telemetry.notifyDragStarted()
+                        onMoved: {
+                            edgeCanvas.repaint()
+                            if (root.telemetry) root.telemetry.notifyDragMoved()
+                        }
+                        onMoveFinished: if (root.telemetry) root.telemetry.notifyDragEnded()
+
+                        onHoverPositionChanged: function (hoverX, hoverY) {
+                            root.mouseViewPos = root.childToView(this, hoverX, hoverY)
+                        }
                     }
-
-                    if (component === sourceComponent) {
-                        console.log("Drop ignored: source equals target")
-                        edgeCanvas.repaint()
-                        return
-                    }
-
-                    var connectionId = "conn_" + sourceComponent.id + "_" + component.id
-                    if (root.graph.connectionById(connectionId)) {
-                        console.log("Drop ignored: connection already exists",
-                                    connectionId)
-                        edgeCanvas.repaint()
-                        return
-                    }
-
-                    // Add connection from sourceComponent to component.
-                    var e1 = Qt.createQmlObject(
-                                'import ComponentMapEditor; ConnectionModel {}',
-                                root.graph)
-                    e1.id = connectionId
-                    e1.sourceId = sourceComponent.id
-                    e1.targetId = component.id
-                    e1.label = "path A"
-                    root.graph.addConnection(e1)
-                    edgeCanvas.repaint()
-                }
-
-                onMoveStarted: if (root.telemetry) root.telemetry.notifyDragStarted()
-                onMoved: {
-                    edgeCanvas.repaint()
-                    if (root.telemetry) root.telemetry.notifyDragMoved()
-                }
-                onMoveFinished: if (root.telemetry) root.telemetry.notifyDragEnded()
-
-                onHoverPositionChanged: function (hoverX, hoverY) {
-                    root.mouseViewPos = root.childToView(this, hoverX, hoverY)
                 }
             }
         }
@@ -494,28 +480,22 @@ Item {
     onSelectedConnectionChanged: edgeCanvas.repaint()
     onGraphChanged: edgeCanvas.repaint()
     onPanXChanged: {
-        root.syncViewportCamera()
-        root.verifyViewportParity()
+        if (root.enableViewportParityCheck)
+            root.verifyViewportParity()
         if (telemetry) telemetry.notifyCameraChanged()
-        gridCanvas.requestPaint()
-        edgeCanvas.repaint()
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onPanYChanged: {
-        root.syncViewportCamera()
-        root.verifyViewportParity()
-        gridCanvas.requestPaint()
-        edgeCanvas.repaint()
+        if (root.enableViewportParityCheck)
+            root.verifyViewportParity()
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onZoomChanged: {
-        root.syncViewportCamera()
-        root.verifyViewportParity()
+        if (root.enableViewportParityCheck)
+            root.verifyViewportParity()
         if (telemetry) telemetry.notifyCameraChanged()
-        gridCanvas.requestPaint()
-        edgeCanvas.repaint()
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
@@ -523,5 +503,8 @@ Item {
         root.updateMouseWorldPos()
     }
 
-    Component.onCompleted: root.syncViewportCamera()
+    Component.onCompleted: {
+        if (root.enableViewportParityCheck)
+            root.verifyViewportParity()
+    }
 }
