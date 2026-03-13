@@ -18,11 +18,10 @@ Item {
 
         HoverHandler {
             id: boundingHandler
-            onHoveredChanged: {
-                if (!hovered) {
-                    root.arrowActivated = false
-                }
-            }
+            // Activate or deactivate arrows based on bounding-box hover.
+            // This covers the case where the pointer enters the arrow region
+            // from outside the component body.
+            onHoveredChanged: root.arrowActivated = hovered
             onPointChanged: root.hoveredPositionChanged(
                                 parent.mapToItem(root, point.position))
         }
