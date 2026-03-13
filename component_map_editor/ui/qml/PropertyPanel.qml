@@ -1,0 +1,178 @@
+// PropertyPanel.qml — Shows and edits properties of the currently selected
+// component or connection.
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import ComponentMapEditor
+
+Rectangle {
+    id: root
+
+    property ComponentModel component: null
+    property ConnectionModel connection: null
+
+    color: "#ffffff"
+    border.color: "#e0e0e0"
+    border.width: 1
+
+    ColumnLayout {
+        anchors { fill: parent; margins: 10 }
+        spacing: 8
+
+        Label {
+            text: "Properties"
+            font.bold: true
+            font.pixelSize: 13
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            bottomPadding: 4
+        }
+
+        // ---------- Component properties ----------
+        Loader {
+            active: root.component !== null
+            Layout.fillWidth: true
+            sourceComponent: componentProps
+        }
+
+        Component {
+            id: componentProps
+
+            ColumnLayout {
+                spacing: 6
+                width: parent ? parent.width : 0
+
+                Label { text: "Component"; font.bold: true; font.pixelSize: 11; color: "#888" }
+
+                Label { text: "ID" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.component ? root.component.id : ""
+                    onEditingFinished: if (root.component) root.component.id = text
+                }
+
+                Label { text: "Label" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.component ? root.component.label : ""
+                    onEditingFinished: if (root.component) root.component.label = text
+                }
+
+                Label { text: "Color" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.component ? root.component.color : ""
+                    onEditingFinished: if (root.component) root.component.color = text
+                }
+
+                Label { text: "Type" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.component ? root.component.type : ""
+                    onEditingFinished: if (root.component) root.component.type = text
+                }
+
+                Label { text: "Shape" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["rounded", "rectangle"]
+                    currentIndex: root.component && root.component.shape === "rectangle" ? 1 : 0
+                    onActivated: function(index) {
+                        if (root.component) root.component.shape = model[index]
+                    }
+                }
+
+                Label { text: "X" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: -9999; to: 9999
+                    value: root.component ? Math.round(root.component.x) : 0
+                    onValueModified: if (root.component) root.component.x = value
+                }
+
+                Label { text: "Y" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: -9999; to: 9999
+                    value: root.component ? Math.round(root.component.y) : 0
+                    onValueModified: if (root.component) root.component.y = value
+                }
+
+                Label { text: "Width" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 10; to: 9999
+                    value: root.component ? Math.round(root.component.width) : 120
+                    onValueModified: if (root.component) root.component.width = value
+                }
+
+                Label { text: "Height" }
+                SpinBox {
+                    Layout.fillWidth: true
+                    from: 10; to: 9999
+                    value: root.component ? Math.round(root.component.height) : 40
+                    onValueModified: if (root.component) root.component.height = value
+                }
+            }
+        }
+
+        // ---------- Connection properties ----------
+        Loader {
+            active: root.connection !== null
+            Layout.fillWidth: true
+            sourceComponent: connectionProps
+        }
+
+        Component {
+            id: connectionProps
+
+            ColumnLayout {
+                spacing: 6
+                width: parent ? parent.width : 0
+
+                Label { text: "Connection"; font.bold: true; font.pixelSize: 11; color: "#888" }
+
+                Label { text: "ID" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.connection ? root.connection.id : ""
+                    onEditingFinished: if (root.connection) root.connection.id = text
+                }
+
+                Label { text: "Source" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.connection ? root.connection.sourceId : ""
+                    onEditingFinished: if (root.connection) root.connection.sourceId = text
+                }
+
+                Label { text: "Target" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.connection ? root.connection.targetId : ""
+                    onEditingFinished: if (root.connection) root.connection.targetId = text
+                }
+
+                Label { text: "Label" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.connection ? root.connection.label : ""
+                    onEditingFinished: if (root.connection) root.connection.label = text
+                }
+            }
+        }
+
+        // Placeholder when nothing is selected
+        Label {
+            visible: root.component === null && root.connection === null
+            text: "Select a component or connection\nto view its properties."
+            wrapMode: Text.WordWrap
+            color: "#aaa"
+            font.pixelSize: 12
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        Item { Layout.fillHeight: true }
+    }
+}

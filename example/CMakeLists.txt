@@ -8,7 +8,13 @@ qt_add_qml_module(example_app
     URI ExampleApp
     VERSION 1.0
     QML_FILES
-        main.qml
+        Main.qml
+        BenchmarkPanel.qml
+    SOURCES
+        BenchmarkHelper.h
+        BenchmarkHelper.cpp
+        FrameSwapTelemetry.h
+        FrameSwapTelemetry.cpp
 )
 
 # Link against the ComponentMapEditor backing library and its generated QML plugin.
@@ -16,6 +22,5 @@ target_link_libraries(example_app
     PRIVATE
         Qt6::Quick
         Qt6::QuickControls2
-        componentmapeditor
-        componentmapeditorplugin
+        libComponentMapEditor
 )
