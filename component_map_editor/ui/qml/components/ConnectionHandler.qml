@@ -1,5 +1,5 @@
 import QtQuick
-import "items"
+import "../items"
 
 Item {
     id: root

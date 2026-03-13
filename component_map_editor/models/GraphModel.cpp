@@ -1,5 +1,7 @@
 #include "GraphModel.h"
 
+#include <QtAlgorithms>
+
 GraphModel::GraphModel(QObject *parent)
     : QObject(parent)
 {}
@@ -30,12 +32,16 @@ const QList<ConnectionModel *> &GraphModel::connectionList() const { return m_co
 
 void GraphModel::addComponent(ComponentModel *component)
 {
-    if (!component || componentById(component->id()))
+    if (!component)
+        return;
+    // In batch mode skip the O(n) duplicate check; caller guarantees unique IDs.
+    if (!m_batchMode && componentById(component->id()))
         return;
     component->setParent(this);
     m_components.append(component);
     emit componentAdded(component);
-    emit componentsChanged();
+    if (!m_batchMode)
+        emit componentsChanged();
 }
 
 bool GraphModel::removeComponent(const QString &id)
@@ -63,12 +69,16 @@ ComponentModel *GraphModel::componentById(const QString &id) const
 
 void GraphModel::addConnection(ConnectionModel *connection)
 {
-    if (!connection || connectionById(connection->id()))
+    if (!connection)
+        return;
+    // In batch mode skip the O(n) duplicate check; caller guarantees unique IDs.
+    if (!m_batchMode && connectionById(connection->id()))
         return;
     connection->setParent(this);
     m_connections.append(connection);
     emit connectionAdded(connection);
-    emit connectionsChanged();
+    if (!m_batchMode)
+        emit connectionsChanged();
 }
 
 bool GraphModel::removeConnection(const QString &id)
@@ -97,11 +107,27 @@ ConnectionModel *GraphModel::connectionById(const QString &id) const
 void GraphModel::clear()
 {
     if (!m_connections.isEmpty()) {
+        qDeleteAll(m_connections);
         m_connections.clear();
-        emit connectionsChanged();
+        if (!m_batchMode)
+            emit connectionsChanged();
     }
     if (!m_components.isEmpty()) {
+        qDeleteAll(m_components);
         m_components.clear();
-        emit componentsChanged();
+        if (!m_batchMode)
+            emit componentsChanged();
     }
+}
+
+void GraphModel::beginBatchUpdate()
+{
+    m_batchMode = true;
+}
+
+void GraphModel::endBatchUpdate()
+{
+    m_batchMode = false;
+    emit componentsChanged();
+    emit connectionsChanged();
 }

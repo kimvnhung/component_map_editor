@@ -3,6 +3,10 @@ import QtQuick
 Item {
     id: root
 
+    // for zoom
+    // required property real zoom
+    // required property real panX
+    // required property real panY
     property bool moveEnabled: true
     property bool resizeEnabled: true
     // Whether to show the resize handles.
@@ -157,10 +161,22 @@ Item {
                 required property var modelData
 
                 id: resizeHandle
-                width: root.handleSize
-                height: root.handleSize
-                x: modelData.xFactor * root.width - (width / 2)
-                y: modelData.yFactor * root.height - (height / 2)
+                     readonly property bool horizontalEdge: modelData.dirX === 0 && modelData.dirY !== 0
+                     readonly property bool verticalEdge: modelData.dirY === 0 && modelData.dirX !== 0
+
+                     width: horizontalEdge
+                              ? Math.max(root.minItemWidth, root.width - root.handleSize * 2)
+                              : root.handleSize
+                     height: verticalEdge
+                                ? Math.max(root.minItemHeight, root.height - root.handleSize * 2)
+                                : root.handleSize
+
+                     x: horizontalEdge
+                         ? (root.width - width) / 2
+                         : (modelData.xFactor * root.width - (width / 2))
+                     y: verticalEdge
+                         ? (root.height - height) / 2
+                         : (modelData.yFactor * root.height - (height / 2))
 
                 property real startX: 0
                 property real startY: 0

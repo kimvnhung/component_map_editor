@@ -40,6 +40,12 @@ public:
 
     Q_INVOKABLE void clear();
 
+    // Batch-update mode: suppresses per-item componentsChanged/connectionsChanged
+    // signals and skips duplicate-ID checks inside addComponent/addConnection.
+    // Call endBatchUpdate() to emit a single consolidated changed signal pair.
+    Q_INVOKABLE void beginBatchUpdate();
+    Q_INVOKABLE void endBatchUpdate();
+
 signals:
     void componentAdded(ComponentModel *component);
     void componentRemoved(const QString &id);
@@ -51,6 +57,7 @@ signals:
 private:
     QList<ComponentModel *> m_components;
     QList<ConnectionModel *> m_connections;
+    bool m_batchMode = false;
 };
 
 #endif // GRAPHMODEL_H
