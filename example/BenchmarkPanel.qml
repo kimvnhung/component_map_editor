@@ -40,9 +40,22 @@ Rectangle {
     property var runSeriesResults: []
     property string runSeriesSummary: ""
     property bool manualDragWindowActive: false
+    property bool matrixActive: false
+    property int matrixDatasetIndex: 0
+    property int matrixStageIndex: 0
+    property real matrixRemainingSec: 0
+    property var matrixResults: []
+    property string matrixSummary: ""
+    readonly property var matrixDatasets: [1000, 5000, 10000]
+    readonly property var matrixStageNames: ["Idle30s", "Pan10s", "Zoom10s"]
+    property int manualDragInteractions: 0
+    readonly property int manualDragTarget: 200
 
     readonly property int autoPanDurationMs: 20000
     readonly property int manualDragDurationMs: 10000
+    readonly property int matrixIdleDurationMs: 30000
+    readonly property int matrixPanDurationMs: 10000
+    readonly property int matrixZoomDurationMs: 10000
 
     readonly property real frameP95TargetMs: 16.7
     readonly property real cameraP95TargetMs: 16.7
@@ -139,6 +152,103 @@ Rectangle {
         autoPanTimer.running = true
     }
 
+    function _matrixStageDurationMs(stageIndex) {
+        if (stageIndex === 0)
+            return root.matrixIdleDurationMs
+        if (stageIndex === 1)
+            return root.matrixPanDurationMs
+        return root.matrixZoomDurationMs
+    }
+
+    function _startValidationMatrix() {
+        autoPanTimer.running = false
+        root.autoPanRunning = false
+        root.autoPanRemainingSec = 0
+        root.runSeriesActive = false
+        root.manualDragWindowActive = false
+
+        root.matrixActive = true
+        root.matrixDatasetIndex = 0
+        root.matrixStageIndex = 0
+        root.matrixResults = []
+        root.matrixSummary = ""
+        root._startNextMatrixStage()
+    }
+
+    function _startNextMatrixStage() {
+        if (!root.matrixActive)
+            return
+
+        if (root.matrixDatasetIndex >= root.matrixDatasets.length) {
+            root.matrixActive = false
+            root.matrixRemainingSec = 0
+            root.matrixSummary = "Validation matrix complete: " + root.matrixResults.length
+                               + " stage runs across " + root.matrixDatasets.length + " datasets"
+            return
+        }
+
+        var datasetSize = root.matrixDatasets[root.matrixDatasetIndex]
+        if (root.matrixStageIndex === 0) {
+            root._captureBaseline()
+            if (root.canvas && root.canvas.nodeRenderer)
+                root.canvas.nodeRenderer.renderNodes = true
+            benchHelper.populateGraph(root.graph, datasetSize)
+        }
+
+        root._startMeasuring()
+        matrixTimer.datasetSize = datasetSize
+        matrixTimer.stageIndex = root.matrixStageIndex
+        matrixTimer.startPanX = root.canvas ? root.canvas.panX : 0
+        matrixTimer.startPanY = root.canvas ? root.canvas.panY : 0
+        matrixTimer.startZoom = root.canvas ? root.canvas.zoom : 1.0
+        matrixTimer.zoomInDirection = true
+        matrixTimer.startedMs = Date.now()
+        root.matrixRemainingSec = root._matrixStageDurationMs(root.matrixStageIndex) / 1000.0
+        matrixTimer.running = true
+    }
+
+    function _advanceMatrixStage() {
+        root.matrixStageIndex += 1
+        if (root.matrixStageIndex >= root.matrixStageNames.length) {
+            root.matrixStageIndex = 0
+            root.matrixDatasetIndex += 1
+        }
+        root._startNextMatrixStage()
+    }
+
+    function _samplingStatusText() {
+        if (!root.telemetry.enabled) {
+            return root.frameSampleValid
+                    ? "Sample valid"
+                    : "Invalid sample size (need >= " + root.minValidFrameSamples
+                      + ", got " + root.frameTelemetry.frameSwapSampleCount + ")"
+        }
+
+        if (root.autoPanRunning) {
+            if (root.runSeriesActive) {
+                if (root.manualDragWindowActive) {
+                    return "Manual drag now (series " + root.runSeriesCurrent + "/"
+                         + root.runSeriesTotal + ", "
+                         + root.autoPanRemainingSec.toFixed(1) + "s left)"
+                }
+                return "Sampling auto-pan (series " + root.runSeriesCurrent + "/"
+                     + root.runSeriesTotal + ", "
+                     + root.autoPanRemainingSec.toFixed(1) + "s left)..."
+            }
+
+            return "Sampling (auto-pan " + root.autoPanRemainingSec.toFixed(1)
+                 + "s left)..."
+        }
+
+        if (root.matrixActive) {
+            return "Matrix " + root.matrixStageNames[root.matrixStageIndex]
+                 + " (dataset " + root.matrixDatasets[root.matrixDatasetIndex]
+                 + ", " + root.matrixRemainingSec.toFixed(1) + "s left)..."
+        }
+
+        return "Sampling..."
+    }
+
     Timer {
         id: autoPanTimer
         interval: 12
@@ -195,6 +305,60 @@ Rectangle {
                 } else {
                     root._stopMeasuringAndReport()
                 }
+            }
+        }
+    }
+
+    Timer {
+        id: matrixTimer
+        interval: 12
+        repeat: true
+        running: false
+
+        property double startedMs: 0
+        property real startPanX: 0
+        property real startPanY: 0
+        property real startZoom: 1.0
+        property bool zoomInDirection: true
+        property int stageIndex: 0
+        property int datasetSize: 0
+
+        onTriggered: {
+            if (!root.matrixActive || !root.canvas)
+                return
+
+            var elapsedMs = Date.now() - startedMs
+            var durationMs = root._matrixStageDurationMs(stageIndex)
+            var t = elapsedMs / 1000.0
+
+            if (stageIndex === 1) {
+                var amp = 220.0
+                root.canvas.panX = startPanX + Math.sin(t * 2.5) * amp
+                root.canvas.panY = startPanY + Math.cos(t * 1.9) * amp * 0.6
+            } else if (stageIndex === 2) {
+                root.canvas.mouseViewPos = Qt.point(root.canvas.width * 0.5,
+                                                    root.canvas.height * 0.5)
+                var factor = zoomInDirection ? 1.01 : (1.0 / 1.01)
+                root.canvas.zoomAtCursor(factor)
+                if ((elapsedMs % 420) < interval)
+                    zoomInDirection = !zoomInDirection
+            }
+
+            if (root.appWindow)
+                root.appWindow.requestUpdate()
+
+            root.matrixRemainingSec = Math.max(0, (durationMs - elapsedMs) / 1000.0)
+
+            if (elapsedMs >= durationMs) {
+                running = false
+                var stageName = root.matrixStageNames[stageIndex]
+                var result = root._stopMeasuringAndReport(
+                            "Matrix " + stageName + " — nodes=" + datasetSize
+                            + " edges=" + root.graph.connectionCount)
+                result.dataset = datasetSize
+                result.stage = stageName
+                root.matrixResults = root.matrixResults.concat([result])
+                root._advanceMatrixStage()
             }
         }
     }
@@ -275,6 +439,7 @@ Rectangle {
                 implicitWidth:  52
                 onClicked: {
                     autoPanTimer.running = false
+                    matrixTimer.running = false
                     root.autoPanRunning = false
                     root.autoPanRemainingSec = 0
                     root.runSeriesActive = false
@@ -282,6 +447,13 @@ Rectangle {
                     root.runSeriesResults = []
                     root.runSeriesSummary = ""
                     root.manualDragWindowActive = false
+                    root.matrixActive = false
+                    root.matrixDatasetIndex = 0
+                    root.matrixStageIndex = 0
+                    root.matrixRemainingSec = 0
+                    root.matrixResults = []
+                    root.matrixSummary = ""
+                    root.manualDragInteractions = 0
                     root.telemetry.enabled = false
                     root.frameTelemetry.enabled = false
                     if (root.canvas) {
@@ -314,9 +486,12 @@ Rectangle {
                 onClicked: {
                     if (root.telemetry.enabled) {
                         autoPanTimer.running = false
+                        matrixTimer.running = false
                         root.autoPanRunning = false
                         root.runSeriesActive = false
                         root.manualDragWindowActive = false
+                        root.matrixActive = false
+                        root.matrixRemainingSec = 0
                         root._stopMeasuringAndReport()
                     } else {
                         root._startMeasuring()
@@ -333,6 +508,9 @@ Rectangle {
                 onClicked: {
                     if (!root.canvas)
                         return
+                    matrixTimer.running = false
+                    root.matrixActive = false
+                    root.matrixRemainingSec = 0
                     root._startMeasuring()
                     root.runSeriesActive = false
                     root.autoPanRunning = true
@@ -356,11 +534,29 @@ Rectangle {
                 onClicked: {
                     if (!root.canvas)
                         return
+                    matrixTimer.running = false
+                    root.matrixActive = false
+                    root.matrixRemainingSec = 0
                     root.runSeriesActive = true
                     root.runSeriesCurrent = 0
                     root.runSeriesResults = []
                     root.runSeriesSummary = ""
                     root._startNextSeriesRun()
+                }
+            }
+
+            Button {
+                text: root.matrixActive
+                      ? "Matrix " + (root.matrixDatasetIndex + 1) + "/" + root.matrixDatasets.length
+                      : "▶ Validation Matrix"
+                enabled: !root.matrixActive && !root.autoPanRunning && !root.runSeriesActive && root.canvas !== null
+                font.pixelSize: 11
+                implicitHeight: 26
+                implicitWidth:  132
+                onClicked: {
+                    if (!root.canvas)
+                        return
+                    root._startValidationMatrix()
                 }
             }
 
@@ -378,20 +574,7 @@ Rectangle {
             Item { Layout.fillWidth: true }
 
                         Label {
-                                text: root.telemetry.enabled
-                                     ? (root.autoPanRunning
-                                                                                 ? (root.runSeriesActive
-                                                                                                                                                                                ? (root.manualDragWindowActive
-                                                                                                                                                                                     ? "Manual drag now (series " + root.runSeriesCurrent + "/" + root.runSeriesTotal
-                                                                                                                                                                                         + ", " + root.autoPanRemainingSec.toFixed(1) + "s left)"
-                                                                                                                                                                                     : "Sampling auto-pan (series " + root.runSeriesCurrent + "/" + root.runSeriesTotal
-                                                                                                                                                                                         + ", " + root.autoPanRemainingSec.toFixed(1) + "s left)...")
-                                                                                        : "Sampling (auto-pan " + root.autoPanRemainingSec.toFixed(1) + "s left)...")
-                                         : "Sampling...")
-                                            : (root.frameSampleValid
-                                                 ? "Sample valid"
-                                                 : "Invalid sample size (need >= " + root.minValidFrameSamples
-                                                     + ", got " + root.frameTelemetry.frameSwapSampleCount + ")")
+                                text: root._samplingStatusText()
                                 font.pixelSize: 11
                                 color: root.telemetry.enabled
                                              ? "#1565c0"
@@ -449,6 +632,54 @@ Rectangle {
                 text: root.runSeriesSummary
                 font.pixelSize: 11
                 color: root.runSeriesSummary.indexOf("PASS") >= 0 ? "#2e7d32" : "#c62828"
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: root.expanded
+            spacing: 8
+
+            Label {
+                text: "Manual drag: " + root.manualDragInteractions + "/" + root.manualDragTarget
+                font.pixelSize: 11
+                color: root.manualDragInteractions >= root.manualDragTarget ? "#2e7d32" : "#555"
+            }
+
+            Button {
+                text: "+1"
+                font.pixelSize: 11
+                implicitHeight: 24
+                implicitWidth: 34
+                onClicked: root.manualDragInteractions += 1
+            }
+
+            Button {
+                text: "+10"
+                font.pixelSize: 11
+                implicitHeight: 24
+                implicitWidth: 40
+                onClicked: root.manualDragInteractions += 10
+            }
+
+            Button {
+                text: "Reset"
+                font.pixelSize: 11
+                implicitHeight: 24
+                implicitWidth: 52
+                onClicked: root.manualDragInteractions = 0
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: root.expanded && root.matrixSummary.length > 0
+
+            Label {
+                Layout.fillWidth: true
+                text: root.matrixSummary
+                font.pixelSize: 11
+                color: "#455a64"
             }
         }
     }

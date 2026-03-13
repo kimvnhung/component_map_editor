@@ -21,6 +21,7 @@
 #include <QSGTexture>
 #include <QSGVertexColorMaterial>
 #include <QSet>
+#include <QTimer>
 #include <QThread>
 #include <algorithm>
 #include <cmath>
@@ -179,6 +180,7 @@ void GraphViewportItem::setGraph(QObject *value)
     clearConnectionGeometryConnections();
 
     m_graph = value;
+    m_graphRebuildScheduled = false;
     auto *graphModel = qobject_cast<GraphModel *>(m_graph);
     if (graphModel) {
         m_componentsChangedConn = connect(graphModel, &GraphModel::componentsChanged,
@@ -576,10 +578,82 @@ void GraphViewportItem::repaint()
 void GraphViewportItem::requestGraphRebuild()
 {
     markSpatialIndexDirty();
-    ensureSpatialIndex();
     m_graphDirty = true;
     m_nodeDirty = true;
+    scheduleGraphRebuild();
     update();
+}
+
+void GraphViewportItem::scheduleGraphRebuild()
+{
+    if (m_graphRebuildScheduled)
+        return;
+
+    m_graphRebuildScheduled = true;
+    QTimer::singleShot(0, this, [this]() {
+        executeScheduledGraphRebuild();
+    });
+}
+
+void GraphViewportItem::executeScheduledGraphRebuild()
+{
+    m_graphRebuildScheduled = false;
+    ensureSpatialIndex();
+    update();
+}
+
+void GraphViewportItem::updateLodState()
+{
+    const bool simpleEdges = m_zoom < 0.60;
+    const bool hideLabels = m_zoom < 0.68;
+    const bool hideOutlines = m_zoom < 0.50;
+
+    const bool edgeModeChanged = (simpleEdges != m_lodSimpleEdges);
+    if (edgeModeChanged)
+        m_lodSimpleEdges = simpleEdges;
+
+    const bool labelModeChanged = (hideLabels != m_lodHideNodeLabels);
+    if (labelModeChanged)
+        m_lodHideNodeLabels = hideLabels;
+
+    const bool outlineModeChanged = (hideOutlines != m_lodHideNodeOutlines);
+    if (outlineModeChanged)
+        m_lodHideNodeOutlines = hideOutlines;
+
+    if (edgeModeChanged) {
+        auto *normalGeom = m_normalEdgesGeomNode ? m_normalEdgesGeomNode->geometry() : nullptr;
+        auto *selectedGeom = m_selectedEdgesGeomNode ? m_selectedEdgesGeomNode->geometry() : nullptr;
+        if (normalGeom) {
+            normalGeom->setLineWidth(simpleEdges ? 1.0f : 2.0f);
+            m_normalEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
+        }
+        if (selectedGeom) {
+            selectedGeom->setLineWidth(simpleEdges ? 1.0f : 3.0f);
+            m_selectedEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
+        }
+
+        auto *normalMat = m_normalEdgesGeomNode
+            ? static_cast<QSGFlatColorMaterial *>(m_normalEdgesGeomNode->material())
+            : nullptr;
+        auto *selectedMat = m_selectedEdgesGeomNode
+            ? static_cast<QSGFlatColorMaterial *>(m_selectedEdgesGeomNode->material())
+            : nullptr;
+        if (normalMat) {
+            normalMat->setColor(simpleEdges
+                                ? QColor(QStringLiteral("#546e7a"))
+                                : QColor(QStringLiteral("#607d8b")));
+            m_normalEdgesGeomNode->markDirty(QSGNode::DirtyMaterial);
+        }
+        if (selectedMat) {
+            selectedMat->setColor(simpleEdges
+                                  ? QColor(QStringLiteral("#546e7a"))
+                                  : QColor(QStringLiteral("#ff5722")));
+            m_selectedEdgesGeomNode->markDirty(QSGNode::DirtyMaterial);
+        }
+    }
+
+    if (labelModeChanged || outlineModeChanged)
+        m_nodeDirty = true;
 }
 
 void GraphViewportItem::requestNodeRepaint()
@@ -663,17 +737,13 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         m_graphDirty = false;
     }
 
-    if (m_nodeDirty) {
-        updateNodeGeometry();
-        m_nodeDirty = false;
-    }
-
     // -----------------------------------------------------------------------
     // Camera dirty: update grid (screen-space) + edge camera matrix.
     // One 4×4 matrix write replaces O(E) vertex position recalculation.
     // -----------------------------------------------------------------------
     if (m_cameraDirty) {
         updateGridGeometry();
+        updateLodState();
 
         QMatrix4x4 cam;
         cam.setToIdentity();
@@ -684,6 +754,11 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
             m_nodesTransformNode->setMatrix(cam);
 
         m_cameraDirty = false;
+    }
+
+    if (m_nodeDirty) {
+        updateNodeGeometry();
+        m_nodeDirty = false;
     }
 
     return oldNode;
@@ -952,8 +1027,7 @@ void GraphViewportItem::updateNodeGeometry()
     if (m_nodeFillGeomNode->geometry()->vertexCount() != fillVertexCount)
         m_nodeFillGeomNode->geometry()->allocate(fillVertexCount);
 
-    // Four border strips, each rendered as two triangles.
-    const int outlineVertexCount = visible.size() * 24;
+    const int outlineVertexCount = m_lodHideNodeOutlines ? 0 : visible.size() * 24;
     if (m_nodeOutlineGeomNode->geometry()->vertexCount() != outlineVertexCount)
         m_nodeOutlineGeomNode->geometry()->allocate(outlineVertexCount);
 
@@ -991,26 +1065,28 @@ void GraphViewportItem::updateNodeGeometry()
         const QColor fillColor(component->color());
         appendTriangleRect(fillVerts, fillIdx, viewRect, fillColor);
 
-        const bool selected = (static_cast<QObject *>(component) == m_selectedComponent);
-        const qreal borderWidth = selected ? 2.5 : 1.5;
-        const QColor borderColor = selected
-            ? QColor(QStringLiteral("#ff5722"))
-            : fillColor.darker(140);
+         if (!m_lodHideNodeOutlines) {
+             const bool selected = (static_cast<QObject *>(component) == m_selectedComponent);
+             const qreal borderWidth = selected ? 2.5 : 1.5;
+             const QColor borderColor = selected
+              ? QColor(QStringLiteral("#ff5722"))
+              : fillColor.darker(140);
 
-        appendTriangleRect(outlineVerts, outlineIdx,
-                           QRectF(viewRect.left(), viewRect.top(), viewRect.width(), borderWidth),
-                           borderColor);
-        appendTriangleRect(outlineVerts, outlineIdx,
-                           QRectF(viewRect.left(), viewRect.bottom() - borderWidth, viewRect.width(), borderWidth),
-                           borderColor);
-        appendTriangleRect(outlineVerts, outlineIdx,
-                           QRectF(viewRect.left(), viewRect.top() + borderWidth, borderWidth,
-                                  qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
-                           borderColor);
-        appendTriangleRect(outlineVerts, outlineIdx,
-                           QRectF(viewRect.right() - borderWidth, viewRect.top() + borderWidth, borderWidth,
-                                  qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
-                           borderColor);
+             appendTriangleRect(outlineVerts, outlineIdx,
+                       QRectF(viewRect.left(), viewRect.top(), viewRect.width(), borderWidth),
+                       borderColor);
+             appendTriangleRect(outlineVerts, outlineIdx,
+                       QRectF(viewRect.left(), viewRect.bottom() - borderWidth, viewRect.width(), borderWidth),
+                       borderColor);
+             appendTriangleRect(outlineVerts, outlineIdx,
+                       QRectF(viewRect.left(), viewRect.top() + borderWidth, borderWidth,
+                           qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
+                       borderColor);
+             appendTriangleRect(outlineVerts, outlineIdx,
+                       QRectF(viewRect.right() - borderWidth, viewRect.top() + borderWidth, borderWidth,
+                           qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
+                       borderColor);
+         }
     }
 
     m_nodeFillGeomNode->markDirty(QSGNode::DirtyGeometry);
@@ -1060,7 +1136,7 @@ void GraphViewportItem::updateLabelNodes()
 
     for (int i = 0; i < labelNodes.size(); ++i) {
         LabelTextureNode *node = labelNodes.at(i);
-        if (i >= visible.size() || !m_renderNodes) {
+        if (i >= visible.size() || !m_renderNodes || m_lodHideNodeLabels) {
             node->setRect(0, 0, 0, 0);
             continue;
         }

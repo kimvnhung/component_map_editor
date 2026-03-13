@@ -158,6 +158,9 @@ private:
     qreal normalizedGridStep() const;
     static qreal positiveModulo(qreal value, qreal modulus);
     void requestGraphRebuild();
+    void scheduleGraphRebuild();
+    void executeScheduledGraphRebuild();
+    void updateLodState();
     void requestNodeRepaint();
 
     void markSpatialIndexDirty();
@@ -224,6 +227,12 @@ private:
     bool m_graphDirty  = true;   // edge/temp geometry must be rebuilt
     bool m_cameraDirty = true;   // grid geometry + edge transform matrix must update
     bool m_nodeDirty   = true;   // node fill/outline and label state must update
+    bool m_graphRebuildScheduled = false;
+
+    // Phase 6 LOD flags (updated from camera zoom).
+    bool m_lodSimpleEdges = false;
+    bool m_lodHideNodeLabels = false;
+    bool m_lodHideNodeOutlines = false;
 
     // Spatial index (main thread only; used by QML hit-test invokables).
     bool m_spatialIndexDirty = true;
