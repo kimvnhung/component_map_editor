@@ -14,8 +14,8 @@ void BenchmarkHelper::populateGraph(GraphModel *graph, int nodeCount)
     if (!graph || nodeCount <= 0)
         return;
 
-    graph->clear();
     graph->beginBatchUpdate();
+    graph->clear();
 
     const int   cols    = qCeil(qSqrt(static_cast<qreal>(nodeCount)));
     const qreal spacing = 200.0;
