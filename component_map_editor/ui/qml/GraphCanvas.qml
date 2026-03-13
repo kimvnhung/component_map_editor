@@ -42,6 +42,7 @@ Item {
     property bool enableBackgroundDrag: true
     property bool nodeInteractionActive: false
     property bool pointerOverComponent: false
+    readonly property var nodeRenderer: nodeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
     readonly property point worldOrigin: viewToWorld(0, 0)
@@ -259,7 +260,7 @@ Item {
         zoom: root.zoom
         renderGrid: false
         renderEdges: false
-        renderNodes: false
+        renderNodes: true
         selectedComponent: root.selectedComponent
     }
 
@@ -406,7 +407,7 @@ Item {
                     sourceComponent: ComponentItem {
                         component: modelData
                         selected: root.selectedComponent === modelData
-                        renderVisuals: true
+                        renderVisuals: false
                         undoStack: root.undoStack
 
                         onComponentClicked: clickedComponent => {

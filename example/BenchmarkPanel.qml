@@ -152,6 +152,10 @@ Rectangle {
             Label {
                 text: "RSS: " + (root._rssKb / 1024).toFixed(1) + " MB"
                       + "   Δ " + ((root._rssKb - root._baselineRssKb) / 1024).toFixed(1) + " MB"
+                                            + (root.canvas && root.canvas.nodeRenderer
+                                                     ? "   Renderer≈" + root.canvas.nodeRenderer.rendererMemoryEstimateMb().toFixed(1) + " MB"
+                                                         + "   LabelCache=" + root.canvas.nodeRenderer.labelTextureCacheSize()
+                                                     : "")
                 font.pixelSize: 11
                 color: "#555"
             }
@@ -175,6 +179,8 @@ Rectangle {
                     implicitWidth:  44
                     onClicked: {
                         root._captureBaseline()
+                        if (root.canvas && root.canvas.nodeRenderer)
+                            root.canvas.nodeRenderer.renderNodes = true
                         benchHelper.populateGraph(root.graph, modelData)
                     }
                 }
@@ -192,6 +198,8 @@ Rectangle {
                     root.telemetry.enabled = false
                     root.frameTelemetry.enabled = false
                     if (root.canvas) {
+                        if (root.canvas.nodeRenderer)
+                            root.canvas.nodeRenderer.renderNodes = false
                         root.canvas.tempConnectionDragging = false
                         root.canvas.nodeInteractionActive = false
                         root.canvas.enableBackgroundDrag = true

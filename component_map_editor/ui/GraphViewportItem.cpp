@@ -30,6 +30,13 @@
 
 namespace {
 
+class LabelTextureNode final : public QSGSimpleTextureNode
+{
+public:
+    QString cacheKey;
+    qint64 textureBytes = 0;
+};
+
 QPointF centerPoint(ComponentModel *component)
 {
     return QPointF(component->x(), component->y());
@@ -140,6 +147,18 @@ GraphViewportItem::GraphViewportItem(QQuickItem *parent)
 {
     // Phase 2: viewport can render grid/edges with scene graph nodes.
     setFlag(ItemHasContents, true);
+}
+
+void GraphViewportItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
+{
+    QQuickItem::geometryChange(newGeometry, oldGeometry);
+
+    if (newGeometry.size() == oldGeometry.size())
+        return;
+
+    m_cameraDirty = true;
+    m_nodeDirty = true;
+    update();
 }
 
 QObject *GraphViewportItem::graph() const
@@ -411,6 +430,8 @@ QPointF GraphViewportItem::viewToWorld(qreal viewX, qreal viewY) const
 QObject *GraphViewportItem::hitTestComponentAtView(qreal viewX, qreal viewY)
 {
     ensureSpatialIndex();
+
+    QMutexLocker locker(&m_spatialIndexMutex);
     if (m_indexedComponents.isEmpty())
         return nullptr;
 
@@ -437,6 +458,8 @@ QObject *GraphViewportItem::hitTestConnectionAtView(qreal viewX, qreal viewY,
                                                     qreal tolerancePx)
 {
     ensureSpatialIndex();
+
+    QMutexLocker locker(&m_spatialIndexMutex);
     if (m_indexedConnections.isEmpty())
         return nullptr;
 
@@ -485,6 +508,36 @@ QObject *GraphViewportItem::hitTestConnectionAtView(qreal viewX, qreal viewY,
     return bestConnection;
 }
 
+void GraphViewportItem::purgeLabelCache()
+{
+    // Intentionally no-op in production path until a frame-fenced purge
+    // strategy is introduced. Immediate runtime texture teardown during graph
+    // resets proved unstable on some environments.
+}
+
+int GraphViewportItem::labelTextureCacheSize() const
+{
+    return m_labelTextureCacheCount.load();
+}
+
+qreal GraphViewportItem::rendererMemoryEstimateMb() const
+{
+    qint64 bytes = 0;
+
+    // Spatial-index payload approximation.
+    bytes += qint64(m_indexedComponents.size()) * qint64(sizeof(IndexedComponent));
+    bytes += qint64(m_indexedConnections.size()) * qint64(sizeof(IndexedConnection));
+    for (auto it = m_componentCellToIndices.constBegin(); it != m_componentCellToIndices.constEnd(); ++it)
+        bytes += qint64(it.value().size()) * qint64(sizeof(int));
+    for (auto it = m_connectionCellToIndices.constBegin(); it != m_connectionCellToIndices.constEnd(); ++it)
+        bytes += qint64(it.value().size()) * qint64(sizeof(int));
+
+    // Label texture bytes are tracked atomically from render thread updates.
+    bytes += m_labelTextureCacheBytes.load();
+
+    return qreal(bytes) / (1024.0 * 1024.0);
+}
+
 void GraphViewportItem::repaint()
 {
     m_cameraDirty = true;
@@ -517,6 +570,15 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
     //   └── m_tempEdgeGeomNode      (screen-space, drag-in-progress edge)
     // -----------------------------------------------------------------------
     if (!oldNode) {
+        // Scene graph was recreated; cached node pointers from a previous graph
+        // lifetime are no longer valid.
+        m_labelNodes.clear();
+
+        m_labelTextureCache.clear();
+        m_labelTextureCacheCount.store(0);
+        m_labelTextureCacheBytes.store(0);
+        m_labelCachePurgeRequested = false;
+
         m_rootNode = new QSGNode();
 
         m_gridGeomNode = createEmptyLineNode(QColor(QStringLiteral("#e0e0e0")), 1.0f);
@@ -550,6 +612,9 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
 
     if (width() <= 0 || height() <= 0)
         return oldNode;
+
+    if (m_labelCachePurgeRequested)
+        clearLabelTexturesOnRenderThread();
 
     // -----------------------------------------------------------------------
     // Graph dirty: rebuild edge/temp geometry in world space (O(N+E)).
@@ -773,7 +838,11 @@ void GraphViewportItem::updateTempEdgeGeometry()
 QVector<int> GraphViewportItem::visibleComponentIndices() const
 {
     QVector<int> result;
-    if (m_indexedComponents.isEmpty() || width() <= 0 || height() <= 0)
+    if (width() <= 0 || height() <= 0)
+        return result;
+
+    QMutexLocker locker(&m_spatialIndexMutex);
+    if (m_indexedComponents.isEmpty())
         return result;
 
     const QPointF worldTopLeft = viewToWorld(0.0, 0.0);
@@ -805,6 +874,23 @@ QVector<int> GraphViewportItem::visibleComponentIndices() const
     return result;
 }
 
+QVector<GraphViewportItem::IndexedComponent> GraphViewportItem::visibleComponentsSnapshot() const
+{
+    QVector<IndexedComponent> result;
+    const QVector<int> visible = visibleComponentIndices();
+    if (visible.isEmpty())
+        return result;
+
+    QMutexLocker locker(&m_spatialIndexMutex);
+    result.reserve(visible.size());
+    for (int idx : visible) {
+        if (idx < 0 || idx >= m_indexedComponents.size())
+            continue;
+        result.append(m_indexedComponents.at(idx));
+    }
+    return result;
+}
+
 void GraphViewportItem::updateNodeGeometry()
 {
     auto clearColoredNode = [](QSGGeometryNode *node) {
@@ -821,7 +907,7 @@ void GraphViewportItem::updateNodeGeometry()
         return;
     }
 
-    const QVector<int> visible = visibleComponentIndices();
+    const QVector<IndexedComponent> visible = visibleComponentsSnapshot();
 
     const int fillVertexCount = visible.size() * 6;
     if (m_nodeFillGeomNode->geometry()->vertexCount() != fillVertexCount)
@@ -856,8 +942,7 @@ void GraphViewportItem::updateNodeGeometry()
         verts[idx++].set(left, bottom, r, g, b, a);
     };
 
-    for (int idx : visible) {
-        const IndexedComponent &entry = m_indexedComponents.at(idx);
+    for (const IndexedComponent &entry : visible) {
         ComponentModel *component = entry.component;
         if (!component)
             continue;
@@ -911,16 +996,24 @@ void GraphViewportItem::updateLabelNodes()
     if (!m_nodeLabelsRootNode)
         return;
 
-    const QVector<int> visible = (m_renderNodes ? visibleComponentIndices() : QVector<int>());
+    const QVector<IndexedComponent> visible = (m_renderNodes ? visibleComponentsSnapshot()
+                                                            : QVector<IndexedComponent>());
 
-    while (m_labelNodes.size() < visible.size()) {
-        auto *node = new QSGSimpleTextureNode();
-        m_nodeLabelsRootNode->appendChildNode(node);
-        m_labelNodes.append(node);
+    QVector<LabelTextureNode *> labelNodes;
+    for (QSGNode *child = m_nodeLabelsRootNode->firstChild();
+         child != nullptr;
+         child = child->nextSibling()) {
+        labelNodes.append(static_cast<LabelTextureNode *>(child));
     }
 
-    if (m_labelTextureCache.size() > 512)
-        m_labelTextureCache.clear();
+    while (labelNodes.size() < visible.size()) {
+        auto *node = new LabelTextureNode();
+        node->setOwnsTexture(true);
+        m_nodeLabelsRootNode->appendChildNode(node);
+        labelNodes.append(node);
+    }
+
+    // Avoid runtime texture destruction during active rendering paths.
 
     const qreal devicePixelRatio = window() ? window()->effectiveDevicePixelRatio() : 1.0;
     QFont font;
@@ -928,32 +1021,28 @@ void GraphViewportItem::updateLabelNodes()
     font.setPixelSize(13);
     QFontMetrics metrics(font);
 
-    for (int i = 0; i < m_labelNodes.size(); ++i) {
-        QSGSimpleTextureNode *node = m_labelNodes.at(i);
+    for (int i = 0; i < labelNodes.size(); ++i) {
+        LabelTextureNode *node = labelNodes.at(i);
         if (i >= visible.size() || !m_renderNodes) {
             node->setRect(0, 0, 0, 0);
-            node->setTexture(nullptr);
             continue;
         }
 
-        const IndexedComponent &entry = m_indexedComponents.at(visible.at(i));
+        const IndexedComponent &entry = visible.at(i);
         ComponentModel *component = entry.component;
         if (!component) {
             node->setRect(0, 0, 0, 0);
-            node->setTexture(nullptr);
             continue;
         }
 
         const int availableWidth = qMax(16, int(std::round(component->width() * m_zoom - 12.0)));
         if (availableWidth <= 0 || !window()) {
             node->setRect(0, 0, 0, 0);
-            node->setTexture(nullptr);
             continue;
         }
 
         const QString key = labelCacheKey(component) + QStringLiteral("|") + QString::number(availableWidth);
-        QSGTexture *texture = m_labelTextureCache.value(key, nullptr);
-        if (!texture) {
+        if (node->cacheKey != key || !node->texture()) {
             const int labelHeight = qMax(18, metrics.height() + 4);
             QImage image(QSize(int(std::ceil(availableWidth * devicePixelRatio)),
                                int(std::ceil(labelHeight * devicePixelRatio))),
@@ -970,12 +1059,17 @@ void GraphViewportItem::updateLabelNodes()
                              Qt::AlignCenter, elided);
             painter.end();
 
-            texture = window()->createTextureFromImage(image);
-            if (texture)
-                m_labelTextureCache.insert(key, texture);
+            QSGTexture *texture = window()->createTextureFromImage(image);
+            if (texture) {
+                if (node->textureBytes > 0)
+                    m_labelTextureCacheBytes.fetch_sub(node->textureBytes);
+                node->textureBytes = qint64(image.sizeInBytes());
+                m_labelTextureCacheBytes.fetch_add(node->textureBytes);
+                node->cacheKey = key;
+                node->setTexture(texture);
+            }
         }
 
-        node->setTexture(texture);
         const QPointF topLeft = worldToView(entry.worldRect.left(), entry.worldRect.top());
         const qreal viewWidth = entry.worldRect.width() * m_zoom;
         const qreal viewHeight = entry.worldRect.height() * m_zoom;
@@ -984,6 +1078,28 @@ void GraphViewportItem::updateLabelNodes()
                              qMax<qreal>(8.0, viewWidth - 12.0),
                              18.0));
     }
+}
+
+void GraphViewportItem::clearLabelTexturesOnRenderThread()
+{
+    // Walk the current scene-graph subtree instead of relying on cached
+    // pointers which can be stale after scene-graph invalidation.
+    if (m_nodeLabelsRootNode) {
+        for (QSGNode *child = m_nodeLabelsRootNode->firstChild();
+             child != nullptr;
+             child = child->nextSibling()) {
+            auto *node = static_cast<LabelTextureNode *>(child);
+            node->cacheKey.clear();
+            node->textureBytes = 0;
+            node->setTexture(nullptr);
+        }
+    }
+
+    m_labelTextureCache.clear();
+    m_labelNodes.clear();
+    m_labelTextureCacheCount.store(0);
+    m_labelTextureCacheBytes.store(0);
+    m_labelCachePurgeRequested = false;
 }
 
 void GraphViewportItem::markSpatialIndexDirty()
@@ -1011,20 +1127,25 @@ void GraphViewportItem::clearComponentGeometryConnections()
 
 void GraphViewportItem::rebuildSpatialIndex()
 {
-    m_indexedComponents.clear();
-    m_indexedConnections.clear();
-    m_componentCellToIndices.clear();
-    m_connectionCellToIndices.clear();
+    QVector<IndexedComponent> indexedComponents;
+    QVector<IndexedConnection> indexedConnections;
+    QHash<quint64, QVector<int>> componentCellToIndices;
+    QHash<quint64, QVector<int>> connectionCellToIndices;
     clearComponentGeometryConnections();
 
     auto *graphModel = qobject_cast<GraphModel *>(m_graph);
     if (!graphModel) {
+        QMutexLocker locker(&m_spatialIndexMutex);
+        m_indexedComponents.clear();
+        m_indexedConnections.clear();
+        m_componentCellToIndices.clear();
+        m_connectionCellToIndices.clear();
         m_spatialIndexDirty = false;
         return;
     }
 
     const auto &components = graphModel->componentList();
-    m_indexedComponents.reserve(components.size());
+    indexedComponents.reserve(components.size());
 
     for (ComponentModel *component : components) {
         if (!component)
@@ -1048,18 +1169,18 @@ void GraphViewportItem::rebuildSpatialIndex()
                           component->width(),
                           component->height());
 
-        const int idx = m_indexedComponents.size();
-        m_indexedComponents.push_back(IndexedComponent { component, rect });
+        const int idx = indexedComponents.size();
+        indexedComponents.push_back(IndexedComponent { component, rect });
 
         const QRect cells = cellRangeForRect(rect, m_spatialCellSize);
         for (int cy = cells.top(); cy <= cells.bottom(); ++cy) {
             for (int cx = cells.left(); cx <= cells.right(); ++cx)
-                m_componentCellToIndices[cellKey(cx, cy)].append(idx);
+                componentCellToIndices[cellKey(cx, cy)].append(idx);
         }
     }
 
     const auto &connections = graphModel->connectionList();
-    m_indexedConnections.reserve(connections.size());
+    indexedConnections.reserve(connections.size());
 
     QHash<QString, ComponentModel *> componentById;
     componentById.reserve(components.size());
@@ -1086,8 +1207,8 @@ void GraphViewportItem::rebuildSpatialIndex()
                             QPointF(qMax(srcWorld.x(), tgtWorld.x()),
                                     qMax(srcWorld.y(), tgtWorld.y())));
 
-        const int idx = m_indexedConnections.size();
-        m_indexedConnections.push_back(IndexedConnection {
+        const int idx = indexedConnections.size();
+        indexedConnections.push_back(IndexedConnection {
             connection,
             srcWorld,
             tgtWorld,
@@ -1097,8 +1218,16 @@ void GraphViewportItem::rebuildSpatialIndex()
         const QRect cells = cellRangeForRect(bounds, m_spatialCellSize);
         for (int cy = cells.top(); cy <= cells.bottom(); ++cy) {
             for (int cx = cells.left(); cx <= cells.right(); ++cx)
-                m_connectionCellToIndices[cellKey(cx, cy)].append(idx);
+                connectionCellToIndices[cellKey(cx, cy)].append(idx);
         }
+    }
+
+    {
+        QMutexLocker locker(&m_spatialIndexMutex);
+        m_indexedComponents.swap(indexedComponents);
+        m_indexedConnections.swap(indexedConnections);
+        m_componentCellToIndices.swap(componentCellToIndices);
+        m_connectionCellToIndices.swap(connectionCellToIndices);
     }
 
     m_spatialIndexDirty = false;

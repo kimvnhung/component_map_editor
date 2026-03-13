@@ -137,6 +137,15 @@ ApplicationWindow {
             ToolButton {
                 text: "Clear"
                 onClicked: {
+                    if (canvas) {
+                        canvas.tempConnectionDragging = false
+                        canvas.nodeInteractionActive = false
+                        canvas.enableBackgroundDrag = true
+                        canvas.selectedComponent = null
+                        canvas.selectedConnection = null
+                    }
+                    propertyPanel.component = null
+                    propertyPanel.connection = null
                     graph.clear()
                     undoStack.clear()
                 }

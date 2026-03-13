@@ -7,7 +7,9 @@
 #include <QRectF>
 #include <QQuickItem>
 #include <QQmlEngine>
+#include <QMutex>
 #include <QVector>
+#include <atomic>
 
 class QSGGeometryNode;
 class QSGNode;
@@ -106,7 +108,13 @@ public:
     Q_INVOKABLE QObject *hitTestConnectionAtView(qreal viewX, qreal viewY,
                                                  qreal tolerancePx = 8.0);
 
+    // Phase 4 observability and lifecycle hooks.
+    Q_INVOKABLE void purgeLabelCache();
+    Q_INVOKABLE int labelTextureCacheSize() const;
+    Q_INVOKABLE qreal rendererMemoryEstimateMb() const;
+
 protected:
+    void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *updatePaintNodeData) override;
 
 signals:
@@ -148,9 +156,11 @@ private:
     void rebuildSpatialIndex();
     void clearComponentGeometryConnections();
     QVector<int> visibleComponentIndices() const;
+    QVector<IndexedComponent> visibleComponentsSnapshot() const;
     void updateNodeGeometry();
     void updateLabelNodes();
     QString labelCacheKey(const ComponentModel *component) const;
+    void clearLabelTexturesOnRenderThread();
 
     static quint64 cellKey(int cx, int cy);
     static QRect cellRangeForRect(const QRectF &rect, qreal cellSize);
@@ -210,9 +220,13 @@ private:
     QVector<IndexedConnection> m_indexedConnections;
     QHash<quint64, QVector<int>> m_componentCellToIndices;
     QHash<quint64, QVector<int>> m_connectionCellToIndices;
+    mutable QMutex m_spatialIndexMutex;
 
     QHash<QString, QSGTexture *> m_labelTextureCache;
     QVector<QSGSimpleTextureNode *> m_labelNodes;
+    bool m_labelCachePurgeRequested = false;
+    std::atomic<int> m_labelTextureCacheCount{0};
+    std::atomic<qint64> m_labelTextureCacheBytes{0};
 };
 
 #endif // GRAPHVIEWPORTITEM_H
