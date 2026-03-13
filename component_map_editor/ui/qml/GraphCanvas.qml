@@ -310,8 +310,13 @@ Item {
             model: root.graph ? root.graph.components : []
 
             delegate: Item {
+                id: delegateRoot
                 required property var modelData
                 property Item componentItem: itemLoader.item
+                // Keep the Loader alive while connection arrows are shown.
+                // This is imperative state (not a binding) to avoid a cycle
+                // between componentItem <-> itemLoader.active.
+                property bool keepAlive: false
 
                 Loader {
                     id: itemLoader
@@ -319,8 +324,9 @@ Item {
                     // C++ hit-testing handles picking for all nodes.
                     active: root.selectedComponent === modelData
                             || root.hoveredComponent === modelData
-                        || root.pressedComponent === modelData
-                        || root.activeInteractionComponent === modelData
+                            || root.pressedComponent === modelData
+                            || root.activeInteractionComponent === modelData
+                            || delegateRoot.keepAlive
                     asynchronous: false
 
                     sourceComponent: ComponentItem {
@@ -337,6 +343,7 @@ Item {
                                             }
 
                         onFocusedChanged: {
+                            delegateRoot.keepAlive = focused
                             root.enableBackgroundDrag = !focused
                         }
 
@@ -423,6 +430,11 @@ Item {
                         onHoverPositionChanged: function (hoverX, hoverY) {
                             root.mouseViewPos = root.childToView(this, hoverX, hoverY)
                         }
+                    }
+
+                    onLoaded: {
+                        if (itemLoader.item)
+                            delegateRoot.keepAlive = itemLoader.item.focused
                     }
                 }
             }
