@@ -460,6 +460,7 @@ QVariantMap GraphViewportItem::zoomAtViewAnchor(qreal viewX, qreal viewY,
 
 QObject *GraphViewportItem::hitTestComponentAtView(qreal viewX, qreal viewY)
 {
+    ensureSpatialIndex();
     QMutexLocker locker(&m_spatialIndexMutex);
     if (m_indexedComponents.isEmpty())
         return nullptr;
