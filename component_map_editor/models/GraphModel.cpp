@@ -1,5 +1,7 @@
 #include "GraphModel.h"
 
+#include <QtAlgorithms>
+
 GraphModel::GraphModel(QObject *parent)
     : QObject(parent)
 {}
@@ -105,10 +107,12 @@ ConnectionModel *GraphModel::connectionById(const QString &id) const
 void GraphModel::clear()
 {
     if (!m_connections.isEmpty()) {
+        qDeleteAll(m_connections);
         m_connections.clear();
         emit connectionsChanged();
     }
     if (!m_components.isEmpty()) {
+        qDeleteAll(m_components);
         m_components.clear();
         emit componentsChanged();
     }

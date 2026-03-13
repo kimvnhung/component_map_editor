@@ -176,6 +176,7 @@ void GraphViewportItem::setGraph(QObject *value)
         QObject::disconnect(m_connectionsChangedConn);
     }
     clearComponentGeometryConnections();
+    clearConnectionGeometryConnections();
 
     m_graph = value;
     auto *graphModel = qobject_cast<GraphModel *>(m_graph);
@@ -553,6 +554,12 @@ void GraphViewportItem::requestGraphRebuild()
     update();
 }
 
+void GraphViewportItem::requestNodeRepaint()
+{
+    m_nodeDirty = true;
+    update();
+}
+
 QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
                                             UpdatePaintNodeData *updatePaintNodeData)
 {
@@ -585,12 +592,14 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         m_rootNode->appendChildNode(m_gridGeomNode);
 
         m_nodesRootNode = new QSGNode();
+        m_nodesTransformNode = new QSGTransformNode();
         m_nodeFillGeomNode = createEmptyColoredNode();
         m_nodeOutlineGeomNode = createEmptyColoredNode();
         m_nodeLabelsRootNode = new QSGNode();
-        m_nodesRootNode->appendChildNode(m_nodeFillGeomNode);
-        m_nodesRootNode->appendChildNode(m_nodeOutlineGeomNode);
-        m_nodesRootNode->appendChildNode(m_nodeLabelsRootNode);
+        m_nodesTransformNode->appendChildNode(m_nodeFillGeomNode);
+        m_nodesTransformNode->appendChildNode(m_nodeOutlineGeomNode);
+        m_nodesTransformNode->appendChildNode(m_nodeLabelsRootNode);
+        m_nodesRootNode->appendChildNode(m_nodesTransformNode);
         m_rootNode->appendChildNode(m_nodesRootNode);
 
         m_edgesTransformNode    = new QSGTransformNode();
@@ -626,7 +635,7 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         m_graphDirty = false;
     }
 
-    if (m_nodeDirty || m_cameraDirty) {
+    if (m_nodeDirty) {
         updateNodeGeometry();
         m_nodeDirty = false;
     }
@@ -643,6 +652,8 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         cam.translate(float(m_panX), float(m_panY));
         cam.scale(float(m_zoom));
         m_edgesTransformNode->setMatrix(cam);
+        if (m_nodesTransformNode)
+            m_nodesTransformNode->setMatrix(cam);
 
         m_cameraDirty = false;
     }
@@ -947,10 +958,7 @@ void GraphViewportItem::updateNodeGeometry()
         if (!component)
             continue;
 
-        const QPointF topLeft = worldToView(entry.worldRect.left(), entry.worldRect.top());
-        const QRectF viewRect(topLeft.x(), topLeft.y(),
-                              entry.worldRect.width() * m_zoom,
-                              entry.worldRect.height() * m_zoom);
+        const QRectF viewRect = entry.worldRect;
 
         const QColor fillColor(component->color());
         appendTriangleRect(fillVerts, fillIdx, viewRect, fillColor);
@@ -1020,6 +1028,7 @@ void GraphViewportItem::updateLabelNodes()
     font.setBold(true);
     font.setPixelSize(13);
     QFontMetrics metrics(font);
+    int activeLabelTextures = 0;
 
     for (int i = 0; i < labelNodes.size(); ++i) {
         LabelTextureNode *node = labelNodes.at(i);
@@ -1035,7 +1044,7 @@ void GraphViewportItem::updateLabelNodes()
             continue;
         }
 
-        const int availableWidth = qMax(16, int(std::round(component->width() * m_zoom - 12.0)));
+        const int availableWidth = qMax(16, int(std::round(component->width() - 12.0)));
         if (availableWidth <= 0 || !window()) {
             node->setRect(0, 0, 0, 0);
             continue;
@@ -1070,14 +1079,18 @@ void GraphViewportItem::updateLabelNodes()
             }
         }
 
-        const QPointF topLeft = worldToView(entry.worldRect.left(), entry.worldRect.top());
-        const qreal viewWidth = entry.worldRect.width() * m_zoom;
-        const qreal viewHeight = entry.worldRect.height() * m_zoom;
-        node->setRect(QRectF(topLeft.x() + 6.0,
-                             topLeft.y() + (viewHeight - 18.0) / 2.0,
+        if (node->texture())
+            ++activeLabelTextures;
+
+        const qreal viewWidth = entry.worldRect.width();
+        const qreal viewHeight = entry.worldRect.height();
+        node->setRect(QRectF(entry.worldRect.left() + 6.0,
+                     entry.worldRect.top() + (viewHeight - 18.0) / 2.0,
                              qMax<qreal>(8.0, viewWidth - 12.0),
                              18.0));
     }
+
+    m_labelTextureCacheCount.store(activeLabelTextures);
 }
 
 void GraphViewportItem::clearLabelTexturesOnRenderThread()
@@ -1125,6 +1138,13 @@ void GraphViewportItem::clearComponentGeometryConnections()
     m_componentGeometryChangedConns.clear();
 }
 
+void GraphViewportItem::clearConnectionGeometryConnections()
+{
+    for (const QMetaObject::Connection &conn : m_connectionGeometryChangedConns)
+        QObject::disconnect(conn);
+    m_connectionGeometryChangedConns.clear();
+}
+
 void GraphViewportItem::rebuildSpatialIndex()
 {
     QVector<IndexedComponent> indexedComponents;
@@ -1132,6 +1152,7 @@ void GraphViewportItem::rebuildSpatialIndex()
     QHash<quint64, QVector<int>> componentCellToIndices;
     QHash<quint64, QVector<int>> connectionCellToIndices;
     clearComponentGeometryConnections();
+    clearConnectionGeometryConnections();
 
     auto *graphModel = qobject_cast<GraphModel *>(m_graph);
     if (!graphModel) {
@@ -1163,6 +1184,18 @@ void GraphViewportItem::rebuildSpatialIndex()
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::heightChanged,
                     this, &GraphViewportItem::requestGraphRebuild));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::labelChanged,
+                this, &GraphViewportItem::requestNodeRepaint));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::colorChanged,
+                this, &GraphViewportItem::requestNodeRepaint));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::shapeChanged,
+                this, &GraphViewportItem::requestNodeRepaint));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::idChanged,
+                this, &GraphViewportItem::requestGraphRebuild));
 
         const QRectF rect(component->x() - component->width() / 2.0,
                           component->y() - component->height() / 2.0,
@@ -1192,6 +1225,16 @@ void GraphViewportItem::rebuildSpatialIndex()
     for (ConnectionModel *connection : connections) {
         if (!connection)
             continue;
+
+        m_connectionGeometryChangedConns.append(
+            connect(connection, &ConnectionModel::sourceIdChanged,
+                    this, &GraphViewportItem::requestGraphRebuild));
+        m_connectionGeometryChangedConns.append(
+            connect(connection, &ConnectionModel::targetIdChanged,
+                    this, &GraphViewportItem::requestGraphRebuild));
+        m_connectionGeometryChangedConns.append(
+            connect(connection, &ConnectionModel::idChanged,
+                    this, &GraphViewportItem::requestGraphRebuild));
 
         ComponentModel *src = componentById.value(connection->sourceId(), nullptr);
         ComponentModel *tgt = componentById.value(connection->targetId(), nullptr);

@@ -153,23 +153,6 @@ Item {
         return null
     }
 
-    function componentVisible(component) {
-        if (!component)
-            return false
-
-        // Conservative culling in view space with margin to avoid flicker at edges.
-        var margin = 120
-        var halfW = component.width / 2
-        var halfH = component.height / 2
-        var left = (component.x - halfW) * zoom + panX
-        var right = (component.x + halfW) * zoom + panX
-        var top = (component.y - halfH) * zoom + panY
-        var bottom = (component.y + halfH) * zoom + panY
-
-        return right >= -margin && left <= root.width + margin
-                && bottom >= -margin && top <= root.height + margin
-    }
-
     function componentAtView(viewX, viewY, excludedComponent) {
         for (var i = componentLayer.children.length - 1; i >= 0; --i) {
             var host = componentLayer.children[i]
@@ -400,8 +383,9 @@ Item {
 
                 Loader {
                     id: itemLoader
-                    active: root.componentVisible(modelData)
-                            || root.selectedComponent === modelData
+                    // Phase 4: keep only interaction overlays in QML.
+                    // C++ hit-testing handles picking for all nodes.
+                    active: root.selectedComponent === modelData
                     asynchronous: false
 
                     sourceComponent: ComponentItem {
@@ -437,9 +421,8 @@ Item {
                             root.tempEnd = Qt.point(0, 0)
 
                             var dropPoint = root.windowSceneToView(targetP)
-                            var component = root.componentAtView(dropPoint.x,
-                                                                 dropPoint.y,
-                                                                 sourceComponent)
+                            var component = edgeViewport.hitTestComponentAtView(dropPoint.x,
+                                                                                dropPoint.y)
                             if (!component) {
                                 console.log("Drop ignored: no target component")
                                 edgeCanvas.repaint()

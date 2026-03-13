@@ -150,11 +150,13 @@ private:
     qreal normalizedGridStep() const;
     static qreal positiveModulo(qreal value, qreal modulus);
     void requestGraphRebuild();
+    void requestNodeRepaint();
 
     void markSpatialIndexDirty();
     void ensureSpatialIndex();
     void rebuildSpatialIndex();
     void clearComponentGeometryConnections();
+    void clearConnectionGeometryConnections();
     QVector<int> visibleComponentIndices() const;
     QVector<IndexedComponent> visibleComponentsSnapshot() const;
     void updateNodeGeometry();
@@ -195,11 +197,13 @@ private:
     QMetaObject::Connection m_componentsChangedConn;
     QMetaObject::Connection m_connectionsChangedConn;
     QVector<QMetaObject::Connection> m_componentGeometryChangedConns;
+    QVector<QMetaObject::Connection> m_connectionGeometryChangedConns;
 
     // Persistent scene-graph node cache (render-thread only).
     QSGNode          *m_rootNode              = nullptr;
     QSGGeometryNode  *m_gridGeomNode          = nullptr;
     QSGNode          *m_nodesRootNode         = nullptr;
+    QSGTransformNode *m_nodesTransformNode    = nullptr;
     QSGGeometryNode  *m_nodeFillGeomNode      = nullptr;
     QSGGeometryNode  *m_nodeOutlineGeomNode   = nullptr;
     QSGNode          *m_nodeLabelsRootNode    = nullptr;

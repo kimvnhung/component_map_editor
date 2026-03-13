@@ -170,7 +170,7 @@ Rectangle {
             Label { text: "Load:"; font.pixelSize: 11 }
 
             Repeater {
-                model: [1000, 5000, 10000]
+                model: [1000, 5000, 10000, 20000]
                 delegate: Button {
                     required property int modelData
                     text:           modelData >= 1000 ? (modelData / 1000) + "k" : String(modelData)
