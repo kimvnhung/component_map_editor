@@ -3,7 +3,6 @@
 // and renders components as interactive ComponentItem delegates.
 import QtQuick
 import ComponentMapEditor
-import "GraphCanvasMath.js" as GraphCanvasMath
 import "components"
 
 Item {
@@ -13,8 +12,6 @@ Item {
     readonly property real defaultZoom: 1.0
     readonly property real zoomStepFactor: 1.15
     readonly property real zoomEpsilon: 0.000001
-    readonly property real viewportParityEpsilon: 0.0001
-    property bool enableViewportParityCheck: false
 
     // Grid tuning constants.
     readonly property real baseGridStep: 30
@@ -45,7 +42,6 @@ Item {
     readonly property var nodeRenderer: nodeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
-    readonly property point worldOrigin: viewToWorld(0, 0)
 
     // Optional telemetry hook. Set to a PerformanceTelemetry instance to
     // collect camera-update and drag-event interval samples for Phase 0 baseline.
@@ -57,26 +53,16 @@ Item {
     signal backgroundClicked(real x, real y)
     signal viewTransformChanged(real panX, real panY, real zoom)
 
-    // Coordinate-space contract:
-    // - world: model coordinates (component centers, Y-down), stored in ComponentModel.
-    // - view: viewport coordinates in GraphCanvas local space (Y-down).
-    // - scene: Qt window-scene coordinates (only for mapToItem/mapFromItem use-cases).
-    //
-    // Current camera transform:
-    //   viewX = worldX * zoom + panX
-    //   viewY = worldY * zoom + panY
-    //   worldX = (viewX - panX) / zoom
-    //   worldY = (viewY - panY) / zoom
-    function clampZoom(value) {
-        return GraphCanvasMath.clamp(value, minZoom, maxZoom)
-    }
-
     function viewToWorld(viewX, viewY) {
-        return GraphCanvasMath.viewToWorld(viewX, viewY, panX, panY, zoom)
+        if (nodeViewport)
+            return nodeViewport.viewToWorld(viewX, viewY)
+        return Qt.point(0, 0)
     }
 
     function worldToView(worldX, worldY) {
-        return GraphCanvasMath.worldToView(worldX, worldY, panX, panY, zoom)
+        if (nodeViewport)
+            return nodeViewport.worldToView(worldX, worldY)
+        return Qt.point(0, 0)
     }
 
     function updateMouseWorldPos() {
@@ -84,47 +70,18 @@ Item {
                                               root.mouseViewPos.y)
     }
 
-    // Phase 1 guardrail: verify C++ viewport camera math parity with the
-    // existing JS camera contract. If this warns, Phase 1 must be rolled back
-    // or fixed before continuing migration.
-    function verifyViewportParity() {
-        if (!edgeViewport)
+    // Zooms around a view-space anchor and lets C++ compute the camera state,
+    // keeping one authoritative camera math path.
+    function zoomAtCursor(zoomFactor) {
+        if (!nodeViewport)
             return
 
-        var sampleView = Qt.point(width * 0.37, height * 0.61)
-        var jsWorld = GraphCanvasMath.viewToWorld(sampleView.x, sampleView.y,
-                                                  panX, panY, zoom)
-        var cppWorld = edgeViewport.viewToWorld(sampleView.x, sampleView.y)
-
-        if (Math.abs(jsWorld.x - cppWorld.x) > viewportParityEpsilon
-                || Math.abs(jsWorld.y - cppWorld.y) > viewportParityEpsilon) {
-            console.warn("GraphViewportItem parity mismatch (viewToWorld):",
-                         "js=", jsWorld.x, jsWorld.y, "cpp=", cppWorld.x,
-                         cppWorld.y)
-        }
-
-        var sampleWorld = Qt.point(worldOrigin.x + 173.0, worldOrigin.y + 89.0)
-        var jsView = GraphCanvasMath.worldToView(sampleWorld.x, sampleWorld.y,
-                                                 panX, panY, zoom)
-        var cppView = edgeViewport.worldToView(sampleWorld.x, sampleWorld.y)
-
-        if (Math.abs(jsView.x - cppView.x) > viewportParityEpsilon
-                || Math.abs(jsView.y - cppView.y) > viewportParityEpsilon) {
-            console.warn("GraphViewportItem parity mismatch (worldToView):",
-                         "js=", jsView.x, jsView.y, "cpp=", cppView.x,
-                         cppView.y)
-        }
-    }
-
-    // Zooms around a world-space anchor sampled from the cursor position.
-    // If the cursor is currently over a component center in world coordinates,
-    // zooming keeps that same world point under the cursor, so the visible
-    // component center remains visually pinned to the mouse.
-    function zoomAtCursor(zoomFactor) {
-        var state = GraphCanvasMath.zoomAtCursor(mouseWorldPos.x,
-                                                 mouseWorldPos.y, panX, panY,
-                                                 zoom, zoomFactor, minZoom,
-                                                 maxZoom, zoomEpsilon)
+        var state = nodeViewport.zoomAtViewAnchor(mouseViewPos.x,
+                                                  mouseViewPos.y,
+                                                  zoomFactor,
+                                                  minZoom,
+                                                  maxZoom,
+                                                  zoomEpsilon)
         if (!state.changed)
             return
 
@@ -141,55 +98,6 @@ Item {
 
     function windowSceneToView(windowScenePoint) {
         return root.mapFromItem(null, windowScenePoint.x, windowScenePoint.y)
-    }
-
-    function componentItemFor(component) {
-        for (var i = 0; i < componentLayer.children.length; ++i) {
-            var host = componentLayer.children[i]
-            var item = host && host.componentItem ? host.componentItem : host
-            if (item && item.component === component && item.visible)
-                return item
-        }
-        return null
-    }
-
-    function componentAtView(viewX, viewY, excludedComponent) {
-        for (var i = componentLayer.children.length - 1; i >= 0; --i) {
-            var host = componentLayer.children[i]
-            var item = host && host.componentItem ? host.componentItem : host
-            if (!item || !item.component || !item.visible)
-                continue
-            if (excludedComponent && item.component === excludedComponent)
-                continue
-
-            var local = item.mapFromItem(root, viewX, viewY)
-            if (local.x >= 0 && local.x <= item.width && local.y >= 0
-                    && local.y <= item.height)
-                return item.component
-        }
-        return null
-    }
-
-    function connectionEndpointsInView(sourceComponent, targetComponent) {
-        var sourceItem = componentItemFor(sourceComponent)
-        var targetItem = componentItemFor(targetComponent)
-
-        if (sourceItem && targetItem) {
-            var sourceCenter = sourceItem.mapToItem(root, sourceItem.width / 2,
-                                                    sourceItem.height / 2)
-            var targetCenter = targetItem.mapToItem(root, targetItem.width / 2,
-                                                    targetItem.height / 2)
-            return GraphCanvasMath.connectionEndpointsBetweenRects(
-                        sourceCenter, sourceItem.width, sourceItem.height,
-                        targetCenter, targetItem.width, targetItem.height)
-        }
-
-        var endpoints = GraphCanvasMath.connectionEndpointsOnBounding(
-                    sourceComponent, targetComponent)
-        return {
-            "source": worldToView(endpoints.source.x, endpoints.source.y),
-            "target": worldToView(endpoints.target.x, endpoints.target.y)
-        }
     }
 
     clip: true
@@ -525,21 +433,15 @@ Item {
     onSelectedConnectionChanged: edgeCanvas.repaint()
     onGraphChanged: edgeCanvas.repaint()
     onPanXChanged: {
-        if (root.enableViewportParityCheck)
-            root.verifyViewportParity()
         if (telemetry) telemetry.notifyCameraChanged()
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onPanYChanged: {
-        if (root.enableViewportParityCheck)
-            root.verifyViewportParity()
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onZoomChanged: {
-        if (root.enableViewportParityCheck)
-            root.verifyViewportParity()
         if (telemetry) telemetry.notifyCameraChanged()
         root.updateMouseWorldPos()
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
@@ -550,8 +452,5 @@ Item {
         root.updateMouseWorldPos()
     }
 
-    Component.onCompleted: {
-        if (root.enableViewportParityCheck)
-            root.verifyViewportParity()
-    }
+    Component.onCompleted: root.updateMouseWorldPos()
 }

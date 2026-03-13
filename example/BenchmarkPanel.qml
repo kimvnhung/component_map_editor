@@ -34,6 +34,19 @@ Rectangle {
     readonly property bool frameSampleValid: frameTelemetry.frameSwapSampleCount >= minValidFrameSamples
     property bool autoPanRunning: false
     property real autoPanRemainingSec: 0
+    property bool runSeriesActive: false
+    property int runSeriesTotal: 3
+    property int runSeriesCurrent: 0
+    property var runSeriesResults: []
+    property string runSeriesSummary: ""
+    property bool manualDragWindowActive: false
+
+    readonly property int autoPanDurationMs: 20000
+    readonly property int manualDragDurationMs: 10000
+
+    readonly property real frameP95TargetMs: 16.7
+    readonly property real cameraP95TargetMs: 16.7
+    readonly property real dragP95TargetMs: 8.0
 
     color:  "#f5f5f5"
     implicitHeight: expanded ? 152 : 36
@@ -69,17 +82,61 @@ Rectangle {
         root.frameTelemetry.reset()
         root.telemetry.enabled = true
         root.frameTelemetry.enabled = true
+        root.manualDragWindowActive = false
     }
 
-    function _stopMeasuringAndReport() {
+    function _stopMeasuringAndReport(tag) {
         root.telemetry.enabled = false
         root.frameTelemetry.enabled = false
         root.telemetry.computeStats()
         root.frameTelemetry.computeStats()
-        root.telemetry.report("Baseline — nodes=" + root.graph.componentCount
-                              + " edges=" + root.graph.connectionCount)
-        root.frameTelemetry.report("Baseline — nodes=" + root.graph.componentCount
-                                   + " edges=" + root.graph.connectionCount)
+
+        var reportTag = tag
+        if (!reportTag || reportTag.length === 0) {
+            reportTag = "Baseline — nodes=" + root.graph.componentCount
+                        + " edges=" + root.graph.connectionCount
+        }
+
+        root.telemetry.report(reportTag)
+        root.frameTelemetry.report(reportTag)
+
+        var hasDrag = root.telemetry.dragLatencySampleCount > 0
+        return {
+            "frameSwapP95": root.frameTelemetry.frameSwapP95,
+            "cameraP95": root.telemetry.frameTimeP95,
+            "dragP95": root.telemetry.dragLatencyP95,
+            "dragSamples": root.telemetry.dragLatencySampleCount,
+            "framePass": root.frameTelemetry.frameSwapP95 > 0
+                         && root.frameTelemetry.frameSwapP95 <= root.frameP95TargetMs,
+            "cameraPass": root.telemetry.frameTimeP95 > 0
+                          && root.telemetry.frameTimeP95 <= root.cameraP95TargetMs,
+            "dragPass": hasDrag && root.telemetry.dragLatencyP95 <= root.dragP95TargetMs
+        }
+    }
+
+    function _startNextSeriesRun() {
+        if (root.runSeriesCurrent >= root.runSeriesTotal) {
+            root.runSeriesActive = false
+            var allPass = root.runSeriesResults.length === root.runSeriesTotal
+            for (var i = 0; i < root.runSeriesResults.length; ++i) {
+                var run = root.runSeriesResults[i]
+                allPass = allPass && run.framePass && run.cameraPass && run.dragPass
+            }
+            root.runSeriesSummary = allPass
+                    ? "Series PASS: all 3 runs met frame/camera/drag p95 targets"
+                    : "Series FAIL: at least one run missed frame/camera/drag p95 targets"
+            return
+        }
+
+        root.runSeriesCurrent += 1
+        root._startMeasuring()
+        root.autoPanRunning = true
+        autoPanTimer.startPanX = root.canvas.panX
+        autoPanTimer.startPanY = root.canvas.panY
+        autoPanTimer.startedMs = Date.now()
+        root.autoPanRemainingSec = root.autoPanDurationMs / 1000.0
+        root.manualDragWindowActive = false
+        autoPanTimer.running = true
     }
 
     Timer {
@@ -96,7 +153,7 @@ Rectangle {
             var elapsedMs = Date.now() - startedMs
             var t = elapsedMs / 1000.0
             var amp = 260.0
-            if (root.canvas) {
+            if (root.canvas && (!root.runSeriesActive || !root.manualDragWindowActive)) {
                 // Smooth Lissajous-like motion to continuously trigger redraw.
                 root.canvas.panX = startPanX + Math.sin(t * 2.4) * amp
                 root.canvas.panY = startPanY + Math.cos(t * 1.8) * amp * 0.6
@@ -106,13 +163,38 @@ Rectangle {
             if (root.appWindow)
                 root.appWindow.requestUpdate()
 
-            root.autoPanRemainingSec = Math.max(0, (20000 - elapsedMs) / 1000.0)
+            if (root.runSeriesActive && root.manualDragWindowActive) {
+                root.autoPanRemainingSec = Math.max(0, (root.manualDragDurationMs - elapsedMs) / 1000.0)
+            } else {
+                root.autoPanRemainingSec = Math.max(0, (root.autoPanDurationMs - elapsedMs) / 1000.0)
+            }
 
-            if (elapsedMs >= 20000) {
+            if (root.runSeriesActive && !root.manualDragWindowActive
+                    && elapsedMs >= root.autoPanDurationMs) {
+                // Give users a manual drag window after each auto-pan phase.
+                root.manualDragWindowActive = true
+                startedMs = Date.now()
+                root.autoPanRemainingSec = root.manualDragDurationMs / 1000.0
+                return
+            }
+
+            if ((!root.runSeriesActive && elapsedMs >= root.autoPanDurationMs)
+                    || (root.runSeriesActive && root.manualDragWindowActive
+                        && elapsedMs >= root.manualDragDurationMs)) {
                 running = false
                 root.autoPanRunning = false
+                root.manualDragWindowActive = false
                 root.autoPanRemainingSec = 0
-                root._stopMeasuringAndReport()
+                if (root.runSeriesActive) {
+                    var result = root._stopMeasuringAndReport(
+                                "Series run " + root.runSeriesCurrent + "/" + root.runSeriesTotal
+                                + " — nodes=" + root.graph.componentCount
+                                + " edges=" + root.graph.connectionCount)
+                    root.runSeriesResults = root.runSeriesResults.concat([result])
+                    root._startNextSeriesRun()
+                } else {
+                    root._stopMeasuringAndReport()
+                }
             }
         }
     }
@@ -195,6 +277,11 @@ Rectangle {
                     autoPanTimer.running = false
                     root.autoPanRunning = false
                     root.autoPanRemainingSec = 0
+                    root.runSeriesActive = false
+                    root.runSeriesCurrent = 0
+                    root.runSeriesResults = []
+                    root.runSeriesSummary = ""
+                    root.manualDragWindowActive = false
                     root.telemetry.enabled = false
                     root.frameTelemetry.enabled = false
                     if (root.canvas) {
@@ -228,6 +315,8 @@ Rectangle {
                     if (root.telemetry.enabled) {
                         autoPanTimer.running = false
                         root.autoPanRunning = false
+                        root.runSeriesActive = false
+                        root.manualDragWindowActive = false
                         root._stopMeasuringAndReport()
                     } else {
                         root._startMeasuring()
@@ -245,12 +334,33 @@ Rectangle {
                     if (!root.canvas)
                         return
                     root._startMeasuring()
+                    root.runSeriesActive = false
                     root.autoPanRunning = true
                     autoPanTimer.startPanX = root.canvas.panX
                     autoPanTimer.startPanY = root.canvas.panY
                     autoPanTimer.startedMs = Date.now()
-                    root.autoPanRemainingSec = 20
+                    root.autoPanRemainingSec = root.autoPanDurationMs / 1000.0
+                    root.manualDragWindowActive = false
                     autoPanTimer.running = true
+                }
+            }
+
+            Button {
+                text: root.runSeriesActive
+                      ? "Series " + root.runSeriesCurrent + "/" + root.runSeriesTotal
+                      : "▶ Auto-pan x3"
+                enabled: !root.runSeriesActive && !root.autoPanRunning && root.canvas !== null
+                font.pixelSize: 11
+                implicitHeight: 26
+                implicitWidth:  108
+                onClicked: {
+                    if (!root.canvas)
+                        return
+                    root.runSeriesActive = true
+                    root.runSeriesCurrent = 0
+                    root.runSeriesResults = []
+                    root.runSeriesSummary = ""
+                    root._startNextSeriesRun()
                 }
             }
 
@@ -270,7 +380,13 @@ Rectangle {
                         Label {
                                 text: root.telemetry.enabled
                                      ? (root.autoPanRunning
-                                         ? "Sampling (auto-pan " + root.autoPanRemainingSec.toFixed(1) + "s left)..."
+                                                                                 ? (root.runSeriesActive
+                                                                                                                                                                                ? (root.manualDragWindowActive
+                                                                                                                                                                                     ? "Manual drag now (series " + root.runSeriesCurrent + "/" + root.runSeriesTotal
+                                                                                                                                                                                         + ", " + root.autoPanRemainingSec.toFixed(1) + "s left)"
+                                                                                                                                                                                     : "Sampling auto-pan (series " + root.runSeriesCurrent + "/" + root.runSeriesTotal
+                                                                                                                                                                                         + ", " + root.autoPanRemainingSec.toFixed(1) + "s left)...")
+                                                                                        : "Sampling (auto-pan " + root.autoPanRemainingSec.toFixed(1) + "s left)...")
                                          : "Sampling...")
                                             : (root.frameSampleValid
                                                  ? "Sample valid"
@@ -321,6 +437,18 @@ Rectangle {
                         }
                     }
                 }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: root.expanded && root.runSeriesSummary.length > 0
+
+            Label {
+                Layout.fillWidth: true
+                text: root.runSeriesSummary
+                font.pixelSize: 11
+                color: root.runSeriesSummary.indexOf("PASS") >= 0 ? "#2e7d32" : "#c62828"
             }
         }
     }

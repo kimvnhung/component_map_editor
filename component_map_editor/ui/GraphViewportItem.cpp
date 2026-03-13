@@ -428,6 +428,34 @@ QPointF GraphViewportItem::viewToWorld(qreal viewX, qreal viewY) const
     return QPointF((viewX - m_panX) / m_zoom, (viewY - m_panY) / m_zoom);
 }
 
+QVariantMap GraphViewportItem::zoomAtViewAnchor(qreal viewX, qreal viewY,
+                                                qreal zoomFactor,
+                                                qreal minZoom,
+                                                qreal maxZoom,
+                                                qreal epsilon) const
+{
+    QVariantMap result;
+
+    const qreal clampedMin = qMin(minZoom, maxZoom);
+    const qreal clampedMax = qMax(minZoom, maxZoom);
+    const qreal nextZoom = qBound(clampedMin, m_zoom * zoomFactor, clampedMax);
+
+    if (qAbs(nextZoom - m_zoom) < epsilon) {
+        result.insert(QStringLiteral("changed"), false);
+        result.insert(QStringLiteral("panX"), m_panX);
+        result.insert(QStringLiteral("panY"), m_panY);
+        result.insert(QStringLiteral("zoom"), m_zoom);
+        return result;
+    }
+
+    const QPointF anchorWorld = viewToWorld(viewX, viewY);
+    result.insert(QStringLiteral("changed"), true);
+    result.insert(QStringLiteral("zoom"), nextZoom);
+    result.insert(QStringLiteral("panX"), viewX - anchorWorld.x() * nextZoom);
+    result.insert(QStringLiteral("panY"), viewY - anchorWorld.y() * nextZoom);
+    return result;
+}
+
 QObject *GraphViewportItem::hitTestComponentAtView(qreal viewX, qreal viewY)
 {
     ensureSpatialIndex();

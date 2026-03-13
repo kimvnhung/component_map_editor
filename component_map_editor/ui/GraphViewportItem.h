@@ -8,6 +8,7 @@
 #include <QQuickItem>
 #include <QQmlEngine>
 #include <QMutex>
+#include <QVariantMap>
 #include <QVector>
 #include <atomic>
 
@@ -99,6 +100,13 @@ public:
 
     // view -> world using current camera values.
     Q_INVOKABLE QPointF viewToWorld(qreal viewX, qreal viewY) const;
+
+    // Computes camera state for zoom-at-cursor anchored at a view-space point.
+    Q_INVOKABLE QVariantMap zoomAtViewAnchor(qreal viewX, qreal viewY,
+                                             qreal zoomFactor,
+                                             qreal minZoom,
+                                             qreal maxZoom,
+                                             qreal epsilon = 0.000001) const;
 
     // Requests scene graph rebuild on next frame.
     Q_INVOKABLE void repaint();
