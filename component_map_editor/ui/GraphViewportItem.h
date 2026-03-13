@@ -20,9 +20,9 @@ class ComponentModel;
 class ConnectionModel;
 class QSGTexture;
 
-// Phase 1 skeleton item for future C++ viewport rendering.
-// This class intentionally provides camera API only (panX/panY/zoom) and
-// coordinate conversion helpers; it does not render content.
+// Viewport item for C++/QSG-based graph rendering.
+// Provides camera API (panX/panY/zoom) and coordinate conversion helpers,
+// and renders grid, edges and nodes in updatePaintNode().
 class GraphViewportItem : public QQuickItem
 {
     Q_OBJECT
