@@ -21,9 +21,14 @@ void FrameSwapTelemetry::setWindow(QObject *windowObj)
     if (m_window == nextWindow)
         return;
 
+    // Always disconnect from the previous window (if any).
     disconnectWindow();
     m_window = nextWindow;
-    connectWindow();
+
+    // Only connect to frameSwapped when telemetry is enabled.
+    if (m_window && m_enabled)
+        connectWindow();
+
     emit windowChanged();
 }
 
@@ -39,6 +44,15 @@ void FrameSwapTelemetry::setEnabled(bool value)
 
     m_enabled = value;
     m_lastNs = -1;
+
+    // Manage the frameSwapped connection based on the new enabled state.
+    if (m_window) {
+        if (m_enabled)
+            connectWindow();
+        else
+            disconnectWindow();
+    }
+
     emit enabledChanged();
 }
 
