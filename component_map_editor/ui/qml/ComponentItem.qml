@@ -97,7 +97,7 @@ ResizableItem {
     onResized: syncModelFromItemGeometry()
     onResizeFinished: syncModelFromItemGeometry()
 
-    signal componentClicked(ComponentModel component)
+    signal componentClicked(ComponentModel component, int modifiers)
 
     // startP and targetP are in scene coordinates relative to the top-left of the view.
     signal connectionDragged(ComponentModel sourceComponent, point startP, point targetP)
@@ -107,7 +107,9 @@ ResizableItem {
     height: defaultComponentHeight
     z: selected ? 2 : 1
 
-    onClicked: root.componentClicked(root.component)
+    onClicked: modifiers => {
+                   root.componentClicked(root.component, modifiers)
+               }
 
     onHoveredChanged: {
         if (hovered)

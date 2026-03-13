@@ -25,7 +25,7 @@ Item {
     readonly property bool handleHovered: _handleHoverCount > 0
     property int _handleHoverCount: 0
 
-    signal clicked
+    signal clicked(int modifiers)
     signal moveStarted
     signal moved
     signal moveFinished
@@ -64,7 +64,7 @@ Item {
 
     HoverHandler {
         id: moveHover
-        enabled: root.moveEnabled
+        enabled: root.moveEnabled && !root.handleHovered
         cursorShape: moveDrag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         onHoveredChanged: root.hovered = hovered
         onPointChanged: root.hoverPositionChanged(point.position.x,
@@ -73,7 +73,7 @@ Item {
 
     DragHandler {
         id: moveDrag
-        enabled: root.moveEnabled && !root.resizing
+        enabled: root.moveEnabled && !root.resizing && !root.handleHovered
         target: root
         acceptedButtons: Qt.LeftButton
         dragThreshold: root.moveDragThreshold
@@ -96,9 +96,11 @@ Item {
     }
 
     TapHandler {
-        enabled: root.moveEnabled && !root.resizing
+        enabled: root.moveEnabled && !root.resizing && !root.handleHovered
         acceptedButtons: Qt.LeftButton
-        onTapped: root.clicked()
+        onTapped: point => {
+                      root.clicked(point.modifiers)
+                  }
     }
 
     Item {
