@@ -39,6 +39,9 @@ Item {
     property bool enableBackgroundDrag: true
     property bool nodeInteractionActive: false
     property bool pointerOverComponent: false
+    property ComponentModel hoveredComponent: null
+    property ComponentModel pressedComponent: null
+    property ComponentModel activeInteractionComponent: null
     readonly property var nodeRenderer: nodeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
@@ -224,7 +227,18 @@ Item {
         }
 
         TapHandler {
+            id: canvasTap
             acceptedButtons: Qt.LeftButton
+
+            onPressedChanged: {
+                if (pressed) {
+                    root.pressedComponent = edgeViewport.hitTestComponentAtView(point.position.x,
+                                                                                 point.position.y)
+                } else {
+                    root.pressedComponent = null
+                }
+            }
+
             onTapped: point => {
                           var viewPos = Qt.point(point.position.x,
                                                  point.position.y)
@@ -304,6 +318,9 @@ Item {
                     // Phase 4: keep only interaction overlays in QML.
                     // C++ hit-testing handles picking for all nodes.
                     active: root.selectedComponent === modelData
+                            || root.hoveredComponent === modelData
+                        || root.pressedComponent === modelData
+                        || root.activeInteractionComponent === modelData
                     asynchronous: false
 
                     sourceComponent: ComponentItem {
@@ -324,6 +341,7 @@ Item {
                         }
 
                         onConnectionDragged: function (sourceComponent, startP, targetP) {
+                            root.activeInteractionComponent = sourceComponent
                             root.nodeInteractionActive = true
                             root.enableBackgroundDrag = false
                             root.tempConnectionDragging = true
@@ -332,6 +350,7 @@ Item {
                             edgeCanvas.repaint()
                         }
                         onConnectionDropped: function (sourceComponent, startP, targetP) {
+                            root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
                             root.enableBackgroundDrag = !focused
                             root.tempConnectionDragging = false
@@ -374,6 +393,7 @@ Item {
                         }
 
                         onMoveStarted: {
+                            root.activeInteractionComponent = modelData
                             root.nodeInteractionActive = true
                             root.enableBackgroundDrag = false
                             if (root.telemetry) root.telemetry.notifyDragStarted()
@@ -383,16 +403,19 @@ Item {
                             if (root.telemetry) root.telemetry.notifyDragMoved()
                         }
                         onMoveFinished: {
+                            root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
                             root.enableBackgroundDrag = !focused
                             if (root.telemetry) root.telemetry.notifyDragEnded()
                         }
 
                         onResizeStarted: {
+                            root.activeInteractionComponent = modelData
                             root.nodeInteractionActive = true
                             root.enableBackgroundDrag = false
                         }
                         onResizeFinished: {
+                            root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
                             root.enableBackgroundDrag = !focused
                         }
@@ -426,6 +449,8 @@ Item {
         enabled: root.graph !== null
 
         function onComponentsChanged() {
+            root.pressedComponent = null
+            root.activeInteractionComponent = null
             root.nodeInteractionActive = false
             root.enableBackgroundDrag = true
             root.pointerOverComponent = false
@@ -457,8 +482,9 @@ Item {
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onMouseViewPosChanged: {
-        root.pointerOverComponent = edgeViewport.hitTestComponentAtView(root.mouseViewPos.x,
-                                                                        root.mouseViewPos.y) !== null
+        root.hoveredComponent = edgeViewport.hitTestComponentAtView(root.mouseViewPos.x,
+                                                                     root.mouseViewPos.y)
+        root.pointerOverComponent = root.hoveredComponent !== null
         root.updateMouseWorldPos()
     }
 
