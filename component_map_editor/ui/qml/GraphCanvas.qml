@@ -72,12 +72,12 @@ Item {
 
     // Zooms around a view-space anchor and lets C++ compute the camera state,
     // keeping one authoritative camera math path.
-    function zoomAtCursor(zoomFactor) {
+    function zoomAtView(viewX, viewY, zoomFactor) {
         if (!nodeViewport)
             return
 
-        var state = nodeViewport.zoomAtViewAnchor(mouseViewPos.x,
-                                                  mouseViewPos.y,
+        var state = nodeViewport.zoomAtViewAnchor(viewX,
+                                                  viewY,
                                                   zoomFactor,
                                                   minZoom,
                                                   maxZoom,
@@ -88,6 +88,10 @@ Item {
         zoom = state.zoom
         panX = state.panX
         panY = state.panY
+    }
+
+    function zoomAtCursor(zoomFactor) {
+        root.zoomAtView(mouseViewPos.x, mouseViewPos.y, zoomFactor)
     }
 
     function childToView(childItem, childX, childY) {
@@ -179,6 +183,12 @@ Item {
         property real startPanY: 0
 
         HoverHandler {
+            id: canvasHover
+            cursorShape: panDrag.active
+                         ? Qt.ClosedHandCursor
+                         : (root.pointerOverComponent || root.enableBackgroundDrag
+                            ? Qt.OpenHandCursor
+                            : Qt.ArrowCursor)
             onPointChanged: {
                 // interactionLayer fills GraphCanvas at (0, 0), so the hover
                 // point is already in GraphCanvas view coordinates.

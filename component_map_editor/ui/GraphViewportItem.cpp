@@ -599,6 +599,8 @@ void GraphViewportItem::executeScheduledGraphRebuild()
 {
     m_graphRebuildScheduled = false;
     ensureSpatialIndex();
+    m_graphDirty = true;
+    m_nodeDirty = true;
     update();
 }
 

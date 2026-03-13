@@ -336,10 +336,10 @@ Rectangle {
                 root.canvas.panX = startPanX + Math.sin(t * 2.5) * amp
                 root.canvas.panY = startPanY + Math.cos(t * 1.9) * amp * 0.6
             } else if (stageIndex === 2) {
-                root.canvas.mouseViewPos = Qt.point(root.canvas.width * 0.5,
-                                                    root.canvas.height * 0.5)
                 var factor = zoomInDirection ? 1.01 : (1.0 / 1.01)
-                root.canvas.zoomAtCursor(factor)
+                root.canvas.zoomAtView(root.canvas.width * 0.5,
+                                       root.canvas.height * 0.5,
+                                       factor)
                 if ((elapsedMs % 420) < interval)
                     zoomInDirection = !zoomInDirection
             }

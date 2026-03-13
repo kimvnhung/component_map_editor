@@ -193,6 +193,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             graph: graph
             undoStack: undoStack
+            canvas: canvas
         }
 
         // Thin separator

@@ -82,6 +82,16 @@ ResizableItem {
         root.component.height = root.height
     }
 
+    function syncItemFromModelGeometry() {
+        if (!root.component || root.moving || root.resizing)
+            return
+
+        root.width = root.component.width
+        root.height = root.component.height
+        root.x = root.component.x - root.width / 2
+        root.y = modelYToItemTop(root.component.y)
+    }
+
     onMoved: syncModelFromItemGeometry()
     onMoveFinished: syncModelFromItemGeometry()
     onResized: syncModelFromItemGeometry()
@@ -104,6 +114,9 @@ ResizableItem {
             connectionHandler.arrowActivated = true
     }
     onSelectedChanged: root.refreshFocused()
+    onComponentChanged: syncItemFromModelGeometry()
+
+    Component.onCompleted: syncItemFromModelGeometry()
 
     // Keep position in sync when the model is updated externally.
     Connections {
