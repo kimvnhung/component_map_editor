@@ -137,6 +137,15 @@ ApplicationWindow {
             ToolButton {
                 text: "Clear"
                 onClicked: {
+                    if (canvas) {
+                        canvas.tempConnectionDragging = false
+                        canvas.nodeInteractionActive = false
+                        canvas.enableBackgroundDrag = true
+                        canvas.selectedComponent = null
+                        canvas.selectedConnection = null
+                    }
+                    propertyPanel.component = null
+                    propertyPanel.connection = null
                     graph.clear()
                     undoStack.clear()
                 }
@@ -155,12 +164,28 @@ ApplicationWindow {
         }
     }
 
+    // Performance telemetry — disabled by default; activate via BenchmarkPanel.
+    PerformanceTelemetry {
+        id: perfTelemetry
+    }
+
+    // High-resolution frame interval telemetry based on QQuickWindow::frameSwapped.
+    FrameSwapTelemetry {
+        id: frameTelemetry
+        window: window
+    }
+
     // -----------------------------------------------------------------------
-    // Main layout: Palette | Canvas | PropertyPanel
+    // Main layout: Palette | Canvas | PropertyPanel  +  Benchmark footer
     // -----------------------------------------------------------------------
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
         spacing: 0
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 0
 
         Palette {
             id: palettePanel
@@ -168,6 +193,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             graph: graph
             undoStack: undoStack
+            canvas: canvas
         }
 
         // Thin separator
@@ -183,6 +209,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             graph: graph
             undoStack: undoStack
+            telemetry: perfTelemetry
 
             onComponentSelected: component => {
                                      propertyPanel.component = component
@@ -206,9 +233,27 @@ ApplicationWindow {
         }
 
         PropertyPanel {
-            id: propertyPanel
-            Layout.preferredWidth: 210
-            Layout.fillHeight: true
+                id: propertyPanel
+                Layout.preferredWidth: 210
+                Layout.fillHeight: true
+            }
+        }
+
+        // Thin separator above benchmark panel
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: "#e0e0e0"
+        }
+
+        BenchmarkPanel {
+            Layout.fillWidth: true
+            Layout.preferredHeight: implicitHeight
+            graph: graph
+            appWindow: window
+            canvas: canvas
+            telemetry: perfTelemetry
+            frameTelemetry: frameTelemetry
         }
     }
 

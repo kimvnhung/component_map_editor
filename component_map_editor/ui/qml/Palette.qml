@@ -10,6 +10,7 @@ Rectangle {
 
     property GraphModel graph: null
     property UndoStack  undoStack: null
+    property var canvas: null
 
     color: "#ffffff"
     border.color: "#e0e0e0"
@@ -27,14 +28,28 @@ Rectangle {
 
     function _addComponent(label, color, type) {
         if (!graph) return
+
+        if (root.canvas && root.canvas.nodeRenderer)
+            root.canvas.nodeRenderer.renderNodes = true
+
         var component = Qt.createQmlObject(
             'import ComponentMapEditor; ComponentModel {}', graph)
         component.id    = "component_" + root._idCounter++
         component.label = label
         component.color = color
         component.type  = type
-        component.x     = 150 + Math.random() * 200
-        component.y     = -(100 + Math.random() * 200)
+
+        // Place new nodes at viewport center in world space so they are always visible.
+        if (root.canvas && root.canvas.viewToWorld) {
+            var centerWorld = root.canvas.viewToWorld(root.canvas.width * 0.5,
+                                                      root.canvas.height * 0.5)
+            component.x = centerWorld.x
+            component.y = centerWorld.y
+        } else {
+            component.x = 0
+            component.y = 0
+        }
+
         // AddComponentCommand (C++) can be used by callers wanting undoable adds.
         graph.addComponent(component)
     }

@@ -7,6 +7,7 @@ ResizableItem {
 
     property ComponentModel component: null
     property bool selected: false
+    property bool renderVisuals: true
     property UndoStack undoStack: null
 
     readonly property int defaultComponentWidth: 120
@@ -81,6 +82,16 @@ ResizableItem {
         root.component.height = root.height
     }
 
+    function syncItemFromModelGeometry() {
+        if (!root.component || root.moving || root.resizing)
+            return
+
+        root.width = root.component.width
+        root.height = root.component.height
+        root.x = root.component.x - root.width / 2
+        root.y = modelYToItemTop(root.component.y)
+    }
+
     onMoved: syncModelFromItemGeometry()
     onMoveFinished: syncModelFromItemGeometry()
     onResized: syncModelFromItemGeometry()
@@ -103,6 +114,9 @@ ResizableItem {
             connectionHandler.arrowActivated = true
     }
     onSelectedChanged: root.refreshFocused()
+    onComponentChanged: syncItemFromModelGeometry()
+
+    Component.onCompleted: syncItemFromModelGeometry()
 
     // Keep position in sync when the model is updated externally.
     Connections {
@@ -132,13 +146,16 @@ ResizableItem {
     Rectangle {
         anchors.fill: parent
         radius: root.isRounded ? 6 : 0
-        color: root.component ? root.component.color : "#4fc3f7"
-        border.color: root.selected ? "#ff5722" : Qt.darker(color, 1.4)
-        border.width: root.selected ? 2.5 : 1.5
+        color: root.renderVisuals && root.component ? root.component.color : "transparent"
+        border.color: root.renderVisuals
+                      ? (root.selected ? "#ff5722" : Qt.darker(root.component ? root.component.color : "#4fc3f7", 1.4))
+                      : "transparent"
+        border.width: root.renderVisuals ? (root.selected ? 2.5 : 1.5) : 0
 
         // Overlay to indicate selection with a semi-transparent border, since the main border can be hard to see against some colors.
         Rectangle {
             anchors.fill: parent
+            visible: root.renderVisuals
             color: "transparent"
             radius: parent.radius
             border.color: "#607d8b"
@@ -148,6 +165,7 @@ ResizableItem {
 
         Text {
             anchors.centerIn: parent
+            visible: root.renderVisuals
             text: root.component ? root.component.label : ""
             color: "white"
             font.bold: true
