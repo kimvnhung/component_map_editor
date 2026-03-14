@@ -22,7 +22,7 @@ ApplicationWindow {
             var n1 = Qt.createQmlObject(
                         'import ComponentMapEditor; ComponentModel {}', graph)
             n1.id = "n1"
-            n1.label = "Start"
+            n1.title = "Start"
             n1.x = 960
             n1.y = 540
             n1.color = "#26a69a"
@@ -30,22 +30,22 @@ ApplicationWindow {
             graph.addComponent(n1)
 
             // var n2 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n2.id = "n2"; n2.label = "Process A"; n2.x = 280; n2.y = 140
+            // n2.id = "n2"; n2.title = "Process A"; n2.x = 280; n2.y = 140
             // n2.color = "#5c6bc0"; n2.type = "process"
             // graph.addComponent(n2)
 
             // var n3 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n3.id = "n3"; n3.label = "Process B"; n3.x = 280; n3.y = 300
+            // n3.id = "n3"; n3.title = "Process B"; n3.x = 280; n3.y = 300
             // n3.color = "#5c6bc0"; n3.type = "process"
             // graph.addComponent(n3)
 
             // var n4 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n4.id = "n4"; n4.label = "Decide";  n4.x = 480; n4.y = 220
+            // n4.id = "n4"; n4.title = "Decide";  n4.x = 480; n4.y = 220
             // n4.color = "#ab47bc"; n4.type = "decision"
             // graph.addComponent(n4)
 
             // var n5 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n5.id = "n5"; n5.label = "End";     n5.x = 680; n5.y = 220
+            // n5.id = "n5"; n5.title = "End";     n5.x = 680; n5.y = 220
             // n5.color = "#ef5350"; n5.type = "end"
             // graph.addComponent(n5)
 

@@ -4,6 +4,7 @@
 import QtQuick
 import QtQuick.Controls
 import ComponentMapEditor
+import QmlFontAwesome
 import "components"
 
 Item {
@@ -216,7 +217,9 @@ Item {
                     'import ComponentMapEditor; ComponentModel {}',
                     root.graph)
         copy.id = root.uniqueComponentId(component.id + "_copy")
-        copy.label = component.label + " Copy"
+        copy.title = component.title + " Copy"
+        copy.content = component.content
+        copy.icon = component.icon
         copy.x = component.x + 40
         copy.y = component.y + 40
         copy.width = component.width
@@ -238,11 +241,13 @@ Item {
         var component = Qt.createQmlObject(
                     'import ComponentMapEditor; ComponentModel {}', root.graph)
         component.id = root.uniqueComponentId("component")
-        component.label = "Component"
+        component.title = "Component"
+        component.content = ""
+        component.icon = "cube"
         component.x = worldPos.x
         component.y = worldPos.y
-        component.width = 120
-        component.height = 40
+        component.width = 96
+        component.height = 96
         component.color = "#4fc3f7"
         component.shape = "rounded"
         component.type = "default"
@@ -722,7 +727,7 @@ Item {
         connectionCount: root.graph ? root.graph.connections.length : 0
         selectedComponentCount: root.selectedComponentIds.length
         selectedConnectionCount: root.selectedConnection ? 1 : 0
-        selectedComponentLabel: root.selectedComponent ? root.selectedComponent.label : "none"
+        selectedComponentTitle: root.selectedComponent ? root.selectedComponent.title : "none"
         selectedConnectionLabel: root.selectedConnection ? root.selectedConnection.id : "none"
         mouseViewPos: root.mouseViewPos
         mouseWorldPos: root.mouseWorldPos
@@ -860,5 +865,8 @@ Item {
         root.updateMouseWorldPos()
     }
 
-    Component.onCompleted: root.updateMouseWorldPos()
+    Component.onCompleted: {
+        FontAwesome.ensureLoaded()
+        root.updateMouseWorldPos()
+    }
 }

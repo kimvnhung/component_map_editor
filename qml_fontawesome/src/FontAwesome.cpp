@@ -8,12 +8,17 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QMutex>
+#include <QSettings>
 
 namespace {
 
 const QString kStyleSolid = QStringLiteral("solid");
 const QString kStyleRegular = QStringLiteral("regular");
 const QString kStyleBrands = QStringLiteral("brands");
+const QString kSettingsGroup = QStringLiteral("QmlFontAwesome");
+const QString kSettingsFavoritesKey = QStringLiteral("favorites");
+const QString kSettingsRecentsKey = QStringLiteral("recents");
+const int kMaxRecentIcons = 30;
 
 const QString kFontSolidPath =
     QStringLiteral(":/qt/qml/QmlFontAwesome/fontawesome/otfs/Font Awesome 7 Free-Solid-900.otf");
@@ -121,6 +126,135 @@ int FontAwesome::iconCount() const
     return uniqueNames.size();
 }
 
+QStringList FontAwesome::searchIcons(const QString &keyword, int limit) const
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return {};
+
+    const QString key = normalizeIconName(keyword);
+    QStringList result;
+    if (limit <= 0)
+        return result;
+
+    for (auto it = sharedData().searchTermsByIcon.constBegin();
+         it != sharedData().searchTermsByIcon.constEnd();
+         ++it) {
+        if (result.size() >= limit)
+            break;
+
+        const QString iconName = it.key();
+        const QStringList terms = it.value();
+        bool matched = key.isEmpty() || iconName.contains(key);
+        if (!matched) {
+            for (const QString &term : terms) {
+                if (term.contains(key)) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (matched)
+            result.push_back(iconName);
+    }
+
+    result.sort(Qt::CaseInsensitive);
+    if (result.size() > limit)
+        result = result.mid(0, limit);
+
+    return result;
+}
+
+QStringList FontAwesome::favoriteIcons() const
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return {};
+    return sharedData().favorites;
+}
+
+QStringList FontAwesome::recentIcons() const
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return {};
+    return sharedData().recents;
+}
+
+bool FontAwesome::isFavorite(const QString &name) const
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return false;
+    return sharedData().favorites.contains(normalizeIconName(name));
+}
+
+void FontAwesome::addFavorite(const QString &name)
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return;
+
+    const QString iconName = normalizeIconName(name);
+    if (iconName.isEmpty() || !containsIconAnyStyle(iconName))
+        return;
+
+    if (!sharedData().favorites.contains(iconName)) {
+        sharedData().favorites.prepend(iconName);
+        saveFavoritesLocked();
+    }
+}
+
+void FontAwesome::removeFavorite(const QString &name)
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return;
+
+    const QString iconName = normalizeIconName(name);
+    sharedData().favorites.removeAll(iconName);
+    saveFavoritesLocked();
+}
+
+void FontAwesome::clearFavorites()
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return;
+
+    sharedData().favorites.clear();
+    saveFavoritesLocked();
+}
+
+void FontAwesome::markIconUsed(const QString &name)
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return;
+
+    const QString iconName = normalizeIconName(name);
+    if (iconName.isEmpty() || !containsIconAnyStyle(iconName))
+        return;
+
+    sharedData().recents.removeAll(iconName);
+    sharedData().recents.prepend(iconName);
+    while (sharedData().recents.size() > kMaxRecentIcons)
+        sharedData().recents.removeLast();
+
+    saveRecentsLocked();
+}
+
+void FontAwesome::clearRecent()
+{
+    QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
+    if (!loadLocked())
+        return;
+
+    sharedData().recents.clear();
+    saveRecentsLocked();
+}
+
 bool FontAwesome::initialize()
 {
     QMutexLocker<QRecursiveMutex> locker(&sharedMutex());
@@ -164,6 +298,8 @@ bool FontAwesome::loadLocked()
 
     const bool metadataLoaded = loadMetadataLocked();
     const bool fontsLoaded = loadFontsLocked();
+    if (metadataLoaded && fontsLoaded)
+        loadUserStateLocked();
     sharedData().loaded = metadataLoaded && fontsLoaded;
     return sharedData().loaded;
 }
@@ -196,6 +332,24 @@ bool FontAwesome::loadMetadataLocked()
                 continue;
             glyphByStyle[style].insert(iconName, glyph);
         }
+
+        QStringList terms;
+        terms.push_back(iconName);
+
+        const QString label = iconObject.value(QStringLiteral("label")).toString();
+        if (!label.isEmpty())
+            terms.push_back(label.toLower());
+
+        const QJsonObject searchObject = iconObject.value(QStringLiteral("search")).toObject();
+        const QJsonArray searchTerms = searchObject.value(QStringLiteral("terms")).toArray();
+        for (const QJsonValue &termValue : searchTerms) {
+            const QString term = termValue.toString().trimmed().toLower();
+            if (!term.isEmpty())
+                terms.push_back(term);
+        }
+
+        terms.removeDuplicates();
+        sharedData().searchTermsByIcon.insert(iconName, terms);
     }
 
     return !glyphByStyle.isEmpty();
@@ -327,4 +481,68 @@ QString FontAwesome::glyphForNameAndStyle(const QString &name, const QString &st
         return QString();
 
     return styleIt->value(name);
+}
+
+bool FontAwesome::containsIconAnyStyle(const QString &name)
+{
+    return !glyphForNameAndStyle(name, kStyleSolid).isEmpty()
+        || !glyphForNameAndStyle(name, kStyleRegular).isEmpty()
+        || !glyphForNameAndStyle(name, kStyleBrands).isEmpty();
+}
+
+QSettings FontAwesome::createSettings()
+{
+    return QSettings(QSettings::IniFormat,
+                     QSettings::UserScope,
+                     QStringLiteral("component_map_editor"),
+                     QStringLiteral("QmlFontAwesome"));
+}
+
+void FontAwesome::loadUserStateLocked()
+{
+    QSettings settings = createSettings();
+    settings.beginGroup(kSettingsGroup);
+
+    QStringList favorites = settings.value(kSettingsFavoritesKey).toStringList();
+    favorites.removeDuplicates();
+    for (auto it = favorites.begin(); it != favorites.end();) {
+        *it = normalizeIconName(*it);
+        if (it->isEmpty() || !containsIconAnyStyle(*it))
+            it = favorites.erase(it);
+        else
+            ++it;
+    }
+
+    QStringList recents = settings.value(kSettingsRecentsKey).toStringList();
+    recents.removeDuplicates();
+    for (auto it = recents.begin(); it != recents.end();) {
+        *it = normalizeIconName(*it);
+        if (it->isEmpty() || !containsIconAnyStyle(*it))
+            it = recents.erase(it);
+        else
+            ++it;
+    }
+
+    if (recents.size() > kMaxRecentIcons)
+        recents = recents.mid(0, kMaxRecentIcons);
+
+    sharedData().favorites = favorites;
+    sharedData().recents = recents;
+    settings.endGroup();
+}
+
+void FontAwesome::saveFavoritesLocked()
+{
+    QSettings settings = createSettings();
+    settings.beginGroup(kSettingsGroup);
+    settings.setValue(kSettingsFavoritesKey, sharedData().favorites);
+    settings.endGroup();
+}
+
+void FontAwesome::saveRecentsLocked()
+{
+    QSettings settings = createSettings();
+    settings.beginGroup(kSettingsGroup);
+    settings.setValue(kSettingsRecentsKey, sharedData().recents);
+    settings.endGroup();
 }

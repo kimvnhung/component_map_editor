@@ -17,19 +17,23 @@ Rectangle {
     border.width: 1
 
     readonly property var componentTypes: [{
-            "label": "Start",
+            "title": "Start",
+            "icon": "play",
             "color": "#26a69a",
             "type": "start"
         }, {
-            "label": "Process",
+            "title": "Process",
+            "icon": "gears",
             "color": "#5c6bc0",
             "type": "process"
         }, {
-            "label": "Decision",
+            "title": "Decision",
+            "icon": "code-branch",
             "color": "#ab47bc",
             "type": "decision"
         }, {
-            "label": "End",
+            "title": "End",
+            "icon": "flag-checkered",
             "color": "#ef5350",
             "type": "end"
         }]
@@ -37,7 +41,7 @@ Rectangle {
     // Tracks next auto-generated id suffix
     property int _idCounter: 1
 
-    function _addComponent(label, color, type) {
+    function _addComponent(title, icon, color, type) {
         if (!graph)
             return
 
@@ -47,9 +51,13 @@ Rectangle {
         var component = Qt.createQmlObject(
                     'import ComponentMapEditor; ComponentModel {}', graph)
         component.id = "component_" + root._idCounter++
-        component.label = label
+        component.title = title
+        component.content = ""
+        component.icon = icon
         component.color = color
         component.type = type
+        component.width = 96
+        component.height = 96
 
         // Place new nodes at viewport center in world space so they are always visible.
         if (root.canvas && root.canvas.viewToWorld) {
@@ -95,7 +103,7 @@ Rectangle {
 
                 Text {
                     anchors.centerIn: parent
-                    text: modelData.label
+                    text: modelData.title
                     color: "white"
                     font.bold: true
                     font.pixelSize: 13
@@ -107,7 +115,8 @@ Rectangle {
 
                 TapHandler {
                     acceptedButtons: Qt.LeftButton
-                    onTapped: root._addComponent(modelData.label,
+                    onTapped: root._addComponent(modelData.title,
+                                                 modelData.icon,
                                                  modelData.color,
                                                  modelData.type)
                 }

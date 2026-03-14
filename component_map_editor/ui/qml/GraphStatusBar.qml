@@ -10,7 +10,7 @@ Rectangle {
     property int selectedComponentCount: 0
     property int selectedConnectionCount: 0
     readonly property int selectedTotalCount: selectedComponentCount + selectedConnectionCount
-    property string selectedComponentLabel: "none"
+    property string selectedComponentTitle: "none"
     property string selectedConnectionLabel: "none"
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
@@ -105,7 +105,7 @@ Rectangle {
 
             StatPill {
                 iconName: "tag"
-                valueText: "Node " + root.selectedComponentLabel
+                valueText: "Node " + root.selectedComponentTitle
                 accent: "#ff9f7f"
             }
 

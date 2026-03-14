@@ -11,7 +11,9 @@ class ComponentModel : public QObject
     QML_ELEMENT
 
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY idChanged FINAL)
-    Q_PROPERTY(QString label READ label WRITE setLabel NOTIFY labelChanged FINAL)
+    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged FINAL)
+    Q_PROPERTY(QString content READ content WRITE setContent NOTIFY contentChanged FINAL)
+    Q_PROPERTY(QString icon READ icon WRITE setIcon NOTIFY iconChanged FINAL)
     Q_PROPERTY(qreal x READ x WRITE setX NOTIFY xChanged FINAL)
     Q_PROPERTY(qreal y READ y WRITE setY NOTIFY yChanged FINAL)
     Q_PROPERTY(qreal width READ width WRITE setWidth NOTIFY widthChanged FINAL)
@@ -22,7 +24,7 @@ class ComponentModel : public QObject
 
 public:
     explicit ComponentModel(QObject *parent = nullptr);
-    ComponentModel(const QString &id, const QString &label,
+    ComponentModel(const QString &id, const QString &title,
                    qreal x, qreal y,
                    const QString &color = QStringLiteral("#4fc3f7"),
                    const QString &type = QStringLiteral("default"),
@@ -31,8 +33,14 @@ public:
     QString id() const;
     void setId(const QString &id);
 
-    QString label() const;
-    void setLabel(const QString &label);
+    QString title() const;
+    void setTitle(const QString &title);
+
+    QString content() const;
+    void setContent(const QString &content);
+
+    QString icon() const;
+    void setIcon(const QString &icon);
 
     qreal x() const;
     void setX(qreal x);
@@ -57,7 +65,9 @@ public:
 
 signals:
     void idChanged();
-    void labelChanged();
+    void titleChanged();
+    void contentChanged();
+    void iconChanged();
     void xChanged();
     void yChanged();
     void widthChanged();
@@ -68,11 +78,13 @@ signals:
 
 private:
     QString m_id;
-    QString m_label;
+    QString m_title;
+    QString m_content;
+    QString m_icon;
     qreal m_x = 0.0;
     qreal m_y = 0.0;
-    qreal m_width = 120.0;
-    qreal m_height = 40.0;
+    qreal m_width = 96.0;
+    qreal m_height = 96.0;
     QString m_shape{ QStringLiteral("rounded") };
     QString m_color{ QStringLiteral("#4fc3f7") };
     QString m_type{ QStringLiteral("default") };

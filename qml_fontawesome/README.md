@@ -68,6 +68,28 @@ Row {
 }
 ```
 
+### Search + favorites/recent cache
+
+```qml
+import QtQuick
+import QmlFontAwesome
+
+Item {
+	Component.onCompleted: {
+		const matches = FontAwesome.searchIcons("arrow", 20)
+		if (matches.length > 0) {
+			FontAwesome.addFavorite(matches[0])
+			FontAwesome.markIconUsed(matches[0])
+		}
+
+		console.log("Favorites:", FontAwesome.favoriteIcons())
+		console.log("Recent:", FontAwesome.recentIcons())
+	}
+}
+```
+
+Favorites and recent icons are persisted via `QSettings`.
+
 ### C++ usage
 ---------
 

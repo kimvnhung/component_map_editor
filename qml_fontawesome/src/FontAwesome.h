@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QRecursiveMutex>
 #include <QSet>
+#include <QSettings>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -35,6 +36,15 @@ public:
     Q_INVOKABLE int weight(Style style = Solid) const;
     Q_INVOKABLE QStringList availableStyles(const QString &name) const;
     Q_INVOKABLE int iconCount() const;
+    Q_INVOKABLE QStringList searchIcons(const QString &keyword, int limit = 50) const;
+    Q_INVOKABLE QStringList favoriteIcons() const;
+    Q_INVOKABLE QStringList recentIcons() const;
+    Q_INVOKABLE bool isFavorite(const QString &name) const;
+    Q_INVOKABLE void addFavorite(const QString &name);
+    Q_INVOKABLE void removeFavorite(const QString &name);
+    Q_INVOKABLE void clearFavorites();
+    Q_INVOKABLE void markIconUsed(const QString &name);
+    Q_INVOKABLE void clearRecent();
 
     static bool initialize();
     static QString iconForCpp(const QString &name, Style style = Solid);
@@ -47,6 +57,9 @@ private:
         QHash<QString, QHash<QString, QString>> glyphByStyle;
         QHash<QString, QString> familyByStyle;
         QHash<QString, int> weightByStyle;
+        QHash<QString, QStringList> searchTermsByIcon;
+        QStringList favorites;
+        QStringList recents;
     };
 
     static SharedData &sharedData();
@@ -55,6 +68,9 @@ private:
     static bool loadLocked();
     static bool loadMetadataLocked();
     static bool loadFontsLocked();
+    static void loadUserStateLocked();
+    static void saveFavoritesLocked();
+    static void saveRecentsLocked();
 
     static QString resourcePrefix();
     static QString metadataPath();
@@ -64,6 +80,8 @@ private:
     static QString codepointToString(const QString &unicodeHex);
     static QString fallbackIcon(const QString &name);
     static QString glyphForNameAndStyle(const QString &name, const QString &styleKey);
+    static bool containsIconAnyStyle(const QString &name);
+    static QSettings createSettings();
 };
 
 #endif // QMLFONTAWESOME_FONTAWESOME_H
