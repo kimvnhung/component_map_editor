@@ -43,6 +43,7 @@ class GraphViewportItem : public QQuickItem
 
     Q_PROPERTY(QObject *selectedConnection READ selectedConnection WRITE setSelectedConnection NOTIFY selectedConnectionChanged FINAL)
     Q_PROPERTY(QObject *selectedComponent READ selectedComponent WRITE setSelectedComponent NOTIFY selectedComponentChanged FINAL)
+    Q_PROPERTY(QVariantList selectedComponentIds READ selectedComponentIds WRITE setSelectedComponentIds NOTIFY selectedComponentIdsChanged FINAL)
     Q_PROPERTY(bool tempConnectionDragging READ tempConnectionDragging WRITE setTempConnectionDragging NOTIFY tempConnectionDraggingChanged FINAL)
     Q_PROPERTY(QPointF tempStart READ tempStart WRITE setTempStart NOTIFY tempStartChanged FINAL)
     Q_PROPERTY(QPointF tempEnd READ tempEnd WRITE setTempEnd NOTIFY tempEndChanged FINAL)
@@ -85,6 +86,9 @@ public:
 
     QObject *selectedComponent() const;
     void setSelectedComponent(QObject *value);
+
+    QVariantList selectedComponentIds() const;
+    void setSelectedComponentIds(const QVariantList &value);
 
     bool tempConnectionDragging() const;
     void setTempConnectionDragging(bool value);
@@ -138,6 +142,7 @@ signals:
     void maxGridPixelStepChanged();
     void selectedConnectionChanged();
     void selectedComponentChanged();
+    void selectedComponentIdsChanged();
     void tempConnectionDraggingChanged();
     void tempStartChanged();
     void tempEndChanged();
@@ -201,6 +206,8 @@ private:
 
     QObject *m_selectedConnection = nullptr;
     QObject *m_selectedComponent = nullptr;
+    QVariantList m_selectedComponentIds;
+    QSet<QString> m_selectedComponentIdSet;
     bool m_tempConnectionDragging = false;
     QPointF m_tempStart;
     QPointF m_tempEnd;

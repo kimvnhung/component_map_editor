@@ -24,7 +24,7 @@ Item {
 
     property GraphModel graph: null
     property ComponentModel selectedComponent: null
-    property var selectedComponents: []
+    property var selectedComponentIds: []
     property ConnectionModel selectedConnection: null
     property UndoStack undoStack: null
     property ComponentModel menuTargetComponent: null
@@ -53,6 +53,7 @@ Item {
     readonly property var nodeRenderer: nodeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
+    property int livePointerModifiers: 0
 
     // Optional telemetry hook. Set to a PerformanceTelemetry instance to
     // collect camera-update and drag-event interval samples for Phase 0 baseline.
@@ -65,28 +66,26 @@ Item {
     signal viewTransformChanged(real panX, real panY, real zoom)
 
     function componentIsSelected(component) {
-        if (!component)
+        if (!component || !component.id)
             return false
 
-        for (var i = 0; i < root.selectedComponents.length; ++i) {
-            if (root.selectedComponents[i] === component)
-                return true
-        }
-
-        return false
+        return root.selectedComponentIds.indexOf(component.id) !== -1
     }
 
     function removeComponentFromSelection(component) {
+        if (!component || !component.id)
+            return
+
         var nextSelection = []
-        for (var i = 0; i < root.selectedComponents.length; ++i) {
-            if (root.selectedComponents[i] !== component)
-                nextSelection.push(root.selectedComponents[i])
+        for (var i = 0; i < root.selectedComponentIds.length; ++i) {
+            if (root.selectedComponentIds[i] !== component.id)
+                nextSelection.push(root.selectedComponentIds[i])
         }
-        root.selectedComponents = nextSelection
+        root.selectedComponentIds = nextSelection
     }
 
     function clearComponentSelection() {
-        root.selectedComponents = []
+        root.selectedComponentIds = []
         root.selectedComponent = null
     }
 
@@ -96,7 +95,7 @@ Item {
             return
         }
 
-        root.selectedComponents = [component]
+        root.selectedComponentIds = [component.id]
         root.selectedComponent = component
     }
 
@@ -108,22 +107,27 @@ Item {
     }
 
     function handleLeftComponentClick(component, modifiers) {
-        var ctrlPressed = (modifiers & Qt.ControlModifier) !== 0
+        var eventModifiers = modifiers ? modifiers : 0
+        var effectiveModifiers = eventModifiers | root.livePointerModifiers
+        var ctrlPressed = (effectiveModifiers & Qt.ControlModifier) !== 0
 
         root.selectedConnection = null
         if (ctrlPressed) {
             if (root.componentIsSelected(component)) {
                 root.removeComponentFromSelection(component)
-                root.selectedComponent = root.selectedComponents.length > 0
-                                         ? root.selectedComponents[root.selectedComponents.length - 1]
-                                         : null
+                if (root.selectedComponentIds.length > 0) {
+                    var lastSelectedId = root.selectedComponentIds[root.selectedComponentIds.length - 1]
+                    root.selectedComponent = root.graph ? root.graph.componentById(lastSelectedId) : null
+                } else {
+                    root.selectedComponent = null
+                }
                 if (root.selectedComponent)
                     root.componentSelected(root.selectedComponent)
                 else
                     root.backgroundClicked(root.mouseWorldPos.x,
                                            root.mouseWorldPos.y)
             } else {
-                root.selectedComponents = root.selectedComponents.concat([component])
+                root.selectedComponentIds = root.selectedComponentIds.concat([component.id])
                 root.selectedComponent = component
                 root.componentSelected(component)
             }
@@ -193,9 +197,12 @@ Item {
         root.clearComponentConnections(component, true, true)
         root.graph.removeComponent(component.id)
         root.removeComponentFromSelection(component)
-        root.selectedComponent = root.selectedComponents.length > 0
-                                 ? root.selectedComponents[root.selectedComponents.length - 1]
-                                 : null
+        if (root.selectedComponentIds.length > 0) {
+            var lastId = root.selectedComponentIds[root.selectedComponentIds.length - 1]
+            root.selectedComponent = root.graph.componentById(lastId)
+        } else {
+            root.selectedComponent = null
+        }
         if (!root.selectedComponent)
             root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
         edgeCanvas.repaint()
@@ -393,6 +400,7 @@ Item {
         renderEdges: false
         renderNodes: true
         selectedComponent: root.selectedComponent
+        selectedComponentIds: root.selectedComponentIds
     }
 
     // Compatibility wrappers so existing repaint call sites remain intact.
@@ -430,6 +438,7 @@ Item {
                 // point is already in GraphCanvas view coordinates.
                 root.mouseViewPos = Qt.point(point.position.x,
                                              point.position.y)
+                root.livePointerModifiers = point.modifiers
             }
         }
 
@@ -465,6 +474,7 @@ Item {
 
             onPressedChanged: {
                 if (pressed) {
+                    root.livePointerModifiers = point.modifiers
                     root.pressedComponent = edgeViewport.hitTestComponentAtView(point.position.x,
                                                                                  point.position.y)
                 } else {
@@ -588,6 +598,7 @@ Item {
                     // Phase 4: keep only interaction overlays in QML.
                     // C++ hit-testing handles picking for all nodes.
                     active: root.selectedComponent === modelData
+                            || root.componentIsSelected(modelData)
                             || root.hoveredComponent === modelData
                             || root.pressedComponent === modelData
                             || root.activeInteractionComponent === modelData
@@ -709,6 +720,8 @@ Item {
         z: 200
         componentCount: root.graph ? root.graph.components.length : 0
         connectionCount: root.graph ? root.graph.connections.length : 0
+        selectedComponentCount: root.selectedComponentIds.length
+        selectedConnectionCount: root.selectedConnection ? 1 : 0
         selectedComponentLabel: root.selectedComponent ? root.selectedComponent.label : "none"
         selectedConnectionLabel: root.selectedConnection ? root.selectedConnection.id : "none"
         mouseViewPos: root.mouseViewPos
@@ -727,9 +740,12 @@ Item {
             root.nodeInteractionActive = false
             root.enableBackgroundDrag = true
             root.pointerOverComponent = false
-            root.selectedComponents = root.selectedComponents.filter(component => {
-                                                                          return root.graph.componentById(component.id) !== null
-                                                                      })
+            var filteredIds = []
+            for (var i = 0; i < root.selectedComponentIds.length; ++i) {
+                if (root.graph.componentById(root.selectedComponentIds[i]))
+                    filteredIds.push(root.selectedComponentIds[i])
+            }
+            root.selectedComponentIds = filteredIds
             if (root.selectedComponent && !root.graph.componentById(root.selectedComponent.id))
                 root.selectedComponent = null
             edgeCanvas.repaint()

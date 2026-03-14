@@ -371,6 +371,29 @@ void GraphViewportItem::setSelectedComponent(QObject *value)
     update();
 }
 
+QVariantList GraphViewportItem::selectedComponentIds() const
+{
+    return m_selectedComponentIds;
+}
+
+void GraphViewportItem::setSelectedComponentIds(const QVariantList &value)
+{
+    if (m_selectedComponentIds == value)
+        return;
+
+    m_selectedComponentIds = value;
+    m_selectedComponentIdSet.clear();
+    for (const QVariant &entry : m_selectedComponentIds) {
+        const QString id = entry.toString();
+        if (!id.isEmpty())
+            m_selectedComponentIdSet.insert(id);
+    }
+
+    emit selectedComponentIdsChanged();
+    m_nodeDirty = true;
+    update();
+}
+
 bool GraphViewportItem::tempConnectionDragging() const
 {
     return m_tempConnectionDragging;
@@ -1067,7 +1090,8 @@ void GraphViewportItem::updateNodeGeometry()
         appendTriangleRect(fillVerts, fillIdx, viewRect, fillColor);
 
          if (!m_lodHideNodeOutlines) {
-             const bool selected = (static_cast<QObject *>(component) == m_selectedComponent);
+             const bool selected = (static_cast<QObject *>(component) == m_selectedComponent)
+                                   || m_selectedComponentIdSet.contains(component->id());
              const qreal borderWidth = selected ? 2.5 : 1.5;
              const QColor borderColor = selected
               ? QColor(QStringLiteral("#ff5722"))

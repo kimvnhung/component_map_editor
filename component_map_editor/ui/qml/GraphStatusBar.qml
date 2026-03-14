@@ -5,6 +5,9 @@ Rectangle {
 
     property int componentCount: 0
     property int connectionCount: 0
+    property int selectedComponentCount: 0
+    property int selectedConnectionCount: 0
+    readonly property int selectedTotalCount: selectedComponentCount + selectedConnectionCount
     property string selectedComponentLabel: "none"
     property string selectedConnectionLabel: "none"
     property point mouseViewPos: Qt.point(0, 0)
@@ -29,6 +32,9 @@ Rectangle {
         elide: Text.ElideRight
         text: "Components: " + root.componentCount
               + " | Connections: " + root.connectionCount
+              + " | Selected Components: " + root.selectedComponentCount
+              + " | Selected Connections: " + root.selectedConnectionCount
+              + " | Selected Total: " + root.selectedTotalCount
               + " | Selected Component: " + root.selectedComponentLabel
               + " | Selected Connection: " + root.selectedConnectionLabel
               + " | Mouse (view): [" + root.formatCoord(root.mouseViewPos.x)
