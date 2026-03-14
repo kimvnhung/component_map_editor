@@ -492,10 +492,9 @@ bool FontAwesome::containsIconAnyStyle(const QString &name)
 
 QSettings FontAwesome::createSettings()
 {
-    return QSettings(QSettings::IniFormat,
-                     QSettings::UserScope,
-                     QStringLiteral("component_map_editor"),
-                     QStringLiteral("QmlFontAwesome"));
+    // Use host application's organizationName() and applicationName()
+    // instead of hard-coded identifiers to avoid settings collisions.
+    return QSettings();
 }
 
 void FontAwesome::loadUserStateLocked()
