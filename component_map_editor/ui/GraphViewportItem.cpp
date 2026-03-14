@@ -1146,7 +1146,7 @@ QString GraphViewportItem::labelCacheKey(const ComponentModel *component) const
     if (!component)
         return QString();
     return component->title() + QStringLiteral("|")
-        + component->content() + QStringLiteral("|")
+        + QString::number(qHash(component->content())) + QStringLiteral("|")
         + component->icon() + QStringLiteral("|")
         + QString::number(int(std::round(component->width())))
         + QStringLiteral("|")
