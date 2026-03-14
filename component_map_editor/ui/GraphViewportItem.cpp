@@ -2,6 +2,7 @@
 
 #include "ComponentModel.h"
 #include "ConnectionModel.h"
+#include "FontAwesome.h"
 #include "GraphModel.h"
 
 #include <QColor>
@@ -37,6 +38,27 @@ public:
     QString cacheKey;
     qint64 textureBytes = 0;
 };
+
+// Cached FontAwesome icon font configuration for GraphViewportItem labels.
+// This must be initialized from the GUI thread (e.g., during application startup
+// or GraphViewportItem component completion) by calling initializeGraphViewportIconFont().
+static QString g_iconFontFamilySolid;
+static int g_iconFontWeightSolid = -1;
+static bool g_iconFontInitialized = false;
+
+// GUI-thread-only initialization helper. Calling this from the scene graph render
+// thread is not safe, because FontAwesome lazy-loading may perform I/O and
+// QFontDatabase operations. The render-thread code path only reads the cached
+// values and never calls FontAwesome directly.
+static void initializeGraphViewportIconFont()
+{
+    if (g_iconFontInitialized)
+        return;
+
+    g_iconFontFamilySolid = FontAwesome::familyForCpp(FontAwesome::Solid);
+    g_iconFontWeightSolid = FontAwesome::weightForCpp(FontAwesome::Solid);
+    g_iconFontInitialized = true;
+}
 
 QPointF centerPoint(ComponentModel *component)
 {
@@ -367,6 +389,29 @@ void GraphViewportItem::setSelectedComponent(QObject *value)
         return;
     m_selectedComponent = value;
     emit selectedComponentChanged();
+    m_nodeDirty = true;
+    update();
+}
+
+QVariantList GraphViewportItem::selectedComponentIds() const
+{
+    return m_selectedComponentIds;
+}
+
+void GraphViewportItem::setSelectedComponentIds(const QVariantList &value)
+{
+    if (m_selectedComponentIds == value)
+        return;
+
+    m_selectedComponentIds = value;
+    m_selectedComponentIdSet.clear();
+    for (const QVariant &entry : m_selectedComponentIds) {
+        const QString id = entry.toString();
+        if (!id.isEmpty())
+            m_selectedComponentIdSet.insert(id);
+    }
+
+    emit selectedComponentIdsChanged();
     m_nodeDirty = true;
     update();
 }
@@ -1067,7 +1112,8 @@ void GraphViewportItem::updateNodeGeometry()
         appendTriangleRect(fillVerts, fillIdx, viewRect, fillColor);
 
          if (!m_lodHideNodeOutlines) {
-             const bool selected = (static_cast<QObject *>(component) == m_selectedComponent);
+             const bool selected = (static_cast<QObject *>(component) == m_selectedComponent)
+                                   || m_selectedComponentIdSet.contains(component->id());
              const qreal borderWidth = selected ? 2.5 : 1.5;
              const QColor borderColor = selected
               ? QColor(QStringLiteral("#ff5722"))
@@ -1099,8 +1145,12 @@ QString GraphViewportItem::labelCacheKey(const ComponentModel *component) const
 {
     if (!component)
         return QString();
-    return component->label() + QStringLiteral("|")
+    return component->title() + QStringLiteral("|")
+        + QString::number(qHash(component->content())) + QStringLiteral("|")
+        + component->icon() + QStringLiteral("|")
         + QString::number(int(std::round(component->width())))
+        + QStringLiteral("|")
+        + QString::number(int(std::round(component->height())))
         + QStringLiteral("|") + QString::number(window() ? window()->effectiveDevicePixelRatio() : 1.0, 'f', 2);
 }
 
@@ -1129,10 +1179,27 @@ void GraphViewportItem::updateLabelNodes()
     // Avoid runtime texture destruction during active rendering paths.
 
     const qreal devicePixelRatio = window() ? window()->effectiveDevicePixelRatio() : 1.0;
-    QFont font;
-    font.setBold(true);
-    font.setPixelSize(13);
-    QFontMetrics metrics(font);
+
+    QFont titleFont;
+    titleFont.setBold(true);
+    titleFont.setPixelSize(11);
+    QFontMetrics titleMetrics(titleFont);
+
+    QFont contentFont;
+    contentFont.setPixelSize(10);
+
+    QFont iconFont;
+    iconFont.setPixelSize(11);
+
+    // Use cached FontAwesome icon font configuration only if it has been
+    // initialized on the GUI thread. Do not call FontAwesome helpers from
+    // the scene graph render thread, as they may trigger lazy loading with
+    // file I/O and QFontDatabase operations.
+    if (g_iconFontInitialized) {
+        iconFont.setFamily(g_iconFontFamilySolid);
+        iconFont.setWeight(static_cast<QFont::Weight>(g_iconFontWeightSolid));
+    }
+
     int activeLabelTextures = 0;
 
     for (int i = 0; i < labelNodes.size(); ++i) {
@@ -1150,27 +1217,60 @@ void GraphViewportItem::updateLabelNodes()
         }
 
         const int availableWidth = qMax(16, int(std::round(component->width() - 12.0)));
-        if (availableWidth <= 0 || !window()) {
+        const int availableHeight = qMax(24, int(std::round(component->height() - 12.0)));
+        if (availableWidth <= 0 || availableHeight <= 0 || !window()) {
             node->setRect(0, 0, 0, 0);
             continue;
         }
 
-        const QString key = labelCacheKey(component) + QStringLiteral("|") + QString::number(availableWidth);
+        const QString key = labelCacheKey(component)
+                + QStringLiteral("|") + QString::number(availableWidth)
+                + QStringLiteral("|") + QString::number(availableHeight);
         if (node->cacheKey != key || !node->texture()) {
-            const int labelHeight = qMax(18, metrics.height() + 4);
             QImage image(QSize(int(std::ceil(availableWidth * devicePixelRatio)),
-                               int(std::ceil(labelHeight * devicePixelRatio))),
+                               int(std::ceil(availableHeight * devicePixelRatio))),
                          QImage::Format_ARGB32_Premultiplied);
             image.setDevicePixelRatio(devicePixelRatio);
             image.fill(Qt::transparent);
 
             QPainter painter(&image);
             painter.setRenderHint(QPainter::TextAntialiasing, true);
-            painter.setFont(font);
+
+            const int headerHeight = qBound(20, int(std::round(availableHeight * 0.30)), 28);
+            painter.fillRect(QRectF(0.0, 0.0, availableWidth, headerHeight), QColor(0, 0, 0, 48));
+
+            const QString iconName = component->icon().isEmpty() ? QStringLiteral("cube") : component->icon();
+            const QString iconGlyph = FontAwesome::iconForCpp(iconName, FontAwesome::Solid);
+            int textLeft = 6;
+            if (!iconGlyph.isEmpty()) {
+                painter.setFont(iconFont);
+                painter.setPen(Qt::white);
+                const QRectF iconRect(6.0, 0.0, 14.0, headerHeight);
+                painter.drawText(iconRect, Qt::AlignCenter, iconGlyph);
+                textLeft = 24;
+            }
+
+            painter.setFont(titleFont);
             painter.setPen(Qt::white);
-            const QString elided = metrics.elidedText(component->label(), Qt::ElideRight, availableWidth);
-            painter.drawText(QRectF(0.0, 0.0, availableWidth, labelHeight),
-                             Qt::AlignCenter, elided);
+            const int titleAvail = qMax(8, availableWidth - textLeft - 6);
+            const QString title = titleMetrics.elidedText(component->title(), Qt::ElideRight, titleAvail);
+            painter.drawText(QRectF(textLeft, 0.0, titleAvail, headerHeight),
+                             Qt::AlignVCenter | Qt::AlignLeft,
+                             title);
+
+            const QString content = component->content().trimmed();
+            if (!content.isEmpty()) {
+                painter.setFont(contentFont);
+                painter.setPen(QColor(QStringLiteral("#e8f1f6")));
+                const QRectF contentRect(4.0,
+                                         headerHeight + 2.0,
+                                         availableWidth - 8.0,
+                                         qMax(8.0, qreal(availableHeight - headerHeight - 4.0)));
+                painter.drawText(contentRect,
+                                 Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap,
+                                 content);
+            }
+
             painter.end();
 
             QSGTexture *texture = window()->createTextureFromImage(image);
@@ -1190,9 +1290,9 @@ void GraphViewportItem::updateLabelNodes()
         const qreal viewWidth = entry.worldRect.width();
         const qreal viewHeight = entry.worldRect.height();
         node->setRect(QRectF(entry.worldRect.left() + 6.0,
-                     entry.worldRect.top() + (viewHeight - 18.0) / 2.0,
-                             qMax<qreal>(8.0, viewWidth - 12.0),
-                             18.0));
+                     entry.worldRect.top() + 6.0,
+                     qMax<qreal>(8.0, viewWidth - 12.0),
+                     qMax<qreal>(8.0, viewHeight - 12.0)));
     }
 
     m_labelTextureCacheCount.store(activeLabelTextures);
@@ -1290,7 +1390,13 @@ void GraphViewportItem::rebuildSpatialIndex()
             connect(component, &ComponentModel::heightChanged,
                     this, &GraphViewportItem::requestGraphRebuild));
         m_componentGeometryChangedConns.append(
-            connect(component, &ComponentModel::labelChanged,
+            connect(component, &ComponentModel::titleChanged,
+                this, &GraphViewportItem::requestNodeRepaint));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::contentChanged,
+                this, &GraphViewportItem::requestNodeRepaint));
+        m_componentGeometryChangedConns.append(
+            connect(component, &ComponentModel::iconChanged,
                 this, &GraphViewportItem::requestNodeRepaint));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::colorChanged,

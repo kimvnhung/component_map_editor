@@ -24,8 +24,10 @@ Item {
     // True when the cursor is hovering over any resize handle, independent of whether a drag is active.
     readonly property bool handleHovered: _handleHoverCount > 0
     property int _handleHoverCount: 0
+    property int _lastPointerModifiers: 0
+    property int _pressModifiers: 0
 
-    signal clicked
+    signal clicked(int modifiers)
     signal moveStarted
     signal moved
     signal moveFinished
@@ -64,16 +66,19 @@ Item {
 
     HoverHandler {
         id: moveHover
-        enabled: root.moveEnabled
+        enabled: root.moveEnabled && !root.handleHovered
         cursorShape: moveDrag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         onHoveredChanged: root.hovered = hovered
-        onPointChanged: root.hoverPositionChanged(point.position.x,
-                                                  point.position.y)
+        onPointChanged: {
+            root._lastPointerModifiers = point.modifiers
+            root.hoverPositionChanged(point.position.x,
+                                      point.position.y)
+        }
     }
 
     DragHandler {
         id: moveDrag
-        enabled: root.moveEnabled && !root.resizing
+        enabled: root.moveEnabled && !root.resizing && !root.handleHovered
         target: root
         acceptedButtons: Qt.LeftButton
         dragThreshold: root.moveDragThreshold
@@ -96,9 +101,18 @@ Item {
     }
 
     TapHandler {
-        enabled: root.moveEnabled && !root.resizing
+        enabled: root.moveEnabled && !root.resizing && !root.handleHovered
         acceptedButtons: Qt.LeftButton
-        onTapped: root.clicked()
+        onPressedChanged: {
+            if (pressed)
+                root._pressModifiers = point.modifiers
+        }
+        onTapped: point => {
+                      var effectiveModifiers = point.modifiers
+                      | root._pressModifiers
+                      | root._lastPointerModifiers
+                      root.clicked(effectiveModifiers)
+                  }
     }
 
     Item {

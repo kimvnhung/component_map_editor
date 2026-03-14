@@ -1,6 +1,7 @@
 // ComponentItem.qml — A draggable component card displayed on the GraphCanvas.
 import QtQuick
 import ComponentMapEditor
+import QmlFontAwesome
 
 ResizableItem {
     id: root
@@ -10,8 +11,8 @@ ResizableItem {
     property bool renderVisuals: true
     property UndoStack undoStack: null
 
-    readonly property int defaultComponentWidth: 120
-    readonly property int defaultComponentHeight: 40
+    readonly property int defaultComponentWidth: 96
+    readonly property int defaultComponentHeight: 96
     readonly property int minComponentWidth: 40
     readonly property int minComponentHeight: 24
     readonly property bool isRounded: !root.component
@@ -97,7 +98,7 @@ ResizableItem {
     onResized: syncModelFromItemGeometry()
     onResizeFinished: syncModelFromItemGeometry()
 
-    signal componentClicked(ComponentModel component)
+    signal componentClicked(ComponentModel component, int modifiers)
 
     // startP and targetP are in scene coordinates relative to the top-left of the view.
     signal connectionDragged(ComponentModel sourceComponent, point startP, point targetP)
@@ -107,7 +108,9 @@ ResizableItem {
     height: defaultComponentHeight
     z: selected ? 2 : 1
 
-    onClicked: root.componentClicked(root.component)
+    onClicked: modifiers => {
+                   root.componentClicked(root.component, modifiers)
+               }
 
     onHoveredChanged: {
         if (hovered)
@@ -163,16 +166,69 @@ ResizableItem {
             opacity: 0.35
         }
 
-        Text {
-            anchors.centerIn: parent
+        readonly property int headerHeight: 26
+
+        Rectangle {
+            id: headerBar
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: parent.headerHeight
+            radius: root.isRounded ? parent.radius : 0
+            color: Qt.rgba(0.0, 0.0, 0.0, 0.18)
             visible: root.renderVisuals
-            text: root.component ? root.component.label : ""
-            color: "white"
-            font.bold: true
-            font.pixelSize: 13
-            elide: Text.ElideRight
-            width: parent.width - 12
-            horizontalAlignment: Text.AlignHCenter
+
+            Row {
+                anchors.fill: parent
+                anchors.leftMargin: 6
+                anchors.rightMargin: 6
+                spacing: 6
+
+                FaIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: root.component && root.component.icon.length > 0
+                              ? root.component.icon
+                              : "cube"
+                    iconStyle: FontAwesome.Solid
+                    font.pixelSize: 12
+                    color: "white"
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - 26
+                    text: root.component ? root.component.title : ""
+                    color: "white"
+                    font.bold: true
+                    font.pixelSize: 11
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+
+        Item {
+            id: contentArea
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: headerBar.bottom
+            anchors.bottom: parent.bottom
+            anchors.margins: 8
+            visible: root.renderVisuals
+
+            Text {
+                anchors.centerIn: parent
+                width: parent.width
+                text: root.component ? root.component.content : ""
+                color: "#e8f1f6"
+                font.pixelSize: 10
+                maximumLineCount: 3
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                visible: text.length > 0
+            }
         }
 
         ConnectionHandler {

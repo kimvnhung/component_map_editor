@@ -17,7 +17,9 @@ QString ExportService::exportToJson(GraphModel *graph)
     for (const ComponentModel *component : graph->componentList()) {
         QJsonObject obj;
         obj[QStringLiteral("id")]    = component->id();
-        obj[QStringLiteral("label")] = component->label();
+        obj[QStringLiteral("title")] = component->title();
+        obj[QStringLiteral("content")] = component->content();
+        obj[QStringLiteral("icon")] = component->icon();
         obj[QStringLiteral("x")]     = component->x();
         obj[QStringLiteral("y")]     = component->y();
         obj[QStringLiteral("width")] = component->width();
@@ -70,8 +72,8 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
     for (const QJsonValue &v : components) {
         const QJsonObject obj = v.toObject();
 
-        qreal width = obj[QStringLiteral("width")].toDouble(120.0);
-        qreal height = obj[QStringLiteral("height")].toDouble(40.0);
+        qreal width = obj[QStringLiteral("width")].toDouble(96.0);
+        qreal height = obj[QStringLiteral("height")].toDouble(96.0);
         qreal x = obj[QStringLiteral("x")].toDouble();
         qreal y = obj[QStringLiteral("y")].toDouble();
 
@@ -86,9 +88,10 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
             y = -y;
         }
 
+        const QString resolvedTitle = obj[QStringLiteral("title")].toString();
         auto *component = new ComponentModel(
             obj[QStringLiteral("id")].toString(),
-            obj[QStringLiteral("label")].toString(),
+            resolvedTitle,
             x,
             y,
             obj[QStringLiteral("color")].toString(QStringLiteral("#4fc3f7")),
@@ -97,6 +100,9 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
         component->setWidth(width);
         component->setHeight(height);
         component->setShape(obj[QStringLiteral("shape")].toString(QStringLiteral("rounded")));
+        component->setTitle(resolvedTitle);
+        component->setContent(obj[QStringLiteral("content")].toString());
+        component->setIcon(obj[QStringLiteral("icon")].toString());
 
         graph->addComponent(component);
     }

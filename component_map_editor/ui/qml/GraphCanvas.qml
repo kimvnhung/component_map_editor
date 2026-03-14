@@ -2,7 +2,9 @@
 // Displays a grid background, draws connections imperatively via a Canvas item,
 // and renders components as interactive ComponentItem delegates.
 import QtQuick
+import QtQuick.Controls
 import ComponentMapEditor
+import QmlFontAwesome
 import "components"
 
 Item {
@@ -23,8 +25,14 @@ Item {
 
     property GraphModel graph: null
     property ComponentModel selectedComponent: null
+    property var selectedComponentIds: []
     property ConnectionModel selectedConnection: null
     property UndoStack undoStack: null
+    property ComponentModel menuTargetComponent: null
+    property ConnectionModel menuTargetConnection: null
+    property point menuTargetWorldPos: Qt.point(0, 0)
+    property string pendingConfirmAction: ""
+    property string pendingConfirmMessage: ""
 
     // Temp connection points in GraphCanvas view coordinates (Y-down).
     property point tempStart: Qt.point(0, 0)
@@ -42,9 +50,11 @@ Item {
     property ComponentModel hoveredComponent: null
     property ComponentModel pressedComponent: null
     property ComponentModel activeInteractionComponent: null
+    property bool suppressNextCanvasTap: false
     readonly property var nodeRenderer: nodeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
+    property int livePointerModifiers: 0
 
     // Optional telemetry hook. Set to a PerformanceTelemetry instance to
     // collect camera-update and drag-event interval samples for Phase 0 baseline.
@@ -55,6 +65,241 @@ Item {
     signal connectionSelected(ConnectionModel connection)
     signal backgroundClicked(real x, real y)
     signal viewTransformChanged(real panX, real panY, real zoom)
+
+    function componentIsSelected(component) {
+        if (!component || !component.id)
+            return false
+
+        return root.selectedComponentIds.indexOf(component.id) !== -1
+    }
+
+    function removeComponentFromSelection(component) {
+        if (!component || !component.id)
+            return
+
+        var nextSelection = []
+        for (var i = 0; i < root.selectedComponentIds.length; ++i) {
+            if (root.selectedComponentIds[i] !== component.id)
+                nextSelection.push(root.selectedComponentIds[i])
+        }
+        root.selectedComponentIds = nextSelection
+    }
+
+    function clearComponentSelection() {
+        root.selectedComponentIds = []
+        root.selectedComponent = null
+    }
+
+    function selectSingleComponent(component) {
+        if (!component) {
+            clearComponentSelection()
+            return
+        }
+
+        root.selectedComponentIds = [component.id]
+        root.selectedComponent = component
+    }
+
+    function selectConnection(connection) {
+        root.clearComponentSelection()
+        root.selectedConnection = connection
+        if (connection)
+            root.connectionSelected(connection)
+    }
+
+    function handleLeftComponentClick(component, modifiers) {
+        var eventModifiers = modifiers ? modifiers : 0
+        var effectiveModifiers = eventModifiers | root.livePointerModifiers
+        var ctrlPressed = (effectiveModifiers & Qt.ControlModifier) !== 0
+
+        root.selectedConnection = null
+        if (ctrlPressed) {
+            if (root.componentIsSelected(component)) {
+                root.removeComponentFromSelection(component)
+                if (root.selectedComponentIds.length > 0) {
+                    var lastSelectedId = root.selectedComponentIds[root.selectedComponentIds.length - 1]
+                    root.selectedComponent = root.graph ? root.graph.componentById(lastSelectedId) : null
+                } else {
+                    root.selectedComponent = null
+                }
+                if (root.selectedComponent)
+                    root.componentSelected(root.selectedComponent)
+                else
+                    root.backgroundClicked(root.mouseWorldPos.x,
+                                           root.mouseWorldPos.y)
+            } else {
+                root.selectedComponentIds = root.selectedComponentIds.concat([component.id])
+                root.selectedComponent = component
+                root.componentSelected(component)
+            }
+        } else {
+            root.selectSingleComponent(component)
+            root.componentSelected(component)
+        }
+
+        edgeCanvas.repaint()
+    }
+
+    function uniqueComponentId(baseId) {
+        var prefix = (baseId && baseId.length > 0) ? baseId : "component"
+        var candidate = prefix
+        var suffix = 1
+        while (root.graph && root.graph.componentById(candidate)) {
+            candidate = prefix + "_" + suffix
+            suffix += 1
+        }
+        return candidate
+    }
+
+    function uniqueConnectionId(baseId) {
+        var prefix = (baseId && baseId.length > 0) ? baseId : "connection"
+        var candidate = prefix
+        var suffix = 1
+        while (root.graph && root.graph.connectionById(candidate)) {
+            candidate = prefix + "_" + suffix
+            suffix += 1
+        }
+        return candidate
+    }
+
+    function removeConnectionById(connectionId) {
+        if (!root.graph || !connectionId)
+            return
+
+        root.graph.removeConnection(connectionId)
+        if (root.selectedConnection && root.selectedConnection.id === connectionId)
+            root.selectedConnection = null
+    }
+
+    function clearComponentConnections(component, clearIncoming, clearOutgoing) {
+        if (!root.graph || !component)
+            return
+
+        var idsToRemove = []
+        var currentConnections = root.graph.connections
+        for (var i = 0; i < currentConnections.length; ++i) {
+            var connection = currentConnections[i]
+            var shouldRemove = (clearIncoming && connection.targetId === component.id)
+                    || (clearOutgoing && connection.sourceId === component.id)
+            if (shouldRemove)
+                idsToRemove.push(connection.id)
+        }
+
+        for (var j = 0; j < idsToRemove.length; ++j)
+            root.removeConnectionById(idsToRemove[j])
+
+        edgeCanvas.repaint()
+    }
+
+    function deleteComponent(component) {
+        if (!root.graph || !component)
+            return
+
+        root.clearComponentConnections(component, true, true)
+        root.graph.removeComponent(component.id)
+        root.removeComponentFromSelection(component)
+        if (root.selectedComponentIds.length > 0) {
+            var lastId = root.selectedComponentIds[root.selectedComponentIds.length - 1]
+            root.selectedComponent = root.graph.componentById(lastId)
+        } else {
+            root.selectedComponent = null
+        }
+        if (!root.selectedComponent)
+            root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
+        edgeCanvas.repaint()
+    }
+
+    function duplicateComponent(component) {
+        if (!root.graph || !component)
+            return
+
+        var copy = Qt.createQmlObject(
+                    'import ComponentMapEditor; ComponentModel {}',
+                    root.graph)
+        copy.id = root.uniqueComponentId(component.id + "_copy")
+        copy.title = component.title + " Copy"
+        copy.content = component.content
+        copy.icon = component.icon
+        copy.x = component.x + 40
+        copy.y = component.y + 40
+        copy.width = component.width
+        copy.height = component.height
+        copy.shape = component.shape
+        copy.color = component.color
+        copy.type = component.type
+        root.graph.addComponent(copy)
+        root.selectSingleComponent(copy)
+        root.selectedConnection = null
+        root.componentSelected(copy)
+        edgeCanvas.repaint()
+    }
+
+    function addComponentAtWorldPos(worldPos) {
+        if (!root.graph)
+            return
+
+        var component = Qt.createQmlObject(
+                    'import ComponentMapEditor; ComponentModel {}', root.graph)
+        component.id = root.uniqueComponentId("component")
+        component.title = "Component"
+        component.content = ""
+        component.icon = "cube"
+        component.x = worldPos.x
+        component.y = worldPos.y
+        component.width = 96
+        component.height = 96
+        component.color = "#4fc3f7"
+        component.shape = "rounded"
+        component.type = "default"
+        root.graph.addComponent(component)
+        root.selectSingleComponent(component)
+        root.selectedConnection = null
+        root.componentSelected(component)
+        edgeCanvas.repaint()
+    }
+
+    function clearAllConnections() {
+        if (!root.graph)
+            return
+
+        var ids = []
+        var currentConnections = root.graph.connections
+        for (var i = 0; i < currentConnections.length; ++i)
+            ids.push(currentConnections[i].id)
+
+        for (var j = 0; j < ids.length; ++j)
+            root.graph.removeConnection(ids[j])
+
+        root.selectedConnection = null
+        edgeCanvas.repaint()
+    }
+
+    function clearAllComponents() {
+        if (!root.graph)
+            return
+
+        root.graph.clear()
+        root.clearComponentSelection()
+        root.selectedConnection = null
+        root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
+        edgeCanvas.repaint()
+    }
+
+    function openConfirm(action, message) {
+        root.pendingConfirmAction = action
+        root.pendingConfirmMessage = message
+        confirmDialog.open()
+    }
+
+    function executePendingConfirm() {
+        if (root.pendingConfirmAction === "clear_connections")
+            root.clearAllConnections()
+        else if (root.pendingConfirmAction === "clear_components")
+            root.clearAllComponents()
+
+        root.pendingConfirmAction = ""
+        root.pendingConfirmMessage = ""
+    }
 
     function viewToWorld(viewX, viewY) {
         if (nodeViewport)
@@ -160,6 +405,7 @@ Item {
         renderEdges: false
         renderNodes: true
         selectedComponent: root.selectedComponent
+        selectedComponentIds: root.selectedComponentIds
     }
 
     // Compatibility wrappers so existing repaint call sites remain intact.
@@ -197,6 +443,7 @@ Item {
                 // point is already in GraphCanvas view coordinates.
                 root.mouseViewPos = Qt.point(point.position.x,
                                              point.position.y)
+                root.livePointerModifiers = point.modifiers
             }
         }
 
@@ -232,6 +479,7 @@ Item {
 
             onPressedChanged: {
                 if (pressed) {
+                    root.livePointerModifiers = point.modifiers
                     root.pressedComponent = edgeViewport.hitTestComponentAtView(point.position.x,
                                                                                  point.position.y)
                 } else {
@@ -240,16 +488,19 @@ Item {
             }
 
             onTapped: point => {
+                          if (root.suppressNextCanvasTap) {
+                              root.suppressNextCanvasTap = false
+                              return
+                          }
+
                           var viewPos = Qt.point(point.position.x,
                                                  point.position.y)
 
                           var hitComponent = edgeViewport.hitTestComponentAtView(viewPos.x,
                                                                                   viewPos.y)
                           if (hitComponent) {
-                              root.selectedConnection = null
-                              root.selectedComponent = hitComponent
-                              root.componentSelected(hitComponent)
-                              edgeCanvas.repaint()
+                              root.handleLeftComponentClick(hitComponent,
+                                                            point.modifiers)
                               return
                           }
 
@@ -257,18 +508,47 @@ Item {
                                                                                     viewPos.y,
                                                                                     10.0)
                           if (hitConnection) {
-                              root.selectedComponent = null
-                              root.selectedConnection = hitConnection
-                              root.connectionSelected(hitConnection)
+                              root.selectConnection(hitConnection)
                               edgeCanvas.repaint()
                               return
                           }
 
-                          root.selectedComponent = null
+                          root.clearComponentSelection()
                           root.selectedConnection = null
                           var worldPos = root.viewToWorld(point.position.x,
                                                           point.position.y)
                           root.backgroundClicked(worldPos.x, worldPos.y)
+                          edgeCanvas.repaint()
+                      }
+        }
+
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onTapped: point => {
+                          var viewPos = Qt.point(point.position.x,
+                                                 point.position.y)
+                          root.menuTargetWorldPos = root.viewToWorld(viewPos.x,
+                                                                     viewPos.y)
+
+                          root.menuTargetComponent = edgeViewport.hitTestComponentAtView(viewPos.x,
+                                                                                           viewPos.y)
+                          if (root.menuTargetComponent) {
+                              componentMenu.popup(point.position.x,
+                                                  point.position.y)
+                              return
+                          }
+
+                          root.menuTargetConnection = edgeViewport.hitTestConnectionAtView(viewPos.x,
+                                                                                             viewPos.y,
+                                                                                             10.0)
+                          if (root.menuTargetConnection) {
+                              connectionMenu.popup(point.position.x,
+                                                   point.position.y)
+                              return
+                          }
+
+                          backgroundMenu.popup(point.position.x,
+                                               point.position.y)
                       }
         }
 
@@ -323,6 +603,7 @@ Item {
                     // Phase 4: keep only interaction overlays in QML.
                     // C++ hit-testing handles picking for all nodes.
                     active: root.selectedComponent === modelData
+                            || root.componentIsSelected(modelData)
                             || root.hoveredComponent === modelData
                             || root.pressedComponent === modelData
                             || root.activeInteractionComponent === modelData
@@ -332,14 +613,14 @@ Item {
                     sourceComponent: ComponentItem {
                         component: modelData
                         selected: root.selectedComponent === modelData
+                                  || root.componentIsSelected(modelData)
                         renderVisuals: false
                         undoStack: root.undoStack
 
-                        onComponentClicked: clickedComponent => {
-                                                root.selectedConnection = null
-                                                root.selectedComponent = clickedComponent
-                                                root.componentSelected(clickedComponent)
-                                                edgeCanvas.repaint()
+                        onComponentClicked: function (clickedComponent, modifiers) {
+                                                root.suppressNextCanvasTap = true
+                                                root.handleLeftComponentClick(clickedComponent,
+                                                                              modifiers)
                                             }
 
                         onFocusedChanged: {
@@ -368,21 +649,17 @@ Item {
                             var component = edgeViewport.hitTestComponentAtView(dropPoint.x,
                                                                                 dropPoint.y)
                             if (!component) {
-                                console.log("Drop ignored: no target component")
                                 edgeCanvas.repaint()
                                 return
                             }
 
                             if (component === sourceComponent) {
-                                console.log("Drop ignored: source equals target")
                                 edgeCanvas.repaint()
                                 return
                             }
 
                             var connectionId = "conn_" + sourceComponent.id + "_" + component.id
                             if (root.graph.connectionById(connectionId)) {
-                                console.log("Drop ignored: connection already exists",
-                                            connectionId)
                                 edgeCanvas.repaint()
                                 return
                             }
@@ -448,7 +725,9 @@ Item {
         z: 200
         componentCount: root.graph ? root.graph.components.length : 0
         connectionCount: root.graph ? root.graph.connections.length : 0
-        selectedComponentLabel: root.selectedComponent ? root.selectedComponent.label : "none"
+        selectedComponentCount: root.selectedComponentIds.length
+        selectedConnectionCount: root.selectedConnection ? 1 : 0
+        selectedComponentTitle: root.selectedComponent ? root.selectedComponent.title : "none"
         selectedConnectionLabel: root.selectedConnection ? root.selectedConnection.id : "none"
         mouseViewPos: root.mouseViewPos
         mouseWorldPos: root.mouseWorldPos
@@ -466,6 +745,12 @@ Item {
             root.nodeInteractionActive = false
             root.enableBackgroundDrag = true
             root.pointerOverComponent = false
+            var filteredIds = []
+            for (var i = 0; i < root.selectedComponentIds.length; ++i) {
+                if (root.graph.componentById(root.selectedComponentIds[i]))
+                    filteredIds.push(root.selectedComponentIds[i])
+            }
+            root.selectedComponentIds = filteredIds
             if (root.selectedComponent && !root.graph.componentById(root.selectedComponent.id))
                 root.selectedComponent = null
             edgeCanvas.repaint()
@@ -474,6 +759,86 @@ Item {
             if (root.selectedConnection && !root.graph.connectionById(root.selectedConnection.id))
                 root.selectedConnection = null
             edgeCanvas.repaint()
+        }
+    }
+
+    Menu {
+        id: componentMenu
+
+        MenuItem {
+            text: "Duplicate"
+            onTriggered: root.duplicateComponent(root.menuTargetComponent)
+        }
+        MenuItem {
+            text: "Delete"
+            onTriggered: root.deleteComponent(root.menuTargetComponent)
+        }
+        MenuSeparator {}
+        MenuItem {
+            text: "Clear Incoming Connections"
+            onTriggered: root.clearComponentConnections(root.menuTargetComponent,
+                                                        true,
+                                                        false)
+        }
+        MenuItem {
+            text: "Clear Outgoing Connections"
+            onTriggered: root.clearComponentConnections(root.menuTargetComponent,
+                                                        false,
+                                                        true)
+        }
+    }
+
+    Menu {
+        id: connectionMenu
+
+        MenuItem {
+            text: "Delete"
+            onTriggered: {
+                if (root.menuTargetConnection)
+                    root.removeConnectionById(root.menuTargetConnection.id)
+                edgeCanvas.repaint()
+            }
+        }
+    }
+
+    Menu {
+        id: backgroundMenu
+
+        MenuItem {
+            text: "Add New Component"
+            onTriggered: root.addComponentAtWorldPos(root.menuTargetWorldPos)
+        }
+        MenuSeparator {}
+        MenuItem {
+            text: "Clear All Connections"
+            onTriggered: root.openConfirm("clear_connections",
+                                          "Clear all connections?")
+        }
+        MenuItem {
+            text: "Clear All Components"
+            onTriggered: root.openConfirm("clear_components",
+                                          "Clear all components and related connections?")
+        }
+    }
+
+    Dialog {
+        id: confirmDialog
+        title: "Confirm"
+        modal: true
+        anchors.centerIn: parent
+        width: 420
+        standardButtons: Dialog.Yes | Dialog.No
+
+        contentItem: Label {
+            text: root.pendingConfirmMessage
+            wrapMode: Text.WordWrap
+            width: 360
+        }
+
+        onAccepted: root.executePendingConfirm()
+        onRejected: {
+            root.pendingConfirmAction = ""
+            root.pendingConfirmMessage = ""
         }
     }
 
@@ -500,5 +865,8 @@ Item {
         root.updateMouseWorldPos()
     }
 
-    Component.onCompleted: root.updateMouseWorldPos()
+    Component.onCompleted: {
+        FontAwesome.ensureLoaded()
+        root.updateMouseWorldPos()
+    }
 }

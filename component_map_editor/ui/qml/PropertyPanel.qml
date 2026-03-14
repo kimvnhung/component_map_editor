@@ -51,11 +51,28 @@ Rectangle {
                     onEditingFinished: if (root.component) root.component.id = text
                 }
 
-                Label { text: "Label" }
+                Label { text: "Title" }
                 TextField {
                     Layout.fillWidth: true
-                    text: root.component ? root.component.label : ""
-                    onEditingFinished: if (root.component) root.component.label = text
+                    text: root.component ? root.component.title : ""
+                    onEditingFinished: if (root.component) root.component.title = text
+                }
+
+                Label { text: "Content" }
+                TextArea {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 64
+                    text: root.component ? root.component.content : ""
+                    wrapMode: Text.WordWrap
+                    onEditingFinished: if (root.component) root.component.content = text
+                }
+
+                Label { text: "Icon" }
+                TextField {
+                    Layout.fillWidth: true
+                    text: root.component ? root.component.icon : ""
+                    placeholderText: "e.g. cube, house, user"
+                    onEditingFinished: if (root.component) root.component.icon = text
                 }
 
                 Label { text: "Color" }
@@ -102,7 +119,7 @@ Rectangle {
                 SpinBox {
                     Layout.fillWidth: true
                     from: 10; to: 9999
-                    value: root.component ? Math.round(root.component.width) : 120
+                    value: root.component ? Math.round(root.component.width) : 96
                     onValueModified: if (root.component) root.component.width = value
                 }
 
@@ -110,7 +127,7 @@ Rectangle {
                 SpinBox {
                     Layout.fillWidth: true
                     from: 10; to: 9999
-                    value: root.component ? Math.round(root.component.height) : 40
+                    value: root.component ? Math.round(root.component.height) : 96
                     onValueModified: if (root.component) root.component.height = value
                 }
             }

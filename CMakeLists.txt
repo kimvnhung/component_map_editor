@@ -13,5 +13,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
+add_subdirectory(qml_fontawesome)
 add_subdirectory(component_map_editor)
 add_subdirectory(example)
+
