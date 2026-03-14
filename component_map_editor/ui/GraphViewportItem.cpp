@@ -39,6 +39,27 @@ public:
     qint64 textureBytes = 0;
 };
 
+// Cached FontAwesome icon font configuration for GraphViewportItem labels.
+// This must be initialized from the GUI thread (e.g., during application startup
+// or GraphViewportItem component completion) by calling initializeGraphViewportIconFont().
+static QString g_iconFontFamilySolid;
+static int g_iconFontWeightSolid = -1;
+static bool g_iconFontInitialized = false;
+
+// GUI-thread-only initialization helper. Calling this from the scene graph render
+// thread is not safe, because FontAwesome lazy-loading may perform I/O and
+// QFontDatabase operations. The render-thread code path only reads the cached
+// values and never calls FontAwesome directly.
+static void initializeGraphViewportIconFont()
+{
+    if (g_iconFontInitialized)
+        return;
+
+    g_iconFontFamilySolid = FontAwesome::familyForCpp(FontAwesome::Solid);
+    g_iconFontWeightSolid = FontAwesome::weightForCpp(FontAwesome::Solid);
+    g_iconFontInitialized = true;
+}
+
 QPointF centerPoint(ComponentModel *component)
 {
     return QPointF(component->x(), component->y());
@@ -1169,9 +1190,15 @@ void GraphViewportItem::updateLabelNodes()
 
     QFont iconFont;
     iconFont.setPixelSize(11);
-    iconFont.setFamily(FontAwesome::familyForCpp(FontAwesome::Solid));
-    iconFont.setWeight(static_cast<QFont::Weight>(
-                           FontAwesome::weightForCpp(FontAwesome::Solid)));
+
+    // Use cached FontAwesome icon font configuration only if it has been
+    // initialized on the GUI thread. Do not call FontAwesome helpers from
+    // the scene graph render thread, as they may trigger lazy loading with
+    // file I/O and QFontDatabase operations.
+    if (g_iconFontInitialized) {
+        iconFont.setFamily(g_iconFontFamilySolid);
+        iconFont.setWeight(static_cast<QFont::Weight>(g_iconFontWeightSolid));
+    }
 
     int activeLabelTextures = 0;
 
