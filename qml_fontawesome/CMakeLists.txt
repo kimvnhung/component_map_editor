@@ -9,6 +9,8 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
+include(GNUInstallDirs)
+
 set(QML_FONT_AWESOME_SOURCES
     src/FontAwesome.h
     src/FontAwesome.cpp
@@ -68,7 +70,6 @@ set_target_properties(QmlFontAwesome PROPERTIES
 
 add_library(QmlFontAwesome::QmlFontAwesome ALIAS QmlFontAwesome)
 
-include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 install(TARGETS QmlFontAwesome
