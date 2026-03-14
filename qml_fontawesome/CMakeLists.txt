@@ -18,13 +18,24 @@ set(QML_FONT_AWESOME_QML_FILES
     qml/FaIcon.qml
 )
 
-set(QML_FONT_AWESOME_RESOURCES
-    fontawesome/LICENSE.txt
-    fontawesome/metadata/icons.json
-    "fontawesome/otfs/Font Awesome 7 Brands-Regular-400.otf"
-    "fontawesome/otfs/Font Awesome 7 Free-Regular-400.otf"
-    "fontawesome/otfs/Font Awesome 7 Free-Solid-900.otf"
-)
+set(FONT_AWESOME_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/fontawesome")
+set(QML_FONT_AWESOME_RESOURCES)
+
+if(EXISTS "${FONT_AWESOME_ASSETS_DIR}")
+    list(APPEND QML_FONT_AWESOME_RESOURCES
+        fontawesome/LICENSE.txt
+        fontawesome/metadata/icons.json
+        "fontawesome/otfs/Font Awesome 7 Brands-Regular-400.otf"
+        "fontawesome/otfs/Font Awesome 7 Free-Regular-400.otf"
+        "fontawesome/otfs/Font Awesome 7 Free-Solid-900.otf"
+    )
+else()
+    message(FATAL_ERROR
+        "Font Awesome assets directory '${FONT_AWESOME_ASSETS_DIR}' is missing.\n"
+        "Please add the 'fontawesome' directory (e.g., via Git LFS, submodule, or a "
+        "download step) so that QmlFontAwesome resources can be built."
+    )
+endif()
 
 qt_add_qml_module(QmlFontAwesome
     URI QmlFontAwesome
