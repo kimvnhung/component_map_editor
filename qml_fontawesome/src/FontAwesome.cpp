@@ -263,19 +263,19 @@ bool FontAwesome::initialize()
 
 QString FontAwesome::iconForCpp(const QString &name, Style style)
 {
-    FontAwesome instance;
+    static FontAwesome instance;
     return instance.icon(name, style);
 }
 
 QString FontAwesome::familyForCpp(Style style)
 {
-    FontAwesome instance;
+    static FontAwesome instance;
     return instance.family(style);
 }
 
 int FontAwesome::weightForCpp(Style style)
 {
-    FontAwesome instance;
+    static FontAwesome instance;
     return instance.weight(style);
 }
 
