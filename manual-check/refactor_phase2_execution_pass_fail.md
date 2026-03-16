@@ -106,7 +106,7 @@ Use same camera, same graph data, same source/target side settings for baseline 
   2. Clear + import.
   3. Validate route rendering.
 - Pass:
-  - Routes rebuild correctly post-import.
+  - **STATUS: ✅ PASS** Routes rebuild correctly post-import.
 
 ---
 
@@ -117,14 +117,14 @@ Use same camera, same graph data, same source/target side settings for baseline 
   1. Trigger connection changes and component moves.
   2. Observe route rebuild counters and p50/p95.
 - Pass:
-  - Counters increase and values are non-zero when expected.
+  -**STATUS: ✅ PASS** Counters increase and values are non-zero when expected.
 
 2. Camera-only interaction should not trigger reroute
 - Steps:
   1. Pan and zoom without graph mutation.
   2. Observe route rebuild deltas.
 - Pass:
-  - Camera-only operations do not increase route rebuild delta.
+  -**STATUS: ✅ PASS** Camera-only operations do not increase route rebuild delta.
 
 ---
 
