@@ -628,7 +628,7 @@ Item {
                             root.enableBackgroundDrag = !focused
                         }
 
-                        onConnectionDragged: function (sourceComponent, startP, targetP) {
+                        onConnectionDragged: function (sourceComponent, sourceSide, startP, targetP) {
                             root.activeInteractionComponent = sourceComponent
                             root.nodeInteractionActive = true
                             root.enableBackgroundDrag = false
@@ -637,7 +637,7 @@ Item {
                             root.tempEnd = root.windowSceneToView(targetP)
                             edgeCanvas.repaint()
                         }
-                        onConnectionDropped: function (sourceComponent, startP, targetP) {
+                        onConnectionDropped: function (sourceComponent, sourceSide, startP, targetP) {
                             root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
                             root.enableBackgroundDrag = !focused
@@ -672,6 +672,7 @@ Item {
                             e1.sourceId = sourceComponent.id
                             e1.targetId = component.id
                             e1.label = "path A"
+                            e1.sourceSide = sourceSide
                             root.graph.addConnection(e1)
                             edgeCanvas.repaint()
                         }

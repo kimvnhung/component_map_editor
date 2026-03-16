@@ -2,6 +2,24 @@
 
 #include <QSet>
 
+namespace {
+
+bool isValidConnectionSide(ConnectionModel::Side side)
+{
+    switch (side) {
+    case ConnectionModel::SideAuto:
+    case ConnectionModel::SideTop:
+    case ConnectionModel::SideRight:
+    case ConnectionModel::SideBottom:
+    case ConnectionModel::SideLeft:
+        return true;
+    default:
+        return false;
+    }
+}
+
+} // namespace
+
 ValidationService::ValidationService(QObject *parent)
     : QObject(parent)
 {}
@@ -49,6 +67,18 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
 
         if (connection->sourceId() == connection->targetId())
             errors << QStringLiteral("Connection '%1' is a self-loop").arg(connection->id());
+
+        if (!isValidConnectionSide(connection->sourceSide())) {
+            errors << QStringLiteral("Connection '%1' has invalid sourceSide value %2")
+                          .arg(connection->id())
+                          .arg(static_cast<int>(connection->sourceSide()));
+        }
+
+        if (!isValidConnectionSide(connection->targetSide())) {
+            errors << QStringLiteral("Connection '%1' has invalid targetSide value %2")
+                          .arg(connection->id())
+                          .arg(static_cast<int>(connection->targetSide()));
+        }
 
         if (connectionIds.contains(connection->id()))
             errors << QStringLiteral("Duplicate connection id: %1").arg(connection->id());
