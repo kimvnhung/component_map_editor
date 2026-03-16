@@ -25,6 +25,7 @@
 #include <QSet>
 #include <QTimer>
 #include <QThread>
+#include <queue>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -326,6 +327,187 @@ QVector<QPointF> makeDoglegRoute(const QPointF &start,
     return simplifyPolyline(points);
 }
 
+QVector<QPointF> makeGridAStarRoute(const QPointF &start,
+                                    const QPointF &end,
+                                    const QList<ComponentModel *> &components,
+                                    ComponentModel *sourceComponent,
+                                    ComponentModel *targetComponent)
+{
+    constexpr qreal baseCellSize = 24.0;
+    constexpr qreal obstacleInflation = 10.0;
+    constexpr qreal windowMargin = 180.0;
+    constexpr int maxExpandedNodes = 8000;
+    constexpr int maxGridCells = 12000;
+
+    qreal minX = qMin(start.x(), end.x()) - windowMargin;
+    qreal maxX = qMax(start.x(), end.x()) + windowMargin;
+    qreal minY = qMin(start.y(), end.y()) - windowMargin;
+    qreal maxY = qMax(start.y(), end.y()) + windowMargin;
+
+    QVector<QRectF> obstacleRects;
+    obstacleRects.reserve(components.size());
+    for (ComponentModel *component : components) {
+        if (!component || component == sourceComponent || component == targetComponent)
+            continue;
+
+        const QRectF inflated = componentWorldRect(component).adjusted(-obstacleInflation,
+                                                                        -obstacleInflation,
+                                                                        obstacleInflation,
+                                                                        obstacleInflation);
+        if (!inflated.intersects(QRectF(QPointF(minX, minY), QPointF(maxX, maxY))))
+            continue;
+
+        obstacleRects.append(inflated);
+        minX = qMin(minX, inflated.left() - windowMargin * 0.2);
+        maxX = qMax(maxX, inflated.right() + windowMargin * 0.2);
+        minY = qMin(minY, inflated.top() - windowMargin * 0.2);
+        maxY = qMax(maxY, inflated.bottom() + windowMargin * 0.2);
+    }
+
+    qreal cellSize = baseCellSize;
+    int gridW = qMax(2, int(std::ceil((maxX - minX) / cellSize)) + 1);
+    int gridH = qMax(2, int(std::ceil((maxY - minY) / cellSize)) + 1);
+    while (gridW * gridH > maxGridCells) {
+        cellSize *= 1.35;
+        gridW = qMax(2, int(std::ceil((maxX - minX) / cellSize)) + 1);
+        gridH = qMax(2, int(std::ceil((maxY - minY) / cellSize)) + 1);
+    }
+
+    auto toCellX = [&](qreal x) {
+        return qBound(0, int(std::floor((x - minX) / cellSize)), gridW - 1);
+    };
+    auto toCellY = [&](qreal y) {
+        return qBound(0, int(std::floor((y - minY) / cellSize)), gridH - 1);
+    };
+    auto toIndex = [&](int x, int y) {
+        return y * gridW + x;
+    };
+    auto toCellCenter = [&](int x, int y) {
+        return QPointF(minX + (x + 0.5) * cellSize,
+                       minY + (y + 0.5) * cellSize);
+    };
+
+    QVector<uchar> occupied(gridW * gridH, 0);
+    for (const QRectF &rect : obstacleRects) {
+        const int left = toCellX(rect.left());
+        const int right = toCellX(rect.right());
+        const int top = toCellY(rect.top());
+        const int bottom = toCellY(rect.bottom());
+        for (int cy = top; cy <= bottom; ++cy) {
+            for (int cx = left; cx <= right; ++cx)
+                occupied[toIndex(cx, cy)] = 1;
+        }
+    }
+
+    const int startX = toCellX(start.x());
+    const int startY = toCellY(start.y());
+    const int goalX = toCellX(end.x());
+    const int goalY = toCellY(end.y());
+    const int startIdx = toIndex(startX, startY);
+    const int goalIdx = toIndex(goalX, goalY);
+
+    occupied[startIdx] = 0;
+    occupied[goalIdx] = 0;
+
+    struct OpenNode {
+        int f = 0;
+        int idx = -1;
+    };
+    struct OpenNodeGreater {
+        bool operator()(const OpenNode &a, const OpenNode &b) const
+        {
+            return a.f > b.f;
+        }
+    };
+
+    auto heuristic = [&](int idx) {
+        const int x = idx % gridW;
+        const int y = idx / gridW;
+        return qAbs(x - goalX) + qAbs(y - goalY);
+    };
+
+    const int totalCells = gridW * gridH;
+    QVector<int> gScore(totalCells, std::numeric_limits<int>::max());
+    QVector<int> parent(totalCells, -1);
+    QVector<uchar> closed(totalCells, 0);
+    std::priority_queue<OpenNode, std::vector<OpenNode>, OpenNodeGreater> open;
+
+    gScore[startIdx] = 0;
+    open.push(OpenNode { heuristic(startIdx), startIdx });
+
+    int expanded = 0;
+    bool found = false;
+
+    while (!open.empty()) {
+        const OpenNode current = open.top();
+        open.pop();
+
+        if (current.idx < 0 || current.idx >= totalCells)
+            continue;
+        if (closed[current.idx])
+            continue;
+
+        closed[current.idx] = 1;
+        if (current.idx == goalIdx) {
+            found = true;
+            break;
+        }
+
+        ++expanded;
+        if (expanded > maxExpandedNodes)
+            break;
+
+        const int cx = current.idx % gridW;
+        const int cy = current.idx / gridW;
+        const int neighborX[4] = { cx + 1, cx - 1, cx, cx };
+        const int neighborY[4] = { cy, cy, cy + 1, cy - 1 };
+
+        for (int i = 0; i < 4; ++i) {
+            const int nx = neighborX[i];
+            const int ny = neighborY[i];
+            if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH)
+                continue;
+
+            const int nIdx = toIndex(nx, ny);
+            if (occupied[nIdx] || closed[nIdx])
+                continue;
+
+            const int tentativeG = gScore[current.idx] + 1;
+            if (tentativeG >= gScore[nIdx])
+                continue;
+
+            parent[nIdx] = current.idx;
+            gScore[nIdx] = tentativeG;
+            open.push(OpenNode { tentativeG + heuristic(nIdx), nIdx });
+        }
+    }
+
+    if (!found && startIdx != goalIdx)
+        return {};
+
+    QVector<int> cellPath;
+    cellPath.reserve(128);
+    int cursor = goalIdx;
+    cellPath.append(cursor);
+    while (cursor != startIdx) {
+        cursor = parent[cursor];
+        if (cursor < 0)
+            return {};
+        cellPath.append(cursor);
+    }
+    std::reverse(cellPath.begin(), cellPath.end());
+
+    QVector<QPointF> worldPath;
+    worldPath.reserve(cellPath.size() + 2);
+    worldPath.append(start);
+    for (int i = 1; i < cellPath.size() - 1; ++i) {
+        const int idx = cellPath.at(i);
+        worldPath.append(toCellCenter(idx % gridW, idx / gridW));
+    }
+    worldPath.append(end);
+    return simplifyPolyline(worldPath);
+}
+
 QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
                                               ComponentModel *sourceComponent,
                                               ComponentModel *targetComponent,
@@ -342,6 +524,7 @@ QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
                         QVector<QPointF> &acceptedRoute,
                         ConnectionModel::Side &resolvedSourceSide,
                         ConnectionModel::Side &resolvedTargetSide) -> bool {
+        Q_UNUSED(attemptName)
         resolvedSourceSide = resolvedSide(requestedSourceSide,
                                           sourceComponent,
                                           targetComponent,
@@ -422,6 +605,23 @@ QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
             }
 
             acceptedRoute = simplified;
+            return true;
+        }
+
+        // Stage 2: obstacle-aware bounded local-grid A* fallback.
+        const QVector<QPointF> stage2Route = makeGridAStarRoute(start,
+                                                                end,
+                                                                components,
+                                                                sourceComponent,
+                                                                targetComponent);
+        if (stage2Route.size() >= 2
+            && routeIsValid(stage2Route,
+                            components,
+                            sourceComponent,
+                            targetComponent,
+                            resolvedSourceSide,
+                            resolvedTargetSide)) {
+            acceptedRoute = stage2Route;
             return true;
         }
 

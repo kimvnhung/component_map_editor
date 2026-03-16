@@ -39,6 +39,12 @@ cmake --build build
 
 The example application is built as build/example/example_app.
 
+## Routing Verification
+
+Use the verification checklist in [manual-check/orthogonal_routing_verification.md](manual-check/orthogonal_routing_verification.md)
+for Stage 1 + Stage 2 orthogonal router acceptance (unit checks, integration checks,
+and benchmark performance gates).
+
 ## QML API summary
 
 - ComponentModel: id, label, x, y, color, type
