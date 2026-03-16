@@ -4,6 +4,25 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+namespace {
+
+ConnectionModel::Side sideFromJsonValue(const QJsonValue &value)
+{
+    const int sideValue = value.toInt(static_cast<int>(ConnectionModel::SideAuto));
+    switch (sideValue) {
+    case ConnectionModel::SideTop:
+    case ConnectionModel::SideRight:
+    case ConnectionModel::SideBottom:
+    case ConnectionModel::SideLeft:
+    case ConnectionModel::SideAuto:
+        return static_cast<ConnectionModel::Side>(sideValue);
+    default:
+        return ConnectionModel::SideAuto;
+    }
+}
+
+} // namespace
+
 ExportService::ExportService(QObject *parent)
     : QObject(parent)
 {}
@@ -37,6 +56,8 @@ QString ExportService::exportToJson(GraphModel *graph)
         obj[QStringLiteral("sourceId")] = connection->sourceId();
         obj[QStringLiteral("targetId")] = connection->targetId();
         obj[QStringLiteral("label")]    = connection->label();
+        obj[QStringLiteral("sourceSide")] = static_cast<int>(connection->sourceSide());
+        obj[QStringLiteral("targetSide")] = static_cast<int>(connection->targetSide());
         connectionsArray.append(obj);
     }
 
@@ -115,6 +136,8 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
             obj[QStringLiteral("sourceId")].toString(),
             obj[QStringLiteral("targetId")].toString(),
             obj[QStringLiteral("label")].toString());
+        connection->setSourceSide(sideFromJsonValue(obj[QStringLiteral("sourceSide")]));
+        connection->setTargetSide(sideFromJsonValue(obj[QStringLiteral("targetSide")]));
         graph->addConnection(connection);
     }
 
