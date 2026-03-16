@@ -497,14 +497,66 @@ QVector<QPointF> makeGridAStarRoute(const QPointF &start,
     }
     std::reverse(cellPath.begin(), cellPath.end());
 
+    // Build a world-space polyline that is strictly orthogonal (axis-aligned).
+    // The A* grid search itself moves only in 4-neighbor fashion, so segments
+    // between cell centers are axis-aligned. However, the exact start/end
+    // points are not necessarily aligned with the first/last cell centers,
+    // so we add at most one orthogonal "bridge" point at each end to avoid
+    // creating diagonal segments that would fail validation.
+    auto isAligned = [](const QPointF &a, const QPointF &b) -> bool {
+        return qFuzzyIsNull(a.x() - b.x()) || qFuzzyIsNull(a.y() - b.y());
+    };
+
+    auto appendDistinct = [](QVector<QPointF> &vec, const QPointF &pt) {
+        if (vec.isEmpty() || vec.last() != pt)
+            vec.append(pt);
+    };
+
     QVector<QPointF> worldPath;
-    worldPath.reserve(cellPath.size() + 2);
-    worldPath.append(start);
+    // Reserve a few extra slots for possible bridge points.
+    worldPath.reserve(cellPath.size() + 4);
+
+    // If there are no internal grid cells between start and goal, just create
+    // a simple orthogonal (L-shaped) route between start and end.
+    if (cellPath.size() <= 2) {
+        appendDistinct(worldPath, start);
+        if (!isAligned(start, end)) {
+            // Use a single intermediate point to make an L-shape.
+            QPointF mid(end.x(), start.y());
+            appendDistinct(worldPath, mid);
+        }
+        appendDistinct(worldPath, end);
+        return simplifyPolyline(worldPath);
+    }
+
+    // There is at least one internal cell. Connect start to the first cell
+    // center via an orthogonal bridge point if necessary, then follow all
+    // internal cell centers, and finally connect to end similarly.
+    appendDistinct(worldPath, start);
+
+    const int firstIdx = cellPath.at(1);
+    QPointF firstCenter = toCellCenter(firstIdx % gridW, firstIdx / gridW);
+    if (!isAligned(start, firstCenter)) {
+        // Bridge horizontally first, then vertically.
+        QPointF bridge(start.x(), firstCenter.y());
+        appendDistinct(worldPath, bridge);
+    }
+
+    // Append all internal cell centers (from cellPath[1] to cellPath[size-2]).
     for (int i = 1; i < cellPath.size() - 1; ++i) {
         const int idx = cellPath.at(i);
-        worldPath.append(toCellCenter(idx % gridW, idx / gridW));
+        appendDistinct(worldPath, toCellCenter(idx % gridW, idx / gridW));
     }
-    worldPath.append(end);
+
+    // Connect from the last cell center to the exact end point.
+    const int lastIdx = cellPath.at(cellPath.size() - 2);
+    QPointF lastCenter = toCellCenter(lastIdx % gridW, lastIdx / gridW);
+    if (!isAligned(lastCenter, end)) {
+        QPointF bridge(end.x(), lastCenter.y());
+        appendDistinct(worldPath, bridge);
+    }
+
+    appendDistinct(worldPath, end);
     return simplifyPolyline(worldPath);
 }
 
