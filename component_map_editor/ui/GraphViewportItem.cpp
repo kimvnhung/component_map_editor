@@ -276,7 +276,15 @@ bool routeIsValid(const QVector<QPointF> &points,
             return false;
 
         for (ComponentModel *component : components) {
-            if (!component || component == sourceComponent || component == targetComponent)
+            if (!component)
+                continue;
+
+            // Allow the route to start from the source boundary and end at the
+            // target boundary. All other segments must avoid all component
+            // interiors, including source and target.
+            const bool isSourceBoundarySegment = (component == sourceComponent && i == 1);
+            const bool isTargetBoundarySegment = (component == targetComponent && i == points.size() - 1);
+            if (isSourceBoundarySegment || isTargetBoundarySegment)
                 continue;
 
             if (axisAlignedSegmentIntersectsRectInterior(a, b, componentWorldRect(component)))
@@ -322,83 +330,163 @@ QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
                                               ComponentModel *targetComponent,
                                               const QList<ComponentModel *> &components)
 {
-    const ConnectionModel::Side sourceSide = resolvedSide(connection->sourceSide(),
-                                                          sourceComponent,
-                                                          targetComponent,
-                                                          true);
-    const ConnectionModel::Side targetSide = resolvedSide(connection->targetSide(),
-                                                          sourceComponent,
-                                                          targetComponent,
-                                                          false);
+    struct RouteCandidate {
+        QVector<QPointF> points;
+        const char *stage;
+    };
 
-    const QPointF start = anchorPointForSide(sourceComponent, sourceSide);
-    const QPointF end = anchorPointForSide(targetComponent, targetSide);
-    const QRectF sourceRect = componentWorldRect(sourceComponent);
-    const QRectF targetRect = componentWorldRect(targetComponent);
+    auto tryRoute = [&](ConnectionModel::Side requestedSourceSide,
+                        ConnectionModel::Side requestedTargetSide,
+                        const char *attemptName,
+                        QVector<QPointF> &acceptedRoute,
+                        ConnectionModel::Side &resolvedSourceSide,
+                        ConnectionModel::Side &resolvedTargetSide) -> bool {
+        resolvedSourceSide = resolvedSide(requestedSourceSide,
+                                          sourceComponent,
+                                          targetComponent,
+                                          true);
+        resolvedTargetSide = resolvedSide(requestedTargetSide,
+                                          sourceComponent,
+                                          targetComponent,
+                                          false);
 
-    const qreal clearance = qMax<qreal>(24.0,
-                                        qMin(sourceRect.width(), sourceRect.height()) * 0.25);
+        const QPointF start = anchorPointForSide(sourceComponent, resolvedSourceSide);
+        const QPointF end = anchorPointForSide(targetComponent, resolvedTargetSide);
+        const QRectF sourceRect = componentWorldRect(sourceComponent);
+        const QRectF targetRect = componentWorldRect(targetComponent);
 
-    QVector<QVector<QPointF>> candidates;
-    candidates.reserve(8);
+        const qreal clearance = qMax<qreal>(24.0,
+                                            qMin(sourceRect.width(), sourceRect.height()) * 0.25);
 
-    candidates.append(simplifyPolyline({ start, end }));
-    candidates.append(makeLRoute(start, end, true));
-    candidates.append(makeLRoute(start, end, false));
+        QVector<RouteCandidate> candidates;
+        candidates.reserve(20);
 
-    const qreal leftCorridor = qMin(sourceRect.left(), targetRect.left()) - clearance;
-    const qreal rightCorridor = qMax(sourceRect.right(), targetRect.right()) + clearance;
-    const qreal topCorridor = qMin(sourceRect.top(), targetRect.top()) - clearance;
-    const qreal bottomCorridor = qMax(sourceRect.bottom(), targetRect.bottom()) + clearance;
+        candidates.append({ simplifyPolyline({ start, end }), "straight" });
+        candidates.append({ makeLRoute(start, end, true), "l-horizontal-first" });
+        candidates.append({ makeLRoute(start, end, false), "l-vertical-first" });
 
-    const QPointF sourceOut = offsetPointForSide(start, sourceSide, clearance);
-    const QPointF targetOut = offsetPointForSide(end, targetSide, clearance);
+        const qreal leftCorridor = qMin(sourceRect.left(), targetRect.left()) - clearance;
+        const qreal rightCorridor = qMax(sourceRect.right(), targetRect.right()) + clearance;
+        const qreal topCorridor = qMin(sourceRect.top(), targetRect.top()) - clearance;
+        const qreal bottomCorridor = qMax(sourceRect.bottom(), targetRect.bottom()) + clearance;
 
-    if (isHorizontalSide(sourceSide)) {
-        candidates.append(makeDoglegRoute(start, end, true, sourceOut.x()));
-        candidates.append(simplifyPolyline({ start, sourceOut, end }));
-    } else {
-        candidates.append(makeDoglegRoute(start, end, false, sourceOut.y()));
-        candidates.append(simplifyPolyline({ start, sourceOut, end }));
-    }
+        const QPointF sourceOut = offsetPointForSide(start, resolvedSourceSide, clearance);
+        const QPointF targetOut = offsetPointForSide(end, resolvedTargetSide, clearance);
 
-    if (isHorizontalSide(targetSide)) {
-        candidates.append(makeDoglegRoute(start, end, true, targetOut.x()));
-        candidates.append(simplifyPolyline({ start, targetOut, end }));
-    } else {
-        candidates.append(makeDoglegRoute(start, end, false, targetOut.y()));
-        candidates.append(simplifyPolyline({ start, targetOut, end }));
-    }
-
-    candidates.append(makeDoglegRoute(start, end, true,
-                                      sourceSide == ConnectionModel::SideLeft ? leftCorridor : rightCorridor));
-    candidates.append(makeDoglegRoute(start, end, true,
-                                      targetSide == ConnectionModel::SideLeft ? leftCorridor : rightCorridor));
-    candidates.append(makeDoglegRoute(start, end, false,
-                                      sourceSide == ConnectionModel::SideTop ? topCorridor : bottomCorridor));
-    candidates.append(makeDoglegRoute(start, end, false,
-                                      targetSide == ConnectionModel::SideTop ? topCorridor : bottomCorridor));
-
-    candidates.append(makeDoglegRoute(start, end, true, leftCorridor));
-    candidates.append(makeDoglegRoute(start, end, true, rightCorridor));
-    candidates.append(makeDoglegRoute(start, end, false, topCorridor));
-    candidates.append(makeDoglegRoute(start, end, false, bottomCorridor));
-
-    for (const QVector<QPointF> &candidate : candidates) {
-        const QVector<QPointF> simplified = simplifyPolyline(candidate);
-        if (simplified.size() < 2)
-            continue;
-        if (routeIsValid(simplified,
-                         components,
-                         sourceComponent,
-                         targetComponent,
-                         sourceSide,
-                         targetSide)) {
-            return simplified;
+        if (isHorizontalSide(resolvedSourceSide)) {
+            candidates.append({ makeDoglegRoute(start, end, true, sourceOut.x()), "dogleg-source-corridor" });
+            candidates.append({ simplifyPolyline({ start, sourceOut, end }), "source-clearance-kink" });
+        } else {
+            candidates.append({ makeDoglegRoute(start, end, false, sourceOut.y()), "dogleg-source-corridor" });
+            candidates.append({ simplifyPolyline({ start, sourceOut, end }), "source-clearance-kink" });
         }
+
+        if (isHorizontalSide(resolvedTargetSide)) {
+            candidates.append({ makeDoglegRoute(start, end, true, targetOut.x()), "dogleg-target-corridor" });
+            candidates.append({ simplifyPolyline({ start, targetOut, end }), "target-clearance-kink" });
+        } else {
+            candidates.append({ makeDoglegRoute(start, end, false, targetOut.y()), "dogleg-target-corridor" });
+            candidates.append({ simplifyPolyline({ start, targetOut, end }), "target-clearance-kink" });
+        }
+
+        candidates.append({ makeDoglegRoute(start, end, true,
+                                            resolvedSourceSide == ConnectionModel::SideLeft ? leftCorridor : rightCorridor),
+                            "dogleg-source-preferred-outer" });
+        candidates.append({ makeDoglegRoute(start, end, true,
+                                            resolvedTargetSide == ConnectionModel::SideLeft ? leftCorridor : rightCorridor),
+                            "dogleg-target-preferred-outer" });
+        candidates.append({ makeDoglegRoute(start, end, false,
+                                            resolvedSourceSide == ConnectionModel::SideTop ? topCorridor : bottomCorridor),
+                            "dogleg-source-preferred-outer" });
+        candidates.append({ makeDoglegRoute(start, end, false,
+                                            resolvedTargetSide == ConnectionModel::SideTop ? topCorridor : bottomCorridor),
+                            "dogleg-target-preferred-outer" });
+
+        candidates.append({ makeDoglegRoute(start, end, true, leftCorridor), "dogleg-global-left" });
+        candidates.append({ makeDoglegRoute(start, end, true, rightCorridor), "dogleg-global-right" });
+        candidates.append({ makeDoglegRoute(start, end, false, topCorridor), "dogleg-global-top" });
+        candidates.append({ makeDoglegRoute(start, end, false, bottomCorridor), "dogleg-global-bottom" });
+
+        for (const RouteCandidate &candidate : candidates) {
+            const QVector<QPointF> simplified = simplifyPolyline(candidate.points);
+            if (simplified.size() < 2)
+                continue;
+            if (!routeIsValid(simplified,
+                              components,
+                              sourceComponent,
+                              targetComponent,
+                              resolvedSourceSide,
+                              resolvedTargetSide)) {
+                continue;
+            }
+
+            acceptedRoute = simplified;
+            return true;
+        }
+
+        return false;
+    };
+
+    QVector<QPointF> route;
+    ConnectionModel::Side resolvedSource = ConnectionModel::SideAuto;
+    ConnectionModel::Side resolvedTarget = ConnectionModel::SideAuto;
+
+    if (tryRoute(connection->sourceSide(),
+                 connection->targetSide(),
+                 "requested",
+                 route,
+                 resolvedSource,
+                 resolvedTarget)) {
+        return route;
     }
 
-    return simplifyPolyline({ start, end });
+    if (connection->sourceSide() != ConnectionModel::SideAuto
+        && tryRoute(ConnectionModel::SideAuto,
+                    connection->targetSide(),
+                    "auto-source",
+                    route,
+                    resolvedSource,
+                    resolvedTarget)) {
+        return route;
+    }
+
+    if (connection->targetSide() != ConnectionModel::SideAuto
+        && tryRoute(connection->sourceSide(),
+                    ConnectionModel::SideAuto,
+                    "auto-target",
+                    route,
+                    resolvedSource,
+                    resolvedTarget)) {
+        return route;
+    }
+
+    if (tryRoute(ConnectionModel::SideAuto,
+                 ConnectionModel::SideAuto,
+                 "auto-both",
+                 route,
+                 resolvedSource,
+                 resolvedTarget)) {
+        return route;
+    }
+
+    const ConnectionModel::Side fallbackSource = resolvedSide(connection->sourceSide(),
+                                                              sourceComponent,
+                                                              targetComponent,
+                                                              true);
+    const ConnectionModel::Side fallbackTarget = resolvedSide(connection->targetSide(),
+                                                              sourceComponent,
+                                                              targetComponent,
+                                                              false);
+    const QPointF fallbackStart = anchorPointForSide(sourceComponent, fallbackSource);
+    const QPointF fallbackEnd = anchorPointForSide(targetComponent, fallbackTarget);
+
+    qWarning().nospace()
+        << "Orthogonal router fallback: no valid route for connection '"
+        << connection->id()
+        << "' sourceSide=" << int(fallbackSource)
+        << " targetSide=" << int(fallbackTarget)
+        << "; using deterministic straight fallback.";
+    return simplifyPolyline({ fallbackStart, fallbackEnd });
 }
 
 QSGGeometryNode *createLineNode(const QVector<QPointF> &segments,
