@@ -266,6 +266,38 @@ Item {
         edgeCanvas.repaint()
     }
 
+    function addPaletteComponentAtScenePos(title, icon, color, type, scenePos) {
+        if (!root.graph || !scenePos)
+            return false
+
+        var viewPos = root.mapFromItem(null, scenePos.x, scenePos.y)
+        if (viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height)
+            return false
+
+        var worldPos = root.viewToWorld(viewPos.x, viewPos.y)
+
+        var component = Qt.createQmlObject(
+                    'import ComponentMapEditor; ComponentModel {}', root.graph)
+        component.id = root.uniqueComponentId("component")
+        component.title = title && title.length > 0 ? title : "Component"
+        component.content = ""
+        component.icon = icon && icon.length > 0 ? icon : "cube"
+        component.x = worldPos.x
+        component.y = worldPos.y
+        component.width = 96
+        component.height = 96
+        component.color = color && color.length > 0 ? color : "#4fc3f7"
+        component.shape = "rounded"
+        component.type = type && type.length > 0 ? type : "default"
+
+        root.graph.addComponent(component)
+        root.selectSingleComponent(component)
+        root.selectedConnection = null
+        root.componentSelected(component)
+        edgeCanvas.repaint()
+        return true
+    }
+
     function clearAllConnections() {
         if (!root.graph)
             return

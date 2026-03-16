@@ -12,6 +12,12 @@ Rectangle {
     property UndoStack undoStack: null
     property var canvas: null
 
+    signal paletteDropRequested(string title,
+                                string icon,
+                                string color,
+                                string type,
+                                point scenePos)
+
     color: "#ffffff"
     border.color: "#e0e0e0"
     border.width: 1
@@ -74,6 +80,25 @@ Rectangle {
         graph.addComponent(component)
     }
 
+    function _handlePaletteDrop(title, icon, color, type, scenePos) {
+        if (root.canvas && root.canvas.addPaletteComponentAtScenePos) {
+            const created = root.canvas.addPaletteComponentAtScenePos(title,
+                                                                       icon,
+                                                                       color,
+                                                                       type,
+                                                                       scenePos)
+            if (created)
+                return
+        }
+
+        // Fallback: if drop cannot be mapped into canvas, keep previous behavior.
+        root._addComponent(title, icon, color, type)
+    }
+
+    onPaletteDropRequested: function(title, icon, color, type, scenePos) {
+        root._handlePaletteDrop(title, icon, color, type, scenePos)
+    }
+
     ColumnLayout {
         anchors {
             fill: parent
@@ -110,7 +135,30 @@ Rectangle {
                 }
 
                 HoverHandler {
-                    cursorShape: Qt.PointingHandCursor
+                    cursorShape: paletteDrag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                }
+
+                DragHandler {
+                    id: paletteDrag
+                    target: null
+                    acceptedButtons: Qt.LeftButton
+                    dragThreshold: 4
+                    cursorShape: active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+
+                    function scenePos() {
+                        return parent.mapToItem(null,
+                                                centroid.position.x,
+                                                centroid.position.y)
+                    }
+
+                    onActiveChanged: {
+                        if (!active)
+                            root.paletteDropRequested(modelData.title,
+                                                      modelData.icon,
+                                                      modelData.color,
+                                                      modelData.type,
+                                                      scenePos())
+                    }
                 }
 
                 TapHandler {
