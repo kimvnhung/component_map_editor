@@ -2,6 +2,7 @@
 #define GRAPHCOMMANDS_H
 
 #include <QPointF>
+#include <QPointer>
 
 #include "GraphCommand.h"
 #include "models/GraphModel.h"
@@ -117,7 +118,7 @@ public:
     void redo() override;
 
 private:
-    ConnectionModel *m_connection;
+    QPointer<ConnectionModel> m_connection;
     ConnectionModel::Side m_oldSourceSide;
     ConnectionModel::Side m_oldTargetSide;
     ConnectionModel::Side m_newSourceSide;
