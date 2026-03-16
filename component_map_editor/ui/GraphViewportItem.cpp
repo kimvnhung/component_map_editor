@@ -153,6 +153,95 @@ QPointF offsetPointForSide(const QPointF &point,
     return point;
 }
 
+QPointF applyTangentOffsetForSide(const QPointF &point,
+                                  ConnectionModel::Side side,
+                                  qreal tangentOffset)
+{
+    if (qFuzzyIsNull(tangentOffset))
+        return point;
+
+    switch (side) {
+    case ConnectionModel::SideTop:
+    case ConnectionModel::SideBottom:
+        return QPointF(point.x() + tangentOffset, point.y());
+    case ConnectionModel::SideLeft:
+    case ConnectionModel::SideRight:
+        return QPointF(point.x(), point.y() + tangentOffset);
+    case ConnectionModel::SideAuto:
+        return point;
+    }
+
+    return point;
+}
+
+struct ConnectionRouteMeta {
+    ConnectionModel::Side sourceSide = ConnectionModel::SideAuto;
+    ConnectionModel::Side targetSide = ConnectionModel::SideAuto;
+    qreal sourceTangentOffset = 0.0;
+    qreal targetTangentOffset = 0.0;
+};
+
+QHash<const ConnectionModel *, ConnectionRouteMeta>
+buildConnectionRouteMeta(const QList<ConnectionModel *> &connections,
+                         const QHash<QString, ComponentModel *> &componentById)
+{
+    struct SideBucket {
+        QVector<ConnectionModel *> outgoing;
+        QVector<ConnectionModel *> incoming;
+    };
+
+    QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection;
+    routeMetaByConnection.reserve(connections.size());
+    QHash<QString, SideBucket> buckets;
+
+    for (ConnectionModel *connection : connections) {
+        if (!connection)
+            continue;
+
+        ComponentModel *src = componentById.value(connection->sourceId(), nullptr);
+        ComponentModel *tgt = componentById.value(connection->targetId(), nullptr);
+        if (!src || !tgt)
+            continue;
+
+        ConnectionRouteMeta meta;
+        meta.sourceSide = resolvedSide(connection->sourceSide(), src, tgt, true);
+        meta.targetSide = resolvedSide(connection->targetSide(), src, tgt, false);
+        routeMetaByConnection.insert(connection, meta);
+
+        const QString sourceKey = src->id() + QStringLiteral("|") + QString::number(int(meta.sourceSide));
+        const QString targetKey = tgt->id() + QStringLiteral("|") + QString::number(int(meta.targetSide));
+        buckets[sourceKey].outgoing.append(connection);
+        buckets[targetKey].incoming.append(connection);
+    }
+
+    constexpr qreal flowBand = 7.0;
+    for (auto it = buckets.begin(); it != buckets.end(); ++it) {
+        SideBucket &bucket = it.value();
+        if (bucket.outgoing.isEmpty() || bucket.incoming.isEmpty())
+            continue;
+
+        // Mixed flow only: keep same-type connections on the exact same edge
+        // point, and separate only by direction class (outgoing vs incoming).
+        for (ConnectionModel *connection : bucket.outgoing) {
+            auto metaIt = routeMetaByConnection.find(connection);
+            if (metaIt == routeMetaByConnection.end())
+                continue;
+
+            metaIt->sourceTangentOffset = -flowBand;
+        }
+
+        for (ConnectionModel *connection : bucket.incoming) {
+            auto metaIt = routeMetaByConnection.find(connection);
+            if (metaIt == routeMetaByConnection.end())
+                continue;
+
+            metaIt->targetTangentOffset = flowBand;
+        }
+    }
+
+    return routeMetaByConnection;
+}
+
 QVector<QPointF> simplifyPolyline(const QVector<QPointF> &points)
 {
     QVector<QPointF> simplified;
@@ -563,7 +652,8 @@ QVector<QPointF> makeGridAStarRoute(const QPointF &start,
 QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
                                               ComponentModel *sourceComponent,
                                               ComponentModel *targetComponent,
-                                              const QList<ComponentModel *> &components)
+                                              const QList<ComponentModel *> &components,
+                                              const ConnectionRouteMeta *routeMeta = nullptr)
 {
     struct RouteCandidate {
         QVector<QPointF> points;
@@ -586,8 +676,23 @@ QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
                                           targetComponent,
                                           false);
 
-        const QPointF start = anchorPointForSide(sourceComponent, resolvedSourceSide);
-        const QPointF end = anchorPointForSide(targetComponent, resolvedTargetSide);
+        qreal sourceTangentOffset = 0.0;
+        qreal targetTangentOffset = 0.0;
+        if (routeMeta) {
+            if (resolvedSourceSide == routeMeta->sourceSide)
+                sourceTangentOffset = routeMeta->sourceTangentOffset;
+            if (resolvedTargetSide == routeMeta->targetSide)
+                targetTangentOffset = routeMeta->targetTangentOffset;
+        }
+
+        const QPointF start = applyTangentOffsetForSide(
+            anchorPointForSide(sourceComponent, resolvedSourceSide),
+            resolvedSourceSide,
+            sourceTangentOffset);
+        const QPointF end = applyTangentOffsetForSide(
+            anchorPointForSide(targetComponent, resolvedTargetSide),
+            resolvedTargetSide,
+            targetTangentOffset);
         const QRectF sourceRect = componentWorldRect(sourceComponent);
         const QRectF targetRect = componentWorldRect(targetComponent);
 
@@ -730,8 +835,21 @@ QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
                                                               sourceComponent,
                                                               targetComponent,
                                                               false);
-    const QPointF fallbackStart = anchorPointForSide(sourceComponent, fallbackSource);
-    const QPointF fallbackEnd = anchorPointForSide(targetComponent, fallbackTarget);
+    const qreal fallbackSourceOffset = (routeMeta && fallbackSource == routeMeta->sourceSide)
+        ? routeMeta->sourceTangentOffset
+        : 0.0;
+    const qreal fallbackTargetOffset = (routeMeta && fallbackTarget == routeMeta->targetSide)
+        ? routeMeta->targetTangentOffset
+        : 0.0;
+
+    const QPointF fallbackStart = applyTangentOffsetForSide(
+        anchorPointForSide(sourceComponent, fallbackSource),
+        fallbackSource,
+        fallbackSourceOffset);
+    const QPointF fallbackEnd = applyTangentOffsetForSide(
+        anchorPointForSide(targetComponent, fallbackTarget),
+        fallbackTarget,
+        fallbackTargetOffset);
 
     qWarning().nospace()
         << "Orthogonal router fallback: no valid route for connection '"
@@ -1637,6 +1755,9 @@ void GraphViewportItem::updateEdgesGeometry()
     for (ComponentModel *c : components)
         componentById.insert(c->id(), c);
 
+    const QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection =
+        buildConnectionRouteMeta(connections, componentById);
+
     // Compute and cache routes for every valid connection once, then reuse
     // them for both the pre-count pass and the vertex-fill pass below.
     QVector<QVector<QPointF>> cachedRoutes;
@@ -1648,7 +1769,12 @@ void GraphViewportItem::updateEdgesGeometry()
             cachedRoutes.append(QVector<QPointF>());
             continue;
         }
-        cachedRoutes.append(orthogonalRouteForConnection(conn, src, tgt, components));
+
+        const auto metaIt = routeMetaByConnection.constFind(conn);
+        const ConnectionRouteMeta *routeMeta = (metaIt != routeMetaByConnection.constEnd())
+            ? &metaIt.value()
+            : nullptr;
+        cachedRoutes.append(orthogonalRouteForConnection(conn, src, tgt, components, routeMeta));
     }
 
     // Pre-count vertices (2 per routed segment) and arrow triangles.
@@ -2206,6 +2332,9 @@ void GraphViewportItem::rebuildSpatialIndex()
             componentById.insert(component->id(), component);
     }
 
+    const QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection =
+        buildConnectionRouteMeta(connections, componentById);
+
     for (ConnectionModel *connection : connections) {
         if (!connection)
             continue;
@@ -2231,7 +2360,16 @@ void GraphViewportItem::rebuildSpatialIndex()
         if (!src || !tgt)
             continue;
 
-        const QVector<QPointF> route = orthogonalRouteForConnection(connection, src, tgt, components);
+        const auto metaIt = routeMetaByConnection.constFind(connection);
+        const ConnectionRouteMeta *routeMeta = (metaIt != routeMetaByConnection.constEnd())
+            ? &metaIt.value()
+            : nullptr;
+
+        const QVector<QPointF> route = orthogonalRouteForConnection(connection,
+                                                                     src,
+                                                                     tgt,
+                                                                     components,
+                                                                     routeMeta);
         if (route.size() < 2)
             continue;
 
