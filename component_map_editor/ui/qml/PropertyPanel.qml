@@ -10,6 +10,21 @@ Rectangle {
 
     property ComponentModel component: null
     property ConnectionModel connection: null
+    readonly property var connectionSideModel: [
+        { text: "Auto", value: ConnectionModel.SideAuto },
+        { text: "Top", value: ConnectionModel.SideTop },
+        { text: "Right", value: ConnectionModel.SideRight },
+        { text: "Bottom", value: ConnectionModel.SideBottom },
+        { text: "Left", value: ConnectionModel.SideLeft }
+    ]
+
+    function sideIndexForValue(value) {
+        for (let i = 0; i < connectionSideModel.length; ++i) {
+            if (connectionSideModel[i].value === value)
+                return i
+        }
+        return 0
+    }
 
     color: "#ffffff"
     border.color: "#e0e0e0"
@@ -147,22 +162,6 @@ Rectangle {
                 spacing: 6
                 width: parent ? parent.width : 0
 
-                function sideIndexForValue(value) {
-                    for (let i = 0; i < sideModel.length; ++i) {
-                        if (sideModel[i].value === value)
-                            return i
-                    }
-                    return 0
-                }
-
-                readonly property var sideModel: [
-                    { text: "Auto", value: ConnectionModel.SideAuto },
-                    { text: "Top", value: ConnectionModel.SideTop },
-                    { text: "Right", value: ConnectionModel.SideRight },
-                    { text: "Bottom", value: ConnectionModel.SideBottom },
-                    { text: "Left", value: ConnectionModel.SideLeft }
-                ]
-
                 Label { text: "Connection"; font.bold: true; font.pixelSize: 11; color: "#888" }
 
                 Label { text: "ID" }
@@ -196,28 +195,28 @@ Rectangle {
                 Label { text: "Source Side" }
                 ComboBox {
                     Layout.fillWidth: true
-                    model: connectionProps.sideModel
+                    model: root.connectionSideModel
                     textRole: "text"
                     currentIndex: root.connection
-                                  ? connectionProps.sideIndexForValue(root.connection.sourceSide)
+                                  ? root.sideIndexForValue(root.connection.sourceSide)
                                   : 0
                     onActivated: function(index) {
                         if (root.connection)
-                            root.connection.sourceSide = connectionProps.sideModel[index].value
+                            root.connection.sourceSide = root.connectionSideModel[index].value
                     }
                 }
 
                 Label { text: "Target Side" }
                 ComboBox {
                     Layout.fillWidth: true
-                    model: connectionProps.sideModel
+                    model: root.connectionSideModel
                     textRole: "text"
                     currentIndex: root.connection
-                                  ? connectionProps.sideIndexForValue(root.connection.targetSide)
+                                  ? root.sideIndexForValue(root.connection.targetSide)
                                   : 0
                     onActivated: function(index) {
                         if (root.connection)
-                            root.connection.targetSide = connectionProps.sideModel[index].value
+                            root.connection.targetSide = root.connectionSideModel[index].value
                     }
                 }
             }
