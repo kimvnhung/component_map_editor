@@ -20,7 +20,7 @@ Rectangle {
     ]
 
     function sideIndexForValue(value) {
-        for (let i = 0; i < connectionSideModel.length; ++i) {
+        for (var i = 0; i < connectionSideModel.length; ++i) {
             if (connectionSideModel[i].value === value)
                 return i
         }
