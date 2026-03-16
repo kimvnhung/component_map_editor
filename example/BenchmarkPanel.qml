@@ -98,9 +98,17 @@ Rectangle {
         root.telemetry.enabled = true
         root.frameTelemetry.enabled = true
         root.manualDragWindowActive = false
-        root._routeRebuildStartCount = (root.canvas && root.canvas.edgeRenderer)
-                ? root.canvas.edgeRenderer.routeRebuildSampleCount()
-                : 0
+        if (root.canvas && root.canvas.edgeRenderer
+                && typeof root.canvas.edgeRenderer.resetRouteRebuildTelemetry === "function") {
+            // Prefer explicit reset of route-rebuild telemetry to avoid cumulative stats
+            root.canvas.edgeRenderer.resetRouteRebuildTelemetry()
+            root._routeRebuildStartCount = 0
+        } else {
+            // Fallback: record start count so downstream code can compute per-run deltas
+            root._routeRebuildStartCount = (root.canvas && root.canvas.edgeRenderer)
+                    ? root.canvas.edgeRenderer.routeRebuildSampleCount()
+                    : 0
+        }
     }
 
     function _stopMeasuringAndReport(tag) {
