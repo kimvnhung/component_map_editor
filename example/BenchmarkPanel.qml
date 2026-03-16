@@ -49,6 +49,7 @@ Rectangle {
     readonly property var matrixDatasets: [1000, 5000, 10000]
     readonly property var matrixStageNames: ["Idle30s", "Pan10s", "Zoom10s"]
     property int manualDragInteractions: 0
+    property int _routeRebuildStartCount: 0
     readonly property int manualDragTarget: 200
 
     readonly property int autoPanDurationMs: 20000
@@ -60,6 +61,7 @@ Rectangle {
     readonly property real frameP95TargetMs: 16.7
     readonly property real cameraP95TargetMs: 16.7
     readonly property real dragP95TargetMs: 8.0
+    readonly property real routeRebuildP95TargetMs: 25.0
 
     color:  "#f5f5f5"
     implicitHeight: expanded ? 152 : 36
@@ -96,6 +98,17 @@ Rectangle {
         root.telemetry.enabled = true
         root.frameTelemetry.enabled = true
         root.manualDragWindowActive = false
+        if (root.canvas && root.canvas.edgeRenderer
+                && typeof root.canvas.edgeRenderer.resetRouteRebuildTelemetry === "function") {
+            // Prefer explicit reset of route-rebuild telemetry to avoid cumulative stats
+            root.canvas.edgeRenderer.resetRouteRebuildTelemetry()
+            root._routeRebuildStartCount = 0
+        } else {
+            // Fallback: record start count so downstream code can compute per-run deltas
+            root._routeRebuildStartCount = (root.canvas && root.canvas.edgeRenderer)
+                    ? root.canvas.edgeRenderer.routeRebuildSampleCount()
+                    : 0
+        }
     }
 
     function _stopMeasuringAndReport(tag) {
@@ -113,17 +126,45 @@ Rectangle {
         root.telemetry.report(reportTag)
         root.frameTelemetry.report(reportTag)
 
+        var routeP50 = (root.canvas && root.canvas.edgeRenderer)
+            ? root.canvas.edgeRenderer.routeRebuildP50Ms()
+            : 0
+        var routeP95 = (root.canvas && root.canvas.edgeRenderer)
+            ? root.canvas.edgeRenderer.routeRebuildP95Ms()
+            : 0
+        var routeSamples = (root.canvas && root.canvas.edgeRenderer)
+            ? root.canvas.edgeRenderer.routeRebuildSampleCount()
+            : 0
+        var routeRebuildDelta = Math.max(0, routeSamples - root._routeRebuildStartCount)
+
+        var cameraOnlyExpected = reportTag.indexOf("Pan10s") >= 0
+            || reportTag.indexOf("Zoom10s") >= 0
+            || reportTag.indexOf("Auto-pan") >= 0
+        var noCameraReroutePass = !cameraOnlyExpected || routeRebuildDelta === 0
+
+        console.log("[RouteTelemetry] " + reportTag
+                + "  route p50=" + routeP50.toFixed(2)
+                + " ms  p95=" + routeP95.toFixed(2)
+                + " ms  n=" + routeSamples
+                + "  delta=" + routeRebuildDelta)
+
         var hasDrag = root.telemetry.dragLatencySampleCount > 0
         return {
             "frameSwapP95": root.frameTelemetry.frameSwapP95,
             "cameraP95": root.telemetry.frameTimeP95,
             "dragP95": root.telemetry.dragLatencyP95,
             "dragSamples": root.telemetry.dragLatencySampleCount,
+            "routeP50": routeP50,
+            "routeP95": routeP95,
+            "routeSamples": routeSamples,
+            "routeRebuildDelta": routeRebuildDelta,
             "framePass": root.frameTelemetry.frameSwapP95 > 0
                          && root.frameTelemetry.frameSwapP95 <= root.frameP95TargetMs,
             "cameraPass": root.telemetry.frameTimeP95 > 0
                           && root.telemetry.frameTimeP95 <= root.cameraP95TargetMs,
-            "dragPass": hasDrag && root.telemetry.dragLatencyP95 <= root.dragP95TargetMs
+            "dragPass": hasDrag && root.telemetry.dragLatencyP95 <= root.dragP95TargetMs,
+            "routePass": routeP95 <= 0 || routeP95 <= root.routeRebuildP95TargetMs,
+            "noCameraReroutePass": noCameraReroutePass
         }
     }
 
@@ -133,11 +174,12 @@ Rectangle {
             var allPass = root.runSeriesResults.length === root.runSeriesTotal
             for (var i = 0; i < root.runSeriesResults.length; ++i) {
                 var run = root.runSeriesResults[i]
-                allPass = allPass && run.framePass && run.cameraPass && run.dragPass
+                allPass = allPass && run.framePass && run.cameraPass
+                        && run.dragPass && run.routePass && run.noCameraReroutePass
             }
             root.runSeriesSummary = allPass
-                    ? "Series PASS: all 3 runs met frame/camera/drag p95 targets"
-                    : "Series FAIL: at least one run missed frame/camera/drag p95 targets"
+                    ? "Series PASS: all 3 runs met frame/camera/drag/route gates"
+                    : "Series FAIL: at least one run missed frame/camera/drag/route gates"
             return
         }
 
@@ -595,7 +637,11 @@ Rectangle {
                     { lbl: "Cam p50",  val: root.telemetry.frameTimeP50,   n: root.telemetry.frameTimeSampleCount  },
                     { lbl: "Cam p95",  val: root.telemetry.frameTimeP95,   n: -1 },
                     { lbl: "Drag p50", val: root.telemetry.dragLatencyP50, n: root.telemetry.dragLatencySampleCount },
-                    { lbl: "Drag p95", val: root.telemetry.dragLatencyP95, n: -1 }
+                                        { lbl: "Drag p95", val: root.telemetry.dragLatencyP95, n: -1 },
+                                        { lbl: "Route p50", val: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildP50Ms() : 0,
+                                            n: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildSampleCount() : 0 },
+                                        { lbl: "Route p95", val: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildP95Ms() : 0,
+                                            n: -1 }
                 ]
 
                 delegate: Column {

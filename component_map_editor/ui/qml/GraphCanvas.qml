@@ -52,6 +52,7 @@ Item {
     property ComponentModel activeInteractionComponent: null
     property bool suppressNextCanvasTap: false
     readonly property var nodeRenderer: nodeViewport
+    readonly property var edgeRenderer: edgeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
     property int livePointerModifiers: 0
@@ -162,18 +163,25 @@ Item {
         return candidate
     }
 
-    function removeConnectionById(connectionId) {
+    function removeConnectionById(connectionId, useUndo) {
         if (!root.graph || !connectionId)
             return
 
-        root.graph.removeConnection(connectionId)
+        var shouldUseUndo = useUndo === undefined ? true : useUndo
+        if (shouldUseUndo && root.undoStack)
+            root.undoStack.pushRemoveConnection(root.graph, connectionId)
+        else
+            root.graph.removeConnection(connectionId)
+
         if (root.selectedConnection && root.selectedConnection.id === connectionId)
             root.selectedConnection = null
     }
 
-    function clearComponentConnections(component, clearIncoming, clearOutgoing) {
+    function clearComponentConnections(component, clearIncoming, clearOutgoing, useUndo) {
         if (!root.graph || !component)
             return
+
+        var shouldUseUndo = useUndo === undefined ? true : useUndo
 
         var idsToRemove = []
         var currentConnections = root.graph.connections
@@ -186,7 +194,7 @@ Item {
         }
 
         for (var j = 0; j < idsToRemove.length; ++j)
-            root.removeConnectionById(idsToRemove[j])
+            root.removeConnectionById(idsToRemove[j], shouldUseUndo)
 
         edgeCanvas.repaint()
     }
@@ -195,7 +203,7 @@ Item {
         if (!root.graph || !component)
             return
 
-        root.clearComponentConnections(component, true, true)
+        root.clearComponentConnections(component, true, true, false)
         root.graph.removeComponent(component.id)
         root.removeComponentFromSelection(component)
         if (root.selectedComponentIds.length > 0) {
@@ -256,6 +264,38 @@ Item {
         root.selectedConnection = null
         root.componentSelected(component)
         edgeCanvas.repaint()
+    }
+
+    function addPaletteComponentAtScenePos(title, icon, color, type, scenePos) {
+        if (!root.graph || !scenePos)
+            return false
+
+        var viewPos = root.mapFromItem(null, scenePos.x, scenePos.y)
+        if (viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height)
+            return false
+
+        var worldPos = root.viewToWorld(viewPos.x, viewPos.y)
+
+        var component = Qt.createQmlObject(
+                    'import ComponentMapEditor; ComponentModel {}', root.graph)
+        component.id = root.uniqueComponentId("component")
+        component.title = title && title.length > 0 ? title : "Component"
+        component.content = ""
+        component.icon = icon && icon.length > 0 ? icon : "cube"
+        component.x = worldPos.x
+        component.y = worldPos.y
+        component.width = 96
+        component.height = 96
+        component.color = color && color.length > 0 ? color : "#4fc3f7"
+        component.shape = "rounded"
+        component.type = type && type.length > 0 ? type : "default"
+
+        root.graph.addComponent(component)
+        root.selectSingleComponent(component)
+        root.selectedConnection = null
+        root.componentSelected(component)
+        edgeCanvas.repaint()
+        return true
     }
 
     function clearAllConnections() {
@@ -628,7 +668,7 @@ Item {
                             root.enableBackgroundDrag = !focused
                         }
 
-                        onConnectionDragged: function (sourceComponent, startP, targetP) {
+                        onConnectionDragged: function (sourceComponent, sourceSide, startP, targetP) {
                             root.activeInteractionComponent = sourceComponent
                             root.nodeInteractionActive = true
                             root.enableBackgroundDrag = false
@@ -637,7 +677,7 @@ Item {
                             root.tempEnd = root.windowSceneToView(targetP)
                             edgeCanvas.repaint()
                         }
-                        onConnectionDropped: function (sourceComponent, startP, targetP) {
+                        onConnectionDropped: function (sourceComponent, sourceSide, startP, targetP) {
                             root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
                             root.enableBackgroundDrag = !focused
@@ -672,7 +712,11 @@ Item {
                             e1.sourceId = sourceComponent.id
                             e1.targetId = component.id
                             e1.label = "path A"
-                            root.graph.addConnection(e1)
+                            e1.sourceSide = sourceSide
+                            if (root.undoStack)
+                                root.undoStack.pushAddConnection(root.graph, e1)
+                            else
+                                root.graph.addConnection(e1)
                             edgeCanvas.repaint()
                         }
 

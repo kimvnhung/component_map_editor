@@ -156,3 +156,37 @@ void RemoveConnectionCommand::undo()
     }
 }
 
+// ---------------------------------------------------------------------------
+// SetConnectionSidesCommand
+// ---------------------------------------------------------------------------
+SetConnectionSidesCommand::SetConnectionSidesCommand(ConnectionModel *connection,
+                                                     ConnectionModel::Side oldSourceSide,
+                                                     ConnectionModel::Side oldTargetSide,
+                                                     ConnectionModel::Side newSourceSide,
+                                                     ConnectionModel::Side newTargetSide)
+    : GraphCommand(QObject::tr("Update Connection Sides"))
+    , m_connection(connection)
+    , m_oldSourceSide(oldSourceSide)
+    , m_oldTargetSide(oldTargetSide)
+    , m_newSourceSide(newSourceSide)
+    , m_newTargetSide(newTargetSide)
+{}
+
+void SetConnectionSidesCommand::redo()
+{
+    if (!m_connection)
+        return;
+
+    m_connection->setSourceSide(m_newSourceSide);
+    m_connection->setTargetSide(m_newTargetSide);
+}
+
+void SetConnectionSidesCommand::undo()
+{
+    if (!m_connection)
+        return;
+
+    m_connection->setSourceSide(m_oldSourceSide);
+    m_connection->setTargetSide(m_oldTargetSide);
+}
+

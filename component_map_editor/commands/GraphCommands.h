@@ -2,6 +2,7 @@
 #define GRAPHCOMMANDS_H
 
 #include <QPointF>
+#include <QPointer>
 
 #include "GraphCommand.h"
 #include "models/GraphModel.h"
@@ -99,6 +100,29 @@ private:
     QString          m_connectionId;
     ConnectionModel *m_connection = nullptr;
     bool             m_owned = false;
+};
+
+// ---------------------------------------------------------------------------
+// SetConnectionSidesCommand
+// ---------------------------------------------------------------------------
+class SetConnectionSidesCommand : public GraphCommand
+{
+public:
+    SetConnectionSidesCommand(ConnectionModel *connection,
+                              ConnectionModel::Side oldSourceSide,
+                              ConnectionModel::Side oldTargetSide,
+                              ConnectionModel::Side newSourceSide,
+                              ConnectionModel::Side newTargetSide);
+
+    void undo() override;
+    void redo() override;
+
+private:
+    QPointer<ConnectionModel> m_connection;
+    ConnectionModel::Side m_oldSourceSide;
+    ConnectionModel::Side m_oldTargetSide;
+    ConnectionModel::Side m_newSourceSide;
+    ConnectionModel::Side m_newTargetSide;
 };
 
 #endif // GRAPHCOMMANDS_H

@@ -101,8 +101,8 @@ ResizableItem {
     signal componentClicked(ComponentModel component, int modifiers)
 
     // startP and targetP are in scene coordinates relative to the top-left of the view.
-    signal connectionDragged(ComponentModel sourceComponent, point startP, point targetP)
-    signal connectionDropped(ComponentModel sourceComponent, point startP, point targetP)
+    signal connectionDragged(ComponentModel sourceComponent, int sourceSide, point startP, point targetP)
+    signal connectionDropped(ComponentModel sourceComponent, int sourceSide, point startP, point targetP)
 
     width: defaultComponentWidth
     height: defaultComponentHeight
@@ -236,11 +236,13 @@ ResizableItem {
             anchors.fill: parent
             onArrowDragged: function (direction, scenePos) {
                 root.connectionDragged(root.component,
+                                       direction,
                                        root.directionToScenePoint(direction),
                                        scenePos)
             }
             onArrowDropped: function (direction, scenePos) {
                 root.connectionDropped(root.component,
+                                       direction,
                                        root.directionToScenePoint(direction),
                                        scenePos)
             }

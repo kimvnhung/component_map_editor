@@ -125,6 +125,12 @@ public:
     Q_INVOKABLE int labelTextureCacheSize() const;
     Q_INVOKABLE qreal rendererMemoryEstimateMb() const;
 
+    // Route rebuild telemetry (edge geometry rebuild cost in ms).
+    Q_INVOKABLE qreal routeRebuildLastMs() const;
+    Q_INVOKABLE qreal routeRebuildP50Ms() const;
+    Q_INVOKABLE qreal routeRebuildP95Ms() const;
+    Q_INVOKABLE int routeRebuildSampleCount() const;
+
 protected:
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *updatePaintNodeData) override;
@@ -155,8 +161,8 @@ private:
 
     struct IndexedConnection {
         QPointer<ConnectionModel> connection;
-        QPointF sourceWorld;
-        QPointF targetWorld;
+        QVector<QPointF> worldPolyline;
+        QVector<QRectF> segmentBounds;
         QRectF worldBounds;
     };
 
@@ -185,6 +191,8 @@ private:
     static qreal distanceToSegmentSquared(const QPointF &point,
                                           const QPointF &a,
                                           const QPointF &b);
+    static qreal percentile(const QVector<qreal> &samples, qreal p);
+    void recordRouteRebuildSample(qreal ms);
 
     // Called from updatePaintNode (render thread during sync).
     void updateGridGeometry();
@@ -228,6 +236,8 @@ private:
     QSGTransformNode *m_edgesTransformNode    = nullptr;
     QSGGeometryNode  *m_normalEdgesGeomNode   = nullptr;
     QSGGeometryNode  *m_selectedEdgesGeomNode = nullptr;
+    QSGGeometryNode  *m_normalArrowsGeomNode  = nullptr;
+    QSGGeometryNode  *m_selectedArrowsGeomNode = nullptr;
     QSGGeometryNode  *m_tempEdgeGeomNode      = nullptr;
 
     // Dirty flags: written on main thread, read on render thread (sync phase).
@@ -255,6 +265,13 @@ private:
     bool m_labelCachePurgeRequested = false;
     std::atomic<int> m_labelTextureCacheCount{0};
     std::atomic<qint64> m_labelTextureCacheBytes{0};
+
+    QVector<qreal> m_routeRebuildSamples;
+    int m_routeRebuildMaxSamples = 2000;
+    std::atomic<qreal> m_routeRebuildLastMs{0.0};
+    std::atomic<qreal> m_routeRebuildP50Ms{0.0};
+    std::atomic<qreal> m_routeRebuildP95Ms{0.0};
+    std::atomic<int> m_routeRebuildSampleCount{0};
 };
 
 #endif // GRAPHVIEWPORTITEM_H

@@ -56,6 +56,7 @@ Item {
                     id: arrowDrag
                     target: null
                     acceptedButtons: Qt.LeftButton
+                    dragThreshold: 0
 
                     function scencePos() {
                         // mapToItem with null maps to the scene coordinates
