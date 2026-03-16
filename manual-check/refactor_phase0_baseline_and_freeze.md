@@ -205,3 +205,6 @@ Phase 0 is considered passed only when all conditions below are met:
 - Date:
 - Build/Commit:
 - Notes:
+
+## Execution Artifact
+- Baseline execution report template: `manual-check/refactor_phase0_baseline_execution_report.md`

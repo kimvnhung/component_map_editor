@@ -4,6 +4,10 @@
 #include "ConnectionModel.h"
 #include "FontAwesome.h"
 #include "GraphModel.h"
+#include "routing/OrthogonalHeuristicStrategy.h"
+#include "routing/RoutingEngine.h"
+#include "routing/RoutingHelpers.h"
+#include "routing/RouteTypes.h"
 
 #include <QColor>
 #include <QFont>
@@ -172,74 +176,6 @@ QPointF applyTangentOffsetForSide(const QPointF &point,
     }
 
     return point;
-}
-
-struct ConnectionRouteMeta {
-    ConnectionModel::Side sourceSide = ConnectionModel::SideAuto;
-    ConnectionModel::Side targetSide = ConnectionModel::SideAuto;
-    qreal sourceTangentOffset = 0.0;
-    qreal targetTangentOffset = 0.0;
-};
-
-QHash<const ConnectionModel *, ConnectionRouteMeta>
-buildConnectionRouteMeta(const QList<ConnectionModel *> &connections,
-                         const QHash<QString, ComponentModel *> &componentById)
-{
-    struct SideBucket {
-        QVector<ConnectionModel *> outgoing;
-        QVector<ConnectionModel *> incoming;
-    };
-
-    QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection;
-    routeMetaByConnection.reserve(connections.size());
-    QHash<QString, SideBucket> buckets;
-
-    for (ConnectionModel *connection : connections) {
-        if (!connection)
-            continue;
-
-        ComponentModel *src = componentById.value(connection->sourceId(), nullptr);
-        ComponentModel *tgt = componentById.value(connection->targetId(), nullptr);
-        if (!src || !tgt)
-            continue;
-
-        ConnectionRouteMeta meta;
-        meta.sourceSide = resolvedSide(connection->sourceSide(), src, tgt, true);
-        meta.targetSide = resolvedSide(connection->targetSide(), src, tgt, false);
-        routeMetaByConnection.insert(connection, meta);
-
-        const QString sourceKey = src->id() + QStringLiteral("|") + QString::number(int(meta.sourceSide));
-        const QString targetKey = tgt->id() + QStringLiteral("|") + QString::number(int(meta.targetSide));
-        buckets[sourceKey].outgoing.append(connection);
-        buckets[targetKey].incoming.append(connection);
-    }
-
-    constexpr qreal flowBand = 7.0;
-    for (auto it = buckets.begin(); it != buckets.end(); ++it) {
-        SideBucket &bucket = it.value();
-        if (bucket.outgoing.isEmpty() || bucket.incoming.isEmpty())
-            continue;
-
-        // Mixed flow only: keep same-type connections on the exact same edge
-        // point, and separate only by direction class (outgoing vs incoming).
-        for (ConnectionModel *connection : bucket.outgoing) {
-            auto metaIt = routeMetaByConnection.find(connection);
-            if (metaIt == routeMetaByConnection.end())
-                continue;
-
-            metaIt->sourceTangentOffset = -flowBand;
-        }
-
-        for (ConnectionModel *connection : bucket.incoming) {
-            auto metaIt = routeMetaByConnection.find(connection);
-            if (metaIt == routeMetaByConnection.end())
-                continue;
-
-            metaIt->targetTangentOffset = flowBand;
-        }
-    }
-
-    return routeMetaByConnection;
 }
 
 QVector<QPointF> simplifyPolyline(const QVector<QPointF> &points)
@@ -925,6 +861,9 @@ QSGGeometryNode *createEmptyColoredNode()
 GraphViewportItem::GraphViewportItem(QQuickItem *parent)
     : QQuickItem(parent)
 {
+    m_routingEngine = std::make_unique<RoutingEngine>();
+    m_routingEngine->setStrategy(std::make_unique<OrthogonalHeuristicStrategy>());
+
     // Phase 2: viewport can render grid/edges with scene graph nodes.
     setFlag(ItemHasContents, true);
 }
@@ -1756,7 +1695,7 @@ void GraphViewportItem::updateEdgesGeometry()
         componentById.insert(c->id(), c);
 
     const QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection =
-        buildConnectionRouteMeta(connections, componentById);
+        RoutingHelpers::buildConnectionRouteMeta(connections, componentById);
 
     // Compute and cache routes for every valid connection once, then reuse
     // them for both the pre-count pass and the vertex-fill pass below.
@@ -1774,7 +1713,11 @@ void GraphViewportItem::updateEdgesGeometry()
         const ConnectionRouteMeta *routeMeta = (metaIt != routeMetaByConnection.constEnd())
             ? &metaIt.value()
             : nullptr;
-        cachedRoutes.append(orthogonalRouteForConnection(conn, src, tgt, components, routeMeta));
+        QVector<QPointF> route;
+        if (m_routingEngine)
+            route = m_routingEngine->compute(RouteRequest { conn, src, tgt, routeMeta },
+                                             RoutingContext { &components });
+        cachedRoutes.append(route);
     }
 
     // Pre-count vertices (2 per routed segment) and arrow triangles.
@@ -2333,7 +2276,7 @@ void GraphViewportItem::rebuildSpatialIndex()
     }
 
     const QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection =
-        buildConnectionRouteMeta(connections, componentById);
+        RoutingHelpers::buildConnectionRouteMeta(connections, componentById);
 
     for (ConnectionModel *connection : connections) {
         if (!connection)
@@ -2365,15 +2308,14 @@ void GraphViewportItem::rebuildSpatialIndex()
             ? &metaIt.value()
             : nullptr;
 
-        const QVector<QPointF> route = orthogonalRouteForConnection(connection,
-                                                                     src,
-                                                                     tgt,
-                                                                     components,
-                                                                     routeMeta);
+        QVector<QPointF> route;
+        if (m_routingEngine)
+            route = m_routingEngine->compute(RouteRequest { connection, src, tgt, routeMeta },
+                                             RoutingContext { &components });
         if (route.size() < 2)
             continue;
 
-        const QRectF bounds = polylineBounds(route);
+        const QRectF bounds = RoutingHelpers::polylineBounds(route);
         QVector<QRectF> segmentBounds;
         segmentBounds.reserve(qMax(0, route.size() - 1));
         for (int i = 1; i < route.size(); ++i) {

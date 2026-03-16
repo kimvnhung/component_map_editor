@@ -11,6 +11,7 @@
 #include <QVariantMap>
 #include <QVector>
 #include <atomic>
+#include <memory>
 
 class QSGGeometryNode;
 class QSGNode;
@@ -19,6 +20,8 @@ class QSGTransformNode;
 class ComponentModel;
 class ConnectionModel;
 class QSGTexture;
+
+#include "routing/RoutingEngine.h"
 
 // Viewport item for C++/QSG-based graph rendering.
 // Provides camera API (panX/panY/zoom) and coordinate conversion helpers,
@@ -272,6 +275,7 @@ private:
     std::atomic<qreal> m_routeRebuildP50Ms{0.0};
     std::atomic<qreal> m_routeRebuildP95Ms{0.0};
     std::atomic<int> m_routeRebuildSampleCount{0};
+    std::unique_ptr<RoutingEngine> m_routingEngine;
 };
 
 #endif // GRAPHVIEWPORTITEM_H
