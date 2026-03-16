@@ -6,6 +6,8 @@
 #include <QQmlEngine>
 
 #include "GraphCommand.h"
+#include "models/ConnectionModel.h"
+#include "models/GraphModel.h"
 
 /**
  * UndoStack manages a stack of GraphCommand objects and exposes undo/redo
@@ -34,6 +36,12 @@ public:
 
     // Takes ownership of the command and executes redo() immediately.
     void push(GraphCommand *command);
+
+    Q_INVOKABLE void pushAddConnection(GraphModel *graph, ConnectionModel *connection);
+    Q_INVOKABLE void pushRemoveConnection(GraphModel *graph, const QString &connectionId);
+    Q_INVOKABLE void pushSetConnectionSides(ConnectionModel *connection,
+                                            int sourceSide,
+                                            int targetSide);
 
 public slots:
     void undo();

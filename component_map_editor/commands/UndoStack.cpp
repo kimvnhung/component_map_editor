@@ -1,5 +1,25 @@
 #include "UndoStack.h"
 
+#include "GraphCommands.h"
+
+namespace {
+
+ConnectionModel::Side sideFromInt(int sideValue)
+{
+    switch (sideValue) {
+    case ConnectionModel::SideTop:
+    case ConnectionModel::SideRight:
+    case ConnectionModel::SideBottom:
+    case ConnectionModel::SideLeft:
+    case ConnectionModel::SideAuto:
+        return static_cast<ConnectionModel::Side>(sideValue);
+    default:
+        return ConnectionModel::SideAuto;
+    }
+}
+
+} // namespace
+
 UndoStack::UndoStack(QObject *parent)
     : QObject(parent)
 {}
@@ -49,6 +69,41 @@ void UndoStack::push(GraphCommand *command)
     }
 
     notifyChanges(prevCanUndo, prevCanRedo, prevUndoText, prevRedoText, prevCount);
+}
+
+void UndoStack::pushAddConnection(GraphModel *graph, ConnectionModel *connection)
+{
+    if (!graph || !connection)
+        return;
+
+    push(new AddConnectionCommand(graph, connection));
+}
+
+void UndoStack::pushRemoveConnection(GraphModel *graph, const QString &connectionId)
+{
+    if (!graph || connectionId.isEmpty())
+        return;
+
+    push(new RemoveConnectionCommand(graph, connectionId));
+}
+
+void UndoStack::pushSetConnectionSides(ConnectionModel *connection,
+                                      int sourceSide,
+                                      int targetSide)
+{
+    if (!connection)
+        return;
+
+    const ConnectionModel::Side newSourceSide = sideFromInt(sourceSide);
+    const ConnectionModel::Side newTargetSide = sideFromInt(targetSide);
+    if (connection->sourceSide() == newSourceSide && connection->targetSide() == newTargetSide)
+        return;
+
+    push(new SetConnectionSidesCommand(connection,
+                                       connection->sourceSide(),
+                                       connection->targetSide(),
+                                       newSourceSide,
+                                       newTargetSide));
 }
 
 void UndoStack::undo()

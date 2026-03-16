@@ -70,37 +70,335 @@ QPointF worldToView(qreal worldX, qreal worldY, qreal panX, qreal panY, qreal zo
     return QPointF(worldX * zoom + panX, worldY * zoom + panY);
 }
 
-void connectionEndpointsOnBounding(ComponentModel *sourceComponent,
-                                   ComponentModel *targetComponent,
-                                   QPointF &sourcePoint, QPointF &targetPoint)
+QRectF componentWorldRect(ComponentModel *component)
 {
-    const QPointF srcCenter = centerPoint(sourceComponent);
-    const QPointF tgtCenter = centerPoint(targetComponent);
-    const qreal dx = tgtCenter.x() - srcCenter.x();
-    const qreal dy = tgtCenter.y() - srcCenter.y();
+    return QRectF(component->x() - component->width() / 2.0,
+                  component->y() - component->height() / 2.0,
+                  component->width(),
+                  component->height());
+}
 
-    const qreal srcHalfW = sourceComponent->width() / 2.0;
-    const qreal srcHalfH = sourceComponent->height() / 2.0;
-    const qreal tgtHalfW = targetComponent->width() / 2.0;
-    const qreal tgtHalfH = targetComponent->height() / 2.0;
+bool isHorizontalSide(ConnectionModel::Side side)
+{
+    return side == ConnectionModel::SideLeft || side == ConnectionModel::SideRight;
+}
 
-    const QPointF srcLeft(srcCenter.x() - srcHalfW, srcCenter.y());
-    const QPointF srcRight(srcCenter.x() + srcHalfW, srcCenter.y());
-    const QPointF srcTop(srcCenter.x(), srcCenter.y() - srcHalfH);
-    const QPointF srcBottom(srcCenter.x(), srcCenter.y() + srcHalfH);
-
-    const QPointF tgtLeft(tgtCenter.x() - tgtHalfW, tgtCenter.y());
-    const QPointF tgtRight(tgtCenter.x() + tgtHalfW, tgtCenter.y());
-    const QPointF tgtTop(tgtCenter.x(), tgtCenter.y() - tgtHalfH);
-    const QPointF tgtBottom(tgtCenter.x(), tgtCenter.y() + tgtHalfH);
+ConnectionModel::Side autoSideForComponents(ComponentModel *sourceComponent,
+                                            ComponentModel *targetComponent,
+                                            bool isSource)
+{
+    const QPointF sourceCenter = centerPoint(sourceComponent);
+    const QPointF targetCenter = centerPoint(targetComponent);
+    const qreal dx = targetCenter.x() - sourceCenter.x();
+    const qreal dy = targetCenter.y() - sourceCenter.y();
 
     if (qAbs(dx) >= qAbs(dy)) {
-        sourcePoint = dx >= 0 ? srcRight : srcLeft;
-        targetPoint = dx >= 0 ? tgtLeft : tgtRight;
-    } else {
-        sourcePoint = dy >= 0 ? srcBottom : srcTop;
-        targetPoint = dy >= 0 ? tgtTop : tgtBottom;
+        if (dx >= 0.0)
+            return isSource ? ConnectionModel::SideRight : ConnectionModel::SideLeft;
+        return isSource ? ConnectionModel::SideLeft : ConnectionModel::SideRight;
     }
+
+    if (dy >= 0.0)
+        return isSource ? ConnectionModel::SideBottom : ConnectionModel::SideTop;
+    return isSource ? ConnectionModel::SideTop : ConnectionModel::SideBottom;
+}
+
+ConnectionModel::Side resolvedSide(ConnectionModel::Side preferredSide,
+                                   ComponentModel *sourceComponent,
+                                   ComponentModel *targetComponent,
+                                   bool isSource)
+{
+    if (preferredSide != ConnectionModel::SideAuto)
+        return preferredSide;
+
+    return autoSideForComponents(sourceComponent, targetComponent, isSource);
+}
+
+QPointF anchorPointForSide(ComponentModel *component, ConnectionModel::Side side)
+{
+    const QRectF rect = componentWorldRect(component);
+    switch (side) {
+    case ConnectionModel::SideTop:
+        return QPointF(rect.center().x(), rect.top());
+    case ConnectionModel::SideRight:
+        return QPointF(rect.right(), rect.center().y());
+    case ConnectionModel::SideBottom:
+        return QPointF(rect.center().x(), rect.bottom());
+    case ConnectionModel::SideLeft:
+    case ConnectionModel::SideAuto:
+        return QPointF(rect.left(), rect.center().y());
+    }
+
+    return rect.center();
+}
+
+QPointF offsetPointForSide(const QPointF &point,
+                          ConnectionModel::Side side,
+                          qreal distance)
+{
+    switch (side) {
+    case ConnectionModel::SideTop:
+        return QPointF(point.x(), point.y() - distance);
+    case ConnectionModel::SideRight:
+        return QPointF(point.x() + distance, point.y());
+    case ConnectionModel::SideBottom:
+        return QPointF(point.x(), point.y() + distance);
+    case ConnectionModel::SideLeft:
+    case ConnectionModel::SideAuto:
+        return QPointF(point.x() - distance, point.y());
+    }
+
+    return point;
+}
+
+QVector<QPointF> simplifyPolyline(const QVector<QPointF> &points)
+{
+    QVector<QPointF> simplified;
+    simplified.reserve(points.size());
+
+    for (const QPointF &point : points) {
+        if (!simplified.isEmpty() && simplified.last() == point)
+            continue;
+        simplified.append(point);
+    }
+
+    bool removed = true;
+    while (removed && simplified.size() >= 3) {
+        removed = false;
+        for (int i = 1; i < simplified.size() - 1; ++i) {
+            const QPointF &a = simplified.at(i - 1);
+            const QPointF &b = simplified.at(i);
+            const QPointF &c = simplified.at(i + 1);
+            if ((qFuzzyCompare(a.x(), b.x()) && qFuzzyCompare(b.x(), c.x()))
+                || (qFuzzyCompare(a.y(), b.y()) && qFuzzyCompare(b.y(), c.y()))) {
+                simplified.removeAt(i);
+                removed = true;
+                break;
+            }
+        }
+    }
+
+    return simplified;
+}
+
+QRectF polylineBounds(const QVector<QPointF> &points)
+{
+    if (points.isEmpty())
+        return QRectF();
+
+    qreal minX = points.first().x();
+    qreal maxX = minX;
+    qreal minY = points.first().y();
+    qreal maxY = minY;
+    for (const QPointF &point : points) {
+        minX = qMin(minX, point.x());
+        maxX = qMax(maxX, point.x());
+        minY = qMin(minY, point.y());
+        maxY = qMax(maxY, point.y());
+    }
+
+    return QRectF(QPointF(minX, minY), QPointF(maxX, maxY));
+}
+
+bool axisAlignedSegmentIntersectsRectInterior(const QPointF &a,
+                                              const QPointF &b,
+                                              const QRectF &rect)
+{
+    constexpr qreal epsilon = 0.01;
+    const QRectF innerRect = rect.adjusted(epsilon, epsilon, -epsilon, -epsilon);
+    if (innerRect.isEmpty())
+        return false;
+
+    if (qFuzzyCompare(a.x(), b.x())) {
+        const qreal x = a.x();
+        if (x <= innerRect.left() || x >= innerRect.right())
+            return false;
+
+        const qreal minY = qMin(a.y(), b.y());
+        const qreal maxY = qMax(a.y(), b.y());
+        return maxY > innerRect.top() && minY < innerRect.bottom();
+    }
+
+    if (qFuzzyCompare(a.y(), b.y())) {
+        const qreal y = a.y();
+        if (y <= innerRect.top() || y >= innerRect.bottom())
+            return false;
+
+        const qreal minX = qMin(a.x(), b.x());
+        const qreal maxX = qMax(a.x(), b.x());
+        return maxX > innerRect.left() && minX < innerRect.right();
+    }
+
+    return true;
+}
+
+bool segmentUsesSideNormal(const QPointF &anchor,
+                           const QPointF &other,
+                           ConnectionModel::Side side)
+{
+    constexpr qreal epsilon = 0.0001;
+
+    switch (side) {
+    case ConnectionModel::SideTop:
+        return qAbs(other.x() - anchor.x()) <= epsilon && other.y() < anchor.y() - epsilon;
+    case ConnectionModel::SideRight:
+        return qAbs(other.y() - anchor.y()) <= epsilon && other.x() > anchor.x() + epsilon;
+    case ConnectionModel::SideBottom:
+        return qAbs(other.x() - anchor.x()) <= epsilon && other.y() > anchor.y() + epsilon;
+    case ConnectionModel::SideLeft:
+        return qAbs(other.y() - anchor.y()) <= epsilon && other.x() < anchor.x() - epsilon;
+    case ConnectionModel::SideAuto:
+        return true;
+    }
+
+    return true;
+}
+
+bool routeIsValid(const QVector<QPointF> &points,
+                  const QList<ComponentModel *> &components,
+                  ComponentModel *sourceComponent,
+                  ComponentModel *targetComponent,
+                  ConnectionModel::Side sourceSide,
+                  ConnectionModel::Side targetSide)
+{
+    if (points.size() < 2)
+        return true;
+
+    if (!segmentUsesSideNormal(points.first(), points.at(1), sourceSide))
+        return false;
+    if (!segmentUsesSideNormal(points.last(), points.at(points.size() - 2), targetSide))
+        return false;
+
+    for (int i = 1; i < points.size(); ++i) {
+        const QPointF &a = points.at(i - 1);
+        const QPointF &b = points.at(i);
+        if (!qFuzzyCompare(a.x(), b.x()) && !qFuzzyCompare(a.y(), b.y()))
+            return false;
+
+        for (ComponentModel *component : components) {
+            if (!component || component == sourceComponent || component == targetComponent)
+                continue;
+
+            if (axisAlignedSegmentIntersectsRectInterior(a, b, componentWorldRect(component)))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+QVector<QPointF> makeLRoute(const QPointF &start, const QPointF &end, bool horizontalFirst)
+{
+    QVector<QPointF> points;
+    points.reserve(3);
+    points.append(start);
+    points.append(horizontalFirst ? QPointF(end.x(), start.y())
+                                  : QPointF(start.x(), end.y()));
+    points.append(end);
+    return simplifyPolyline(points);
+}
+
+QVector<QPointF> makeDoglegRoute(const QPointF &start,
+                                 const QPointF &end,
+                                 bool verticalCorridor,
+                                 qreal corridor)
+{
+    QVector<QPointF> points;
+    points.reserve(4);
+    points.append(start);
+    if (verticalCorridor) {
+        points.append(QPointF(corridor, start.y()));
+        points.append(QPointF(corridor, end.y()));
+    } else {
+        points.append(QPointF(start.x(), corridor));
+        points.append(QPointF(end.x(), corridor));
+    }
+    points.append(end);
+    return simplifyPolyline(points);
+}
+
+QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
+                                              ComponentModel *sourceComponent,
+                                              ComponentModel *targetComponent,
+                                              const QList<ComponentModel *> &components)
+{
+    const ConnectionModel::Side sourceSide = resolvedSide(connection->sourceSide(),
+                                                          sourceComponent,
+                                                          targetComponent,
+                                                          true);
+    const ConnectionModel::Side targetSide = resolvedSide(connection->targetSide(),
+                                                          sourceComponent,
+                                                          targetComponent,
+                                                          false);
+
+    const QPointF start = anchorPointForSide(sourceComponent, sourceSide);
+    const QPointF end = anchorPointForSide(targetComponent, targetSide);
+    const QRectF sourceRect = componentWorldRect(sourceComponent);
+    const QRectF targetRect = componentWorldRect(targetComponent);
+
+    const qreal clearance = qMax<qreal>(24.0,
+                                        qMin(sourceRect.width(), sourceRect.height()) * 0.25);
+
+    QVector<QVector<QPointF>> candidates;
+    candidates.reserve(8);
+
+    candidates.append(simplifyPolyline({ start, end }));
+    candidates.append(makeLRoute(start, end, true));
+    candidates.append(makeLRoute(start, end, false));
+
+    const qreal leftCorridor = qMin(sourceRect.left(), targetRect.left()) - clearance;
+    const qreal rightCorridor = qMax(sourceRect.right(), targetRect.right()) + clearance;
+    const qreal topCorridor = qMin(sourceRect.top(), targetRect.top()) - clearance;
+    const qreal bottomCorridor = qMax(sourceRect.bottom(), targetRect.bottom()) + clearance;
+
+    const QPointF sourceOut = offsetPointForSide(start, sourceSide, clearance);
+    const QPointF targetOut = offsetPointForSide(end, targetSide, clearance);
+
+    if (isHorizontalSide(sourceSide)) {
+        candidates.append(makeDoglegRoute(start, end, true, sourceOut.x()));
+        candidates.append(simplifyPolyline({ start, sourceOut, end }));
+    } else {
+        candidates.append(makeDoglegRoute(start, end, false, sourceOut.y()));
+        candidates.append(simplifyPolyline({ start, sourceOut, end }));
+    }
+
+    if (isHorizontalSide(targetSide)) {
+        candidates.append(makeDoglegRoute(start, end, true, targetOut.x()));
+        candidates.append(simplifyPolyline({ start, targetOut, end }));
+    } else {
+        candidates.append(makeDoglegRoute(start, end, false, targetOut.y()));
+        candidates.append(simplifyPolyline({ start, targetOut, end }));
+    }
+
+    candidates.append(makeDoglegRoute(start, end, true,
+                                      sourceSide == ConnectionModel::SideLeft ? leftCorridor : rightCorridor));
+    candidates.append(makeDoglegRoute(start, end, true,
+                                      targetSide == ConnectionModel::SideLeft ? leftCorridor : rightCorridor));
+    candidates.append(makeDoglegRoute(start, end, false,
+                                      sourceSide == ConnectionModel::SideTop ? topCorridor : bottomCorridor));
+    candidates.append(makeDoglegRoute(start, end, false,
+                                      targetSide == ConnectionModel::SideTop ? topCorridor : bottomCorridor));
+
+    candidates.append(makeDoglegRoute(start, end, true, leftCorridor));
+    candidates.append(makeDoglegRoute(start, end, true, rightCorridor));
+    candidates.append(makeDoglegRoute(start, end, false, topCorridor));
+    candidates.append(makeDoglegRoute(start, end, false, bottomCorridor));
+
+    for (const QVector<QPointF> &candidate : candidates) {
+        const QVector<QPointF> simplified = simplifyPolyline(candidate);
+        if (simplified.size() < 2)
+            continue;
+        if (routeIsValid(simplified,
+                         components,
+                         sourceComponent,
+                         targetComponent,
+                         sourceSide,
+                         targetSide)) {
+            return simplified;
+        }
+    }
+
+    return simplifyPolyline({ start, end });
 }
 
 QSGGeometryNode *createLineNode(const QVector<QPointF> &segments,
@@ -569,12 +867,14 @@ QObject *GraphViewportItem::hitTestConnectionAtView(qreal viewX, qreal viewY,
                     continue;
                 }
 
-                const qreal distSq = distanceToSegmentSquared(worldPoint,
-                                                              entry.sourceWorld,
-                                                              entry.targetWorld);
-                if (distSq <= tolSq && distSq < bestDistSq) {
-                    bestDistSq = distSq;
-                    bestConnection = entry.connection;
+                for (int segmentIndex = 1; segmentIndex < entry.worldPolyline.size(); ++segmentIndex) {
+                    const qreal distSq = distanceToSegmentSquared(worldPoint,
+                                                                  entry.worldPolyline.at(segmentIndex - 1),
+                                                                  entry.worldPolyline.at(segmentIndex));
+                    if (distSq <= tolSq && distSq < bestDistSq) {
+                        bestDistSq = distSq;
+                        bestConnection = entry.connection;
+                    }
                 }
             }
         }
@@ -684,16 +984,18 @@ void GraphViewportItem::updateLodState()
         auto *selectedMat = m_selectedEdgesGeomNode
             ? static_cast<QSGFlatColorMaterial *>(m_selectedEdgesGeomNode->material())
             : nullptr;
+        const QColor normalColor = simpleEdges
+            ? QColor(QStringLiteral("#546e7a"))
+            : QColor(QStringLiteral("#607d8b"));
+        const QColor selectedColor = simpleEdges
+            ? QColor(QStringLiteral("#546e7a"))
+            : QColor(QStringLiteral("#ff5722"));
         if (normalMat) {
-            normalMat->setColor(simpleEdges
-                                ? QColor(QStringLiteral("#546e7a"))
-                                : QColor(QStringLiteral("#607d8b")));
+            normalMat->setColor(normalColor);
             m_normalEdgesGeomNode->markDirty(QSGNode::DirtyMaterial);
         }
         if (selectedMat) {
-            selectedMat->setColor(simpleEdges
-                                  ? QColor(QStringLiteral("#546e7a"))
-                                  : QColor(QStringLiteral("#ff5722")));
+            selectedMat->setColor(selectedColor);
             m_selectedEdgesGeomNode->markDirty(QSGNode::DirtyMaterial);
         }
     }
@@ -721,7 +1023,9 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
     //   ├── m_gridGeomNode          (screen-space grid lines)
     //   ├── m_edgesTransformNode    (camera world→screen transform)
     //   │   ├── m_normalEdgesGeomNode   (world-space, normal edges)
-    //   │   └── m_selectedEdgesGeomNode (world-space, selected edge)
+    //   │   ├── m_selectedEdgesGeomNode (world-space, selected edge)
+    //   │   ├── m_normalArrowsGeomNode  (world-space, normal arrowheads)
+    //   │   └── m_selectedArrowsGeomNode(world-space, selected arrowheads)
     //   └── m_tempEdgeGeomNode      (screen-space, drag-in-progress edge)
     // -----------------------------------------------------------------------
     if (!oldNode) {
@@ -753,8 +1057,12 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         m_edgesTransformNode    = new QSGTransformNode();
         m_normalEdgesGeomNode   = createEmptyLineNode(QColor(QStringLiteral("#607d8b")), 2.0f);
         m_selectedEdgesGeomNode = createEmptyLineNode(QColor(QStringLiteral("#ff5722")), 3.0f);
+        m_normalArrowsGeomNode = createEmptyColoredNode();
+        m_selectedArrowsGeomNode = createEmptyColoredNode();
         m_edgesTransformNode->appendChildNode(m_normalEdgesGeomNode);
         m_edgesTransformNode->appendChildNode(m_selectedEdgesGeomNode);
+        m_edgesTransformNode->appendChildNode(m_normalArrowsGeomNode);
+        m_edgesTransformNode->appendChildNode(m_selectedArrowsGeomNode);
         m_rootNode->appendChildNode(m_edgesTransformNode);
 
         m_tempEdgeGeomNode = createEmptyLineNode(QColor(QStringLiteral("#90caf9")), 2.0f);
@@ -902,9 +1210,41 @@ void GraphViewportItem::updateEdgesGeometry()
         }
     };
 
+    auto appendArrowTriangle = [](QSGGeometry::ColoredPoint2D *verts,
+                                  int &idx,
+                                  const QPointF &tip,
+                                  const QPointF &from,
+                                  const QColor &color,
+                                  qreal length,
+                                  qreal width) {
+        const QPointF dir = tip - from;
+        const qreal lenSq = dir.x() * dir.x() + dir.y() * dir.y();
+        if (lenSq <= 0.0001)
+            return;
+
+        const qreal invLen = 1.0 / std::sqrt(lenSq);
+        const QPointF unit(dir.x() * invLen, dir.y() * invLen);
+        const QPointF normal(-unit.y(), unit.x());
+
+        const QPointF baseCenter = tip - unit * length;
+        const QPointF left = baseCenter + normal * width;
+        const QPointF right = baseCenter - normal * width;
+
+        const unsigned char r = color.red();
+        const unsigned char g = color.green();
+        const unsigned char b = color.blue();
+        const unsigned char a = color.alpha();
+
+        verts[idx++].set(float(tip.x()), float(tip.y()), r, g, b, a);
+        verts[idx++].set(float(left.x()), float(left.y()), r, g, b, a);
+        verts[idx++].set(float(right.x()), float(right.y()), r, g, b, a);
+    };
+
     if (!m_renderEdges) {
         clearNode(m_normalEdgesGeomNode);
         clearNode(m_selectedEdgesGeomNode);
+        clearNode(m_normalArrowsGeomNode);
+        clearNode(m_selectedArrowsGeomNode);
         return;
     }
 
@@ -912,6 +1252,8 @@ void GraphViewportItem::updateEdgesGeometry()
     if (!graphModel) {
         clearNode(m_normalEdgesGeomNode);
         clearNode(m_selectedEdgesGeomNode);
+        clearNode(m_normalArrowsGeomNode);
+        clearNode(m_selectedArrowsGeomNode);
         return;
     }
 
@@ -924,16 +1266,28 @@ void GraphViewportItem::updateEdgesGeometry()
     for (ComponentModel *c : components)
         componentById.insert(c->id(), c);
 
-    // Pre-count vertices (2 per valid connection) to allocate exact buffers.
+    // Pre-count vertices (2 per routed segment) and arrow triangles.
     int normalCount = 0, selectedCount = 0;
+    int normalArrowCount = 0, selectedArrowCount = 0;
     for (ConnectionModel *conn : connections) {
-        if (!componentById.contains(conn->sourceId()) ||
-            !componentById.contains(conn->targetId()))
+        ComponentModel *src = componentById.value(conn->sourceId(), nullptr);
+        ComponentModel *tgt = componentById.value(conn->targetId(), nullptr);
+        if (!src || !tgt)
             continue;
+
+        const QVector<QPointF> route = orthogonalRouteForConnection(conn, src, tgt, components);
+        const int segmentCount = qMax(0, route.size() - 1);
         if (static_cast<QObject *>(conn) == m_selectedConnection)
-            ++selectedCount;
+            selectedCount += segmentCount;
         else
-            ++normalCount;
+            normalCount += segmentCount;
+
+        if (route.size() >= 2) {
+            if (static_cast<QObject *>(conn) == m_selectedConnection)
+                ++selectedArrowCount;
+            else
+                ++normalArrowCount;
+        }
     }
 
     // Reallocate only if the edge count changed.
@@ -941,10 +1295,26 @@ void GraphViewportItem::updateEdgesGeometry()
         m_normalEdgesGeomNode->geometry()->allocate(normalCount * 2);
     if (m_selectedEdgesGeomNode->geometry()->vertexCount() != selectedCount * 2)
         m_selectedEdgesGeomNode->geometry()->allocate(selectedCount * 2);
+    if (m_normalArrowsGeomNode->geometry()->vertexCount() != normalArrowCount * 3)
+        m_normalArrowsGeomNode->geometry()->allocate(normalArrowCount * 3);
+    if (m_selectedArrowsGeomNode->geometry()->vertexCount() != selectedArrowCount * 3)
+        m_selectedArrowsGeomNode->geometry()->allocate(selectedArrowCount * 3);
 
     auto *normalV   = m_normalEdgesGeomNode->geometry()->vertexDataAsPoint2D();
     auto *selectedV = m_selectedEdgesGeomNode->geometry()->vertexDataAsPoint2D();
+    auto *normalArrowV = m_normalArrowsGeomNode->geometry()->vertexDataAsColoredPoint2D();
+    auto *selectedArrowV = m_selectedArrowsGeomNode->geometry()->vertexDataAsColoredPoint2D();
     int nIdx = 0, sIdx = 0;
+    int nArrowIdx = 0, sArrowIdx = 0;
+
+    const qreal arrowLength = m_lodSimpleEdges ? 8.0 : 12.0;
+    const qreal arrowWidth = m_lodSimpleEdges ? 3.5 : 5.0;
+    const QColor normalColor = m_lodSimpleEdges
+        ? QColor(QStringLiteral("#546e7a"))
+        : QColor(QStringLiteral("#607d8b"));
+    const QColor selectedColor = m_lodSimpleEdges
+        ? QColor(QStringLiteral("#546e7a"))
+        : QColor(QStringLiteral("#ff5722"));
 
     for (ConnectionModel *conn : connections) {
         ComponentModel *src = componentById.value(conn->sourceId(), nullptr);
@@ -952,21 +1322,44 @@ void GraphViewportItem::updateEdgesGeometry()
         if (!src || !tgt)
             continue;
 
-        QPointF srcWorld, tgtWorld;
-        connectionEndpointsOnBounding(src, tgt, srcWorld, tgtWorld);
+        const QVector<QPointF> route = orthogonalRouteForConnection(conn, src, tgt, components);
+        if (route.size() < 2)
+            continue;
 
         // World-space coordinates — QSGTransformNode handles world→screen.
         if (static_cast<QObject *>(conn) == m_selectedConnection) {
-            selectedV[sIdx++].set(float(srcWorld.x()), float(srcWorld.y()));
-            selectedV[sIdx++].set(float(tgtWorld.x()), float(tgtWorld.y()));
+            for (int i = 1; i < route.size(); ++i) {
+                selectedV[sIdx++].set(float(route.at(i - 1).x()), float(route.at(i - 1).y()));
+                selectedV[sIdx++].set(float(route.at(i).x()), float(route.at(i).y()));
+            }
+
+            appendArrowTriangle(selectedArrowV,
+                                sArrowIdx,
+                                route.last(),
+                                route.at(route.size() - 2),
+                                selectedColor,
+                                arrowLength,
+                                arrowWidth);
         } else {
-            normalV[nIdx++].set(float(srcWorld.x()), float(srcWorld.y()));
-            normalV[nIdx++].set(float(tgtWorld.x()), float(tgtWorld.y()));
+            for (int i = 1; i < route.size(); ++i) {
+                normalV[nIdx++].set(float(route.at(i - 1).x()), float(route.at(i - 1).y()));
+                normalV[nIdx++].set(float(route.at(i).x()), float(route.at(i).y()));
+            }
+
+            appendArrowTriangle(normalArrowV,
+                                nArrowIdx,
+                                route.last(),
+                                route.at(route.size() - 2),
+                                normalColor,
+                                arrowLength,
+                                arrowWidth);
         }
     }
 
     m_normalEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
     m_selectedEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
+    m_normalArrowsGeomNode->markDirty(QSGNode::DirtyGeometry);
+    m_selectedArrowsGeomNode->markDirty(QSGNode::DirtyGeometry);
 }
 
 // ---------------------------------------------------------------------------
@@ -1446,26 +1839,28 @@ void GraphViewportItem::rebuildSpatialIndex()
         m_connectionGeometryChangedConns.append(
             connect(connection, &ConnectionModel::idChanged,
                     this, &GraphViewportItem::requestGraphRebuild));
+        m_connectionGeometryChangedConns.append(
+            connect(connection, &ConnectionModel::sourceSideChanged,
+                    this, &GraphViewportItem::requestGraphRebuild));
+        m_connectionGeometryChangedConns.append(
+            connect(connection, &ConnectionModel::targetSideChanged,
+                    this, &GraphViewportItem::requestGraphRebuild));
 
         ComponentModel *src = componentById.value(connection->sourceId(), nullptr);
         ComponentModel *tgt = componentById.value(connection->targetId(), nullptr);
         if (!src || !tgt)
             continue;
 
-        QPointF srcWorld;
-        QPointF tgtWorld;
-        connectionEndpointsOnBounding(src, tgt, srcWorld, tgtWorld);
+        const QVector<QPointF> route = orthogonalRouteForConnection(connection, src, tgt, components);
+        if (route.size() < 2)
+            continue;
 
-        const QRectF bounds(QPointF(qMin(srcWorld.x(), tgtWorld.x()),
-                                    qMin(srcWorld.y(), tgtWorld.y())),
-                            QPointF(qMax(srcWorld.x(), tgtWorld.x()),
-                                    qMax(srcWorld.y(), tgtWorld.y())));
+        const QRectF bounds = polylineBounds(route);
 
         const int idx = indexedConnections.size();
         indexedConnections.push_back(IndexedConnection {
             connection,
-            srcWorld,
-            tgtWorld,
+            route,
             bounds
         });
 

@@ -10,6 +10,7 @@ Rectangle {
 
     property ComponentModel component: null
     property ConnectionModel connection: null
+    property UndoStack undoStack: null
     readonly property var connectionSideModel: [
         { text: "Auto", value: ConnectionModel.SideAuto },
         { text: "Top", value: ConnectionModel.SideTop },
@@ -24,6 +25,18 @@ Rectangle {
                 return i
         }
         return 0
+    }
+
+    function updateConnectionSides(sourceSide, targetSide) {
+        if (!root.connection)
+            return
+
+        if (root.undoStack)
+            root.undoStack.pushSetConnectionSides(root.connection, sourceSide, targetSide)
+        else {
+            root.connection.sourceSide = sourceSide
+            root.connection.targetSide = targetSide
+        }
     }
 
     color: "#ffffff"
@@ -202,7 +215,8 @@ Rectangle {
                                   : 0
                     onActivated: function(index) {
                         if (root.connection)
-                            root.connection.sourceSide = root.connectionSideModel[index].value
+                            root.updateConnectionSides(root.connectionSideModel[index].value,
+                                                       root.connection.targetSide)
                     }
                 }
 
@@ -216,7 +230,8 @@ Rectangle {
                                   : 0
                     onActivated: function(index) {
                         if (root.connection)
-                            root.connection.targetSide = root.connectionSideModel[index].value
+                            root.updateConnectionSides(root.connection.sourceSide,
+                                                       root.connectionSideModel[index].value)
                     }
                 }
             }

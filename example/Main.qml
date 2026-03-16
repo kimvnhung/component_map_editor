@@ -233,10 +233,11 @@ ApplicationWindow {
         }
 
         PropertyPanel {
-                id: propertyPanel
-                Layout.preferredWidth: 210
-                Layout.fillHeight: true
-            }
+            id: propertyPanel
+            Layout.preferredWidth: 210
+            Layout.fillHeight: true
+            undoStack: undoStack
+        }
         }
 
         // Thin separator above benchmark panel

@@ -155,8 +155,7 @@ private:
 
     struct IndexedConnection {
         QPointer<ConnectionModel> connection;
-        QPointF sourceWorld;
-        QPointF targetWorld;
+        QVector<QPointF> worldPolyline;
         QRectF worldBounds;
     };
 
@@ -228,6 +227,8 @@ private:
     QSGTransformNode *m_edgesTransformNode    = nullptr;
     QSGGeometryNode  *m_normalEdgesGeomNode   = nullptr;
     QSGGeometryNode  *m_selectedEdgesGeomNode = nullptr;
+    QSGGeometryNode  *m_normalArrowsGeomNode  = nullptr;
+    QSGGeometryNode  *m_selectedArrowsGeomNode = nullptr;
     QSGGeometryNode  *m_tempEdgeGeomNode      = nullptr;
 
     // Dirty flags: written on main thread, read on render thread (sync phase).

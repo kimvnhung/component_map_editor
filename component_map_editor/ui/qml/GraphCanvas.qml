@@ -162,18 +162,25 @@ Item {
         return candidate
     }
 
-    function removeConnectionById(connectionId) {
+    function removeConnectionById(connectionId, useUndo) {
         if (!root.graph || !connectionId)
             return
 
-        root.graph.removeConnection(connectionId)
+        var shouldUseUndo = useUndo === undefined ? true : useUndo
+        if (shouldUseUndo && root.undoStack)
+            root.undoStack.pushRemoveConnection(root.graph, connectionId)
+        else
+            root.graph.removeConnection(connectionId)
+
         if (root.selectedConnection && root.selectedConnection.id === connectionId)
             root.selectedConnection = null
     }
 
-    function clearComponentConnections(component, clearIncoming, clearOutgoing) {
+    function clearComponentConnections(component, clearIncoming, clearOutgoing, useUndo) {
         if (!root.graph || !component)
             return
+
+        var shouldUseUndo = useUndo === undefined ? true : useUndo
 
         var idsToRemove = []
         var currentConnections = root.graph.connections
@@ -186,7 +193,7 @@ Item {
         }
 
         for (var j = 0; j < idsToRemove.length; ++j)
-            root.removeConnectionById(idsToRemove[j])
+            root.removeConnectionById(idsToRemove[j], shouldUseUndo)
 
         edgeCanvas.repaint()
     }
@@ -195,7 +202,7 @@ Item {
         if (!root.graph || !component)
             return
 
-        root.clearComponentConnections(component, true, true)
+        root.clearComponentConnections(component, true, true, false)
         root.graph.removeComponent(component.id)
         root.removeComponentFromSelection(component)
         if (root.selectedComponentIds.length > 0) {
@@ -673,7 +680,10 @@ Item {
                             e1.targetId = component.id
                             e1.label = "path A"
                             e1.sourceSide = sourceSide
-                            root.graph.addConnection(e1)
+                            if (root.undoStack)
+                                root.undoStack.pushAddConnection(root.graph, e1)
+                            else
+                                root.graph.addConnection(e1)
                             edgeCanvas.repaint()
                         }
 
