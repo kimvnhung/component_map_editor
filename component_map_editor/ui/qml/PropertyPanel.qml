@@ -147,6 +147,22 @@ Rectangle {
                 spacing: 6
                 width: parent ? parent.width : 0
 
+                function sideIndexForValue(value) {
+                    for (let i = 0; i < sideModel.length; ++i) {
+                        if (sideModel[i].value === value)
+                            return i
+                    }
+                    return 0
+                }
+
+                readonly property var sideModel: [
+                    { text: "Auto", value: ConnectionModel.SideAuto },
+                    { text: "Top", value: ConnectionModel.SideTop },
+                    { text: "Right", value: ConnectionModel.SideRight },
+                    { text: "Bottom", value: ConnectionModel.SideBottom },
+                    { text: "Left", value: ConnectionModel.SideLeft }
+                ]
+
                 Label { text: "Connection"; font.bold: true; font.pixelSize: 11; color: "#888" }
 
                 Label { text: "ID" }
@@ -175,6 +191,34 @@ Rectangle {
                     Layout.fillWidth: true
                     text: root.connection ? root.connection.label : ""
                     onEditingFinished: if (root.connection) root.connection.label = text
+                }
+
+                Label { text: "Source Side" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: connectionProps.sideModel
+                    textRole: "text"
+                    currentIndex: root.connection
+                                  ? connectionProps.sideIndexForValue(root.connection.sourceSide)
+                                  : 0
+                    onActivated: function(index) {
+                        if (root.connection)
+                            root.connection.sourceSide = connectionProps.sideModel[index].value
+                    }
+                }
+
+                Label { text: "Target Side" }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: connectionProps.sideModel
+                    textRole: "text"
+                    currentIndex: root.connection
+                                  ? connectionProps.sideIndexForValue(root.connection.targetSide)
+                                  : 0
+                    onActivated: function(index) {
+                        if (root.connection)
+                            root.connection.targetSide = connectionProps.sideModel[index].value
+                    }
                 }
             }
         }

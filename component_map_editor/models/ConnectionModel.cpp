@@ -45,3 +45,19 @@ void ConnectionModel::setLabel(const QString &label)
     m_label = label;
     emit labelChanged();
 }
+
+ConnectionModel::Side ConnectionModel::sourceSide() const { return m_sourceSide; }
+void ConnectionModel::setSourceSide(ConnectionModel::Side sourceSide)
+{
+    if (m_sourceSide == sourceSide) return;
+    m_sourceSide = sourceSide;
+    emit sourceSideChanged();
+}
+
+ConnectionModel::Side ConnectionModel::targetSide() const { return m_targetSide; }
+void ConnectionModel::setTargetSide(ConnectionModel::Side targetSide)
+{
+    if (m_targetSide == targetSide) return;
+    m_targetSide = targetSide;
+    emit targetSideChanged();
+}
