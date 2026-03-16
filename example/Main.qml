@@ -135,6 +135,15 @@ ApplicationWindow {
             }
 
             ToolButton {
+                text: "Import JSON"
+                onClicked: {
+                    importDialog.errorText = ""
+                    importDialog.jsonText = ""
+                    importDialog.open()
+                }
+            }
+
+            ToolButton {
                 text: "Clear"
                 onClicked: {
                     if (canvas) {
@@ -282,5 +291,75 @@ ApplicationWindow {
         }
 
         standardButtons: Dialog.Close
+    }
+
+    Dialog {
+        id: importDialog
+        title: "Import Graph JSON"
+        width: 600
+        height: 500
+        anchors.centerIn: parent
+
+        property string jsonText: ""
+        property string errorText: ""
+
+        contentItem: ColumnLayout {
+            spacing: 8
+
+            Label {
+                Layout.fillWidth: true
+                text: "Paste exported graph JSON below and click Import."
+                color: "#555"
+                wrapMode: Text.WordWrap
+            }
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                TextArea {
+                    id: importTextArea
+                    text: importDialog.jsonText
+                    placeholderText: "{\n  \"coordinateSystem\": \"world-center-y-down-v3\",\n  \"components\": [],\n  \"connections\": []\n}"
+                    font.family: "monospace"
+                    font.pixelSize: 12
+                    wrapMode: TextArea.Wrap
+                    onTextChanged: importDialog.jsonText = text
+                }
+            }
+
+            Label {
+                Layout.fillWidth: true
+                visible: importDialog.errorText.length > 0
+                text: importDialog.errorText
+                color: "#c62828"
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: {
+            var ok = exporter.importFromJson(graph, importDialog.jsonText)
+            if (!ok) {
+                importDialog.errorText = "Invalid JSON or unsupported format."
+                importDialog.open()
+                return
+            }
+
+            if (canvas) {
+                canvas.tempConnectionDragging = false
+                canvas.nodeInteractionActive = false
+                canvas.enableBackgroundDrag = true
+                canvas.selectedComponent = null
+                canvas.selectedConnection = null
+                canvas.selectedComponentIds = []
+            }
+            propertyPanel.component = null
+            propertyPanel.connection = null
+            statusLabel.text = "✓ Graph imported"
+            statusLabel.color = "#2e7d32"
+            canvas.edgeRenderer.repaint()
+            canvas.nodeRenderer.repaint()
+        }
     }
 }

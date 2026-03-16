@@ -491,7 +491,7 @@ Item {
             id: panDrag
             enabled: root.enableBackgroundDrag
                      && !root.nodeInteractionActive
-                     && !root.pointerOverComponent
+                     && !root.pressedComponent
             target: null
             acceptedButtons: Qt.LeftButton
             dragThreshold: root.panStartThreshold
@@ -665,7 +665,6 @@ Item {
 
                         onFocusedChanged: {
                             delegateRoot.keepAlive = focused
-                            root.enableBackgroundDrag = !focused
                         }
 
                         onConnectionDragged: function (sourceComponent, sourceSide, startP, targetP) {
@@ -680,7 +679,7 @@ Item {
                         onConnectionDropped: function (sourceComponent, sourceSide, startP, targetP) {
                             root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
-                            root.enableBackgroundDrag = !focused
+                            root.enableBackgroundDrag = true
                             root.tempConnectionDragging = false
                             root.tempStart = Qt.point(0, 0)
                             root.tempEnd = Qt.point(0, 0)
@@ -733,7 +732,7 @@ Item {
                         onMoveFinished: {
                             root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
-                            root.enableBackgroundDrag = !focused
+                            root.enableBackgroundDrag = true
                             if (root.telemetry) root.telemetry.notifyDragEnded()
                         }
 
@@ -745,7 +744,7 @@ Item {
                         onResizeFinished: {
                             root.activeInteractionComponent = null
                             root.nodeInteractionActive = false
-                            root.enableBackgroundDrag = !focused
+                            root.enableBackgroundDrag = true
                         }
 
                         onHoverPositionChanged: function (hoverX, hoverY) {

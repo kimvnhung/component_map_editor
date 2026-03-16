@@ -58,21 +58,21 @@ Use same camera, same graph data, same source/target side settings for baseline 
   1. Place obstacle component between source and target.
   2. Connect source->target.
 - Pass:
-  - Route avoids obstacle and remains orthogonal.
+  - > **STATUS: ✅ PASS** Route avoids obstacle and remains orthogonal.
 
 ### Scenario B3: Side-constrained endpoints
 - Steps:
   1. Set sourceSide/targetSide manually in property panel.
   2. Create and adjust route with several side combinations.
 - Pass:
-  - Entry/exit orientation follows side rules exactly as before.
+  - > **STATUS: ✅ PASS** Entry/exit orientation follows side rules exactly as before.
 
 ### Scenario B4: Dense area fallback behavior
 - Steps:
   1. Create local dense cluster around endpoints.
   2. Connect across cluster.
 - Pass:
-  - Route still appears and remains valid (A* fallback behavior unchanged).
+  -**STATUS: ✅ PASS** Route still appears and remains valid (A* fallback behavior unchanged).
 
 ### Scenario B5: Determinism check
 - Steps:
@@ -80,7 +80,7 @@ Use same camera, same graph data, same source/target side settings for baseline 
   2. Clear and reload same graph 3 times.
   3. Compare route shape visually for key connections.
 - Pass:
-  - Same input produces stable route output each run.
+  - **STATUS: ✅ PASS** Same input produces stable route output each run.
 
 ---
 
@@ -91,14 +91,14 @@ Use same camera, same graph data, same source/target side settings for baseline 
   1. Click near route segments and near nodes.
   2. Verify selection changes.
 - Pass:
-  - Connection hit-test and component hit-test behavior unchanged.
+  -**STATUS: ✅ PASS** Connection hit-test and component hit-test behavior unchanged.
 
 ### Scenario C2: Undo/redo around routes
 - Steps:
   1. Add connection, undo, redo.
   2. Move endpoint component, undo, redo.
 - Pass:
-  - Route updates and reverts correctly each operation.
+  - **STATUS: ✅ PASS** Route updates and reverts correctly each operation.
 
 ### Scenario C3: Import/export with route rebuild
 - Steps:
