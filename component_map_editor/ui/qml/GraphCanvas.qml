@@ -52,6 +52,7 @@ Item {
     property ComponentModel activeInteractionComponent: null
     property bool suppressNextCanvasTap: false
     readonly property var nodeRenderer: nodeViewport
+    readonly property var edgeRenderer: edgeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
     property int livePointerModifiers: 0

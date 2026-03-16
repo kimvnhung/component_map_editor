@@ -9,6 +9,7 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QHash>
+#include <QElapsedTimer>
 #include <QImage>
 #include <QMatrix4x4>
 #include <QPainter>
@@ -956,6 +957,13 @@ QObject *GraphViewportItem::hitTestConnectionAtView(qreal viewX, qreal viewY,
                 }
 
                 for (int segmentIndex = 1; segmentIndex < entry.worldPolyline.size(); ++segmentIndex) {
+                    if (segmentIndex - 1 < entry.segmentBounds.size()) {
+                        const QRectF segmentProbe = entry.segmentBounds.at(segmentIndex - 1)
+                                .adjusted(-tolWorld, -tolWorld, tolWorld, tolWorld);
+                        if (!segmentProbe.contains(worldPoint))
+                            continue;
+                    }
+
                     const qreal distSq = distanceToSegmentSquared(worldPoint,
                                                                   entry.worldPolyline.at(segmentIndex - 1),
                                                                   entry.worldPolyline.at(segmentIndex));
@@ -999,6 +1007,26 @@ qreal GraphViewportItem::rendererMemoryEstimateMb() const
     bytes += m_labelTextureCacheBytes.load();
 
     return qreal(bytes) / (1024.0 * 1024.0);
+}
+
+qreal GraphViewportItem::routeRebuildLastMs() const
+{
+    return m_routeRebuildLastMs.load();
+}
+
+qreal GraphViewportItem::routeRebuildP50Ms() const
+{
+    return m_routeRebuildP50Ms.load();
+}
+
+qreal GraphViewportItem::routeRebuildP95Ms() const
+{
+    return m_routeRebuildP95Ms.load();
+}
+
+int GraphViewportItem::routeRebuildSampleCount() const
+{
+    return m_routeRebuildSampleCount.load();
 }
 
 void GraphViewportItem::repaint()
@@ -1174,7 +1202,10 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
     // Happens only when topology or selection changes — NOT on every pan frame.
     // -----------------------------------------------------------------------
     if (m_graphDirty) {
+        QElapsedTimer routeRebuildTimer;
+        routeRebuildTimer.start();
         updateEdgesGeometry();
+        recordRouteRebuildSample(qreal(routeRebuildTimer.nsecsElapsed()) / 1000000.0);
         updateTempEdgeGeometry();
         m_graphDirty = false;
     }
@@ -1944,11 +1975,20 @@ void GraphViewportItem::rebuildSpatialIndex()
             continue;
 
         const QRectF bounds = polylineBounds(route);
+        QVector<QRectF> segmentBounds;
+        segmentBounds.reserve(qMax(0, route.size() - 1));
+        for (int i = 1; i < route.size(); ++i) {
+            const QPointF &a = route.at(i - 1);
+            const QPointF &b = route.at(i);
+            segmentBounds.append(QRectF(QPointF(qMin(a.x(), b.x()), qMin(a.y(), b.y())),
+                                        QPointF(qMax(a.x(), b.x()), qMax(a.y(), b.y()))));
+        }
 
         const int idx = indexedConnections.size();
         indexedConnections.push_back(IndexedConnection {
             connection,
             route,
+            segmentBounds,
             bounds
         });
 
@@ -2005,5 +2045,38 @@ qreal GraphViewportItem::distanceToSegmentSquared(const QPointF &point,
     const QPointF closest(a.x() + ab.x() * t, a.y() + ab.y() * t);
     const QPointF d = point - closest;
     return d.x() * d.x() + d.y() * d.y();
+}
+
+qreal GraphViewportItem::percentile(const QVector<qreal> &samples, qreal p)
+{
+    if (samples.isEmpty())
+        return 0.0;
+
+    QVector<qreal> sorted = samples;
+    std::sort(sorted.begin(), sorted.end());
+    const int idx = qBound(0, int(p * (sorted.size() - 1)), sorted.size() - 1);
+    return sorted.at(idx);
+}
+
+void GraphViewportItem::recordRouteRebuildSample(qreal ms)
+{
+    if (ms <= 0.0 || ms > 2000.0)
+        return;
+
+    m_routeRebuildSamples.push_back(ms);
+    if (m_routeRebuildSamples.size() > m_routeRebuildMaxSamples)
+        m_routeRebuildSamples.removeFirst();
+
+    m_routeRebuildLastMs.store(ms);
+    m_routeRebuildSampleCount.store(m_routeRebuildSamples.size());
+
+    // Recompute quantiles at low overhead cadence.
+    if (m_routeRebuildSamples.size() < 2)
+        return;
+
+    if ((m_routeRebuildSamples.size() % 8) == 0) {
+        m_routeRebuildP50Ms.store(percentile(m_routeRebuildSamples, 0.50));
+        m_routeRebuildP95Ms.store(percentile(m_routeRebuildSamples, 0.95));
+    }
 }
 
