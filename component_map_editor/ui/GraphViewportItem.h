@@ -169,8 +169,6 @@ private:
         QRectF worldBounds;
     };
 
-    qreal normalizedGridStep() const;
-    static qreal positiveModulo(qreal value, qreal modulus);
     void requestGraphRebuild();
     void scheduleGraphRebuild();
     void executeScheduledGraphRebuild();

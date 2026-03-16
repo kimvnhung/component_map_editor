@@ -623,6 +623,7 @@ Item {
         x: root.panX
         y: root.panY
         scale: root.zoom
+        transformOrigin: Item.TopLeft
         z: 2
 
         // Components
@@ -640,18 +641,16 @@ Item {
 
                 Loader {
                     id: itemLoader
-                    // Phase 4: keep only interaction overlays in QML.
-                    // C++ hit-testing handles picking for all nodes.
-                    active: root.selectedComponent === modelData
-                            || root.componentIsSelected(modelData)
-                            || root.hoveredComponent === modelData
-                            || root.pressedComponent === modelData
-                            || root.activeInteractionComponent === modelData
-                            || delegateRoot.keepAlive
+                    // Keep interaction delegates instantiated so their
+                    // DragHandler sees the initial press event. Lazily
+                    // creating the delegate on hover/press breaks component
+                    // dragging because the handler misses pointer-down.
+                    active: true
                     asynchronous: false
 
                     sourceComponent: ComponentItem {
                         component: modelData
+                        viewZoom: root.zoom
                         selected: root.selectedComponent === modelData
                                   || root.componentIsSelected(modelData)
                         renderVisuals: false

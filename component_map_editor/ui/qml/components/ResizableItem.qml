@@ -16,6 +16,9 @@ Item {
     property real minItemHeight: 24
     property real handleSize: 10
     property real moveDragThreshold: 4
+    property real interactionZoom: 1.0
+    readonly property real effectiveHandleSize: handleSize
+    readonly property real effectiveMoveDragThreshold: moveDragThreshold
     property bool moving: false
     // Set to true while an item is actively being resized.
     // This is a smaller case of handlesVisible, which is true for the entire duration that resize handles are shown, while resizing is only true during the active drag.
@@ -81,7 +84,7 @@ Item {
         enabled: root.moveEnabled && !root.resizing && !root.handleHovered
         target: root
         acceptedButtons: Qt.LeftButton
-        dragThreshold: root.moveDragThreshold
+        dragThreshold: root.effectiveMoveDragThreshold
 
         onActiveChanged: {
             if (active) {
@@ -179,11 +182,11 @@ Item {
                      readonly property bool verticalEdge: modelData.dirY === 0 && modelData.dirX !== 0
 
                      width: horizontalEdge
-                              ? Math.max(root.minItemWidth, root.width - root.handleSize * 2)
-                              : root.handleSize
+                                                            ? Math.max(root.minItemWidth, root.width - root.effectiveHandleSize * 2)
+                                                            : root.effectiveHandleSize
                      height: verticalEdge
-                                ? Math.max(root.minItemHeight, root.height - root.handleSize * 2)
-                                : root.handleSize
+                                                                ? Math.max(root.minItemHeight, root.height - root.effectiveHandleSize * 2)
+                                                                : root.effectiveHandleSize
 
                      x: horizontalEdge
                          ? (root.width - width) / 2

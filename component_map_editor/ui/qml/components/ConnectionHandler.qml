@@ -5,15 +5,17 @@ Item {
     id: root
     property real boundingWidth: 20
     property bool arrowActivated: false
+    readonly property real effectiveBoundingWidth: boundingWidth
 
     // 0: up, 1: right, 2: down, 3: left
     signal arrowDragged(int direction, point scenePos)
     signal arrowDropped(int direction, point scenePos)
     signal hoveredPositionChanged(point scenePos)
+
     Item {
         id: boundingBox
-        width: parent.width + boundingWidth * 2 + 2
-        height: parent.height + boundingWidth * 2 + 2
+        width: parent.width + root.effectiveBoundingWidth * 2 + 2
+        height: parent.height + root.effectiveBoundingWidth * 2 + 2
         anchors.centerIn: parent
 
         HoverHandler {
@@ -27,28 +29,33 @@ Item {
         }
 
         Repeater {
-            model: [{
-                    "x": boundingBox.width / 2 - boundingWidth / 2,
-                    "y": 0
-                }, {
-                    "x": boundingBox.width - boundingWidth,
-                    "y": boundingBox.height / 2 - boundingWidth / 2
-                }, {
-                    "x": boundingBox.width / 2 - boundingWidth / 2,
-                    "y": boundingBox.height - boundingWidth
-                }, {
-                    "x": 0,
-                    "y": boundingBox.height / 2 - boundingWidth / 2
-                }]
+            model: 4
             delegate: Item {
-                width: boundingWidth
-                height: boundingWidth
-                x: modelData.x
-                y: modelData.y
+                readonly property int direction: index
+
+                width: root.effectiveBoundingWidth
+                height: root.effectiveBoundingWidth
+                x: {
+                    if (direction === 1)
+                        return boundingBox.width - width
+                    if (direction === 0 || direction === 2)
+                        return (boundingBox.width - width) / 2
+                    return 0
+                }
+                y: {
+                    if (direction === 2)
+                        return boundingBox.height - height
+                    if (direction === 1 || direction === 3)
+                        return (boundingBox.height - height) / 2
+                    return 0
+                }
                 opacity: 0.3
                 visible: root.arrowActivated
                 Arrow {
-                    direction: index
+                    anchors.fill: parent
+                    arrowSize: parent.width
+                    arrowWidth: 2.0
+                    direction: parent.direction
                     arrowColor: "#ff5722"
                 }
 
@@ -66,12 +73,12 @@ Item {
 
                     onActiveChanged: {
                         if (active)
-                            root.arrowDragged(index, scencePos())
+                            root.arrowDragged(parent.direction, scencePos())
                         else
-                            root.arrowDropped(index, scencePos())
+                            root.arrowDropped(parent.direction, scencePos())
                     }
 
-                    onTranslationChanged: root.arrowDragged(index, scencePos())
+                    onTranslationChanged: root.arrowDragged(parent.direction, scencePos())
                 }
 
                 HoverHandler {
