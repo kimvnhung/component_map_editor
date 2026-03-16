@@ -1585,24 +1585,36 @@ void GraphViewportItem::updateEdgesGeometry()
     for (ComponentModel *c : components)
         componentById.insert(c->id(), c);
 
-    // Pre-count vertices (2 per routed segment) and arrow triangles.
-    int normalCount = 0, selectedCount = 0;
-    int normalArrowCount = 0, selectedArrowCount = 0;
+    // Compute and cache routes for every valid connection once, then reuse
+    // them for both the pre-count pass and the vertex-fill pass below.
+    QVector<QVector<QPointF>> cachedRoutes;
+    cachedRoutes.reserve(connections.size());
     for (ConnectionModel *conn : connections) {
         ComponentModel *src = componentById.value(conn->sourceId(), nullptr);
         ComponentModel *tgt = componentById.value(conn->targetId(), nullptr);
-        if (!src || !tgt)
+        if (!src || !tgt) {
+            cachedRoutes.append(QVector<QPointF>());
+            continue;
+        }
+        cachedRoutes.append(orthogonalRouteForConnection(conn, src, tgt, components));
+    }
+
+    // Pre-count vertices (2 per routed segment) and arrow triangles.
+    int normalCount = 0, selectedCount = 0;
+    int normalArrowCount = 0, selectedArrowCount = 0;
+    for (int ci = 0; ci < connections.size(); ++ci) {
+        const QVector<QPointF> &route = cachedRoutes.at(ci);
+        if (route.isEmpty())
             continue;
 
-        const QVector<QPointF> route = orthogonalRouteForConnection(conn, src, tgt, components);
         const int segmentCount = qMax(0, route.size() - 1);
-        if (static_cast<QObject *>(conn) == m_selectedConnection)
+        if (static_cast<QObject *>(connections.at(ci)) == m_selectedConnection)
             selectedCount += segmentCount;
         else
             normalCount += segmentCount;
 
         if (route.size() >= 2) {
-            if (static_cast<QObject *>(conn) == m_selectedConnection)
+            if (static_cast<QObject *>(connections.at(ci)) == m_selectedConnection)
                 ++selectedArrowCount;
             else
                 ++normalArrowCount;
@@ -1635,15 +1647,12 @@ void GraphViewportItem::updateEdgesGeometry()
         ? QColor(QStringLiteral("#546e7a"))
         : QColor(QStringLiteral("#ff5722"));
 
-    for (ConnectionModel *conn : connections) {
-        ComponentModel *src = componentById.value(conn->sourceId(), nullptr);
-        ComponentModel *tgt = componentById.value(conn->targetId(), nullptr);
-        if (!src || !tgt)
-            continue;
-
-        const QVector<QPointF> route = orthogonalRouteForConnection(conn, src, tgt, components);
+    for (int ci = 0; ci < connections.size(); ++ci) {
+        const QVector<QPointF> &route = cachedRoutes.at(ci);
         if (route.size() < 2)
             continue;
+
+        ConnectionModel *conn = connections.at(ci);
 
         // World-space coordinates — QSGTransformNode handles world→screen.
         if (static_cast<QObject *>(conn) == m_selectedConnection) {
