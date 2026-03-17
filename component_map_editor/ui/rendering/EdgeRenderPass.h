@@ -2,6 +2,8 @@
 #define EDGERENDERPASS_H
 
 #include <QPointF>
+#include <QSet>
+#include <QString>
 
 class QObject;
 class QSGGeometryNode;
@@ -12,6 +14,7 @@ namespace EdgeRenderPass {
 void updateEdgesGeometry(QObject *graph,
                          RoutingEngine *routingEngine,
                          QObject *selectedConnection,
+                         const QSet<QString> &selectedConnectionIdSet,
                          bool renderEdges,
                          bool lodSimpleEdges,
                          QSGGeometryNode *normalEdgesGeomNode,

@@ -65,6 +65,7 @@ void appendArrowTriangle(QSGGeometry::ColoredPoint2D *verts,
 void updateEdgesGeometry(QObject *graph,
                          RoutingEngine *routingEngine,
                          QObject *selectedConnection,
+                         const QSet<QString> &selectedConnectionIdSet,
                          bool renderEdges,
                          bool lodSimpleEdges,
                          QSGGeometryNode *normalEdgesGeomNode,
@@ -132,14 +133,18 @@ void updateEdgesGeometry(QObject *graph,
         if (route.isEmpty())
             continue;
 
+        ConnectionModel *conn = connections.at(ci);
+        const bool isSelected = (static_cast<QObject *>(conn) == selectedConnection)
+            || selectedConnectionIdSet.contains(conn->id());
+
         const int segmentCount = qMax(0, route.size() - 1);
-        if (static_cast<QObject *>(connections.at(ci)) == selectedConnection)
+        if (isSelected)
             selectedCount += segmentCount;
         else
             normalCount += segmentCount;
 
         if (route.size() >= 2) {
-            if (static_cast<QObject *>(connections.at(ci)) == selectedConnection)
+            if (isSelected)
                 ++selectedArrowCount;
             else
                 ++normalArrowCount;
@@ -177,8 +182,10 @@ void updateEdgesGeometry(QObject *graph,
             continue;
 
         ConnectionModel *conn = connections.at(ci);
+        const bool isSelected = (static_cast<QObject *>(conn) == selectedConnection)
+            || selectedConnectionIdSet.contains(conn->id());
 
-        if (static_cast<QObject *>(conn) == selectedConnection) {
+        if (isSelected) {
             for (int i = 1; i < route.size(); ++i) {
                 selectedV[sIdx++].set(float(route.at(i - 1).x()), float(route.at(i - 1).y()));
                 selectedV[sIdx++].set(float(route.at(i).x()), float(route.at(i).y()));

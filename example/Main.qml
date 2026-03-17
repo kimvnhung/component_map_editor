@@ -146,13 +146,8 @@ ApplicationWindow {
             ToolButton {
                 text: "Clear"
                 onClicked: {
-                    if (canvas) {
-                        canvas.tempConnectionDragging = false
-                        canvas.nodeInteractionActive = false
-                        canvas.enableBackgroundDrag = true
-                        canvas.selectedComponent = null
-                        canvas.selectedConnection = null
-                    }
+                    if (canvas)
+                        canvas.resetAllState()
                     propertyPanel.component = null
                     propertyPanel.connection = null
                     graph.clear()
@@ -346,14 +341,8 @@ ApplicationWindow {
                 return
             }
 
-            if (canvas) {
-                canvas.tempConnectionDragging = false
-                canvas.nodeInteractionActive = false
-                canvas.enableBackgroundDrag = true
-                canvas.selectedComponent = null
-                canvas.selectedConnection = null
-                canvas.selectedComponentIds = []
-            }
+            if (canvas)
+                canvas.resetAllState()
             propertyPanel.component = null
             propertyPanel.connection = null
             statusLabel.text = "✓ Graph imported"

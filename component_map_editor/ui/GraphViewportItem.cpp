@@ -1073,6 +1073,29 @@ void GraphViewportItem::setSelectedConnection(QObject *value)
     update();
 }
 
+QVariantList GraphViewportItem::selectedConnectionIds() const
+{
+    return m_selectedConnectionIds;
+}
+
+void GraphViewportItem::setSelectedConnectionIds(const QVariantList &value)
+{
+    if (m_selectedConnectionIds == value)
+        return;
+
+    m_selectedConnectionIds = value;
+    m_selectedConnectionIdSet.clear();
+    for (const QVariant &entry : m_selectedConnectionIds) {
+        const QString id = entry.toString();
+        if (!id.isEmpty())
+            m_selectedConnectionIdSet.insert(id);
+    }
+
+    emit selectedConnectionIdsChanged();
+    m_graphDirty = true;
+    update();
+}
+
 QObject *GraphViewportItem::selectedComponent() const
 {
     return m_selectedComponent;
@@ -1579,6 +1602,7 @@ void GraphViewportItem::updateEdgesGeometry()
     EdgeRenderPass::updateEdgesGeometry(m_graph,
                                         m_routingEngine.get(),
                                         m_selectedConnection,
+                                        m_selectedConnectionIdSet,
                                         m_renderEdges,
                                         m_lodSimpleEdges,
                                         m_normalEdgesGeomNode,
