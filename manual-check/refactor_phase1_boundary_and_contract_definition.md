@@ -276,3 +276,4 @@ Phase 1 is considered passed only when all conditions below are met:
 
 ## Execution Artifact
 - Invariant test matrix template: `manual-check/refactor_phase1_invariant_test_matrix.md`
+- Extension contract execution checklist: `manual-check/refactor_phase1_extension_contract_execution.md`
