@@ -273,19 +273,63 @@ ApplicationWindow {
         anchors.centerIn: parent
 
         property string jsonText: ""
+        property string copyStatusText: ""
 
-        ScrollView {
-            anchors.fill: parent
-            TextArea {
-                text: exportDialog.jsonText
-                readOnly: true
-                font.family: "monospace"
-                font.pixelSize: 12
-                wrapMode: TextArea.Wrap
+        contentItem: ColumnLayout {
+            spacing: 8
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                TextArea {
+                    id: exportJsonTextArea
+                    text: exportDialog.jsonText
+                    readOnly: true
+                    font.family: "monospace"
+                    font.pixelSize: 12
+                    wrapMode: TextArea.Wrap
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Label {
+                    text: exportDialog.copyStatusText
+                    color: "#2e7d32"
+                    visible: text.length > 0
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                Button {
+                    text: "Copy"
+                    onClicked: {
+                        exportJsonTextArea.selectAll()
+                        exportJsonTextArea.copy()
+                        exportJsonTextArea.deselect()
+                        exportDialog.copyStatusText = "Copied to clipboard"
+                        copyStatusResetTimer.restart()
+                    }
+                }
+
+                Button {
+                    text: "Close"
+                    onClicked: exportDialog.close()
+                }
             }
         }
 
-        standardButtons: Dialog.Close
+        onOpened: exportDialog.copyStatusText = ""
+
+        Timer {
+            id: copyStatusResetTimer
+            interval: 1500
+            repeat: false
+            onTriggered: exportDialog.copyStatusText = ""
+        }
     }
 
     Dialog {

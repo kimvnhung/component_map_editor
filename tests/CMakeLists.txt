@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick QuickTest)
+find_package(Qt6 REQUIRED COMPONENTS Quick QuickTest Test)
 
 # The ComponentMapEditor QML module output lives one level above its
 # auto-generated sub-folder (e.g. <build>/component_map_editor/ contains
@@ -45,5 +45,26 @@ target_link_libraries(tst_InteractionStateManager
 add_test(
     NAME  tst_InteractionStateManager
     COMMAND tst_InteractionStateManager -input ${CMAKE_CURRENT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_PersistenceValidation
+    tst_PersistenceValidation.cpp
+)
+
+target_link_libraries(tst_PersistenceValidation
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_PersistenceValidation
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_PersistenceValidation
+    COMMAND tst_PersistenceValidation
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
