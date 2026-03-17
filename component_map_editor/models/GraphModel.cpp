@@ -121,7 +121,8 @@ void GraphModel::onTrackedComponentIdChanged(ComponentModel *component)
     }
 
 #ifdef QT_DEBUG
-    assertIndexIntegrity();
+    if (!m_batchMode)
+        assertIndexIntegrity();
 #endif
 }
 
@@ -156,7 +157,8 @@ void GraphModel::onTrackedConnectionIdChanged(ConnectionModel *connection)
     }
 
 #ifdef QT_DEBUG
-    assertIndexIntegrity();
+    if (!m_batchMode)
+        assertIndexIntegrity();
 #endif
 }
 
@@ -265,7 +267,8 @@ void GraphModel::addComponent(ComponentModel *component)
         emit componentsChanged();
 
 #ifdef QT_DEBUG
-    assertIndexIntegrity();
+    if (!m_batchMode)
+        assertIndexIntegrity();
 #endif
 }
 
@@ -286,7 +289,8 @@ bool GraphModel::removeComponent(const QString &id)
     component->setParent(nullptr);
 
 #ifdef QT_DEBUG
-    assertIndexIntegrity();
+    if (!m_batchMode)
+        assertIndexIntegrity();
 #endif
 
     return true;

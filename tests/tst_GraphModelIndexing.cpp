@@ -14,7 +14,22 @@ private slots:
     void removeUsesFirstMatchWithDuplicateIds();
     void clearResetsIndexesAndAllowsReuse();
     void lookupBenchmarkLargeGraph();
+    void lookupBeatsLinearBaseline();
 };
+
+namespace {
+
+ComponentModel *linearComponentLookup(const GraphModel &graph, const QString &id)
+{
+    const auto &components = graph.componentList();
+    for (ComponentModel *component : components) {
+        if (component && component->id() == id)
+            return component;
+    }
+    return nullptr;
+}
+
+} // namespace
 
 void GraphModelIndexingTests::componentLookupTracksIdChanges()
 {
@@ -128,6 +143,45 @@ void GraphModelIndexingTests::lookupBenchmarkLargeGraph()
     QCOMPARE(hits, 100000);
     // Profiling smoke-check: indexed lookups should remain comfortably sub-second.
     QVERIFY2(elapsedMs < 1000, "Indexed lookup profiling exceeded expected budget");
+}
+
+void GraphModelIndexingTests::lookupBeatsLinearBaseline()
+{
+    GraphModel graph;
+    graph.beginBatchUpdate();
+    for (int i = 0; i < 20000; ++i) {
+        auto *c = new ComponentModel(QStringLiteral("cmp%1").arg(i),
+                                     QStringLiteral("Cmp%1").arg(i),
+                                     static_cast<qreal>(i),
+                                     static_cast<qreal>(i));
+        graph.addComponent(c);
+    }
+    graph.endBatchUpdate();
+
+    QElapsedTimer indexedTimer;
+    indexedTimer.start();
+    int indexedHits = 0;
+    for (int pass = 0; pass < 3; ++pass) {
+        for (int i = 0; i < 20000; ++i)
+            indexedHits += graph.componentById(QStringLiteral("cmp%1").arg(i)) ? 1 : 0;
+    }
+    const qint64 indexedMs = indexedTimer.elapsed();
+
+    QElapsedTimer linearTimer;
+    linearTimer.start();
+    int linearHits = 0;
+    for (int pass = 0; pass < 3; ++pass) {
+        for (int i = 0; i < 20000; ++i)
+            linearHits += linearComponentLookup(graph, QStringLiteral("cmp%1").arg(i)) ? 1 : 0;
+    }
+    const qint64 linearMs = linearTimer.elapsed();
+
+    QCOMPARE(indexedHits, 60000);
+    QCOMPARE(linearHits, 60000);
+
+    // Performance gate: indexed lookup should be substantially faster than linear scan.
+    QVERIFY2(indexedMs * 5 <= linearMs,
+             "Indexed lookup did not beat linear baseline by required margin");
 }
 
 QTEST_MAIN(GraphModelIndexingTests)
