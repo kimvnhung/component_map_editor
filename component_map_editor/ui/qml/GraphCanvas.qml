@@ -228,9 +228,9 @@ Item {
         if (!root.graph || !component)
             return
 
-        if (root.undoStack)
+        if (root.undoStack) {
             root.undoStack.pushRemoveComponent(root.graph, component.id)
-        else {
+        } else {
             root.clearComponentConnections(component, true, true, false)
             root.graph.removeComponent(component.id)
         }
