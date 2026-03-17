@@ -829,7 +829,7 @@ Item {
 
                 // Keep marquee endpoint in sync with pointer movement even if
                 // DragHandler does not become active for this gesture.
-                 if (interactionState.marqueeSelecting && root.ctrlSelectionModifierActive) {
+                if (interactionState.marqueeSelecting && root.ctrlSelectionModifierActive) {
                     interactionState.updateMarqueeSelect(
                                 interactionState.marqueeStart,
                                 root.mouseViewPos)
