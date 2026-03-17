@@ -182,11 +182,11 @@ Item {
                      readonly property bool verticalEdge: modelData.dirY === 0 && modelData.dirX !== 0
 
                      width: horizontalEdge
-                                                            ? Math.max(root.minItemWidth, root.width - root.effectiveHandleSize * 2)
-                                                            : root.effectiveHandleSize
+                         ? Math.max(root.minItemWidth, root.width - root.effectiveHandleSize * 2)
+                         : root.effectiveHandleSize
                      height: verticalEdge
-                                                                ? Math.max(root.minItemHeight, root.height - root.effectiveHandleSize * 2)
-                                                                : root.effectiveHandleSize
+                         ? Math.max(root.minItemHeight, root.height - root.effectiveHandleSize * 2)
+                         : root.effectiveHandleSize
 
                      x: horizontalEdge
                          ? (root.width - width) / 2
