@@ -1726,10 +1726,14 @@ void GraphViewportItem::updateNodeGeometry()
 
 QString GraphViewportItem::labelCacheKey(const ComponentModel *component) const
 {
+    const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
+    const qreal availableWidth = width();
+    const qreal availableHeight = height();
+
     return LabelTextureBuilder::makeLabelCacheKey(component,
-                                                  window() ? window()->effectiveDevicePixelRatio() : 1.0,
-                                                  0,
-                                                  0);
+                                                  dpr,
+                                                  availableWidth,
+                                                  availableHeight);
 }
 
 void GraphViewportItem::updateLabelNodes()
