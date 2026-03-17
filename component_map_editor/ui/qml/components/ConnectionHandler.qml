@@ -5,7 +5,7 @@ Item {
     id: root
     property real boundingWidth: 20
     property bool arrowActivated: false
-    readonly property real effectiveBoundingWidth: boundingWidth
+
 
     // 0: up, 1: right, 2: down, 3: left
     signal arrowDragged(int direction, point scenePos)
@@ -14,8 +14,8 @@ Item {
 
     Item {
         id: boundingBox
-        width: parent.width + root.effectiveBoundingWidth * 2 + 2
-        height: parent.height + root.effectiveBoundingWidth * 2 + 2
+        width: parent.width + root.boundingWidth * 2 + 2
+        height: parent.height + root.boundingWidth * 2 + 2
         anchors.centerIn: parent
 
         HoverHandler {
@@ -33,8 +33,8 @@ Item {
             delegate: Item {
                 readonly property int direction: index
 
-                width: root.effectiveBoundingWidth
-                height: root.effectiveBoundingWidth
+                width: root.boundingWidth
+                height: root.boundingWidth
                 x: {
                     if (direction === 1)
                         return boundingBox.width - width
