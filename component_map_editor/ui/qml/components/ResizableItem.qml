@@ -17,8 +17,8 @@ Item {
     property real handleSize: 10
     property real moveDragThreshold: 4
     property real interactionZoom: 1.0
-    readonly property real effectiveHandleSize: handleSize
-    readonly property real effectiveMoveDragThreshold: moveDragThreshold
+    readonly property real effectiveHandleSize: handleSize / (interactionZoom > 0 ? interactionZoom : 1.0)
+    readonly property real effectiveMoveDragThreshold: moveDragThreshold / (interactionZoom > 0 ? interactionZoom : 1.0)
     property bool moving: false
     // Set to true while an item is actively being resized.
     // This is a smaller case of handlesVisible, which is true for the entire duration that resize handles are shown, while resizing is only true during the active drag.
