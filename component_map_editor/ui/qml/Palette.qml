@@ -76,8 +76,10 @@ Rectangle {
             component.y = 0
         }
 
-        // AddComponentCommand (C++) can be used by callers wanting undoable adds.
-        graph.addComponent(component)
+        if (root.undoStack)
+            root.undoStack.pushAddComponent(graph, component)
+        else
+            graph.addComponent(component)
     }
 
     function _handlePaletteDrop(title, icon, color, type, scenePos) {

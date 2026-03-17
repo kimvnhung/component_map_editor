@@ -70,6 +70,8 @@ Item {
     property bool groupMoveActive: false
     property point groupMoveAnchorStart: Qt.point(0, 0)
     property var groupMoveBaseCenters: ({})
+    property var moveStartPositions: ({})
+    property var resizeStartGeometries: ({})
 
     // Optional telemetry hook. Set to a PerformanceTelemetry instance to
     // collect camera-update and drag-event interval samples for Phase 0 baseline.
@@ -89,6 +91,9 @@ Item {
         if (root.ctrlSelectionModifierActive === next)
             return
         root.ctrlSelectionModifierActive = next
+        // End any in-progress marquee when Ctrl just turned off.
+        if (!next && interactionState.marqueeSelecting)
+            root.finishMarqueeSelection()
         root.debugInputLog("ctrl_state_changed")
     }
 
@@ -223,8 +228,12 @@ Item {
         if (!root.graph || !component)
             return
 
-        root.clearComponentConnections(component, true, true, false)
-        root.graph.removeComponent(component.id)
+        if (root.undoStack)
+            root.undoStack.pushRemoveComponent(root.graph, component.id)
+        else {
+            root.clearComponentConnections(component, true, true, false)
+            root.graph.removeComponent(component.id)
+        }
         root.removeComponentFromSelection(component)
         if (root.selectedComponentIds.length > 0) {
             var lastId = root.selectedComponentIds[root.selectedComponentIds.length - 1]
@@ -255,7 +264,10 @@ Item {
         copy.shape = component.shape
         copy.color = component.color
         copy.type = component.type
-        root.graph.addComponent(copy)
+        if (root.undoStack)
+            root.undoStack.pushAddComponent(root.graph, copy)
+        else
+            root.graph.addComponent(copy)
         root.selectSingleComponent(copy)
         root.selectedConnection = null
         root.componentSelected(copy)
@@ -279,7 +291,10 @@ Item {
         component.color = "#4fc3f7"
         component.shape = "rounded"
         component.type = "default"
-        root.graph.addComponent(component)
+        if (root.undoStack)
+            root.undoStack.pushAddComponent(root.graph, component)
+        else
+            root.graph.addComponent(component)
         root.selectSingleComponent(component)
         root.selectedConnection = null
         root.componentSelected(component)
@@ -310,7 +325,10 @@ Item {
         component.shape = "rounded"
         component.type = type && type.length > 0 ? type : "default"
 
-        root.graph.addComponent(component)
+        if (root.undoStack)
+            root.undoStack.pushAddComponent(root.graph, component)
+        else
+            root.graph.addComponent(component)
         root.selectSingleComponent(component)
         root.selectedConnection = null
         root.componentSelected(component)
@@ -328,7 +346,7 @@ Item {
             ids.push(currentConnections[i].id)
 
         for (var j = 0; j < ids.length; ++j)
-            root.graph.removeConnection(ids[j])
+            root.removeConnectionById(ids[j], true)
 
         root.selectedConnection = null
         root.selectedConnectionIds = []
@@ -339,10 +357,96 @@ Item {
         if (!root.graph)
             return
 
-        root.graph.clear()
+        var ids = []
+        var components = root.graph.components
+        for (var i = 0; i < components.length; ++i)
+            ids.push(components[i].id)
+
+        if (root.undoStack) {
+            for (var j = 0; j < ids.length; ++j)
+                root.undoStack.pushRemoveComponent(root.graph, ids[j])
+        } else {
+            root.graph.clear()
+        }
         interactionState.clearAll()
         root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
         edgeCanvas.repaint()
+    }
+
+    function commitMoveCommands(anchorComponent) {
+        if (!root.undoStack || !root.graph || !anchorComponent)
+            return
+
+        var batchedMoves = []
+        if (root.groupMoveActive) {
+            for (var i = 0; i < root.selectedComponentIds.length; ++i) {
+                var componentId = root.selectedComponentIds[i]
+                var component = root.graph.componentById(componentId)
+                var base = root.groupMoveBaseCenters[componentId]
+                if (component && base) {
+                    batchedMoves.push({
+                                          "id": componentId,
+                                          "oldX": base.x,
+                                          "oldY": base.y,
+                                          "newX": component.x,
+                                          "newY": component.y
+                                      })
+                }
+            }
+        } else {
+            var start = root.moveStartPositions[anchorComponent.id]
+            if (start) {
+                batchedMoves.push({
+                                      "id": anchorComponent.id,
+                                      "oldX": start.x,
+                                      "oldY": start.y,
+                                      "newX": anchorComponent.x,
+                                      "newY": anchorComponent.y
+                                  })
+            }
+        }
+
+        if (batchedMoves.length > 0)
+            root.undoStack.pushMoveComponents(root.graph, batchedMoves)
+
+        var nextMoveStart = root.moveStartPositions
+        delete nextMoveStart[anchorComponent.id]
+        root.moveStartPositions = nextMoveStart
+    }
+
+    function startResizeCapture(component) {
+        if (!component)
+            return
+        var nextResize = root.resizeStartGeometries
+        nextResize[component.id] = {
+            "x": component.x,
+            "y": component.y,
+            "width": component.width,
+            "height": component.height
+        }
+        root.resizeStartGeometries = nextResize
+    }
+
+    function commitResizeCommand(component) {
+        if (!component)
+            return
+
+        var start = root.resizeStartGeometries[component.id]
+        if (start && root.undoStack) {
+            root.undoStack.pushSetComponentGeometry(component,
+                                                    start.x,
+                                                    start.y,
+                                                    start.width,
+                                                    start.height,
+                                                    component.x,
+                                                    component.y,
+                                                    component.width,
+                                                    component.height)
+        }
+
+        var nextResize = root.resizeStartGeometries
+        delete nextResize[component.id]
+        root.resizeStartGeometries = nextResize
     }
 
     function openConfirm(action, message) {
@@ -725,7 +829,7 @@ Item {
 
                 // Keep marquee endpoint in sync with pointer movement even if
                 // DragHandler does not become active for this gesture.
-                if (interactionState.marqueeSelecting) {
+                 if (interactionState.marqueeSelecting && root.ctrlSelectionModifierActive) {
                     interactionState.updateMarqueeSelect(
                                 interactionState.marqueeStart,
                                 root.mouseViewPos)
@@ -978,6 +1082,10 @@ Item {
 
                         onMoveStarted: {
                             interactionState.startNodeMove(modelData)
+                            var nextMoveStart = root.moveStartPositions
+                            nextMoveStart[modelData.id] = Qt.point(modelData.x,
+                                                                   modelData.y)
+                            root.moveStartPositions = nextMoveStart
                             root.beginGroupMove(modelData)
                             if (root.telemetry) root.telemetry.notifyDragStarted()
                         }
@@ -987,6 +1095,7 @@ Item {
                             if (root.telemetry) root.telemetry.notifyDragMoved()
                         }
                         onMoveFinished: {
+                            root.commitMoveCommands(modelData)
                             root.endGroupMove()
                             interactionState.endNodeMove()
                             if (root.telemetry) root.telemetry.notifyDragEnded()
@@ -994,8 +1103,12 @@ Item {
 
                         onResizeStarted: {
                             interactionState.startNodeResize(modelData)
+                            root.startResizeCapture(modelData)
                         }
-                        onResizeFinished: interactionState.endNodeResize()
+                        onResizeFinished: {
+                            root.commitResizeCommand(modelData)
+                            interactionState.endNodeResize()
+                        }
 
                         onHoverPositionChanged: function (hoverX, hoverY) {
                             root.mouseViewPos = root.childToView(this, hoverX, hoverY)
@@ -1245,6 +1358,8 @@ Item {
     }
     onActiveFocusChanged: {
         if (!activeFocus) {
+            if (interactionState.marqueeSelecting)
+                root.finishMarqueeSelection()
             root.ctrlSelectionModifierActive = false
             root.ctrlReleasedByKey = false
             root.debugInputLog("focus_lost")
