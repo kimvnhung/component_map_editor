@@ -14,6 +14,12 @@ Item {
 
     // Camera tuning constants (world <-> screen transform behavior).
     readonly property real defaultZoom: 1.0
+
+    // Threshold for how many components we eagerly instantiate interaction
+    // delegates for. Below this, all Loader delegates are kept active so
+    // DragHandler instances see the initial press. Above this, we fall back
+    // to a more selective activation strategy to avoid excessive memory/CPU.
+    property int maxEagerComponentDelegates: 1500
     readonly property real zoomStepFactor: 1.15
     readonly property real zoomEpsilon: 0.000001
 
@@ -1010,7 +1016,30 @@ Item {
                     // DragHandler sees the initial press event. Lazily
                     // creating the delegate on hover/press breaks component
                     // dragging because the handler misses pointer-down.
-                    active: true
+                    //
+                    // To avoid performance issues on very large graphs, we
+                    // only keep all delegates eagerly active when the
+                    // component count is below maxEagerComponentDelegates.
+                    // For larger graphs we only activate delegates that are
+                    // selected/kept-alive.
+                    active: {
+                        const graph = root.graph;
+                        const components = graph ? graph.components : null;
+                        // Some models may not expose a length; in that case
+                        // default to eager activation to preserve behavior.
+                        const count = components && components.length !== undefined
+                                       ? components.length
+                                       : -1;
+                        const eager = (count < 0) || (count <= root.maxEagerComponentDelegates);
+                        if (eager)
+                            return true;
+
+                        // On very large graphs, only keep delegates active
+                        // when they are selected or explicitly kept alive.
+                        return delegateRoot.keepAlive
+                            || root.selectedComponent === modelData
+                            || root.componentIsSelected(modelData);
+                    }
                     asynchronous: false
 
                     sourceComponent: ComponentItem {
