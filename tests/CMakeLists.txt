@@ -89,3 +89,24 @@ add_test(
     COMMAND tst_GraphModelIndexing
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_ExtensionContractRegistry
+    tst_ExtensionContractRegistry.cpp
+)
+
+target_link_libraries(tst_ExtensionContractRegistry
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ExtensionContractRegistry
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ExtensionContractRegistry
+    COMMAND tst_ExtensionContractRegistry
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
