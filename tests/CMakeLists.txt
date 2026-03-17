@@ -68,3 +68,24 @@ add_test(
     COMMAND tst_PersistenceValidation
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_GraphModelIndexing
+    tst_GraphModelIndexing.cpp
+)
+
+target_link_libraries(tst_GraphModelIndexing
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_GraphModelIndexing
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_GraphModelIndexing
+    COMMAND tst_GraphModelIndexing
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
