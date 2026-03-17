@@ -317,7 +317,8 @@ void GraphModel::addConnection(ConnectionModel *connection)
         emit connectionsChanged();
 
 #ifdef QT_DEBUG
-    assertIndexIntegrity();
+    if (!m_batchMode)
+        assertIndexIntegrity();
 #endif
 }
 
