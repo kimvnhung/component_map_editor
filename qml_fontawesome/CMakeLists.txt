@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
-
+qt_policy(SET QTP0004 NEW)
 qt_standard_project_setup(REQUIRES 6.5)
 
 include(GNUInstallDirs)
@@ -42,6 +42,7 @@ endif()
 qt_add_qml_module(QmlFontAwesome
     URI QmlFontAwesome
     VERSION 1.0
+    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/QmlFontAwesome"
     SOURCES
         ${QML_FONT_AWESOME_SOURCES}
     QML_FILES

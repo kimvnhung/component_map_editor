@@ -4,6 +4,16 @@
 #include "ConnectionModel.h"
 #include "FontAwesome.h"
 #include "GraphModel.h"
+#include "rendering/EdgeRenderPass.h"
+#include "rendering/GridRenderPass.h"
+#include "rendering/LabelTextureBuilder.h"
+#include "rendering/LabelRenderPass.h"
+#include "rendering/LabelTextureNode.h"
+#include "rendering/NodeRenderPass.h"
+#include "routing/OrthogonalHeuristicStrategy.h"
+#include "routing/RoutingEngine.h"
+#include "routing/RoutingHelpers.h"
+#include "routing/RouteTypes.h"
 
 #include <QColor>
 #include <QFont>
@@ -33,13 +43,6 @@
 #include <QtMath>
 
 namespace {
-
-class LabelTextureNode final : public QSGSimpleTextureNode
-{
-public:
-    QString cacheKey;
-    qint64 textureBytes = 0;
-};
 
 // Cached FontAwesome icon font configuration for GraphViewportItem labels.
 // This must be initialized from the GUI thread (e.g., during application startup
@@ -172,74 +175,6 @@ QPointF applyTangentOffsetForSide(const QPointF &point,
     }
 
     return point;
-}
-
-struct ConnectionRouteMeta {
-    ConnectionModel::Side sourceSide = ConnectionModel::SideAuto;
-    ConnectionModel::Side targetSide = ConnectionModel::SideAuto;
-    qreal sourceTangentOffset = 0.0;
-    qreal targetTangentOffset = 0.0;
-};
-
-QHash<const ConnectionModel *, ConnectionRouteMeta>
-buildConnectionRouteMeta(const QList<ConnectionModel *> &connections,
-                         const QHash<QString, ComponentModel *> &componentById)
-{
-    struct SideBucket {
-        QVector<ConnectionModel *> outgoing;
-        QVector<ConnectionModel *> incoming;
-    };
-
-    QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection;
-    routeMetaByConnection.reserve(connections.size());
-    QHash<QString, SideBucket> buckets;
-
-    for (ConnectionModel *connection : connections) {
-        if (!connection)
-            continue;
-
-        ComponentModel *src = componentById.value(connection->sourceId(), nullptr);
-        ComponentModel *tgt = componentById.value(connection->targetId(), nullptr);
-        if (!src || !tgt)
-            continue;
-
-        ConnectionRouteMeta meta;
-        meta.sourceSide = resolvedSide(connection->sourceSide(), src, tgt, true);
-        meta.targetSide = resolvedSide(connection->targetSide(), src, tgt, false);
-        routeMetaByConnection.insert(connection, meta);
-
-        const QString sourceKey = src->id() + QStringLiteral("|") + QString::number(int(meta.sourceSide));
-        const QString targetKey = tgt->id() + QStringLiteral("|") + QString::number(int(meta.targetSide));
-        buckets[sourceKey].outgoing.append(connection);
-        buckets[targetKey].incoming.append(connection);
-    }
-
-    constexpr qreal flowBand = 7.0;
-    for (auto it = buckets.begin(); it != buckets.end(); ++it) {
-        SideBucket &bucket = it.value();
-        if (bucket.outgoing.isEmpty() || bucket.incoming.isEmpty())
-            continue;
-
-        // Mixed flow only: keep same-type connections on the exact same edge
-        // point, and separate only by direction class (outgoing vs incoming).
-        for (ConnectionModel *connection : bucket.outgoing) {
-            auto metaIt = routeMetaByConnection.find(connection);
-            if (metaIt == routeMetaByConnection.end())
-                continue;
-
-            metaIt->sourceTangentOffset = -flowBand;
-        }
-
-        for (ConnectionModel *connection : bucket.incoming) {
-            auto metaIt = routeMetaByConnection.find(connection);
-            if (metaIt == routeMetaByConnection.end())
-                continue;
-
-            metaIt->targetTangentOffset = flowBand;
-        }
-    }
-
-    return routeMetaByConnection;
 }
 
 QVector<QPointF> simplifyPolyline(const QVector<QPointF> &points)
@@ -925,6 +860,9 @@ QSGGeometryNode *createEmptyColoredNode()
 GraphViewportItem::GraphViewportItem(QQuickItem *parent)
     : QQuickItem(parent)
 {
+    m_routingEngine = std::make_unique<RoutingEngine>();
+    m_routingEngine->setStrategy(std::make_unique<OrthogonalHeuristicStrategy>());
+
     // Phase 2: viewport can render grid/edges with scene graph nodes.
     setFlag(ItemHasContents, true);
 }
@@ -1131,6 +1069,29 @@ void GraphViewportItem::setSelectedConnection(QObject *value)
         return;
     m_selectedConnection = value;
     emit selectedConnectionChanged();
+    m_graphDirty = true;
+    update();
+}
+
+QVariantList GraphViewportItem::selectedConnectionIds() const
+{
+    return m_selectedConnectionIds;
+}
+
+void GraphViewportItem::setSelectedConnectionIds(const QVariantList &value)
+{
+    if (m_selectedConnectionIds == value)
+        return;
+
+    m_selectedConnectionIds = value;
+    m_selectedConnectionIdSet.clear();
+    for (const QVariant &entry : m_selectedConnectionIds) {
+        const QString id = entry.toString();
+        if (!id.isEmpty())
+            m_selectedConnectionIdSet.insert(id);
+    }
+
+    emit selectedConnectionIdsChanged();
     m_graphDirty = true;
     update();
 }
@@ -1607,26 +1568,6 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
     return oldNode;
 }
 
-qreal GraphViewportItem::normalizedGridStep() const
-{
-    qreal step = m_baseGridStep * m_zoom;
-    if (step <= 0.0)
-        return 0.0;
-
-    while (step < m_minGridPixelStep)
-        step *= 2.0;
-    while (step > m_maxGridPixelStep)
-        step /= 2.0;
-    return step;
-}
-
-qreal GraphViewportItem::positiveModulo(qreal value, qreal modulus)
-{
-    if (modulus == 0.0)
-        return 0.0;
-    return std::fmod(std::fmod(value, modulus) + modulus, modulus);
-}
-
 // ---------------------------------------------------------------------------
 // updateGridGeometry
 // Rebuilds the grid vertex buffer in screen space.  Called from the render
@@ -1635,50 +1576,16 @@ qreal GraphViewportItem::positiveModulo(qreal value, qreal modulus)
 // ---------------------------------------------------------------------------
 void GraphViewportItem::updateGridGeometry()
 {
-    auto *geom = m_gridGeomNode->geometry();
-
-    if (!m_renderGrid || width() <= 0 || height() <= 0) {
-        if (geom->vertexCount() > 0) {
-            geom->allocate(0);
-            m_gridGeomNode->markDirty(QSGNode::DirtyGeometry);
-        }
-        return;
-    }
-
-    const qreal step = normalizedGridStep();
-    if (step <= 0.0) {
-        if (geom->vertexCount() > 0) {
-            geom->allocate(0);
-            m_gridGeomNode->markDirty(QSGNode::DirtyGeometry);
-        }
-        return;
-    }
-
-    const qreal offsetX = positiveModulo(m_panX, step);
-    const qreal offsetY = positiveModulo(m_panY, step);
-
-    // Pre-count to allocate exact buffer size (avoids mid-fill resize).
-    int verts = 0;
-    for (qreal gx = -step + offsetX; gx < width() + step; gx += step)
-        verts += 2;
-    for (qreal gy = -step + offsetY; gy < height() + step; gy += step)
-        verts += 2;
-
-    if (geom->vertexCount() != verts)
-        geom->allocate(verts);
-
-    auto *v = geom->vertexDataAsPoint2D();
-    int idx = 0;
-    for (qreal gx = -step + offsetX; gx < width() + step; gx += step) {
-        v[idx++].set(float(gx), 0.0f);
-        v[idx++].set(float(gx), float(height()));
-    }
-    for (qreal gy = -step + offsetY; gy < height() + step; gy += step) {
-        v[idx++].set(0.0f, float(gy));
-        v[idx++].set(float(width()), float(gy));
-    }
-
-    m_gridGeomNode->markDirty(QSGNode::DirtyGeometry);
+    GridRenderPass::updateGridGeometry(m_gridGeomNode,
+                                       m_renderGrid,
+                                       width(),
+                                       height(),
+                                       m_panX,
+                                       m_panY,
+                                       m_zoom,
+                                       m_baseGridStep,
+                                       m_minGridPixelStep,
+                                       m_maxGridPixelStep);
 }
 
 // ---------------------------------------------------------------------------
@@ -1692,180 +1599,16 @@ void GraphViewportItem::updateGridGeometry()
 // ---------------------------------------------------------------------------
 void GraphViewportItem::updateEdgesGeometry()
 {
-    auto clearNode = [](QSGGeometryNode *n) {
-        if (n->geometry()->vertexCount() > 0) {
-            n->geometry()->allocate(0);
-            n->markDirty(QSGNode::DirtyGeometry);
-        }
-    };
-
-    auto appendArrowTriangle = [](QSGGeometry::ColoredPoint2D *verts,
-                                  int &idx,
-                                  const QPointF &tip,
-                                  const QPointF &from,
-                                  const QColor &color,
-                                  qreal length,
-                                  qreal width) {
-        const QPointF dir = tip - from;
-        const qreal lenSq = dir.x() * dir.x() + dir.y() * dir.y();
-        if (lenSq <= 0.0001)
-            return;
-
-        const qreal invLen = 1.0 / std::sqrt(lenSq);
-        const QPointF unit(dir.x() * invLen, dir.y() * invLen);
-        const QPointF normal(-unit.y(), unit.x());
-
-        const QPointF baseCenter = tip - unit * length;
-        const QPointF left = baseCenter + normal * width;
-        const QPointF right = baseCenter - normal * width;
-
-        const unsigned char r = color.red();
-        const unsigned char g = color.green();
-        const unsigned char b = color.blue();
-        const unsigned char a = color.alpha();
-
-        verts[idx++].set(float(tip.x()), float(tip.y()), r, g, b, a);
-        verts[idx++].set(float(left.x()), float(left.y()), r, g, b, a);
-        verts[idx++].set(float(right.x()), float(right.y()), r, g, b, a);
-    };
-
-    if (!m_renderEdges) {
-        clearNode(m_normalEdgesGeomNode);
-        clearNode(m_selectedEdgesGeomNode);
-        clearNode(m_normalArrowsGeomNode);
-        clearNode(m_selectedArrowsGeomNode);
-        return;
-    }
-
-    auto *graphModel = qobject_cast<GraphModel *>(m_graph);
-    if (!graphModel) {
-        clearNode(m_normalEdgesGeomNode);
-        clearNode(m_selectedEdgesGeomNode);
-        clearNode(m_normalArrowsGeomNode);
-        clearNode(m_selectedArrowsGeomNode);
-        return;
-    }
-
-    const auto &components = graphModel->componentList();
-    const auto &connections = graphModel->connectionList();
-
-    // O(N): build id→pointer map to avoid O(N) componentById() per edge.
-    QHash<QString, ComponentModel *> componentById;
-    componentById.reserve(components.size());
-    for (ComponentModel *c : components)
-        componentById.insert(c->id(), c);
-
-    const QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection =
-        buildConnectionRouteMeta(connections, componentById);
-
-    // Compute and cache routes for every valid connection once, then reuse
-    // them for both the pre-count pass and the vertex-fill pass below.
-    QVector<QVector<QPointF>> cachedRoutes;
-    cachedRoutes.reserve(connections.size());
-    for (ConnectionModel *conn : connections) {
-        ComponentModel *src = componentById.value(conn->sourceId(), nullptr);
-        ComponentModel *tgt = componentById.value(conn->targetId(), nullptr);
-        if (!src || !tgt) {
-            cachedRoutes.append(QVector<QPointF>());
-            continue;
-        }
-
-        const auto metaIt = routeMetaByConnection.constFind(conn);
-        const ConnectionRouteMeta *routeMeta = (metaIt != routeMetaByConnection.constEnd())
-            ? &metaIt.value()
-            : nullptr;
-        cachedRoutes.append(orthogonalRouteForConnection(conn, src, tgt, components, routeMeta));
-    }
-
-    // Pre-count vertices (2 per routed segment) and arrow triangles.
-    int normalCount = 0, selectedCount = 0;
-    int normalArrowCount = 0, selectedArrowCount = 0;
-    for (int ci = 0; ci < connections.size(); ++ci) {
-        const QVector<QPointF> &route = cachedRoutes.at(ci);
-        if (route.isEmpty())
-            continue;
-
-        const int segmentCount = qMax(0, route.size() - 1);
-        if (static_cast<QObject *>(connections.at(ci)) == m_selectedConnection)
-            selectedCount += segmentCount;
-        else
-            normalCount += segmentCount;
-
-        if (route.size() >= 2) {
-            if (static_cast<QObject *>(connections.at(ci)) == m_selectedConnection)
-                ++selectedArrowCount;
-            else
-                ++normalArrowCount;
-        }
-    }
-
-    // Reallocate only if the edge count changed.
-    if (m_normalEdgesGeomNode->geometry()->vertexCount() != normalCount * 2)
-        m_normalEdgesGeomNode->geometry()->allocate(normalCount * 2);
-    if (m_selectedEdgesGeomNode->geometry()->vertexCount() != selectedCount * 2)
-        m_selectedEdgesGeomNode->geometry()->allocate(selectedCount * 2);
-    if (m_normalArrowsGeomNode->geometry()->vertexCount() != normalArrowCount * 3)
-        m_normalArrowsGeomNode->geometry()->allocate(normalArrowCount * 3);
-    if (m_selectedArrowsGeomNode->geometry()->vertexCount() != selectedArrowCount * 3)
-        m_selectedArrowsGeomNode->geometry()->allocate(selectedArrowCount * 3);
-
-    auto *normalV   = m_normalEdgesGeomNode->geometry()->vertexDataAsPoint2D();
-    auto *selectedV = m_selectedEdgesGeomNode->geometry()->vertexDataAsPoint2D();
-    auto *normalArrowV = m_normalArrowsGeomNode->geometry()->vertexDataAsColoredPoint2D();
-    auto *selectedArrowV = m_selectedArrowsGeomNode->geometry()->vertexDataAsColoredPoint2D();
-    int nIdx = 0, sIdx = 0;
-    int nArrowIdx = 0, sArrowIdx = 0;
-
-    const qreal arrowLength = m_lodSimpleEdges ? 8.0 : 12.0;
-    const qreal arrowWidth = m_lodSimpleEdges ? 3.5 : 5.0;
-    const QColor normalColor = m_lodSimpleEdges
-        ? QColor(QStringLiteral("#546e7a"))
-        : QColor(QStringLiteral("#607d8b"));
-    const QColor selectedColor = m_lodSimpleEdges
-        ? QColor(QStringLiteral("#546e7a"))
-        : QColor(QStringLiteral("#ff5722"));
-
-    for (int ci = 0; ci < connections.size(); ++ci) {
-        const QVector<QPointF> &route = cachedRoutes.at(ci);
-        if (route.size() < 2)
-            continue;
-
-        ConnectionModel *conn = connections.at(ci);
-
-        // World-space coordinates — QSGTransformNode handles world→screen.
-        if (static_cast<QObject *>(conn) == m_selectedConnection) {
-            for (int i = 1; i < route.size(); ++i) {
-                selectedV[sIdx++].set(float(route.at(i - 1).x()), float(route.at(i - 1).y()));
-                selectedV[sIdx++].set(float(route.at(i).x()), float(route.at(i).y()));
-            }
-
-            appendArrowTriangle(selectedArrowV,
-                                sArrowIdx,
-                                route.last(),
-                                route.at(route.size() - 2),
-                                selectedColor,
-                                arrowLength,
-                                arrowWidth);
-        } else {
-            for (int i = 1; i < route.size(); ++i) {
-                normalV[nIdx++].set(float(route.at(i - 1).x()), float(route.at(i - 1).y()));
-                normalV[nIdx++].set(float(route.at(i).x()), float(route.at(i).y()));
-            }
-
-            appendArrowTriangle(normalArrowV,
-                                nArrowIdx,
-                                route.last(),
-                                route.at(route.size() - 2),
-                                normalColor,
-                                arrowLength,
-                                arrowWidth);
-        }
-    }
-
-    m_normalEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
-    m_selectedEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
-    m_normalArrowsGeomNode->markDirty(QSGNode::DirtyGeometry);
-    m_selectedArrowsGeomNode->markDirty(QSGNode::DirtyGeometry);
+    EdgeRenderPass::updateEdgesGeometry(m_graph,
+                                        m_routingEngine.get(),
+                                        m_selectedConnection,
+                                        m_selectedConnectionIdSet,
+                                        m_renderEdges,
+                                        m_lodSimpleEdges,
+                                        m_normalEdgesGeomNode,
+                                        m_selectedEdgesGeomNode,
+                                        m_normalArrowsGeomNode,
+                                        m_selectedArrowsGeomNode);
 }
 
 // ---------------------------------------------------------------------------
@@ -1875,23 +1618,10 @@ void GraphViewportItem::updateEdgesGeometry()
 // ---------------------------------------------------------------------------
 void GraphViewportItem::updateTempEdgeGeometry()
 {
-    auto *geom = m_tempEdgeGeomNode->geometry();
-
-    if (!m_tempConnectionDragging) {
-        if (geom->vertexCount() > 0) {
-            geom->allocate(0);
-            m_tempEdgeGeomNode->markDirty(QSGNode::DirtyGeometry);
-        }
-        return;
-    }
-
-    if (geom->vertexCount() != 2)
-        geom->allocate(2);
-
-    auto *v = geom->vertexDataAsPoint2D();
-    v[0].set(float(m_tempStart.x()), float(m_tempStart.y()));
-    v[1].set(float(m_tempEnd.x()),   float(m_tempEnd.y()));
-    m_tempEdgeGeomNode->markDirty(QSGNode::DirtyGeometry);
+    EdgeRenderPass::updateTempEdgeGeometry(m_tempConnectionDragging,
+                                           m_tempStart,
+                                           m_tempEnd,
+                                           m_tempEdgeGeomNode);
 }
 
 QVector<int> GraphViewportItem::visibleComponentIndices() const
@@ -1952,105 +1682,58 @@ QVector<GraphViewportItem::IndexedComponent> GraphViewportItem::visibleComponent
 
 void GraphViewportItem::updateNodeGeometry()
 {
-    auto clearColoredNode = [](QSGGeometryNode *node) {
-        if (node && node->geometry()->vertexCount() > 0) {
-            node->geometry()->allocate(0);
-            node->markDirty(QSGNode::DirtyGeometry);
-        }
-    };
-
     if (!m_renderNodes || !m_nodesRootNode) {
-        clearColoredNode(m_nodeFillGeomNode);
-        clearColoredNode(m_nodeOutlineGeomNode);
+        NodeRenderPass::updateNodeBodyGeometry(m_nodeFillGeomNode,
+                                               m_nodeOutlineGeomNode,
+                                               false,
+                                               m_lodHideNodeOutlines,
+                                               QVector<QRectF>(),
+                                               QVector<QColor>(),
+                                               QVector<bool>());
         updateLabelNodes();
         return;
     }
 
     const QVector<IndexedComponent> visible = visibleComponentsSnapshot();
 
-    const int fillVertexCount = visible.size() * 6;
-    if (m_nodeFillGeomNode->geometry()->vertexCount() != fillVertexCount)
-        m_nodeFillGeomNode->geometry()->allocate(fillVertexCount);
-
-    const int outlineVertexCount = m_lodHideNodeOutlines ? 0 : visible.size() * 24;
-    if (m_nodeOutlineGeomNode->geometry()->vertexCount() != outlineVertexCount)
-        m_nodeOutlineGeomNode->geometry()->allocate(outlineVertexCount);
-
-    auto *fillVerts = m_nodeFillGeomNode->geometry()->vertexDataAsColoredPoint2D();
-    auto *outlineVerts = m_nodeOutlineGeomNode->geometry()->vertexDataAsColoredPoint2D();
-    int fillIdx = 0;
-    int outlineIdx = 0;
-
-    auto appendTriangleRect = [](QSGGeometry::ColoredPoint2D *verts, int &idx,
-                                 const QRectF &rect, const QColor &color) {
-        const unsigned char r = color.red();
-        const unsigned char g = color.green();
-        const unsigned char b = color.blue();
-        const unsigned char a = color.alpha();
-        const float left = float(rect.left());
-        const float right = float(rect.right());
-        const float top = float(rect.top());
-        const float bottom = float(rect.bottom());
-
-        verts[idx++].set(left, top, r, g, b, a);
-        verts[idx++].set(right, top, r, g, b, a);
-        verts[idx++].set(left, bottom, r, g, b, a);
-        verts[idx++].set(right, top, r, g, b, a);
-        verts[idx++].set(right, bottom, r, g, b, a);
-        verts[idx++].set(left, bottom, r, g, b, a);
-    };
+    QVector<QRectF> worldRects;
+    QVector<QColor> fillColors;
+    QVector<bool> selectedFlags;
+    worldRects.reserve(visible.size());
+    fillColors.reserve(visible.size());
+    selectedFlags.reserve(visible.size());
 
     for (const IndexedComponent &entry : visible) {
         ComponentModel *component = entry.component;
         if (!component)
             continue;
 
-        const QRectF viewRect = entry.worldRect;
-
-        const QColor fillColor(component->color());
-        appendTriangleRect(fillVerts, fillIdx, viewRect, fillColor);
-
-         if (!m_lodHideNodeOutlines) {
-             const bool selected = (static_cast<QObject *>(component) == m_selectedComponent)
-                                   || m_selectedComponentIdSet.contains(component->id());
-             const qreal borderWidth = selected ? 2.5 : 1.5;
-             const QColor borderColor = selected
-              ? QColor(QStringLiteral("#ff5722"))
-              : fillColor.darker(140);
-
-             appendTriangleRect(outlineVerts, outlineIdx,
-                       QRectF(viewRect.left(), viewRect.top(), viewRect.width(), borderWidth),
-                       borderColor);
-             appendTriangleRect(outlineVerts, outlineIdx,
-                       QRectF(viewRect.left(), viewRect.bottom() - borderWidth, viewRect.width(), borderWidth),
-                       borderColor);
-             appendTriangleRect(outlineVerts, outlineIdx,
-                       QRectF(viewRect.left(), viewRect.top() + borderWidth, borderWidth,
-                           qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
-                       borderColor);
-             appendTriangleRect(outlineVerts, outlineIdx,
-                       QRectF(viewRect.right() - borderWidth, viewRect.top() + borderWidth, borderWidth,
-                           qMax<qreal>(0.0, viewRect.height() - borderWidth * 2.0)),
-                       borderColor);
-         }
+        worldRects.append(entry.worldRect);
+        fillColors.append(QColor(component->color()));
+        selectedFlags.append((static_cast<QObject *>(component) == m_selectedComponent)
+                             || m_selectedComponentIdSet.contains(component->id()));
     }
 
-    m_nodeFillGeomNode->markDirty(QSGNode::DirtyGeometry);
-    m_nodeOutlineGeomNode->markDirty(QSGNode::DirtyGeometry);
+    NodeRenderPass::updateNodeBodyGeometry(m_nodeFillGeomNode,
+                                           m_nodeOutlineGeomNode,
+                                           true,
+                                           m_lodHideNodeOutlines,
+                                           worldRects,
+                                           fillColors,
+                                           selectedFlags);
     updateLabelNodes();
 }
 
 QString GraphViewportItem::labelCacheKey(const ComponentModel *component) const
 {
-    if (!component)
-        return QString();
-    return component->title() + QStringLiteral("|")
-        + QString::number(qHash(component->content())) + QStringLiteral("|")
-        + component->icon() + QStringLiteral("|")
-        + QString::number(int(std::round(component->width())))
-        + QStringLiteral("|")
-        + QString::number(int(std::round(component->height())))
-        + QStringLiteral("|") + QString::number(window() ? window()->effectiveDevicePixelRatio() : 1.0, 'f', 2);
+    const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
+    const qreal availableWidth = width();
+    const qreal availableHeight = height();
+
+    return LabelTextureBuilder::makeLabelCacheKey(component,
+                                                  dpr,
+                                                  availableWidth,
+                                                  availableHeight);
 }
 
 void GraphViewportItem::updateLabelNodes()
@@ -2061,19 +1744,8 @@ void GraphViewportItem::updateLabelNodes()
     const QVector<IndexedComponent> visible = (m_renderNodes ? visibleComponentsSnapshot()
                                                             : QVector<IndexedComponent>());
 
-    QVector<LabelTextureNode *> labelNodes;
-    for (QSGNode *child = m_nodeLabelsRootNode->firstChild();
-         child != nullptr;
-         child = child->nextSibling()) {
-        labelNodes.append(static_cast<LabelTextureNode *>(child));
-    }
-
-    while (labelNodes.size() < visible.size()) {
-        auto *node = new LabelTextureNode();
-        node->setOwnsTexture(true);
-        m_nodeLabelsRootNode->appendChildNode(node);
-        labelNodes.append(node);
-    }
+    QVector<LabelTextureNode *> labelNodes = LabelRenderPass::collectLabelNodes(m_nodeLabelsRootNode);
+    LabelRenderPass::ensureLabelNodeCount(m_nodeLabelsRootNode, labelNodes, visible.size());
 
     // Avoid runtime texture destruction during active rendering paths.
 
@@ -2122,55 +1794,18 @@ void GraphViewportItem::updateLabelNodes()
             continue;
         }
 
-        const QString key = labelCacheKey(component)
-                + QStringLiteral("|") + QString::number(availableWidth)
-                + QStringLiteral("|") + QString::number(availableHeight);
+        const QString key = LabelTextureBuilder::makeLabelCacheKey(component,
+                                                                   devicePixelRatio,
+                                                                   availableWidth,
+                                                                   availableHeight);
         if (node->cacheKey != key || !node->texture()) {
-            QImage image(QSize(int(std::ceil(availableWidth * devicePixelRatio)),
-                               int(std::ceil(availableHeight * devicePixelRatio))),
-                         QImage::Format_ARGB32_Premultiplied);
-            image.setDevicePixelRatio(devicePixelRatio);
-            image.fill(Qt::transparent);
-
-            QPainter painter(&image);
-            painter.setRenderHint(QPainter::TextAntialiasing, true);
-
-            const int headerHeight = qBound(20, int(std::round(availableHeight * 0.30)), 28);
-            painter.fillRect(QRectF(0.0, 0.0, availableWidth, headerHeight), QColor(0, 0, 0, 48));
-
-            const QString iconName = component->icon().isEmpty() ? QStringLiteral("cube") : component->icon();
-            const QString iconGlyph = FontAwesome::iconForCpp(iconName, FontAwesome::Solid);
-            int textLeft = 6;
-            if (!iconGlyph.isEmpty()) {
-                painter.setFont(iconFont);
-                painter.setPen(Qt::white);
-                const QRectF iconRect(6.0, 0.0, 14.0, headerHeight);
-                painter.drawText(iconRect, Qt::AlignCenter, iconGlyph);
-                textLeft = 24;
-            }
-
-            painter.setFont(titleFont);
-            painter.setPen(Qt::white);
-            const int titleAvail = qMax(8, availableWidth - textLeft - 6);
-            const QString title = titleMetrics.elidedText(component->title(), Qt::ElideRight, titleAvail);
-            painter.drawText(QRectF(textLeft, 0.0, titleAvail, headerHeight),
-                             Qt::AlignVCenter | Qt::AlignLeft,
-                             title);
-
-            const QString content = component->content().trimmed();
-            if (!content.isEmpty()) {
-                painter.setFont(contentFont);
-                painter.setPen(QColor(QStringLiteral("#e8f1f6")));
-                const QRectF contentRect(4.0,
-                                         headerHeight + 2.0,
-                                         availableWidth - 8.0,
-                                         qMax(8.0, qreal(availableHeight - headerHeight - 4.0)));
-                painter.drawText(contentRect,
-                                 Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap,
-                                 content);
-            }
-
-            painter.end();
+            QImage image = LabelTextureBuilder::renderLabelImage(component,
+                                                                 availableWidth,
+                                                                 availableHeight,
+                                                                 devicePixelRatio,
+                                                                 titleFont,
+                                                                 contentFont,
+                                                                 iconFont);
 
             QSGTexture *texture = window()->createTextureFromImage(image);
             if (texture) {
@@ -2202,14 +1837,7 @@ void GraphViewportItem::clearLabelTexturesOnRenderThread()
     // Walk the current scene-graph subtree instead of relying on cached
     // pointers which can be stale after scene-graph invalidation.
     if (m_nodeLabelsRootNode) {
-        for (QSGNode *child = m_nodeLabelsRootNode->firstChild();
-             child != nullptr;
-             child = child->nextSibling()) {
-            auto *node = static_cast<LabelTextureNode *>(child);
-            node->cacheKey.clear();
-            node->textureBytes = 0;
-            node->setTexture(nullptr);
-        }
+        LabelRenderPass::clearAllLabelTextures(m_nodeLabelsRootNode);
     }
 
     m_labelTextureCache.clear();
@@ -2333,7 +1961,7 @@ void GraphViewportItem::rebuildSpatialIndex()
     }
 
     const QHash<const ConnectionModel *, ConnectionRouteMeta> routeMetaByConnection =
-        buildConnectionRouteMeta(connections, componentById);
+        RoutingHelpers::buildConnectionRouteMeta(connections, componentById);
 
     for (ConnectionModel *connection : connections) {
         if (!connection)
@@ -2365,15 +1993,14 @@ void GraphViewportItem::rebuildSpatialIndex()
             ? &metaIt.value()
             : nullptr;
 
-        const QVector<QPointF> route = orthogonalRouteForConnection(connection,
-                                                                     src,
-                                                                     tgt,
-                                                                     components,
-                                                                     routeMeta);
+        QVector<QPointF> route;
+        if (m_routingEngine)
+            route = m_routingEngine->compute(RouteRequest { connection, src, tgt, routeMeta },
+                                             RoutingContext { &components });
         if (route.size() < 2)
             continue;
 
-        const QRectF bounds = polylineBounds(route);
+        const QRectF bounds = RoutingHelpers::polylineBounds(route);
         QVector<QRectF> segmentBounds;
         segmentBounds.reserve(qMax(0, route.size() - 1));
         for (int i = 1; i < route.size(); ++i) {

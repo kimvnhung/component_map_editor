@@ -11,6 +11,7 @@
 #include <QVariantMap>
 #include <QVector>
 #include <atomic>
+#include <memory>
 
 class QSGGeometryNode;
 class QSGNode;
@@ -19,6 +20,8 @@ class QSGTransformNode;
 class ComponentModel;
 class ConnectionModel;
 class QSGTexture;
+
+#include "routing/RoutingEngine.h"
 
 // Viewport item for C++/QSG-based graph rendering.
 // Provides camera API (panX/panY/zoom) and coordinate conversion helpers,
@@ -42,6 +45,7 @@ class GraphViewportItem : public QQuickItem
     Q_PROPERTY(qreal maxGridPixelStep READ maxGridPixelStep WRITE setMaxGridPixelStep NOTIFY maxGridPixelStepChanged FINAL)
 
     Q_PROPERTY(QObject *selectedConnection READ selectedConnection WRITE setSelectedConnection NOTIFY selectedConnectionChanged FINAL)
+    Q_PROPERTY(QVariantList selectedConnectionIds READ selectedConnectionIds WRITE setSelectedConnectionIds NOTIFY selectedConnectionIdsChanged FINAL)
     Q_PROPERTY(QObject *selectedComponent READ selectedComponent WRITE setSelectedComponent NOTIFY selectedComponentChanged FINAL)
     Q_PROPERTY(QVariantList selectedComponentIds READ selectedComponentIds WRITE setSelectedComponentIds NOTIFY selectedComponentIdsChanged FINAL)
     Q_PROPERTY(bool tempConnectionDragging READ tempConnectionDragging WRITE setTempConnectionDragging NOTIFY tempConnectionDraggingChanged FINAL)
@@ -83,6 +87,9 @@ public:
 
     QObject *selectedConnection() const;
     void setSelectedConnection(QObject *value);
+
+    QVariantList selectedConnectionIds() const;
+    void setSelectedConnectionIds(const QVariantList &value);
 
     QObject *selectedComponent() const;
     void setSelectedComponent(QObject *value);
@@ -147,6 +154,7 @@ signals:
     void minGridPixelStepChanged();
     void maxGridPixelStepChanged();
     void selectedConnectionChanged();
+    void selectedConnectionIdsChanged();
     void selectedComponentChanged();
     void selectedComponentIdsChanged();
     void tempConnectionDraggingChanged();
@@ -166,8 +174,6 @@ private:
         QRectF worldBounds;
     };
 
-    qreal normalizedGridStep() const;
-    static qreal positiveModulo(qreal value, qreal modulus);
     void requestGraphRebuild();
     void scheduleGraphRebuild();
     void executeScheduledGraphRebuild();
@@ -213,6 +219,8 @@ private:
     qreal m_maxGridPixelStep = 96.0;
 
     QObject *m_selectedConnection = nullptr;
+    QVariantList m_selectedConnectionIds;
+    QSet<QString> m_selectedConnectionIdSet;
     QObject *m_selectedComponent = nullptr;
     QVariantList m_selectedComponentIds;
     QSet<QString> m_selectedComponentIdSet;
@@ -272,6 +280,7 @@ private:
     std::atomic<qreal> m_routeRebuildP50Ms{0.0};
     std::atomic<qreal> m_routeRebuildP95Ms{0.0};
     std::atomic<int> m_routeRebuildSampleCount{0};
+    std::unique_ptr<RoutingEngine> m_routingEngine;
 };
 
 #endif // GRAPHVIEWPORTITEM_H

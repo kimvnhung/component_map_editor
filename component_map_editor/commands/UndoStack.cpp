@@ -2,6 +2,8 @@
 
 #include "GraphCommands.h"
 
+#include <QSet>
+
 namespace {
 
 ConnectionModel::Side sideFromInt(int sideValue)
@@ -16,6 +18,37 @@ ConnectionModel::Side sideFromInt(int sideValue)
     default:
         return ConnectionModel::SideAuto;
     }
+}
+
+bool isComponentPropertyUndoable(const QString &name)
+{
+    static const QSet<QString> kAllowed {
+        QStringLiteral("id"),
+        QStringLiteral("title"),
+        QStringLiteral("content"),
+        QStringLiteral("icon"),
+        QStringLiteral("x"),
+        QStringLiteral("y"),
+        QStringLiteral("width"),
+        QStringLiteral("height"),
+        QStringLiteral("shape"),
+        QStringLiteral("color"),
+        QStringLiteral("type")
+    };
+    return kAllowed.contains(name);
+}
+
+bool isConnectionPropertyUndoable(const QString &name)
+{
+    static const QSet<QString> kAllowed {
+        QStringLiteral("id"),
+        QStringLiteral("sourceId"),
+        QStringLiteral("targetId"),
+        QStringLiteral("label"),
+        QStringLiteral("sourceSide"),
+        QStringLiteral("targetSide")
+    };
+    return kAllowed.contains(name);
 }
 
 } // namespace
@@ -46,6 +79,9 @@ int UndoStack::count() const { return m_commands.size(); }
 
 void UndoStack::push(GraphCommand *command)
 {
+    if (!command)
+        return;
+
     const bool prevCanUndo = canUndo();
     const bool prevCanRedo = canRedo();
     const QString prevUndoText = undoText();
@@ -61,6 +97,8 @@ void UndoStack::push(GraphCommand *command)
     if (canUndo() && m_commands.last()->id() != -1
         && m_commands.last()->id() == command->id()
         && m_commands.last()->mergeWith(command)) {
+        // Apply merged latest state immediately so command-driven edits stay live.
+        m_commands.last()->redo();
         delete command;
     } else {
         m_commands.append(command);
@@ -69,6 +107,143 @@ void UndoStack::push(GraphCommand *command)
     }
 
     notifyChanges(prevCanUndo, prevCanRedo, prevUndoText, prevRedoText, prevCount);
+}
+
+void UndoStack::pushAddComponent(GraphModel *graph, ComponentModel *component)
+{
+    if (!graph || !component)
+        return;
+
+    push(new AddComponentCommand(graph, component));
+}
+
+void UndoStack::pushRemoveComponent(GraphModel *graph, const QString &componentId)
+{
+    if (!graph || componentId.isEmpty())
+        return;
+
+    push(new RemoveComponentWithConnectionsCommand(graph, componentId));
+}
+
+void UndoStack::pushMoveComponent(GraphModel *graph,
+                                  const QString &componentId,
+                                  qreal oldX,
+                                  qreal oldY,
+                                  qreal newX,
+                                  qreal newY)
+{
+    if (!graph || componentId.isEmpty())
+        return;
+    if (qFuzzyCompare(oldX, newX) && qFuzzyCompare(oldY, newY))
+        return;
+
+    push(new MoveComponentCommand(graph, componentId, oldX, oldY, newX, newY));
+}
+
+void UndoStack::pushMoveComponents(GraphModel *graph, const QVariantList &moves)
+{
+    if (!graph || moves.isEmpty())
+        return;
+
+    QList<MoveComponentsCommand::MoveEntry> entries;
+    entries.reserve(moves.size());
+    for (const QVariant &moveVariant : moves) {
+        const QVariantMap map = moveVariant.toMap();
+        const QString componentId = map.value(QStringLiteral("id")).toString();
+        if (componentId.isEmpty())
+            continue;
+
+        const qreal oldX = map.value(QStringLiteral("oldX")).toReal();
+        const qreal oldY = map.value(QStringLiteral("oldY")).toReal();
+        const qreal newX = map.value(QStringLiteral("newX")).toReal();
+        const qreal newY = map.value(QStringLiteral("newY")).toReal();
+        if (qFuzzyCompare(oldX, newX) && qFuzzyCompare(oldY, newY))
+            continue;
+
+        MoveComponentsCommand::MoveEntry entry;
+        entry.componentId = componentId;
+        entry.oldX = oldX;
+        entry.oldY = oldY;
+        entry.newX = newX;
+        entry.newY = newY;
+        entries.append(entry);
+    }
+
+    if (entries.isEmpty())
+        return;
+
+    if (entries.size() == 1) {
+        const MoveComponentsCommand::MoveEntry &entry = entries.first();
+        push(new MoveComponentCommand(graph,
+                                      entry.componentId,
+                                      entry.oldX,
+                                      entry.oldY,
+                                      entry.newX,
+                                      entry.newY));
+        return;
+    }
+
+    push(new MoveComponentsCommand(graph, entries));
+}
+
+void UndoStack::pushSetComponentGeometry(ComponentModel *component,
+                                         qreal oldX,
+                                         qreal oldY,
+                                         qreal oldWidth,
+                                         qreal oldHeight,
+                                         qreal newX,
+                                         qreal newY,
+                                         qreal newWidth,
+                                         qreal newHeight)
+{
+    if (!component)
+        return;
+    if (qFuzzyCompare(oldX, newX)
+        && qFuzzyCompare(oldY, newY)
+        && qFuzzyCompare(oldWidth, newWidth)
+        && qFuzzyCompare(oldHeight, newHeight)) {
+        return;
+    }
+
+    push(new SetComponentGeometryCommand(component,
+                                         oldX,
+                                         oldY,
+                                         oldWidth,
+                                         oldHeight,
+                                         newX,
+                                         newY,
+                                         newWidth,
+                                         newHeight));
+}
+
+void UndoStack::pushSetComponentProperty(ComponentModel *component,
+                                         const QString &propertyName,
+                                         const QVariant &newValue)
+{
+    if (!component || !isComponentPropertyUndoable(propertyName))
+        return;
+
+    const QByteArray propertyUtf8 = propertyName.toUtf8();
+    const QVariant oldValue = component->property(propertyUtf8.constData());
+    if (oldValue == newValue)
+        return;
+
+    push(new SetComponentPropertyCommand(component, propertyUtf8, oldValue, newValue));
+}
+
+void UndoStack::pushSetConnectionProperty(ConnectionModel *connection,
+                                          const QString &propertyName,
+                                          const QVariant &newValue)
+{
+    if (!connection || !isConnectionPropertyUndoable(propertyName))
+        return;
+
+    const QByteArray propertyUtf8 = propertyName.toUtf8();
+    const QVariant oldValue = connection->property(propertyUtf8.constData());
+    if (oldValue == newValue)
+        return;
+
+    push(new SetConnectionPropertyCommand(connection, propertyUtf8, oldValue, newValue));
 }
 
 void UndoStack::pushAddConnection(GraphModel *graph, ConnectionModel *connection)

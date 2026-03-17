@@ -10,7 +10,7 @@ ResizableItem {
     property bool selected: false
     property bool renderVisuals: true
     property UndoStack undoStack: null
-
+    property real viewZoom: 1.0
     readonly property int defaultComponentWidth: 96
     readonly property int defaultComponentHeight: 96
     readonly property int minComponentWidth: 40
@@ -26,6 +26,7 @@ ResizableItem {
     handlesVisible: selected
     moveEnabled: true
     moveDragThreshold: 4
+    interactionZoom: viewZoom
 
     // Coordinate contract:
     // - ComponentModel.x/y store the COMPONENT CENTER in world coordinates.
@@ -98,6 +99,8 @@ ResizableItem {
     onResized: syncModelFromItemGeometry()
     onResizeFinished: syncModelFromItemGeometry()
 
+    Component.onCompleted: syncItemFromModelGeometry()
+
     signal componentClicked(ComponentModel component, int modifiers)
 
     // startP and targetP are in scene coordinates relative to the top-left of the view.
@@ -118,8 +121,6 @@ ResizableItem {
     }
     onSelectedChanged: root.refreshFocused()
     onComponentChanged: syncItemFromModelGeometry()
-
-    Component.onCompleted: syncItemFromModelGeometry()
 
     // Keep position in sync when the model is updated externally.
     Connections {

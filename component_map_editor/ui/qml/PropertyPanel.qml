@@ -39,6 +39,26 @@ Rectangle {
         }
     }
 
+    function updateComponentProperty(propertyName, value) {
+        if (!root.component)
+            return
+
+        if (root.undoStack)
+            root.undoStack.pushSetComponentProperty(root.component, propertyName, value)
+        else
+            root.component[propertyName] = value
+    }
+
+    function updateConnectionProperty(propertyName, value) {
+        if (!root.connection)
+            return
+
+        if (root.undoStack)
+            root.undoStack.pushSetConnectionProperty(root.connection, propertyName, value)
+        else
+            root.connection[propertyName] = value
+    }
+
     color: "#ffffff"
     border.color: "#e0e0e0"
     border.width: 1
@@ -76,14 +96,14 @@ Rectangle {
                 TextField {
                     Layout.fillWidth: true
                     text: root.component ? root.component.id : ""
-                    onEditingFinished: if (root.component) root.component.id = text
+                    onEditingFinished: root.updateComponentProperty("id", text)
                 }
 
                 Label { text: "Title" }
                 TextField {
                     Layout.fillWidth: true
                     text: root.component ? root.component.title : ""
-                    onEditingFinished: if (root.component) root.component.title = text
+                    onEditingFinished: root.updateComponentProperty("title", text)
                 }
 
                 Label { text: "Content" }
@@ -92,7 +112,7 @@ Rectangle {
                     Layout.preferredHeight: 64
                     text: root.component ? root.component.content : ""
                     wrapMode: Text.WordWrap
-                    onEditingFinished: if (root.component) root.component.content = text
+                    onEditingFinished: root.updateComponentProperty("content", text)
                 }
 
                 Label { text: "Icon" }
@@ -100,21 +120,21 @@ Rectangle {
                     Layout.fillWidth: true
                     text: root.component ? root.component.icon : ""
                     placeholderText: "e.g. cube, house, user"
-                    onEditingFinished: if (root.component) root.component.icon = text
+                    onEditingFinished: root.updateComponentProperty("icon", text)
                 }
 
                 Label { text: "Color" }
                 TextField {
                     Layout.fillWidth: true
                     text: root.component ? root.component.color : ""
-                    onEditingFinished: if (root.component) root.component.color = text
+                    onEditingFinished: root.updateComponentProperty("color", text)
                 }
 
                 Label { text: "Type" }
                 TextField {
                     Layout.fillWidth: true
                     text: root.component ? root.component.type : ""
-                    onEditingFinished: if (root.component) root.component.type = text
+                    onEditingFinished: root.updateComponentProperty("type", text)
                 }
 
                 Label { text: "Shape" }
@@ -123,7 +143,7 @@ Rectangle {
                     model: ["rounded", "rectangle"]
                     currentIndex: root.component && root.component.shape === "rectangle" ? 1 : 0
                     onActivated: function(index) {
-                        if (root.component) root.component.shape = model[index]
+                        root.updateComponentProperty("shape", model[index])
                     }
                 }
 
@@ -132,7 +152,7 @@ Rectangle {
                     Layout.fillWidth: true
                     from: -9999; to: 9999
                     value: root.component ? Math.round(root.component.x) : 0
-                    onValueModified: if (root.component) root.component.x = value
+                    onValueModified: root.updateComponentProperty("x", value)
                 }
 
                 Label { text: "Y" }
@@ -140,7 +160,7 @@ Rectangle {
                     Layout.fillWidth: true
                     from: -9999; to: 9999
                     value: root.component ? Math.round(root.component.y) : 0
-                    onValueModified: if (root.component) root.component.y = value
+                    onValueModified: root.updateComponentProperty("y", value)
                 }
 
                 Label { text: "Width" }
@@ -148,7 +168,7 @@ Rectangle {
                     Layout.fillWidth: true
                     from: 10; to: 9999
                     value: root.component ? Math.round(root.component.width) : 96
-                    onValueModified: if (root.component) root.component.width = value
+                    onValueModified: root.updateComponentProperty("width", value)
                 }
 
                 Label { text: "Height" }
@@ -156,7 +176,7 @@ Rectangle {
                     Layout.fillWidth: true
                     from: 10; to: 9999
                     value: root.component ? Math.round(root.component.height) : 96
-                    onValueModified: if (root.component) root.component.height = value
+                    onValueModified: root.updateComponentProperty("height", value)
                 }
             }
         }
@@ -181,28 +201,28 @@ Rectangle {
                 TextField {
                     Layout.fillWidth: true
                     text: root.connection ? root.connection.id : ""
-                    onEditingFinished: if (root.connection) root.connection.id = text
+                    onEditingFinished: root.updateConnectionProperty("id", text)
                 }
 
                 Label { text: "Source" }
                 TextField {
                     Layout.fillWidth: true
                     text: root.connection ? root.connection.sourceId : ""
-                    onEditingFinished: if (root.connection) root.connection.sourceId = text
+                    onEditingFinished: root.updateConnectionProperty("sourceId", text)
                 }
 
                 Label { text: "Target" }
                 TextField {
                     Layout.fillWidth: true
                     text: root.connection ? root.connection.targetId : ""
-                    onEditingFinished: if (root.connection) root.connection.targetId = text
+                    onEditingFinished: root.updateConnectionProperty("targetId", text)
                 }
 
                 Label { text: "Label" }
                 TextField {
                     Layout.fillWidth: true
                     text: root.connection ? root.connection.label : ""
-                    onEditingFinished: if (root.connection) root.connection.label = text
+                    onEditingFinished: root.updateConnectionProperty("label", text)
                 }
 
                 Label { text: "Source Side" }

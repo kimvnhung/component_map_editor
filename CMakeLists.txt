@@ -17,3 +17,6 @@ add_subdirectory(qml_fontawesome)
 add_subdirectory(component_map_editor)
 add_subdirectory(example)
 
+enable_testing()
+add_subdirectory(tests)
+
