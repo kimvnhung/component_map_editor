@@ -3,6 +3,7 @@
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/contracts/ExtensionManifest.h"
+#include "extensions/contracts/IExtensionPack.h"
 
 #include "SampleActionProvider.h"
 #include "SampleConnectionPolicyProvider.h"
@@ -16,7 +17,7 @@
 //
 // The pack owns all provider instances; the registry stores non-owning
 // pointers and must not outlive the pack.
-class SampleExtensionPack
+class SampleExtensionPack : public IExtensionPack
 {
 public:
     static constexpr const char *ExtensionId      = "sample.workflow";
@@ -37,6 +38,7 @@ public:
 
     // Registers the manifest and all five providers with the given registry.
     // Returns false and populates error on the first failure encountered.
+    bool registerProviders(ExtensionContractRegistry &registry, QString *error = nullptr) override;
     bool registerAll(ExtensionContractRegistry &registry, QString *error = nullptr);
 
 private:

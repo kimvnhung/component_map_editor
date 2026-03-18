@@ -23,6 +23,11 @@ bool SampleExtensionPack::registerAll(ExtensionContractRegistry &registry, QStri
 {
     if (!registry.registerManifest(m_manifest, error))
         return false;
+    return registerProviders(registry, error);
+}
+
+bool SampleExtensionPack::registerProviders(ExtensionContractRegistry &registry, QString *error)
+{
     if (!registry.registerNodeTypeProvider(&m_nodeTypeProvider, error))
         return false;
     if (!registry.registerConnectionPolicyProvider(&m_connectionPolicyProvider, error))

@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 
 #include "ExtensionApiVersion.h"
 
@@ -16,6 +17,8 @@ struct ExtensionManifest
     ExtensionApiVersion maxCoreApi;
 
     QStringList capabilities;
+    QStringList dependencies;
+    QVariantMap metadata;
 
     bool isValid(QString *error = nullptr) const;
 };

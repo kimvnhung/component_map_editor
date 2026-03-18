@@ -110,3 +110,24 @@ add_test(
     COMMAND tst_ExtensionContractRegistry
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_ExtensionStartupLoader
+    tst_ExtensionStartupLoader.cpp
+)
+
+target_link_libraries(tst_ExtensionStartupLoader
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ExtensionStartupLoader
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ExtensionStartupLoader
+    COMMAND tst_ExtensionStartupLoader
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
