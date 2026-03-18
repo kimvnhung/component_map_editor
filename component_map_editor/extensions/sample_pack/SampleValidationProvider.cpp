@@ -19,9 +19,9 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
     int endCount   = 0;
 
     for (const QVariant &v : components) {
-        const QVariantMap node = v.toMap();
-        const QString id   = node.value(QStringLiteral("id")).toString();
-        const QString type = node.value(QStringLiteral("type")).toString();
+        const QVariantMap component = v.toMap();
+        const QString id   = component.value(QStringLiteral("id")).toString();
+        const QString type = component.value(QStringLiteral("type")).toString();
         if (!id.isEmpty())
             componentIds.insert(id);
         if (type == QStringLiteral("start"))
@@ -30,23 +30,23 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
             ++endCount;
     }
 
-    // W001 – exactly one start node
+    // W001 – exactly one start component
     if (startCount != 1) {
         issues.append(QVariantMap{
             { QStringLiteral("code"),       QStringLiteral("W001") },
             { QStringLiteral("severity"),   QStringLiteral("error") },
-            { QStringLiteral("message"),    QStringLiteral("Graph must contain exactly one start node (found %1).").arg(startCount) },
+            { QStringLiteral("message"),    QStringLiteral("Graph must contain exactly one start component (found %1).").arg(startCount) },
             { QStringLiteral("entityType"), QStringLiteral("graph") },
             { QStringLiteral("entityId"),   QString() }
         });
     }
 
-    // W002 – exactly one end node
+    // W002 – exactly one end component
     if (endCount != 1) {
         issues.append(QVariantMap{
             { QStringLiteral("code"),       QStringLiteral("W002") },
             { QStringLiteral("severity"),   QStringLiteral("error") },
-            { QStringLiteral("message"),    QStringLiteral("Graph must contain exactly one end node (found %1).").arg(endCount) },
+            { QStringLiteral("message"),    QStringLiteral("Graph must contain exactly one end component (found %1).").arg(endCount) },
             { QStringLiteral("entityType"), QStringLiteral("graph") },
             { QStringLiteral("entityId"),   QString() }
         });
@@ -63,7 +63,7 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
             issues.append(QVariantMap{
                 { QStringLiteral("code"),       QStringLiteral("W003") },
                 { QStringLiteral("severity"),   QStringLiteral("error") },
-                { QStringLiteral("message"),    QStringLiteral("Connection sourceId '%1' does not reference a known node.").arg(sourceId) },
+                { QStringLiteral("message"),    QStringLiteral("Connection sourceId '%1' does not reference a known component.").arg(sourceId) },
                 { QStringLiteral("entityType"), QStringLiteral("connection") },
                 { QStringLiteral("entityId"),   connId }
             });
@@ -72,14 +72,14 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
             issues.append(QVariantMap{
                 { QStringLiteral("code"),       QStringLiteral("W003") },
                 { QStringLiteral("severity"),   QStringLiteral("error") },
-                { QStringLiteral("message"),    QStringLiteral("Connection targetId '%1' does not reference a known node.").arg(targetId) },
+                { QStringLiteral("message"),    QStringLiteral("Connection targetId '%1' does not reference a known component.").arg(targetId) },
                 { QStringLiteral("entityType"), QStringLiteral("connection") },
                 { QStringLiteral("entityId"),   connId }
             });
         }
     }
 
-    // W004 – no isolated nodes (no incoming and no outgoing connections)
+    // W004 – no isolated components (no incoming and no outgoing connections)
     if (!components.isEmpty()) {
         QSet<QString> connectedIds;
         for (const QVariant &v : connections) {
@@ -89,14 +89,14 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
         }
 
         for (const QVariant &v : components) {
-            const QVariantMap node = v.toMap();
-            const QString id = node.value(QStringLiteral("id")).toString();
+            const QVariantMap component = v.toMap();
+            const QString id = component.value(QStringLiteral("id")).toString();
             if (!id.isEmpty() && !connectedIds.contains(id)) {
                 issues.append(QVariantMap{
                     { QStringLiteral("code"),       QStringLiteral("W004") },
                     { QStringLiteral("severity"),   QStringLiteral("warning") },
-                    { QStringLiteral("message"),    QStringLiteral("Node '%1' has no connections.").arg(id) },
-                    { QStringLiteral("entityType"), QStringLiteral("node") },
+                    { QStringLiteral("message"),    QStringLiteral("Component '%1' has no connections.").arg(id) },
+                    { QStringLiteral("entityType"), QStringLiteral("component") },
                     { QStringLiteral("entityId"),   id }
                 });
             }

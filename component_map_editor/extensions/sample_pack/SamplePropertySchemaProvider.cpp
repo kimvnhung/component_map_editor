@@ -26,24 +26,24 @@ QString SamplePropertySchemaProvider::providerId() const
 QStringList SamplePropertySchemaProvider::schemaTargets() const
 {
     return {
-        QStringLiteral("node/start"),
-        QStringLiteral("node/task"),
-        QStringLiteral("node/decision"),
-        QStringLiteral("node/end"),
+        QStringLiteral("component/start"),
+        QStringLiteral("component/task"),
+        QStringLiteral("component/decision"),
+        QStringLiteral("component/end"),
         QStringLiteral("connection/flow")
     };
 }
 
 QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetId) const
 {
-    if (targetId == QStringLiteral("node/start") ||
-        targetId == QStringLiteral("node/end")) {
+    if (targetId == QStringLiteral("component/start") ||
+        targetId == QStringLiteral("component/end")) {
         return {
             entry("name", "string", "Name", false, QString(), "textfield")
         };
     }
 
-    if (targetId == QStringLiteral("node/task")) {
+    if (targetId == QStringLiteral("component/task")) {
         return {
             entry("name",        "string", "Name",        true,  QString(),          "textfield"),
             entry("description", "string", "Description", false, QString(),          "textarea"),
@@ -51,7 +51,7 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         };
     }
 
-    if (targetId == QStringLiteral("node/decision")) {
+    if (targetId == QStringLiteral("component/decision")) {
         return {
             entry("name",      "string", "Name",      true, QString(), "textfield"),
             entry("condition", "string", "Condition", true, QString(), "textfield")

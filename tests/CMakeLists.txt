@@ -131,3 +131,45 @@ add_test(
     COMMAND tst_ExtensionStartupLoader
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_TypeRegistry
+    tst_TypeRegistry.cpp
+)
+
+target_link_libraries(tst_TypeRegistry
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_TypeRegistry
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_TypeRegistry
+    COMMAND tst_TypeRegistry
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_GraphEditorController
+    tst_GraphEditorController.cpp
+)
+
+target_link_libraries(tst_GraphEditorController
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_GraphEditorController
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_GraphEditorController
+    COMMAND tst_GraphEditorController
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

@@ -7,8 +7,8 @@
 #include "ExtensionApiVersion.h"
 #include "ExtensionManifest.h"
 #include "IActionProvider.h"
+#include "IComponentTypeProvider.h"
 #include "IConnectionPolicyProvider.h"
-#include "INodeTypeProvider.h"
 #include "IPropertySchemaProvider.h"
 #include "IValidationProvider.h"
 
@@ -20,7 +20,7 @@ public:
     ExtensionApiVersion coreApiVersion() const;
 
     bool registerManifest(const ExtensionManifest &manifest, QString *error = nullptr);
-    bool registerNodeTypeProvider(const INodeTypeProvider *provider, QString *error = nullptr);
+    bool registerComponentTypeProvider(const IComponentTypeProvider *provider, QString *error = nullptr);
     bool registerConnectionPolicyProvider(const IConnectionPolicyProvider *provider, QString *error = nullptr);
     bool registerPropertySchemaProvider(const IPropertySchemaProvider *provider, QString *error = nullptr);
     bool registerValidationProvider(const IValidationProvider *provider, QString *error = nullptr);
@@ -28,6 +28,10 @@ public:
 
     bool hasManifest(const QString &extensionId) const;
     ExtensionManifest manifest(const QString &extensionId) const;
+
+    // Provider accessors used by TypeRegistry to build its O(1) cache.
+    QList<const IComponentTypeProvider *> componentTypeProviders() const;
+    QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
 
 private:
     template <typename ProviderT>
@@ -64,7 +68,7 @@ private:
 
     ExtensionApiVersion m_coreApiVersion;
     QHash<QString, ExtensionManifest> m_manifests;
-    QHash<QString, const INodeTypeProvider *> m_nodeTypeProviders;
+    QHash<QString, const IComponentTypeProvider *> m_componentTypeProviders;
     QHash<QString, const IConnectionPolicyProvider *> m_connectionPolicyProviders;
     QHash<QString, const IPropertySchemaProvider *> m_propertySchemaProviders;
     QHash<QString, const IValidationProvider *> m_validationProviders;

@@ -1,11 +1,11 @@
-#include "SampleNodeTypeProvider.h"
+#include "SampleComponentTypeProvider.h"
 
-QString SampleNodeTypeProvider::providerId() const
+QString SampleComponentTypeProvider::providerId() const
 {
-    return QStringLiteral("sample.workflow.nodeTypes");
+    return QStringLiteral("sample.workflow.componentTypes");
 }
 
-QStringList SampleNodeTypeProvider::nodeTypeIds() const
+QStringList SampleComponentTypeProvider::componentTypeIds() const
 {
     return {
         QString::fromLatin1(TypeStart),
@@ -15,7 +15,7 @@ QStringList SampleNodeTypeProvider::nodeTypeIds() const
     };
 }
 
-QVariantMap SampleNodeTypeProvider::nodeTypeDescriptor(const QString &nodeTypeId) const
+QVariantMap SampleComponentTypeProvider::componentTypeDescriptor(const QString &componentTypeId) const
 {
     struct Descriptor {
         const char *id;
@@ -36,7 +36,7 @@ QVariantMap SampleNodeTypeProvider::nodeTypeDescriptor(const QString &nodeTypeId
     };
 
     for (const auto &d : descriptors) {
-        if (nodeTypeId == QLatin1String(d.id)) {
+        if (componentTypeId == QLatin1String(d.id)) {
             return QVariantMap{
                 { QStringLiteral("id"),              QString::fromLatin1(d.id) },
                 { QStringLiteral("title"),           QString::fromLatin1(d.title) },
@@ -52,15 +52,15 @@ QVariantMap SampleNodeTypeProvider::nodeTypeDescriptor(const QString &nodeTypeId
     return {};
 }
 
-QVariantMap SampleNodeTypeProvider::defaultNodeProperties(const QString &nodeTypeId) const
+QVariantMap SampleComponentTypeProvider::defaultComponentProperties(const QString &componentTypeId) const
 {
-    if (nodeTypeId == QLatin1String(TypeTask)) {
+    if (componentTypeId == QLatin1String(TypeTask)) {
         return {
             { QStringLiteral("priority"),    QStringLiteral("normal") },
             { QStringLiteral("description"), QString() }
         };
     }
-    if (nodeTypeId == QLatin1String(TypeDecision)) {
+    if (componentTypeId == QLatin1String(TypeDecision)) {
         return {
             { QStringLiteral("condition"), QString() }
         };

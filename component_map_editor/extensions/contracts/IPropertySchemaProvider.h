@@ -13,7 +13,7 @@ public:
 
     virtual QString providerId() const = 0;
 
-    // Returns IDs like "node/<typeId>" or "connection/<typeId>".
+    // Returns IDs like "component/<typeId>" or "connection/<typeId>".
     virtual QStringList schemaTargets() const = 0;
 
     // Returns schema entries. Recommended keys per entry:

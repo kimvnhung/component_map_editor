@@ -5,7 +5,7 @@
   "minCoreApi": "1.0.0",
   "maxCoreApi": "1.99.99",
   "capabilities": [
-    "nodeTypes",
+    "componentTypes",
     "connectionPolicy",
     "propertySchema",
     "validation",

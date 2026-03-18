@@ -40,10 +40,10 @@ bool ExtensionContractRegistry::registerManifest(const ExtensionManifest &manife
     return true;
 }
 
-bool ExtensionContractRegistry::registerNodeTypeProvider(const INodeTypeProvider *provider, QString *error)
+bool ExtensionContractRegistry::registerComponentTypeProvider(const IComponentTypeProvider *provider, QString *error)
 {
-    return registerProviderInternal(provider, &m_nodeTypeProviders,
-                                    QStringLiteral("node type"), error);
+    return registerProviderInternal(provider, &m_componentTypeProviders,
+                                    QStringLiteral("component type"), error);
 }
 
 bool ExtensionContractRegistry::registerConnectionPolicyProvider(const IConnectionPolicyProvider *provider, QString *error)
@@ -78,4 +78,14 @@ bool ExtensionContractRegistry::hasManifest(const QString &extensionId) const
 ExtensionManifest ExtensionContractRegistry::manifest(const QString &extensionId) const
 {
     return m_manifests.value(extensionId);
+}
+
+QList<const IComponentTypeProvider *> ExtensionContractRegistry::componentTypeProviders() const
+{
+    return m_componentTypeProviders.values();
+}
+
+QList<const IConnectionPolicyProvider *> ExtensionContractRegistry::connectionPolicyProviders() const
+{
+    return m_connectionPolicyProviders.values();
 }

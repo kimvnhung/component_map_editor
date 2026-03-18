@@ -7,7 +7,7 @@
 
 #include "SampleActionProvider.h"
 #include "SampleConnectionPolicyProvider.h"
-#include "SampleNodeTypeProvider.h"
+#include "SampleComponentTypeProvider.h"
 #include "SamplePropertySchemaProvider.h"
 #include "SampleValidationProvider.h"
 
@@ -43,7 +43,7 @@ public:
 
 private:
     ExtensionManifest         m_manifest;
-    SampleNodeTypeProvider    m_nodeTypeProvider;
+    SampleComponentTypeProvider m_componentTypeProvider;
     SampleConnectionPolicyProvider m_connectionPolicyProvider;
     SamplePropertySchemaProvider   m_propertySchemaProvider;
     SampleValidationProvider  m_validationProvider;

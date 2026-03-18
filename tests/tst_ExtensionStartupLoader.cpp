@@ -37,7 +37,7 @@ QJsonObject validSampleManifestObject()
     obj.insert(QStringLiteral("maxCoreApi"), QStringLiteral("1.99.99"));
 
     QJsonArray capabilities;
-    capabilities.append(QStringLiteral("nodeTypes"));
+    capabilities.append(QStringLiteral("componentTypes"));
     capabilities.append(QStringLiteral("connectionPolicy"));
     capabilities.append(QStringLiteral("propertySchema"));
     capabilities.append(QStringLiteral("validation"));

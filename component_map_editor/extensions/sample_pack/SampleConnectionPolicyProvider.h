@@ -4,7 +4,7 @@
 #include "extensions/contracts/IConnectionPolicyProvider.h"
 
 // Sample implementation of IConnectionPolicyProvider for the workflow domain.
-// Allowed connections:
+// Allowed connections between component types:
 //   start    -> task
 //   task     -> task, decision
 //   decision -> task, end

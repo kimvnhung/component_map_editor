@@ -7,7 +7,7 @@ Create stable interfaces so business logic can plug in externally without modify
 
 ### 1) Define extension contracts in code
 Contract headers are introduced under:
-- `component_map_editor/extensions/contracts/INodeTypeProvider.h`
+- `component_map_editor/extensions/contracts/IComponentTypeProvider.h`
 - `component_map_editor/extensions/contracts/IConnectionPolicyProvider.h`
 - `component_map_editor/extensions/contracts/IPropertySchemaProvider.h`
 - `component_map_editor/extensions/contracts/IValidationProvider.h`
