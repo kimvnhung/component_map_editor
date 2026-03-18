@@ -32,6 +32,7 @@ public:
     // Provider accessors used by TypeRegistry to build its O(1) cache.
     QList<const IComponentTypeProvider *> componentTypeProviders() const;
     QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
+    QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
 
 private:
     template <typename ProviderT>

@@ -1,5 +1,4 @@
-// PropertyPanel.qml — Shows and edits properties of the currently selected
-// component or connection.
+// PropertyPanel.qml — schema-driven inspector for selected component/connection.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -11,6 +10,10 @@ Rectangle {
     property ComponentModel component: null
     property ConnectionModel connection: null
     property UndoStack undoStack: null
+    property PropertySchemaRegistry propertySchemaRegistry: null
+    readonly property PropertySchemaRegistry effectiveSchemaRegistry:
+        root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
+
     readonly property var connectionSideModel: [
         { text: "Auto", value: ConnectionModel.SideAuto },
         { text: "Top", value: ConnectionModel.SideTop },
@@ -19,44 +22,50 @@ Rectangle {
         { text: "Left", value: ConnectionModel.SideLeft }
     ]
 
-    function sideIndexForValue(value) {
-        for (var i = 0; i < connectionSideModel.length; ++i) {
-            if (connectionSideModel[i].value === value)
-                return i
-        }
-        return 0
+    readonly property string componentTarget: {
+        if (!root.component)
+            return ""
+        var typeId = root.component.type || "default"
+        return "component/" + typeId
     }
 
-    function updateConnectionSides(sourceSide, targetSide) {
+    readonly property string connectionTarget: {
         if (!root.connection)
-            return
-
-        if (root.undoStack)
-            root.undoStack.pushSetConnectionSides(root.connection, sourceSide, targetSide)
-        else {
-            root.connection.sourceSide = sourceSide
-            root.connection.targetSide = targetSide
-        }
+            return ""
+        return "connection/flow"
     }
 
     function updateComponentProperty(propertyName, value) {
-        if (!root.component)
+        if (!root.component || !root.undoStack || !propertyName)
             return
-
-        if (root.undoStack)
-            root.undoStack.pushSetComponentProperty(root.component, propertyName, value)
-        else
-            root.component[propertyName] = value
+        root.undoStack.pushSetComponentProperty(root.component, propertyName, value)
     }
 
     function updateConnectionProperty(propertyName, value) {
-        if (!root.connection)
+        if (!root.connection || !root.undoStack || !propertyName)
             return
 
-        if (root.undoStack)
-            root.undoStack.pushSetConnectionProperty(root.connection, propertyName, value)
-        else
-            root.connection[propertyName] = value
+        if (propertyName === "sourceSide") {
+            root.undoStack.pushSetConnectionSides(root.connection, value, root.connection.targetSide)
+            return
+        }
+
+        if (propertyName === "targetSide") {
+            root.undoStack.pushSetConnectionSides(root.connection, root.connection.sourceSide, value)
+            return
+        }
+
+        root.undoStack.pushSetConnectionProperty(root.connection, propertyName, value)
+    }
+
+    function sectionsForTarget(targetId) {
+        if (root.effectiveSchemaRegistry)
+            return root.effectiveSchemaRegistry.sectionedSchemaForTarget(targetId)
+        return []
+    }
+
+    PropertySchemaRegistry {
+        id: fallbackSchemaRegistry
     }
 
     color: "#ffffff"
@@ -64,7 +73,10 @@ Rectangle {
     border.width: 1
 
     ColumnLayout {
-        anchors { fill: parent; margins: 10 }
+        anchors {
+            fill: parent
+            margins: 10
+        }
         spacing: 8
 
         Label {
@@ -76,188 +88,47 @@ Rectangle {
             bottomPadding: 4
         }
 
-        // ---------- Component properties ----------
         Loader {
             active: root.component !== null
             Layout.fillWidth: true
-            sourceComponent: componentProps
+            sourceComponent: componentInspector
         }
 
         Component {
-            id: componentProps
+            id: componentInspector
 
-            ColumnLayout {
-                spacing: 6
+            SchemaFormRenderer {
                 width: parent ? parent.width : 0
-
-                Label { text: "Component"; font.bold: true; font.pixelSize: 11; color: "#888" }
-
-                Label { text: "ID" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.id : ""
-                    onEditingFinished: root.updateComponentProperty("id", text)
-                }
-
-                Label { text: "Title" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.title : ""
-                    onEditingFinished: root.updateComponentProperty("title", text)
-                }
-
-                Label { text: "Content" }
-                TextArea {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 64
-                    text: root.component ? root.component.content : ""
-                    wrapMode: Text.WordWrap
-                    onEditingFinished: root.updateComponentProperty("content", text)
-                }
-
-                Label { text: "Icon" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.icon : ""
-                    placeholderText: "e.g. cube, house, user"
-                    onEditingFinished: root.updateComponentProperty("icon", text)
-                }
-
-                Label { text: "Color" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.color : ""
-                    onEditingFinished: root.updateComponentProperty("color", text)
-                }
-
-                Label { text: "Type" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.type : ""
-                    onEditingFinished: root.updateComponentProperty("type", text)
-                }
-
-                Label { text: "Shape" }
-                ComboBox {
-                    Layout.fillWidth: true
-                    model: ["rounded", "rectangle"]
-                    currentIndex: root.component && root.component.shape === "rectangle" ? 1 : 0
-                    onActivated: function(index) {
-                        root.updateComponentProperty("shape", model[index])
-                    }
-                }
-
-                Label { text: "X" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: -9999; to: 9999
-                    value: root.component ? Math.round(root.component.x) : 0
-                    onValueModified: root.updateComponentProperty("x", value)
-                }
-
-                Label { text: "Y" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: -9999; to: 9999
-                    value: root.component ? Math.round(root.component.y) : 0
-                    onValueModified: root.updateComponentProperty("y", value)
-                }
-
-                Label { text: "Width" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: 10; to: 9999
-                    value: root.component ? Math.round(root.component.width) : 96
-                    onValueModified: root.updateComponentProperty("width", value)
-                }
-
-                Label { text: "Height" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: 10; to: 9999
-                    value: root.component ? Math.round(root.component.height) : 96
-                    onValueModified: root.updateComponentProperty("height", value)
+                schemaSections: root.sectionsForTarget(root.componentTarget)
+                modelObject: root.component
+                readOnly: root.undoStack === null
+                onPropertyEditRequested: function(propertyName, value) {
+                    root.updateComponentProperty(propertyName, value)
                 }
             }
         }
 
-        // ---------- Connection properties ----------
         Loader {
             active: root.connection !== null
             Layout.fillWidth: true
-            sourceComponent: connectionProps
+            sourceComponent: connectionInspector
         }
 
         Component {
-            id: connectionProps
+            id: connectionInspector
 
-            ColumnLayout {
-                spacing: 6
+            SchemaFormRenderer {
                 width: parent ? parent.width : 0
-
-                Label { text: "Connection"; font.bold: true; font.pixelSize: 11; color: "#888" }
-
-                Label { text: "ID" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.id : ""
-                    onEditingFinished: root.updateConnectionProperty("id", text)
-                }
-
-                Label { text: "Source" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.sourceId : ""
-                    onEditingFinished: root.updateConnectionProperty("sourceId", text)
-                }
-
-                Label { text: "Target" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.targetId : ""
-                    onEditingFinished: root.updateConnectionProperty("targetId", text)
-                }
-
-                Label { text: "Label" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.label : ""
-                    onEditingFinished: root.updateConnectionProperty("label", text)
-                }
-
-                Label { text: "Source Side" }
-                ComboBox {
-                    Layout.fillWidth: true
-                    model: root.connectionSideModel
-                    textRole: "text"
-                    currentIndex: root.connection
-                                  ? root.sideIndexForValue(root.connection.sourceSide)
-                                  : 0
-                    onActivated: function(index) {
-                        if (root.connection)
-                            root.updateConnectionSides(root.connectionSideModel[index].value,
-                                                       root.connection.targetSide)
-                    }
-                }
-
-                Label { text: "Target Side" }
-                ComboBox {
-                    Layout.fillWidth: true
-                    model: root.connectionSideModel
-                    textRole: "text"
-                    currentIndex: root.connection
-                                  ? root.sideIndexForValue(root.connection.targetSide)
-                                  : 0
-                    onActivated: function(index) {
-                        if (root.connection)
-                            root.updateConnectionSides(root.connection.sourceSide,
-                                                       root.connectionSideModel[index].value)
-                    }
+                schemaSections: root.sectionsForTarget(root.connectionTarget)
+                modelObject: root.connection
+                readOnly: root.undoStack === null
+                sideModel: root.connectionSideModel
+                onPropertyEditRequested: function(propertyName, value) {
+                    root.updateConnectionProperty(propertyName, value)
                 }
             }
         }
 
-        // Placeholder when nothing is selected
         Label {
             visible: root.component === null && root.connection === null
             text: "Select a component or connection\nto view its properties."
@@ -266,6 +137,15 @@ Rectangle {
             font.pixelSize: 12
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
+        }
+
+        Label {
+            visible: (root.component !== null || root.connection !== null) && root.undoStack === null
+            text: "Inspector is read-only because UndoStack is not available."
+            color: "#b26a00"
+            font.pixelSize: 11
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
 
         Item { Layout.fillHeight: true }

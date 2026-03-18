@@ -16,6 +16,27 @@ QVariantMap entry(const char *key, const char *type, const char *title,
     };
 }
 
+QVariantMap withSection(QVariantMap row,
+                        const char *section,
+                        int order,
+                        const QString &hint = QString(),
+                        const QVariantMap &validation = {},
+                        const QVariantMap &visibleWhen = {},
+                        const QVariantList &options = {})
+{
+    row.insert(QStringLiteral("section"), QString::fromLatin1(section));
+    row.insert(QStringLiteral("order"), order);
+    if (!hint.isEmpty())
+        row.insert(QStringLiteral("hint"), hint);
+    if (!validation.isEmpty())
+        row.insert(QStringLiteral("validation"), validation);
+    if (!visibleWhen.isEmpty())
+        row.insert(QStringLiteral("visibleWhen"), visibleWhen);
+    if (!options.isEmpty())
+        row.insert(QStringLiteral("options"), options);
+    return row;
+}
+
 } // namespace
 
 QString SamplePropertySchemaProvider::providerId() const
@@ -39,28 +60,84 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
     if (targetId == QStringLiteral("component/start") ||
         targetId == QStringLiteral("component/end")) {
         return {
-            entry("name", "string", "Name", false, QString(), "textfield")
+            withSection(entry("title", "string", "Title", true, QString(), "textfield"),
+                        "Identity", 1,
+                        QStringLiteral("Human-friendly label shown on the graph.")),
+            withSection(entry("icon", "string", "Icon", false, QString(), "textfield"),
+                        "Appearance", 10,
+                        QStringLiteral("FontAwesome icon key, for example 'play' or 'stop'.")),
+            withSection(entry("color", "string", "Color", true, QStringLiteral("#66bb6a"), "textfield"),
+                        "Appearance", 11),
+            withSection(entry("shape", "enum", "Shape", true, QStringLiteral("rounded"), "dropdown"),
+                        "Appearance", 12,
+                        QString(),
+                        {},
+                        {},
+                        QVariantList{ QStringLiteral("rounded"), QStringLiteral("rectangle") })
         };
     }
 
     if (targetId == QStringLiteral("component/task")) {
         return {
-            entry("name",        "string", "Name",        true,  QString(),          "textfield"),
-            entry("description", "string", "Description", false, QString(),          "textarea"),
-            entry("priority",    "enum",   "Priority",    true,  QStringLiteral("normal"), "dropdown")
+            withSection(entry("title", "string", "Title", true, QString(), "textfield"),
+                        "Identity", 1,
+                        QStringLiteral("Display title used in the node body.")),
+            withSection(entry("description", "string", "Description", false, QString(), "textarea"),
+                        "Behavior", 20,
+                        QStringLiteral("Optional implementation notes for this task.")),
+            withSection(entry("priority", "enum", "Priority", true, QStringLiteral("normal"), "dropdown"),
+                        "Behavior", 21,
+                        QStringLiteral("Higher priority tasks can be highlighted by business rules."),
+                        {},
+                        {},
+                        QVariantList{
+                            QVariantMap{{QStringLiteral("text"), QStringLiteral("Low")}, {QStringLiteral("value"), QStringLiteral("low")}},
+                            QVariantMap{{QStringLiteral("text"), QStringLiteral("Normal")}, {QStringLiteral("value"), QStringLiteral("normal")}},
+                            QVariantMap{{QStringLiteral("text"), QStringLiteral("High")}, {QStringLiteral("value"), QStringLiteral("high")}}
+                        }),
+            withSection(entry("x", "number", "X", true, 0, "spinbox"),
+                        "Layout", 40,
+                        QString(),
+                        QVariantMap{{QStringLiteral("min"), -50000}, {QStringLiteral("max"), 50000}}),
+            withSection(entry("y", "number", "Y", true, 0, "spinbox"),
+                        "Layout", 41,
+                        QString(),
+                        QVariantMap{{QStringLiteral("min"), -50000}, {QStringLiteral("max"), 50000}}),
+            withSection(entry("width", "number", "Width", true, 160, "spinbox"),
+                        "Layout", 42,
+                        QString(),
+                        QVariantMap{{QStringLiteral("min"), 40}, {QStringLiteral("max"), 1200}}),
+            withSection(entry("height", "number", "Height", true, 96, "spinbox"),
+                        "Layout", 43,
+                        QString(),
+                        QVariantMap{{QStringLiteral("min"), 40}, {QStringLiteral("max"), 1200}})
         };
     }
 
     if (targetId == QStringLiteral("component/decision")) {
         return {
-            entry("name",      "string", "Name",      true, QString(), "textfield"),
-            entry("condition", "string", "Condition", true, QString(), "textfield")
+            withSection(entry("title", "string", "Title", true, QString(), "textfield"),
+                        "Identity", 1),
+            withSection(entry("condition", "string", "Condition", true, QString(), "textfield"),
+                        "Behavior", 20,
+                        QStringLiteral("Expression evaluated by the business runtime."),
+                        QVariantMap{{QStringLiteral("requiredMessage"), QStringLiteral("Condition is required.")}}),
+            withSection(entry("description", "string", "Description", false, QString(), "textarea"),
+                        "Behavior", 21,
+                        QStringLiteral("Shown only when a condition exists."),
+                        {},
+                        QVariantMap{{QStringLiteral("property"), QStringLiteral("condition")}, {QStringLiteral("truthy"), true}})
         };
     }
 
     if (targetId == QStringLiteral("connection/flow")) {
         return {
-            entry("label", "string", "Label", false, QString(), "textfield")
+            withSection(entry("label", "string", "Label", false, QString(), "textfield"),
+                        "Identity", 1),
+            withSection(entry("sourceSide", "enum", "Source Side", true, 0, "dropdown"),
+                        "Routing", 20),
+            withSection(entry("targetSide", "enum", "Target Side", true, 0, "dropdown"),
+                        "Routing", 21)
         };
     }
 

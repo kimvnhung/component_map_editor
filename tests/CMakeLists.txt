@@ -173,3 +173,24 @@ add_test(
     COMMAND tst_GraphEditorController
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_PropertySchemaRegistry
+    tst_PropertySchemaRegistry.cpp
+)
+
+target_link_libraries(tst_PropertySchemaRegistry
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_PropertySchemaRegistry
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_PropertySchemaRegistry
+    COMMAND tst_PropertySchemaRegistry
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

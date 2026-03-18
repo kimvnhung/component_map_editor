@@ -102,7 +102,7 @@ private slots:
     void connectionPolicyNormalizePreservesExistingType();
 
     void propertySchemaTargetsCoverAllComponentTypes();
-    void propertySchemaForTaskHasThreeEntries();
+    void propertySchemaForTaskHasDynamicLayoutEntries();
     void propertySchemaEntriesContainRequiredKeys();
     void propertySchemaForDecisionHasConditionEntry();
     void propertySchemaForFlowConnectionHasLabelEntry();
@@ -353,10 +353,29 @@ void ExtensionContractRegistryTests::propertySchemaTargetsCoverAllComponentTypes
     QVERIFY(targets.contains(QStringLiteral("connection/flow")));
 }
 
-void ExtensionContractRegistryTests::propertySchemaForTaskHasThreeEntries()
+void ExtensionContractRegistryTests::propertySchemaForTaskHasDynamicLayoutEntries()
 {
     SamplePropertySchemaProvider provider;
-    QCOMPARE(provider.propertySchema(QStringLiteral("component/task")).size(), 3);
+    const QVariantList schema = provider.propertySchema(QStringLiteral("component/task"));
+    QVERIFY(schema.size() >= 6);
+
+    bool hasSection = false;
+    bool hasOrder = false;
+    bool hasOptions = false;
+    bool hasValidation = false;
+
+    for (const QVariant &value : schema) {
+        const QVariantMap row = value.toMap();
+        hasSection = hasSection || row.contains(QStringLiteral("section"));
+        hasOrder = hasOrder || row.contains(QStringLiteral("order"));
+        hasOptions = hasOptions || row.contains(QStringLiteral("options"));
+        hasValidation = hasValidation || row.contains(QStringLiteral("validation"));
+    }
+
+    QVERIFY(hasSection);
+    QVERIFY(hasOrder);
+    QVERIFY(hasOptions);
+    QVERIFY(hasValidation);
 }
 
 void ExtensionContractRegistryTests::propertySchemaEntriesContainRequiredKeys()

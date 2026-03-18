@@ -7,7 +7,9 @@
 // Targets:
 //   component/start, component/task, component/decision, component/end
 //   connection/flow
-// Each schema entry QVariantMap has keys: key, type, title, required, defaultValue, editor.
+// Each schema entry QVariantMap includes declarative layout/behavior keys such as:
+// key, type, title, required, defaultValue, editor, section, order,
+// hint, options, validation, visibleWhen.
 class SamplePropertySchemaProvider : public IPropertySchemaProvider
 {
 public:

@@ -241,6 +241,7 @@ ApplicationWindow {
             Layout.preferredWidth: 210
             Layout.fillHeight: true
             undoStack: undoStack
+            propertySchemaRegistry: startupPropertySchemaRegistry
         }
         }
 

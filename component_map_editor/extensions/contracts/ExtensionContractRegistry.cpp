@@ -89,3 +89,8 @@ QList<const IConnectionPolicyProvider *> ExtensionContractRegistry::connectionPo
 {
     return m_connectionPolicyProviders.values();
 }
+
+QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchemaProviders() const
+{
+    return m_propertySchemaProviders.values();
+}

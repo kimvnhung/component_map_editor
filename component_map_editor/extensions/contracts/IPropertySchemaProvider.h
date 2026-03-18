@@ -17,7 +17,8 @@ public:
     virtual QStringList schemaTargets() const = 0;
 
     // Returns schema entries. Recommended keys per entry:
-    // key, type, title, required, defaultValue, editor.
+    // key, type, title, required, defaultValue, editor/widget,
+    // section, order, hint, options, validation, visibleWhen.
     virtual QVariantList propertySchema(const QString &targetId) const = 0;
 };
 

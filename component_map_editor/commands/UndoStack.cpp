@@ -20,24 +20,6 @@ ConnectionModel::Side sideFromInt(int sideValue)
     }
 }
 
-bool isComponentPropertyUndoable(const QString &name)
-{
-    static const QSet<QString> kAllowed {
-        QStringLiteral("id"),
-        QStringLiteral("title"),
-        QStringLiteral("content"),
-        QStringLiteral("icon"),
-        QStringLiteral("x"),
-        QStringLiteral("y"),
-        QStringLiteral("width"),
-        QStringLiteral("height"),
-        QStringLiteral("shape"),
-        QStringLiteral("color"),
-        QStringLiteral("type")
-    };
-    return kAllowed.contains(name);
-}
-
 bool isConnectionPropertyUndoable(const QString &name)
 {
     static const QSet<QString> kAllowed {
@@ -220,7 +202,7 @@ void UndoStack::pushSetComponentProperty(ComponentModel *component,
                                          const QString &propertyName,
                                          const QVariant &newValue)
 {
-    if (!component || !isComponentPropertyUndoable(propertyName))
+    if (!component || propertyName.trimmed().isEmpty())
         return;
 
     const QByteArray propertyUtf8 = propertyName.toUtf8();
