@@ -194,3 +194,24 @@ add_test(
     COMMAND tst_PropertySchemaRegistry
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_RuleCompilerRuntime
+    tst_RuleCompilerRuntime.cpp
+)
+
+target_link_libraries(tst_RuleCompilerRuntime
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_RuleCompilerRuntime
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_RuleCompilerRuntime
+    COMMAND tst_RuleCompilerRuntime
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

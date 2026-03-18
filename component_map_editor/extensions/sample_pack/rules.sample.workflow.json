@@ -1,0 +1,65 @@
+{
+  "defaultConnectionAllow": false,
+  "connections": [
+    {
+      "source": "start",
+      "target": "task",
+      "allow": true
+    },
+    {
+      "source": "task",
+      "target": "task",
+      "allow": true
+    },
+    {
+      "source": "task",
+      "target": "decision",
+      "allow": true
+    },
+    {
+      "source": "decision",
+      "target": "task",
+      "allow": true
+    },
+    {
+      "source": "decision",
+      "target": "end",
+      "allow": true
+    }
+  ],
+  "validations": [
+    {
+      "kind": "exactlyOneType",
+      "type": "start",
+      "code": "W001",
+      "severity": "error",
+      "message": "Graph must contain exactly one start component."
+    },
+    {
+      "kind": "exactlyOneType",
+      "type": "end",
+      "code": "W002",
+      "severity": "error",
+      "message": "Graph must contain exactly one end component."
+    },
+    {
+      "kind": "endpointExists",
+      "code": "W003",
+      "severity": "error",
+      "message": "Connection endpoint references unknown component."
+    },
+    {
+      "kind": "noIsolated",
+      "code": "W004",
+      "severity": "warning",
+      "message": "Component has no connections."
+    }
+  ],
+  "derivedProperties": [
+    {
+      "target": "connection/flow",
+      "property": "type",
+      "value": "flow"
+    }
+  ]
+}

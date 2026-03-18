@@ -136,8 +136,9 @@ Item {
                         Loader {
                             id: editorLoader
                             Layout.fillWidth: true
+                            property var fieldData: modelData
                             sourceComponent: {
-                                var widget = modelData.widget || ""
+                                var widget = fieldData.widget || ""
                                 switch (widget) {
                                 case "textfield": return textFieldEditor
                                 case "textarea": return textAreaEditor
@@ -147,6 +148,10 @@ Item {
                                 case "schema_error": return schemaErrorEditor
                                 default: return unknownWidgetEditor
                                 }
+                            }
+                            onLoaded: {
+                                if (item && item.hasOwnProperty("fieldData"))
+                                    item.fieldData = fieldData
                             }
                         }
 
@@ -168,16 +173,17 @@ Item {
         id: textFieldEditor
 
         TextField {
+            property var fieldData: ({})
             text: {
-                var value = root.fieldValue(modelData)
+                var value = root.fieldValue(fieldData)
                 return value === undefined || value === null ? "" : String(value)
             }
-            placeholderText: modelData.placeholder || ""
+            placeholderText: fieldData.placeholder || ""
             readOnly: root.readOnly
             onEditingFinished: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(modelData.key || "", text)
+                root.propertyEditRequested(fieldData.key || "", text)
             }
         }
     }
@@ -186,19 +192,20 @@ Item {
         id: textAreaEditor
 
         TextArea {
+            property var fieldData: ({})
             Layout.fillWidth: true
             Layout.preferredHeight: 64
             text: {
-                var value = root.fieldValue(modelData)
+                var value = root.fieldValue(fieldData)
                 return value === undefined || value === null ? "" : String(value)
             }
-            placeholderText: modelData.placeholder || ""
+            placeholderText: fieldData.placeholder || ""
             wrapMode: Text.WordWrap
             readOnly: root.readOnly
             onEditingFinished: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(modelData.key || "", text)
+                root.propertyEditRequested(fieldData.key || "", text)
             }
         }
     }
@@ -208,17 +215,18 @@ Item {
 
         ComboBox {
             id: combo
-            property var optionsModel: root.enumModelForField(modelData)
+            property var fieldData: ({})
+            property var optionsModel: root.enumModelForField(fieldData)
             model: optionsModel
             textRole: root.enumTextRole(optionsModel)
-            currentIndex: root.enumIndexForValue(optionsModel, root.fieldValue(modelData))
+            currentIndex: root.enumIndexForValue(optionsModel, root.fieldValue(fieldData))
             enabled: !root.readOnly
 
             onActivated: function(index) {
                 if (root.readOnly)
                     return
                 var next = root.enumValueAt(optionsModel, index)
-                root.propertyEditRequested(modelData.key || "", next)
+                root.propertyEditRequested(fieldData.key || "", next)
             }
         }
     }
@@ -227,13 +235,14 @@ Item {
         id: checkBoxEditor
 
         CheckBox {
-            checked: !!root.fieldValue(modelData)
+            property var fieldData: ({})
+            checked: !!root.fieldValue(fieldData)
             enabled: !root.readOnly
-            text: modelData.checkboxText || ""
+            text: fieldData.checkboxText || ""
             onToggled: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(modelData.key || "", checked)
+                root.propertyEditRequested(fieldData.key || "", checked)
             }
         }
     }
@@ -242,17 +251,18 @@ Item {
         id: spinBoxEditor
 
         SpinBox {
-            from: (modelData.validation || {}).min !== undefined ? Number(modelData.validation.min) : -999999
-            to: (modelData.validation || {}).max !== undefined ? Number(modelData.validation.max) : 999999
+            property var fieldData: ({})
+            from: (fieldData.validation || {}).min !== undefined ? Number(fieldData.validation.min) : -999999
+            to: (fieldData.validation || {}).max !== undefined ? Number(fieldData.validation.max) : 999999
             value: {
-                var value = root.fieldValue(modelData)
+                var value = root.fieldValue(fieldData)
                 return value === undefined || value === null ? 0 : Number(value)
             }
             enabled: !root.readOnly
             onValueModified: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(modelData.key || "", value)
+                root.propertyEditRequested(fieldData.key || "", value)
             }
         }
     }
@@ -261,26 +271,27 @@ Item {
         id: unknownWidgetEditor
 
         ColumnLayout {
+            property var fieldData: ({})
             spacing: 4
 
             TextField {
                 Layout.fillWidth: true
                 text: {
-                    var value = root.fieldValue(modelData)
+                    var value = root.fieldValue(fieldData)
                     return value === undefined || value === null ? "" : String(value)
                 }
-                placeholderText: modelData.placeholder || ""
+                placeholderText: fieldData.placeholder || ""
                 readOnly: root.readOnly
                 onEditingFinished: {
                     if (root.readOnly)
                         return
-                    root.propertyEditRequested(modelData.key || "", text)
+                    root.propertyEditRequested(fieldData.key || "", text)
                 }
             }
 
             Label {
                 Layout.fillWidth: true
-                text: "Unknown widget '" + (modelData.widget || "") + "'. Fallback text editor is used."
+                text: "Unknown widget '" + (fieldData.widget || "") + "'. Fallback text editor is used."
                 color: "#b26a00"
                 wrapMode: Text.WordWrap
                 font.pixelSize: 11
@@ -292,7 +303,8 @@ Item {
         id: schemaErrorEditor
 
         Label {
-            text: (modelData.schemaError || "Schema error")
+            property var fieldData: ({})
+            text: (fieldData.schemaError || "Schema error")
             color: "#c62828"
             wrapMode: Text.WordWrap
             font.pixelSize: 11

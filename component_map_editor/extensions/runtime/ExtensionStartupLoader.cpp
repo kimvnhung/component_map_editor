@@ -47,6 +47,14 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
 
     while (it.hasNext()) {
         const QString path = it.next();
+        const QFileInfo fileInfo(path);
+        const QString baseName = fileInfo.fileName();
+
+        // Rule DSL files can live beside manifests in development builds.
+        // They are not extension manifests and should not be parsed here.
+        if (baseName.startsWith(QStringLiteral("rules."), Qt::CaseInsensitive))
+            continue;
+
         ++result.discoveredManifestCount;
 
         ExtensionManifest manifest;

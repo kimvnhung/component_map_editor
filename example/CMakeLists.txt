@@ -12,6 +12,15 @@ configure_file(
     COPYONLY
 )
 
+set(EXAMPLE_EXTENSION_RULE_DIR "${CMAKE_CURRENT_BINARY_DIR}/rules")
+file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_RULE_DIR}")
+set(EXAMPLE_EXTENSION_RULE_FILE "${EXAMPLE_EXTENSION_RULE_DIR}/rules.sample.workflow.json")
+configure_file(
+    "${CMAKE_SOURCE_DIR}/component_map_editor/extensions/sample_pack/rules.sample.workflow.json"
+    "${EXAMPLE_EXTENSION_RULE_FILE}"
+    COPYONLY
+)
+
 qt_add_qml_module(example_app
     URI ExampleApp
     VERSION 1.0
@@ -41,4 +50,5 @@ target_include_directories(example_app
 target_compile_definitions(example_app
     PRIVATE
         EXAMPLE_EXTENSION_MANIFEST_DIR="${EXAMPLE_EXTENSION_MANIFEST_DIR}"
+        EXAMPLE_EXTENSION_RULE_FILE="${EXAMPLE_EXTENSION_RULE_FILE}"
 )
