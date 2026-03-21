@@ -215,3 +215,24 @@ add_test(
     COMMAND tst_RuleCompilerRuntime
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_TraversalEngine
+    tst_TraversalEngine.cpp
+)
+
+target_link_libraries(tst_TraversalEngine
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_TraversalEngine
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_TraversalEngine
+    COMMAND tst_TraversalEngine
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
