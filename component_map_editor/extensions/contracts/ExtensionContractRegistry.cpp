@@ -70,6 +70,13 @@ bool ExtensionContractRegistry::registerActionProvider(const IActionProvider *pr
                                     QStringLiteral("action"), error);
 }
 
+bool ExtensionContractRegistry::registerExecutionSemanticsProvider(const IExecutionSemanticsProvider *provider,
+                                                                   QString *error)
+{
+    return registerProviderInternal(provider, &m_executionSemanticsProviders,
+                                    QStringLiteral("execution semantics"), error);
+}
+
 bool ExtensionContractRegistry::hasManifest(const QString &extensionId) const
 {
     return m_manifests.contains(extensionId);
@@ -93,4 +100,9 @@ QList<const IConnectionPolicyProvider *> ExtensionContractRegistry::connectionPo
 QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchemaProviders() const
 {
     return m_propertySchemaProviders.values();
+}
+
+QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const
+{
+    return m_executionSemanticsProviders.values();
 }

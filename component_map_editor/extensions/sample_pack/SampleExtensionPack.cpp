@@ -11,7 +11,8 @@ SampleExtensionPack::SampleExtensionPack()
                                     QStringLiteral("connectionPolicy"),
                                     QStringLiteral("propertySchema"),
                                     QStringLiteral("validation"),
-                                    QStringLiteral("actions") };
+                                    QStringLiteral("actions"),
+                                    QStringLiteral("executionSemantics") };
 }
 
 const ExtensionManifest &SampleExtensionPack::manifest() const
@@ -37,6 +38,8 @@ bool SampleExtensionPack::registerProviders(ExtensionContractRegistry &registry,
     if (!registry.registerValidationProvider(&m_validationProvider, error))
         return false;
     if (!registry.registerActionProvider(&m_actionProvider, error))
+        return false;
+    if (!registry.registerExecutionSemanticsProvider(&m_executionSemanticsProvider, error))
         return false;
     return true;
 }

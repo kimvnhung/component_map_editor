@@ -9,6 +9,7 @@
 #include "IActionProvider.h"
 #include "IComponentTypeProvider.h"
 #include "IConnectionPolicyProvider.h"
+#include "IExecutionSemanticsProvider.h"
 #include "IPropertySchemaProvider.h"
 #include "IValidationProvider.h"
 
@@ -25,6 +26,8 @@ public:
     bool registerPropertySchemaProvider(const IPropertySchemaProvider *provider, QString *error = nullptr);
     bool registerValidationProvider(const IValidationProvider *provider, QString *error = nullptr);
     bool registerActionProvider(const IActionProvider *provider, QString *error = nullptr);
+    bool registerExecutionSemanticsProvider(const IExecutionSemanticsProvider *provider,
+                                            QString *error = nullptr);
 
     bool hasManifest(const QString &extensionId) const;
     ExtensionManifest manifest(const QString &extensionId) const;
@@ -33,6 +36,7 @@ public:
     QList<const IComponentTypeProvider *> componentTypeProviders() const;
     QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
     QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
+    QList<const IExecutionSemanticsProvider *> executionSemanticsProviders() const;
 
 private:
     template <typename ProviderT>
@@ -74,6 +78,7 @@ private:
     QHash<QString, const IPropertySchemaProvider *> m_propertySchemaProviders;
     QHash<QString, const IValidationProvider *> m_validationProviders;
     QHash<QString, const IActionProvider *> m_actionProviders;
+    QHash<QString, const IExecutionSemanticsProvider *> m_executionSemanticsProviders;
 };
 
 #endif // EXTENSIONCONTRACTREGISTRY_H

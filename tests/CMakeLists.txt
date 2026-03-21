@@ -236,3 +236,24 @@ add_test(
     COMMAND tst_TraversalEngine
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_GraphExecutionSandbox
+    tst_GraphExecutionSandbox.cpp
+)
+
+target_link_libraries(tst_GraphExecutionSandbox
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_GraphExecutionSandbox
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_GraphExecutionSandbox
+    COMMAND tst_GraphExecutionSandbox
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

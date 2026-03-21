@@ -8,10 +8,11 @@
 #include "SampleActionProvider.h"
 #include "SampleConnectionPolicyProvider.h"
 #include "SampleComponentTypeProvider.h"
+#include "SampleExecutionSemanticsProvider.h"
 #include "SamplePropertySchemaProvider.h"
 #include "SampleValidationProvider.h"
 
-// SampleExtensionPack aggregates all five sample providers and exposes a
+// SampleExtensionPack aggregates sample providers and exposes a
 // single registerAll() entry point.  This is the canonical usage pattern
 // that all real business packs must follow.
 //
@@ -36,7 +37,7 @@ public:
 
     const ExtensionManifest &manifest() const;
 
-    // Registers the manifest and all five providers with the given registry.
+    // Registers the manifest and all providers with the given registry.
     // Returns false and populates error on the first failure encountered.
     bool registerProviders(ExtensionContractRegistry &registry, QString *error = nullptr) override;
     bool registerAll(ExtensionContractRegistry &registry, QString *error = nullptr);
@@ -48,6 +49,7 @@ private:
     SamplePropertySchemaProvider   m_propertySchemaProvider;
     SampleValidationProvider  m_validationProvider;
     SampleActionProvider      m_actionProvider;
+    SampleExecutionSemanticsProvider m_executionSemanticsProvider;
 };
 
 #endif // SAMPLEEXTENSIONPACK_H
