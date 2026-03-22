@@ -96,6 +96,7 @@ private:
     bool captureGraphSnapshot();
     bool executeOneStep(bool bypassBreakpoint);
     void finalizeIfNoReadyNodes();
+    void flushTimelineChanged();
 
     void enqueueReadyNode(const QString &componentId);
     QVariantMap toComponentSnapshotMap(const NodeSnapshot &node) const;
@@ -115,6 +116,10 @@ private:
     QHash<QString, int> m_pendingInDegree;
     QSet<QString> m_executed;
     QStringList m_readyQueue;
+    QSet<QString> m_readyQueueSet;
+
+    bool m_deferTimelineSignal = false;
+    bool m_timelineDirty = false;
 
     QSet<QString> m_breakpoints;
     QHash<QString, const IExecutionSemanticsProvider *> m_providerByComponentType;

@@ -8,6 +8,8 @@
 #include "models/GraphModel.h"
 
 #include <QDateTime>
+#include <QElapsedTimer>
+#include <algorithm>
 
 namespace {
 
@@ -96,6 +98,47 @@ QVariantList CommandGateway::requestLog() const { return m_requestLog; }
 
 void CommandGateway::clearRequestLog() { m_requestLog.clear(); }
 
+int CommandGateway::maxLatencySamples() const
+{
+    return m_maxLatencySamples;
+}
+
+void CommandGateway::setMaxLatencySamples(int value)
+{
+    if (value <= 0 || value == m_maxLatencySamples)
+        return;
+
+    m_maxLatencySamples = value;
+    while (m_latencySamplesMs.size() > m_maxLatencySamples)
+        m_latencySamplesMs.removeFirst();
+}
+
+double CommandGateway::commandLatencyP50Ms() const
+{
+    return percentile(m_latencySamplesMs, 0.50);
+}
+
+double CommandGateway::commandLatencyP95Ms() const
+{
+    return percentile(m_latencySamplesMs, 0.95);
+}
+
+double CommandGateway::lastCommandLatencyMs() const
+{
+    return m_lastCommandLatencyMs;
+}
+
+int CommandGateway::commandLatencySampleCount() const
+{
+    return m_latencySamplesMs.size();
+}
+
+void CommandGateway::resetCommandLatencyStats()
+{
+    m_latencySamplesMs.clear();
+    m_lastCommandLatencyMs = 0.0;
+}
+
 QStringList CommandGateway::supportedCommands()
 {
     return {
@@ -124,6 +167,9 @@ bool CommandGateway::dispatchCommand(const QString &actor,
                                      bool requireCapability,
                                      QString *error)
 {
+    QElapsedTimer timer;
+    timer.start();
+
     // Helper that records the rejection and returns false.
     auto reject = [&](const QString &reason) -> bool {
         const QString cmd = commandRequest.value(QStringLiteral("command")).toString();
@@ -131,6 +177,7 @@ bool CommandGateway::dispatchCommand(const QString &actor,
         if (error)
             *error = reason;
         emit mutationBlocked(actor, reason);
+        recordLatencySampleNs(timer.nsecsElapsed());
         return false;
     };
 
@@ -291,7 +338,29 @@ bool CommandGateway::dispatchCommand(const QString &actor,
 
     appendLog(actor, commandType, /*blocked=*/false, {});
     emit commandExecuted(actor, commandType);
+    recordLatencySampleNs(timer.nsecsElapsed());
     return true;
+}
+
+void CommandGateway::recordLatencySampleNs(qint64 elapsedNs)
+{
+    const double elapsedMs = static_cast<double>(elapsedNs) / 1000000.0;
+    m_lastCommandLatencyMs = elapsedMs;
+
+    m_latencySamplesMs.append(elapsedMs);
+    while (m_latencySamplesMs.size() > m_maxLatencySamples)
+        m_latencySamplesMs.removeFirst();
+}
+
+double CommandGateway::percentile(const QVector<double> &samples, double p)
+{
+    if (samples.isEmpty())
+        return 0.0;
+
+    QVector<double> sorted = samples;
+    std::sort(sorted.begin(), sorted.end());
+    const int idx = qBound(0, static_cast<int>(p * (sorted.size() - 1)), sorted.size() - 1);
+    return sorted.at(idx);
 }
 
 bool CommandGateway::runPreChecks(const QString &commandType, QString *error) const

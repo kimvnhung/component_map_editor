@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QVector>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -82,6 +83,14 @@ public:
     QVariantList requestLog() const;
     void clearRequestLog();
 
+    int maxLatencySamples() const;
+    void setMaxLatencySamples(int value);
+    double commandLatencyP50Ms() const;
+    double commandLatencyP95Ms() const;
+    double lastCommandLatencyMs() const;
+    int commandLatencySampleCount() const;
+    void resetCommandLatencyStats();
+
     static QStringList supportedCommands();
 
 signals:
@@ -100,6 +109,9 @@ signals:
     void commandExecuted(const QString &extensionId, const QString &commandType);
 
 private:
+    void recordLatencySampleNs(qint64 elapsedNs);
+    static double percentile(const QVector<double> &samples, double p);
+
     bool dispatchCommand(const QString &actor,
                          const QVariantMap &commandRequest,
                          bool requireCapability,
@@ -118,6 +130,10 @@ private:
     QPointer<CapabilityRegistry>  m_capabilityRegistry;
     QPointer<InvariantChecker>    m_invariantChecker;
     QVariantList                  m_requestLog;
+
+    QVector<double>               m_latencySamplesMs;
+    int                           m_maxLatencySamples = 4096;
+    double                        m_lastCommandLatencyMs = 0.0;
 };
 
 #endif // COMMANDGATEWAY_H

@@ -119,6 +119,7 @@ int GraphExecutionSandbox::run(int maxSteps)
         return 0;
 
     setStatus(RunStatus::Running);
+    m_deferTimelineSignal = true;
     int executed = 0;
 
     while (m_status == RunStatus::Running) {
@@ -148,6 +149,9 @@ int GraphExecutionSandbox::run(int maxSteps)
 
     if (m_status == RunStatus::Running)
         setStatus(RunStatus::Paused);
+
+    m_deferTimelineSignal = false;
+    flushTimelineChanged();
 
     return executed;
 }
@@ -233,6 +237,17 @@ void GraphExecutionSandbox::appendTimelineEvent(const QString &event, const QVar
     entry.insert(QStringLiteral("event"), event);
     entry.insert(QStringLiteral("tick"), m_tick);
     m_timeline.append(entry);
+    m_timelineDirty = true;
+    if (!m_deferTimelineSignal)
+        flushTimelineChanged();
+}
+
+void GraphExecutionSandbox::flushTimelineChanged()
+{
+    if (!m_timelineDirty)
+        return;
+
+    m_timelineDirty = false;
     emit timelineChanged();
 }
 
@@ -258,7 +273,8 @@ void GraphExecutionSandbox::clearSimulationData()
     m_timeline.clear();
     m_lastError.clear();
     emit executionStateChanged();
-    emit timelineChanged();
+    m_timelineDirty = true;
+    flushTimelineChanged();
     emit lastErrorChanged();
 
     m_nodesById.clear();
@@ -266,6 +282,7 @@ void GraphExecutionSandbox::clearSimulationData()
     m_pendingInDegree.clear();
     m_executed.clear();
     m_readyQueue.clear();
+    m_readyQueueSet.clear();
 }
 
 bool GraphExecutionSandbox::captureGraphSnapshot()
@@ -361,6 +378,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     }
 
     m_readyQueue.removeFirst();
+    m_readyQueueSet.remove(componentId);
     const NodeSnapshot node = m_nodesById.value(componentId);
     QVariantMap trace;
     QVariantMap outputState = m_executionState;
@@ -446,11 +464,12 @@ void GraphExecutionSandbox::finalizeIfNoReadyNodes()
 
 void GraphExecutionSandbox::enqueueReadyNode(const QString &componentId)
 {
-    if (componentId.isEmpty() || m_executed.contains(componentId) || m_readyQueue.contains(componentId))
+    if (componentId.isEmpty() || m_executed.contains(componentId) || m_readyQueueSet.contains(componentId))
         return;
 
     auto it = std::lower_bound(m_readyQueue.begin(), m_readyQueue.end(), componentId, idComparator);
     m_readyQueue.insert(it, componentId);
+    m_readyQueueSet.insert(componentId);
 }
 
 QVariantMap GraphExecutionSandbox::toComponentSnapshotMap(const NodeSnapshot &node) const

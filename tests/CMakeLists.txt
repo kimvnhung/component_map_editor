@@ -278,3 +278,24 @@ add_test(
     COMMAND tst_SecurityGuardrails
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_PerformanceScaleHardening
+    tst_PerformanceScaleHardening.cpp
+)
+
+target_link_libraries(tst_PerformanceScaleHardening
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_PerformanceScaleHardening
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_PerformanceScaleHardening
+    COMMAND tst_PerformanceScaleHardening
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
