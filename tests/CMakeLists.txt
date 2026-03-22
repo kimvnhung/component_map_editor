@@ -279,6 +279,27 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_CompatibilityMigrationToolkit
+    tst_CompatibilityMigrationToolkit.cpp
+)
+
+target_link_libraries(tst_CompatibilityMigrationToolkit
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_CompatibilityMigrationToolkit
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_CompatibilityMigrationToolkit
+    COMMAND tst_CompatibilityMigrationToolkit
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_PerformanceScaleHardening
     tst_PerformanceScaleHardening.cpp
 )

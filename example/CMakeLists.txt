@@ -1,4 +1,4 @@
-find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2)
 
 qt_add_executable(example_app
     main.cpp
@@ -51,4 +51,19 @@ target_compile_definitions(example_app
     PRIVATE
         EXAMPLE_EXTENSION_MANIFEST_DIR="${EXAMPLE_EXTENSION_MANIFEST_DIR}"
         EXAMPLE_EXTENSION_RULE_FILE="${EXAMPLE_EXTENSION_RULE_FILE}"
+)
+
+qt_add_executable(compatibility_checker_tool
+    compatibility_checker_main.cpp
+)
+
+target_link_libraries(compatibility_checker_tool
+    PRIVATE
+        Qt6::Core
+        libComponentMapEditor
+)
+
+target_include_directories(compatibility_checker_tool
+    PRIVATE
+        "${CMAKE_SOURCE_DIR}/component_map_editor"
 )

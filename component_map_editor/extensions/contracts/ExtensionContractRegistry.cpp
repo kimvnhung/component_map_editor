@@ -77,6 +77,37 @@ bool ExtensionContractRegistry::registerExecutionSemanticsProvider(const IExecut
                                     QStringLiteral("execution semantics"), error);
 }
 
+bool ExtensionContractRegistry::registerExecutionSemanticsProvider(const IExecutionSemanticsProviderV0 *provider,
+                                                                   QString *error)
+{
+    if (!provider) {
+        if (error) {
+            *error = QStringLiteral("execution semantics provider pointer is null.");
+        }
+        return false;
+    }
+
+    std::unique_ptr<ExecutionSemanticsV0Adapter> adapter(
+        new ExecutionSemanticsV0Adapter(provider));
+    const QString id = adapter->providerId().trimmed();
+    if (id.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("execution semantics provider id is empty.");
+        }
+        return false;
+    }
+
+    if (!registerProviderInternal(static_cast<const IExecutionSemanticsProvider *>(adapter.get()),
+                                  &m_executionSemanticsProviders,
+                                  QStringLiteral("execution semantics"),
+                                  error)) {
+        return false;
+    }
+
+    m_executionSemanticsV0Adapters.push_back(std::move(adapter));
+    return true;
+}
+
 bool ExtensionContractRegistry::hasManifest(const QString &extensionId) const
 {
     return m_manifests.contains(extensionId);
