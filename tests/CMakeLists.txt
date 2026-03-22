@@ -320,3 +320,24 @@ add_test(
     COMMAND tst_PerformanceScaleHardening
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_QaMatrixRunner
+    tst_QaMatrixRunner.cpp
+)
+
+target_link_libraries(tst_QaMatrixRunner
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_QaMatrixRunner
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_QaMatrixRunner
+    COMMAND tst_QaMatrixRunner
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
