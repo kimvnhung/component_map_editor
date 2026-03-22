@@ -295,6 +295,20 @@ void UndoStack::redo()
     notifyChanges(prevCanUndo, prevCanRedo, prevUndoText, prevRedoText, prevCount);
 }
 
+void UndoStack::discardRedoHistory()
+{
+    const bool prevCanUndo = canUndo();
+    const bool prevCanRedo = canRedo();
+    const QString prevUndoText = undoText();
+    const QString prevRedoText = redoText();
+    const int prevCount = count();
+
+    while (m_commands.size() > m_index + 1)
+        delete m_commands.takeLast();
+
+    notifyChanges(prevCanUndo, prevCanRedo, prevUndoText, prevRedoText, prevCount);
+}
+
 void UndoStack::clear()
 {
     if (m_commands.isEmpty()) return;
