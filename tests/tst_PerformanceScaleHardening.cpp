@@ -1,7 +1,9 @@
 #include <QtTest>
 
 #include <algorithm>
+#ifdef Q_OS_LINUX
 #include <unistd.h>
+#endif
 
 #include <QElapsedTimer>
 #include <QFile>
@@ -64,6 +66,7 @@ void buildScaleGraph(GraphModel &graph, int nodeCount)
 
 qint64 currentRssBytes()
 {
+#ifdef Q_OS_LINUX
     QFile file(QStringLiteral("/proc/self/statm"));
     if (!file.open(QIODevice::ReadOnly))
         return -1;
@@ -83,6 +86,9 @@ qint64 currentRssBytes()
         return -1;
 
     return residentPages * pageSize;
+#else
+    return -1;
+#endif
 }
 
 double p95Ms(const QVector<double> &samples)
