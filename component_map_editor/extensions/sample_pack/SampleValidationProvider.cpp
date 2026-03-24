@@ -16,7 +16,7 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
 
     QSet<QString> componentIds;
     int startCount = 0;
-    int endCount   = 0;
+    int stopCount  = 0;
 
     for (const QVariant &v : components) {
         const QVariantMap component = v.toMap();
@@ -26,8 +26,8 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
             componentIds.insert(id);
         if (type == QStringLiteral("start"))
             ++startCount;
-        if (type == QStringLiteral("end"))
-            ++endCount;
+        if (type == QStringLiteral("stop"))
+            ++stopCount;
     }
 
     // W001 – exactly one start component
@@ -41,12 +41,12 @@ QVariantList SampleValidationProvider::validateGraph(const QVariantMap &graphSna
         });
     }
 
-    // W002 – exactly one end component
-    if (endCount != 1) {
+    // W002 – exactly one stop component
+    if (stopCount != 1) {
         issues.append(QVariantMap{
             { QStringLiteral("code"),       QStringLiteral("W002") },
             { QStringLiteral("severity"),   QStringLiteral("error") },
-            { QStringLiteral("message"),    QStringLiteral("Graph must contain exactly one end component (found %1).").arg(endCount) },
+            { QStringLiteral("message"),    QStringLiteral("Graph must contain exactly one stop component (found %1).").arg(stopCount) },
             { QStringLiteral("entityType"), QStringLiteral("graph") },
             { QStringLiteral("entityId"),   QString() }
         });

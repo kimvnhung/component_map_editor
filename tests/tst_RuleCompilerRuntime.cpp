@@ -14,17 +14,17 @@
 
 namespace {
 
-QString validRuleJson(bool allowStartToTask)
+QString validRuleJson(bool allowStartToProcess)
 {
     return QStringLiteral(R"JSON({
   "defaultConnectionAllow": false,
   "connections": [
-    { "source": "start", "target": "task", "allow": %1, "reason": "rule" },
-    { "source": "task", "target": "task", "allow": true }
+    { "source": "start", "target": "process", "allow": %1, "reason": "rule" },
+    { "source": "process", "target": "process", "allow": true }
   ],
   "validations": [
     { "kind": "exactlyOneType", "type": "start", "code": "W001", "severity": "error", "message": "need one start" },
-    { "kind": "exactlyOneType", "type": "end", "code": "W002", "severity": "error", "message": "need one end" },
+    { "kind": "exactlyOneType", "type": "stop", "code": "W002", "severity": "error", "message": "need one stop" },
     { "kind": "endpointExists", "code": "W003", "severity": "error", "message": "dangling endpoint" },
     { "kind": "noIsolated", "code": "W004", "severity": "warning", "message": "isolated component" }
   ],
@@ -32,7 +32,7 @@ QString validRuleJson(bool allowStartToTask)
     { "target": "connection/flow", "property": "type", "value": "flow" }
   ]
 })JSON")
-        .arg(allowStartToTask ? QStringLiteral("true") : QStringLiteral("false"));
+  .arg(allowStartToProcess ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
 QVariantMap smallGraphSnapshot()
@@ -40,8 +40,8 @@ QVariantMap smallGraphSnapshot()
     QVariantMap graph;
     graph.insert(QStringLiteral("components"), QVariantList{
         QVariantMap{{QStringLiteral("id"), QStringLiteral("c1")}, {QStringLiteral("type"), QStringLiteral("start")}},
-        QVariantMap{{QStringLiteral("id"), QStringLiteral("c2")}, {QStringLiteral("type"), QStringLiteral("end")}},
-        QVariantMap{{QStringLiteral("id"), QStringLiteral("c3")}, {QStringLiteral("type"), QStringLiteral("task")}}
+      QVariantMap{{QStringLiteral("id"), QStringLiteral("c2")}, {QStringLiteral("type"), QStringLiteral("stop")}},
+      QVariantMap{{QStringLiteral("id"), QStringLiteral("c3")}, {QStringLiteral("type"), QStringLiteral("process")}}
     });
     graph.insert(QStringLiteral("connections"), QVariantList{
         QVariantMap{{QStringLiteral("id"), QStringLiteral("e1")},
@@ -124,8 +124,8 @@ void tst_RuleCompilerRuntime::runtimeEvaluationP95UnderTwoMilliseconds()
 
     for (int i = 0; i < iterations; ++i) {
         QString reason;
-        const QString src = (i % 2 == 0) ? QStringLiteral("start") : QStringLiteral("task");
-        const QString dst = (i % 3 == 0) ? QStringLiteral("task") : QStringLiteral("decision");
+        const QString src = (i % 2 == 0) ? QStringLiteral("start") : QStringLiteral("process");
+        const QString dst = (i % 3 == 0) ? QStringLiteral("process") : QStringLiteral("stop");
 
         QElapsedTimer timer;
         timer.start();
@@ -162,7 +162,7 @@ void tst_RuleCompilerRuntime::hotReloadAppliesValidUpdatesAndRejectsInvalidWitho
     RuleBackedConnectionPolicyProvider connectionProvider(&registry);
     QString reason;
     QVERIFY(connectionProvider.canConnect(QStringLiteral("start"),
-                                          QStringLiteral("task"),
+                                          QStringLiteral("process"),
                                           QVariantMap{},
                                           &reason));
 
@@ -172,7 +172,7 @@ void tst_RuleCompilerRuntime::hotReloadAppliesValidUpdatesAndRejectsInvalidWitho
 
     reason.clear();
     QVERIFY(connectionProvider.canConnect(QStringLiteral("start"),
-                                          QStringLiteral("task"),
+                                          QStringLiteral("process"),
                                           QVariantMap{},
                                           &reason));
 
@@ -182,7 +182,7 @@ void tst_RuleCompilerRuntime::hotReloadAppliesValidUpdatesAndRejectsInvalidWitho
 
     reason.clear();
     QVERIFY(!connectionProvider.canConnect(QStringLiteral("start"),
-                                           QStringLiteral("task"),
+                                           QStringLiteral("process"),
                                            QVariantMap{},
                                            &reason));
 }

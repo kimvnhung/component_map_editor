@@ -91,11 +91,10 @@ private slots:
         TypeRegistry tr;
         tr.rebuildFromRegistry(reg);
 
-        QCOMPARE(tr.componentTypeIds().size(), 4);
+        QCOMPARE(tr.componentTypeIds().size(), 3);
         QVERIFY(tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeStart)));
-        QVERIFY(tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeTask)));
-        QVERIFY(tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeDecision)));
-        QVERIFY(tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeEnd)));
+        QVERIFY(tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeProcess)));
+        QVERIFY(tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeStop)));
     }
 
     void descriptorLookupReturnsCorrectMap()
@@ -107,12 +106,12 @@ private slots:
         TypeRegistry tr;
         tr.rebuildFromRegistry(reg);
 
-        const QVariantMap taskDesc = tr.componentTypeDescriptor(QLatin1String(SampleComponentTypeProvider::TypeTask));
-        QCOMPARE(taskDesc.value(QStringLiteral("id")).toString(),
-                 QLatin1String(SampleComponentTypeProvider::TypeTask));
-        QCOMPARE(taskDesc.value(QStringLiteral("defaultWidth")).toReal(), 160.0);
-        QCOMPARE(taskDesc.value(QStringLiteral("defaultHeight")).toReal(), 96.0);
-        QCOMPARE(taskDesc.value(QStringLiteral("defaultColor")).toString(),
+        const QVariantMap processDesc = tr.componentTypeDescriptor(QLatin1String(SampleComponentTypeProvider::TypeProcess));
+        QCOMPARE(processDesc.value(QStringLiteral("id")).toString(),
+                 QLatin1String(SampleComponentTypeProvider::TypeProcess));
+        QCOMPARE(processDesc.value(QStringLiteral("defaultWidth")).toReal(), 164.0);
+        QCOMPARE(processDesc.value(QStringLiteral("defaultHeight")).toReal(), 100.0);
+        QCOMPARE(processDesc.value(QStringLiteral("defaultColor")).toString(),
                  QStringLiteral("#4fc3f7"));
     }
 
@@ -125,11 +124,10 @@ private slots:
         TypeRegistry tr;
         tr.rebuildFromRegistry(reg);
 
-        const QVariantMap taskDefaults = tr.defaultComponentProperties(
-            QLatin1String(SampleComponentTypeProvider::TypeTask));
-        QCOMPARE(taskDefaults.value(QStringLiteral("priority")).toString(),
-                 QStringLiteral("normal"));
-        QVERIFY(taskDefaults.contains(QStringLiteral("description")));
+        const QVariantMap processDefaults = tr.defaultComponentProperties(
+            QLatin1String(SampleComponentTypeProvider::TypeProcess));
+        QCOMPARE(processDefaults.value(QStringLiteral("addValue")).toInt(), 9);
+        QVERIFY(processDefaults.contains(QStringLiteral("description")));
     }
 
     void unknownTypeDescriptorIsEmpty()
@@ -194,7 +192,7 @@ private slots:
         tr.rebuildFromRegistry(reg);
 
         QVERIFY(tr.canConnect(QLatin1String(SampleComponentTypeProvider::TypeStart),
-                              QLatin1String(SampleComponentTypeProvider::TypeTask)));
+                              QLatin1String(SampleComponentTypeProvider::TypeProcess)));
     }
 
     void connectionPolicyRejectsWhenProviderDenies()
@@ -207,8 +205,8 @@ private slots:
         tr.rebuildFromRegistry(reg);
 
         QString reason;
-        QVERIFY(!tr.canConnect(QLatin1String(SampleComponentTypeProvider::TypeEnd),
-                               QLatin1String(SampleComponentTypeProvider::TypeTask),
+        QVERIFY(!tr.canConnect(QLatin1String(SampleComponentTypeProvider::TypeStop),
+                               QLatin1String(SampleComponentTypeProvider::TypeProcess),
                                {}, &reason));
         QVERIFY(!reason.isEmpty());
     }
@@ -222,7 +220,7 @@ private slots:
         TypeRegistry tr;
         tr.rebuildFromRegistry(reg);
 
-        QVERIFY(!tr.canConnect(QLatin1String(SampleComponentTypeProvider::TypeTask),
+        QVERIFY(!tr.canConnect(QLatin1String(SampleComponentTypeProvider::TypeProcess),
                                QLatin1String(SampleComponentTypeProvider::TypeStart)));
     }
 
@@ -240,7 +238,7 @@ private slots:
 
         QString reason;
         QVERIFY(!tr.canConnect(QLatin1String(SampleComponentTypeProvider::TypeStart),
-                               QLatin1String(SampleComponentTypeProvider::TypeTask),
+                               QLatin1String(SampleComponentTypeProvider::TypeProcess),
                                {}, &reason));
         QVERIFY(reason.contains(QStringLiteral("DenyAll")));
     }
@@ -255,8 +253,8 @@ private slots:
         tr.rebuildFromRegistry(reg);
 
         const QVariantMap result = tr.normalizeConnectionProperties(
-            QLatin1String(SampleComponentTypeProvider::TypeTask),
-            QLatin1String(SampleComponentTypeProvider::TypeTask));
+            QLatin1String(SampleComponentTypeProvider::TypeProcess),
+            QLatin1String(SampleComponentTypeProvider::TypeProcess));
         QCOMPARE(result.value(QStringLiteral("type")).toString(),
                  QStringLiteral("flow"));
     }
@@ -300,12 +298,12 @@ private slots:
 
         TypeRegistry tr;
         tr.rebuildFromRegistry(reg1);
-        QCOMPARE(tr.componentTypeIds().size(), 4);
+        QCOMPARE(tr.componentTypeIds().size(), 3);
 
         ExtensionContractRegistry reg2(coreV1());
         tr.rebuildFromRegistry(reg2);
         QVERIFY(tr.componentTypeIds().isEmpty());
-        QVERIFY(!tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeTask)));
+        QVERIFY(!tr.hasComponentType(QLatin1String(SampleComponentTypeProvider::TypeProcess)));
     }
 
     void componentTypesChangedEmittedOnRebuildWithNewTypes()

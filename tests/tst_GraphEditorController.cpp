@@ -63,7 +63,7 @@ private slots:
         UndoStack stack;
         controller.setUndoStack(&stack);
         const QString id = controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         QVERIFY(id.isEmpty());
     }
 
@@ -73,7 +73,7 @@ private slots:
         GraphEditorController controller;
         controller.setGraph(&graph);
         const QString id = controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         QVERIFY(id.isEmpty());
     }
 
@@ -81,7 +81,7 @@ private slots:
     {
         TestContext ctx;
         const QString id = ctx.controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 50, 100);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 50, 100);
         QVERIFY(!id.isEmpty());
     }
 
@@ -89,7 +89,7 @@ private slots:
     {
         TestContext ctx;
         const QString id = ctx.controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 50, 100);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 50, 100);
         QVERIFY(ctx.graph.componentById(id) != nullptr);
     }
 
@@ -97,13 +97,13 @@ private slots:
     {
         TestContext ctx;
         const QString id = ctx.controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 50, 100);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 50, 100);
         ComponentModel *component = ctx.graph.componentById(id);
         QVERIFY(component != nullptr);
-        QCOMPARE(component->width(), 160.0);
-        QCOMPARE(component->height(), 96.0);
+        QCOMPARE(component->width(), 164.0);
+        QCOMPARE(component->height(), 100.0);
         QCOMPARE(component->color(), QStringLiteral("#4fc3f7"));
-        QCOMPARE(component->type(), QLatin1String(SampleComponentTypeProvider::TypeTask));
+        QCOMPARE(component->type(), QLatin1String(SampleComponentTypeProvider::TypeProcess));
     }
 
     void createStartComponentAppliesStartDefaults()
@@ -113,8 +113,8 @@ private slots:
             QLatin1String(SampleComponentTypeProvider::TypeStart), 0, 0);
         ComponentModel *component = ctx.graph.componentById(id);
         QVERIFY(component != nullptr);
-        QCOMPARE(component->width(), 80.0);
-        QCOMPARE(component->height(), 80.0);
+        QCOMPARE(component->width(), 92.0);
+        QCOMPARE(component->height(), 92.0);
         QCOMPARE(component->color(), QStringLiteral("#66bb6a"));
     }
 
@@ -137,7 +137,7 @@ private slots:
         controller.setGraph(&graph);
         controller.setUndoStack(&stack);
         const QString id = controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         QVERIFY(!id.isEmpty());
         ComponentModel *component = graph.componentById(id);
         QVERIFY(component != nullptr);
@@ -149,7 +149,7 @@ private slots:
     {
         TestContext ctx;
         QVERIFY(!ctx.undoStack.canUndo());
-        ctx.controller.createComponent(QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+        ctx.controller.createComponent(QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         QVERIFY(ctx.undoStack.canUndo());
     }
 
@@ -157,7 +157,7 @@ private slots:
     {
         TestContext ctx;
         const QString id = ctx.controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         QVERIFY(ctx.graph.componentById(id) != nullptr);
 
         ctx.undoStack.undo();
@@ -168,14 +168,14 @@ private slots:
     {
         TestContext ctx;
         const QString id = ctx.controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         ctx.undoStack.undo();
         QVERIFY(ctx.graph.componentById(id) == nullptr);
 
         ctx.undoStack.redo();
         QVERIFY(ctx.graph.componentById(id) != nullptr);
         QCOMPARE(ctx.graph.componentById(id)->type(),
-                 QLatin1String(SampleComponentTypeProvider::TypeTask));
+                 QLatin1String(SampleComponentTypeProvider::TypeProcess));
     }
 
     void createComponentWithIdProducesStableId()
@@ -183,7 +183,7 @@ private slots:
         TestContext ctx;
         const QString wantId = QStringLiteral("my-stable-component-id");
         const QString gotId = ctx.controller.createComponentWithId(
-            wantId, QLatin1String(SampleComponentTypeProvider::TypeTask), 10, 20);
+            wantId, QLatin1String(SampleComponentTypeProvider::TypeProcess), 10, 20);
         QCOMPARE(gotId, wantId);
         QVERIFY(ctx.graph.componentById(wantId) != nullptr);
     }
@@ -193,57 +193,57 @@ private slots:
         TestContext ctx;
         QSignalSpy spy(&ctx.controller, &GraphEditorController::componentCreated);
         const QString id = ctx.controller.createComponent(
-            QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.at(0).at(0).toString(), id);
         QCOMPARE(spy.at(0).at(1).toString(),
-                 QLatin1String(SampleComponentTypeProvider::TypeTask));
+                 QLatin1String(SampleComponentTypeProvider::TypeProcess));
     }
 
     void connectAllowedComponentsReturnsConnectionId()
     {
         TestContext ctx;
-        const QString taskId1 = ctx.controller.createComponentWithId(
-            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
-        const QString taskId2 = ctx.controller.createComponentWithId(
-            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+        const QString processId1 = ctx.controller.createComponentWithId(
+            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
+        const QString processId2 = ctx.controller.createComponentWithId(
+            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
-        const QString connId = ctx.controller.connectComponents(taskId1, taskId2);
+        const QString connId = ctx.controller.connectComponents(processId1, processId2);
         QVERIFY(!connId.isEmpty());
         QVERIFY(ctx.graph.connectionById(connId) != nullptr);
     }
 
-    void connectStartToTaskSucceeds()
+    void connectStartToProcessSucceeds()
     {
         TestContext ctx;
         const QString startId = ctx.controller.createComponentWithId(
             QStringLiteral("s"), QLatin1String(SampleComponentTypeProvider::TypeStart), 0, 0);
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 100, 0);
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 100, 0);
 
-        QVERIFY(!ctx.controller.connectComponents(startId, taskId).isEmpty());
+        QVERIFY(!ctx.controller.connectComponents(startId, processId).isEmpty());
     }
 
-    void connectTaskToDecisionSucceeds()
+    void connectProcessToStopSucceeds()
     {
         TestContext ctx;
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
-        const QString decisionId = ctx.controller.createComponentWithId(
-            QStringLiteral("d"), QLatin1String(SampleComponentTypeProvider::TypeDecision), 200, 0);
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
+        const QString stopId = ctx.controller.createComponentWithId(
+            QStringLiteral("d"), QLatin1String(SampleComponentTypeProvider::TypeStop), 200, 0);
 
-        QVERIFY(!ctx.controller.connectComponents(taskId, decisionId).isEmpty());
+        QVERIFY(!ctx.controller.connectComponents(processId, stopId).isEmpty());
     }
 
-    void connectEndToTaskFails()
+    void connectStopToProcessFails()
     {
         TestContext ctx;
-        const QString endId = ctx.controller.createComponentWithId(
-            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeEnd), 0, 0);
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+        const QString stopId = ctx.controller.createComponentWithId(
+            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeStop), 0, 0);
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
-        const QString connId = ctx.controller.connectComponents(endId, taskId);
+        const QString connId = ctx.controller.connectComponents(stopId, processId);
         QVERIFY(connId.isEmpty());
         QCOMPARE(ctx.graph.connectionCount(), 0);
     }
@@ -251,74 +251,74 @@ private slots:
     void connectToStartFails()
     {
         TestContext ctx;
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         const QString startId = ctx.controller.createComponentWithId(
             QStringLiteral("s"), QLatin1String(SampleComponentTypeProvider::TypeStart), 200, 0);
 
-        QVERIFY(ctx.controller.connectComponents(taskId, startId).isEmpty());
+        QVERIFY(ctx.controller.connectComponents(processId, startId).isEmpty());
     }
 
     void rejectedConnectionEmitsSignal()
     {
         TestContext ctx;
-        const QString endId = ctx.controller.createComponentWithId(
-            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeEnd), 0, 0);
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+        const QString stopId = ctx.controller.createComponentWithId(
+            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeStop), 0, 0);
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
         QSignalSpy spy(&ctx.controller, &GraphEditorController::connectionRejected);
-        ctx.controller.connectComponents(endId, taskId);
+        ctx.controller.connectComponents(stopId, processId);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toString(), endId);
-        QCOMPARE(spy.at(0).at(1).toString(), taskId);
+        QCOMPARE(spy.at(0).at(0).toString(), stopId);
+        QCOMPARE(spy.at(0).at(1).toString(), processId);
         QVERIFY(!spy.at(0).at(2).toString().isEmpty());
     }
 
     void lastConnectionRejectionReasonPopulated()
     {
         TestContext ctx;
-        const QString endId = ctx.controller.createComponentWithId(
-            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeEnd), 0, 0);
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+        const QString stopId = ctx.controller.createComponentWithId(
+            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeStop), 0, 0);
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
-        ctx.controller.connectComponents(endId, taskId);
+        ctx.controller.connectComponents(stopId, processId);
         QVERIFY(!ctx.controller.lastConnectionRejectionReason().isEmpty());
     }
 
     void successfulConnectClearsRejectionReason()
     {
         TestContext ctx;
-        const QString endId = ctx.controller.createComponentWithId(
-            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeEnd), 0, 0);
+        const QString stopId = ctx.controller.createComponentWithId(
+            QStringLiteral("e"), QLatin1String(SampleComponentTypeProvider::TypeStop), 0, 0);
         const QString startId = ctx.controller.createComponentWithId(
             QStringLiteral("s"), QLatin1String(SampleComponentTypeProvider::TypeStart), 50, 0);
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
-        ctx.controller.connectComponents(endId, taskId);
+        ctx.controller.connectComponents(stopId, processId);
         QVERIFY(!ctx.controller.lastConnectionRejectionReason().isEmpty());
 
-        ctx.controller.connectComponents(startId, taskId);
+        ctx.controller.connectComponents(startId, processId);
         QVERIFY(ctx.controller.lastConnectionRejectionReason().isEmpty());
     }
 
     void connectMissingSourceComponentFails()
     {
         TestContext ctx;
-        const QString taskId = ctx.controller.createComponentWithId(
-            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
-        QVERIFY(ctx.controller.connectComponents(QStringLiteral("does-not-exist"), taskId).isEmpty());
+        const QString processId = ctx.controller.createComponentWithId(
+            QStringLiteral("t"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
+        QVERIFY(ctx.controller.connectComponents(QStringLiteral("does-not-exist"), processId).isEmpty());
     }
 
     void connectComponentsPushesUndoableCommand()
     {
         TestContext ctx;
         ctx.controller.createComponentWithId(
-            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         ctx.controller.createComponentWithId(
-            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
         const int stackBefore = ctx.undoStack.count();
         ctx.controller.connectComponents(QStringLiteral("n1"), QStringLiteral("n2"));
@@ -329,9 +329,9 @@ private slots:
     {
         TestContext ctx;
         ctx.controller.createComponentWithId(
-            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         ctx.controller.createComponentWithId(
-            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
         const QString connId = ctx.controller.connectComponents(
             QStringLiteral("n1"), QStringLiteral("n2"));
@@ -345,9 +345,9 @@ private slots:
     {
         TestContext ctx;
         ctx.controller.createComponentWithId(
-            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         ctx.controller.createComponentWithId(
-            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
         const QString connId = ctx.controller.connectComponents(
             QStringLiteral("n1"), QStringLiteral("n2"));
@@ -362,9 +362,9 @@ private slots:
     {
         TestContext ctx;
         ctx.controller.createComponentWithId(
-            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeTask), 0, 0);
+            QStringLiteral("n1"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 0, 0);
         ctx.controller.createComponentWithId(
-            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeTask), 200, 0);
+            QStringLiteral("n2"), QLatin1String(SampleComponentTypeProvider::TypeProcess), 200, 0);
 
         QSignalSpy spy(&ctx.controller, &GraphEditorController::connectionCreated);
         const QString connId = ctx.controller.connectComponents(
@@ -383,17 +383,17 @@ private slots:
         controller.setGraph(&graph);
         controller.setUndoStack(&stack);
 
-        auto *endComponent = new ComponentModel(QStringLiteral("e"), QStringLiteral("end"),
-                                                0, 0, QStringLiteral("#ef5350"),
-                                                QStringLiteral("end"));
-        auto *taskComponent = new ComponentModel(QStringLiteral("t"), QStringLiteral("task"),
-                                                 200, 0, QStringLiteral("#4fc3f7"),
-                                                 QStringLiteral("task"));
-        graph.addComponent(endComponent);
-        graph.addComponent(taskComponent);
+        auto *stopComponent = new ComponentModel(QStringLiteral("e"), QStringLiteral("stop"),
+                             0, 0, QStringLiteral("#ef5350"),
+                             QStringLiteral("stop"));
+        auto *processComponent = new ComponentModel(QStringLiteral("t"), QStringLiteral("process"),
+                                 200, 0, QStringLiteral("#4fc3f7"),
+                                 QStringLiteral("process"));
+        graph.addComponent(stopComponent);
+        graph.addComponent(processComponent);
         stack.clear();
 
-        QVERIFY(!controller.connectComponents(QStringLiteral("e"), QStringLiteral("t")).isEmpty());
+        QVERIFY(!controller.connectComponents(QStringLiteral("t"), QStringLiteral("e")).isEmpty());
     }
 };
 

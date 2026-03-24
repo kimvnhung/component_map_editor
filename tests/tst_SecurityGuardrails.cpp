@@ -38,7 +38,7 @@ struct GatewayFixture {
 };
 
 QVariantMap addComponentRequest(const QString &id,
-                                const QString &typeId = QStringLiteral("task"),
+                                const QString &typeId = QStringLiteral("process"),
                                 qreal x = 0.0,
                                 qreal y = 0.0)
 {
@@ -349,7 +349,7 @@ void tst_SecurityGuardrails::missingRequiredFieldIsBlocked()
     // addComponent without 'id'.
     QVariantMap req;
     req.insert(QStringLiteral("command"), QStringLiteral("addComponent"));
-    req.insert(QStringLiteral("typeId"),  QStringLiteral("task"));
+    req.insert(QStringLiteral("typeId"),  QStringLiteral("process"));
 
     QString error;
     bool ok = f.gateway->executeRequest(QStringLiteral("plugin"), req, &error);

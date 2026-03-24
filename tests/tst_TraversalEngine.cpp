@@ -94,9 +94,9 @@ void tst_TraversalEngine::traversalCorrectnessOnAcyclicGraph()
 {
     GraphModel graph;
     graph.addComponent(makeComponent(graph, QStringLiteral("A"), QStringLiteral("start")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("B"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("C"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("D"), QStringLiteral("end")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("B"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("C"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("D"), QStringLiteral("stop")));
 
     graph.addConnection(makeConnection(graph, QStringLiteral("e1"), QStringLiteral("A"), QStringLiteral("B")));
     graph.addConnection(makeConnection(graph, QStringLiteral("e2"), QStringLiteral("A"), QStringLiteral("C")));
@@ -134,10 +134,10 @@ void tst_TraversalEngine::traversalCorrectnessOnAcyclicGraph()
 void tst_TraversalEngine::traversalCorrectnessOnCyclicGraph()
 {
     GraphModel graph;
-    graph.addComponent(makeComponent(graph, QStringLiteral("A"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("B"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("C"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("D"), QStringLiteral("task")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("A"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("B"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("C"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("D"), QStringLiteral("process")));
 
     graph.addConnection(makeConnection(graph, QStringLiteral("e1"), QStringLiteral("A"), QStringLiteral("B")));
     graph.addConnection(makeConnection(graph, QStringLiteral("e2"), QStringLiteral("B"), QStringLiteral("C")));
@@ -168,19 +168,19 @@ void tst_TraversalEngine::policyHooksAffectTraversalAndPathSelection()
 {
     GraphModel graph;
     graph.addComponent(makeComponent(graph, QStringLiteral("start"), QStringLiteral("start")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("fast"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("slow"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("end"), QStringLiteral("end")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("fast"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("slow"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("stop"), QStringLiteral("stop")));
 
     graph.addConnection(makeConnection(graph, QStringLiteral("e1"), QStringLiteral("start"), QStringLiteral("fast"), QStringLiteral("fast")));
     graph.addConnection(makeConnection(graph, QStringLiteral("e2"), QStringLiteral("start"), QStringLiteral("slow"), QStringLiteral("slow")));
-    graph.addConnection(makeConnection(graph, QStringLiteral("e3"), QStringLiteral("fast"), QStringLiteral("end"), QStringLiteral("fast")));
-    graph.addConnection(makeConnection(graph, QStringLiteral("e4"), QStringLiteral("slow"), QStringLiteral("end"), QStringLiteral("slow")));
+    graph.addConnection(makeConnection(graph, QStringLiteral("e3"), QStringLiteral("fast"), QStringLiteral("stop"), QStringLiteral("fast")));
+    graph.addConnection(makeConnection(graph, QStringLiteral("e4"), QStringLiteral("slow"), QStringLiteral("stop"), QStringLiteral("slow")));
 
     TraversalEngine engine;
     engine.setGraph(&graph);
 
-    const QStringList defaultPath = engine.shortestPath(QStringLiteral("start"), QStringLiteral("end"));
+    const QStringList defaultPath = engine.shortestPath(QStringLiteral("start"), QStringLiteral("stop"));
     QVERIFY(defaultPath.size() >= 3);
 
     QVariantMap policy;
@@ -193,7 +193,7 @@ void tst_TraversalEngine::policyHooksAffectTraversalAndPathSelection()
 
     QVariantMap scorePolicy;
     scorePolicy.insert(QStringLiteral("edgeLabelScores"), QVariantMap{{QStringLiteral("slow"), 0.9}});
-    const QStringList preferredPath = engine.shortestPath(QStringLiteral("start"), QStringLiteral("end"), scorePolicy);
+    const QStringList preferredPath = engine.shortestPath(QStringLiteral("start"), QStringLiteral("stop"), scorePolicy);
     QVERIFY(preferredPath.contains(QStringLiteral("slow")));
 }
 
@@ -205,7 +205,7 @@ void tst_TraversalEngine::incrementalRecomputeFasterThanFullOnLocalEdit()
 
         graph->beginBatchUpdate();
         for (int i = 0; i < componentCount; ++i)
-            graph->addComponent(makeComponent(*graph, QStringLiteral("n%1").arg(i), QStringLiteral("task")));
+            graph->addComponent(makeComponent(*graph, QStringLiteral("n%1").arg(i), QStringLiteral("process")));
 
         int edgeCounter = 0;
         for (int i = 0; i < componentCount - 1; ++i) {
@@ -267,7 +267,7 @@ void tst_TraversalEngine::memoryGrowthBoundedDuringRepeatedRuns()
 
     graph.beginBatchUpdate();
     for (int i = 0; i < componentCount; ++i)
-        graph.addComponent(makeComponent(graph, QStringLiteral("m%1").arg(i), QStringLiteral("task")));
+        graph.addComponent(makeComponent(graph, QStringLiteral("m%1").arg(i), QStringLiteral("process")));
 
     int edgeCounter = 0;
     for (int i = 0; i < componentCount - 1; ++i) {

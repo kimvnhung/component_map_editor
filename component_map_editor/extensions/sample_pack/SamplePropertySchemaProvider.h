@@ -5,7 +5,7 @@
 
 // Sample implementation of IPropertySchemaProvider for the workflow domain.
 // Targets:
-//   component/start, component/task, component/decision, component/end
+//   component/start, component/process, component/stop
 //   connection/flow
 // Each schema entry QVariantMap includes declarative layout/behavior keys such as:
 // key, type, title, required, defaultValue, editor, section, order,
