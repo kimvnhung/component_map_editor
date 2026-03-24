@@ -100,15 +100,6 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
         }
 
         QString registrationError;
-        if (!registry.registerManifest(discovered.manifest, &registrationError)) {
-            result.diagnostics.append({
-                ExtensionLoadDiagnostic::Severity::Error,
-                extensionId,
-                discovered.path,
-                QStringLiteral("Manifest rejected: %1").arg(registrationError)
-            });
-            continue;
-        }
 
         std::unique_ptr<IExtensionPack> pack = (*factoryIt)();
         if (!pack) {
@@ -128,6 +119,16 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
                 extensionId,
                 discovered.path,
                 QStringLiteral("Provider registration failed: %1").arg(registrationError)
+            });
+            continue;
+        }
+
+        if (!registry.registerManifest(discovered.manifest, &registrationError)) {
+            result.diagnostics.append({
+                ExtensionLoadDiagnostic::Severity::Error,
+                extensionId,
+                discovered.path,
+                QStringLiteral("Manifest rejected: %1").arg(registrationError)
             });
             continue;
         }
