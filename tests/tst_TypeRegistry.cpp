@@ -333,6 +333,31 @@ private slots:
         tr.rebuildFromRegistry(reg);
         QCOMPARE(spy.count(), 0);
     }
+
+    void componentTypeIdsFollowProviderRegistrationOrder()
+    {
+        // Register providers in a specific order and verify that the resulting
+        // componentTypeIds list reflects that order (provider A types first, then B).
+        StubComponentTypeProvider pA(QStringLiteral("provider.a"),
+                                     { QStringLiteral("alpha"), QStringLiteral("beta") });
+        StubComponentTypeProvider pB(QStringLiteral("provider.b"),
+                                     { QStringLiteral("gamma"), QStringLiteral("delta") });
+
+        ExtensionContractRegistry reg(coreV1());
+        QVERIFY(reg.registerComponentTypeProvider(&pA));
+        QVERIFY(reg.registerComponentTypeProvider(&pB));
+
+        TypeRegistry tr;
+        tr.rebuildFromRegistry(reg);
+
+        const QStringList ids = tr.componentTypeIds();
+        QCOMPARE(ids.size(), 4);
+        // Provider A types must appear before provider B types
+        QVERIFY(ids.indexOf(QStringLiteral("alpha"))  < ids.indexOf(QStringLiteral("gamma")));
+        QVERIFY(ids.indexOf(QStringLiteral("beta"))   < ids.indexOf(QStringLiteral("gamma")));
+        QVERIFY(ids.indexOf(QStringLiteral("alpha"))  < ids.indexOf(QStringLiteral("delta")));
+        QVERIFY(ids.indexOf(QStringLiteral("beta"))   < ids.indexOf(QStringLiteral("delta")));
+    }
 };
 
 QTEST_MAIN(tst_TypeRegistry)
