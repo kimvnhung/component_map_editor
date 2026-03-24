@@ -134,9 +134,9 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         return {
             withSection(entry("label", "string", "Label", false, QString(), "textfield"),
                         "Identity", 1),
-            withSection(entry("sourceSide", "enum", "Source Side", true, 0, "dropdown"),
+            withSection(entry("sourceSide", "enum", "Source Side", true, -1, "dropdown"),
                         "Routing", 20),
-            withSection(entry("targetSide", "enum", "Target Side", true, 0, "dropdown"),
+            withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
                         "Routing", 21)
         };
     }
