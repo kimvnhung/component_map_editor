@@ -133,6 +133,11 @@ QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchema
     return m_propertySchemaProviders.order;
 }
 
+QList<const IValidationProvider *> ExtensionContractRegistry::validationProviders() const
+{
+    return m_validationProviders.order;
+}
+
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const
 {
     return m_executionSemanticsProviders.order;

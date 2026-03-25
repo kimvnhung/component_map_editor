@@ -12,6 +12,7 @@ ApplicationWindow {
     title: "Component Map Editor — Example"
 
     property var executionSandbox: startupExecutionSandbox
+    property var validator: startupValidationService ? startupValidationService : validatorFallback
     property int inspectorTabIndex: 0
 
     function prettyJson(value) {
@@ -108,7 +109,7 @@ ApplicationWindow {
         id: undoStack
     }
     ValidationService {
-        id: validator
+        id: validatorFallback
     }
     ExportService {
         id: exporter

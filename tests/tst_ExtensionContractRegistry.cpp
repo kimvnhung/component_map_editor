@@ -7,6 +7,7 @@
 #include "extensions/contracts/ExtensionManifest.h"
 #include "extensions/sample_pack/SampleComponentTypeProvider.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
+#include "extensions/sample_pack/SampleValidationProvider.h"
 
 namespace {
 

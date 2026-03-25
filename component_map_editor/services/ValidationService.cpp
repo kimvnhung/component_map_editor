@@ -1,113 +1,153 @@
 #include "ValidationService.h"
 
-#include <QSet>
+#include "extensions/contracts/ExtensionContractRegistry.h"
 
 ValidationService::ValidationService(QObject *parent)
     : QObject(parent)
 {}
 
+void ValidationService::setValidationProviders(const QList<const IValidationProvider *> &providers)
+{
+    m_validationProviders.clear();
+    for (const IValidationProvider *provider : providers) {
+        if (provider)
+            m_validationProviders.append(provider);
+    }
+}
+
+void ValidationService::rebuildValidationFromRegistry(const ExtensionContractRegistry &registry)
+{
+    setValidationProviders(registry.validationProviders());
+}
+
 QStringList ValidationService::validationErrors(GraphModel *graph)
 {
     QStringList errors;
-    if (!graph) {
-        errors << QStringLiteral("Graph is null");
-        return errors;
-    }
-
-    // Collect component ids and check for duplicates
-    QSet<QString> componentIds;
-    int startCount = 0;
-    int stopCount = 0;
-    for (ComponentModel *component : graph->componentList()) {
-        if (!component)
+    const QVariantList issues = validationIssues(graph);
+    for (const QVariant &issueValue : issues) {
+        const QVariantMap issue = issueValue.toMap();
+        if (!issueIsError(issue))
             continue;
 
-        const QString componentId = component->id();
-        if (componentId.isEmpty()) {
-            errors << QStringLiteral("Component has an empty id");
-            continue;
-        }
-        if (componentIds.contains(componentId))
-            errors << QStringLiteral("Duplicate component id: %1").arg(componentId);
-        else
-            componentIds.insert(componentId);
-
-        if (component->type() == QStringLiteral("start"))
-            ++startCount;
-        else if (component->type() == QStringLiteral("stop"))
-            ++stopCount;
-
-        if (component->width() <= 0.0)
-            errors << QStringLiteral("Component '%1' has non-positive width").arg(componentId);
-
-        if (component->height() <= 0.0)
-            errors << QStringLiteral("Component '%1' has non-positive height").arg(componentId);
-    }
-
-    if (startCount != 1) {
-        errors << QStringLiteral("Graph must contain exactly one start component (found %1).")
-                      .arg(startCount);
-    }
-    if (stopCount != 1) {
-        errors << QStringLiteral("Graph must contain exactly one stop component (found %1).")
-                      .arg(stopCount);
-    }
-
-    // Collect connection ids and validate references
-    QSet<QString> connectionIds;
-    for (ConnectionModel *connection : graph->connectionList()) {
-        if (!connection)
-            continue;
-
-        const QString connectionId = connection->id();
-        const QString sourceId = connection->sourceId();
-        const QString targetId = connection->targetId();
-        if (connectionId.isEmpty())
-            errors << QStringLiteral("Connection has an empty id");
-
-        if (!componentIds.contains(sourceId))
-            errors << QStringLiteral("Connection '%1' references unknown source component '%2'")
-                          .arg(connectionId, sourceId);
-
-        if (!componentIds.contains(targetId))
-            errors << QStringLiteral("Connection '%1' references unknown target component '%2'")
-                          .arg(connectionId, targetId);
-
-        if (sourceId == targetId)
-            errors << QStringLiteral("Connection '%1' is a self-loop").arg(connectionId);
-
-        const auto sourceSide = connection->sourceSide();
-        if (sourceSide != ConnectionModel::SideTop
-            && sourceSide != ConnectionModel::SideRight
-            && sourceSide != ConnectionModel::SideBottom
-            && sourceSide != ConnectionModel::SideLeft
-            && sourceSide != ConnectionModel::SideAuto) {
-            errors << QStringLiteral("Connection '%1' has invalid sourceSide value %2")
-                          .arg(connectionId)
-                          .arg(static_cast<int>(sourceSide));
-        }
-
-        const auto targetSide = connection->targetSide();
-        if (targetSide != ConnectionModel::SideTop
-            && targetSide != ConnectionModel::SideRight
-            && targetSide != ConnectionModel::SideBottom
-            && targetSide != ConnectionModel::SideLeft
-            && targetSide != ConnectionModel::SideAuto) {
-            errors << QStringLiteral("Connection '%1' has invalid targetSide value %2")
-                          .arg(connectionId)
-                          .arg(static_cast<int>(targetSide));
-        }
-
-        if (connectionIds.contains(connectionId))
-            errors << QStringLiteral("Duplicate connection id: %1").arg(connectionId);
-        else
-            connectionIds.insert(connectionId);
+        const QString message = issue.value(QStringLiteral("message")).toString().trimmed();
+        if (!message.isEmpty())
+            errors.append(message);
     }
 
     return errors;
 }
 
+QVariantList ValidationService::validationIssues(GraphModel *graph)
+{
+    QVariantList issues;
+    if (!graph) {
+        issues.append(QVariantMap{
+            { QStringLiteral("code"), QStringLiteral("CORE_NULL_GRAPH") },
+            { QStringLiteral("severity"), QStringLiteral("error") },
+            { QStringLiteral("message"), QStringLiteral("Graph is null") },
+            { QStringLiteral("entityType"), QStringLiteral("graph") },
+            { QStringLiteral("entityId"), QString() }
+        });
+        return issues;
+    }
+
+    if (m_validationProviders.isEmpty())
+        return issues;
+
+    const QVariantMap snapshot = buildGraphSnapshot(graph);
+    for (const IValidationProvider *provider : std::as_const(m_validationProviders)) {
+        if (!provider)
+            continue;
+
+        const QVariantList providerIssues = provider->validateGraph(snapshot);
+        for (const QVariant &issueValue : providerIssues) {
+            const QVariantMap issue = issueValue.toMap();
+            if (issue.isEmpty())
+                continue;
+            issues.append(issue);
+        }
+    }
+
+    return issues;
+}
+
 bool ValidationService::validate(GraphModel *graph)
 {
-    return validationErrors(graph).isEmpty();
+    QStringList errors;
+    const QVariantList issues = validationIssues(graph);
+    for (const QVariant &issueValue : issues) {
+            const QVariantMap issue = issueValue.toMap();
+            if (!issueIsError(issue))
+                continue;
+
+            const QString message = issue.value(QStringLiteral("message")).toString().trimmed();
+            if (!message.isEmpty()) {
+                errors.append(message);
+                break;
+            }
+    }
+
+    return errors.isEmpty();
+}
+
+QVariantMap ValidationService::buildGraphSnapshot(GraphModel *graph) const
+{
+    QVariantList components;
+    const QList<ComponentModel *> componentList = graph ? graph->componentList() : QList<ComponentModel *>();
+    components.reserve(componentList.size());
+    for (ComponentModel *component : componentList) {
+        if (!component)
+            continue;
+
+        QVariantMap entry{
+            { QStringLiteral("id"), component->id() },
+            { QStringLiteral("title"), component->title() },
+            { QStringLiteral("x"), component->x() },
+            { QStringLiteral("y"), component->y() },
+            { QStringLiteral("width"), component->width() },
+            { QStringLiteral("height"), component->height() },
+            { QStringLiteral("color"), component->color() },
+            { QStringLiteral("type"), component->type() },
+            { QStringLiteral("shape"), component->shape() },
+            { QStringLiteral("content"), component->content() },
+            { QStringLiteral("icon"), component->icon() }
+        };
+
+        const QList<QByteArray> dynamicProps = component->dynamicPropertyNames();
+        for (const QByteArray &propName : dynamicProps) {
+            const QString key = QString::fromUtf8(propName);
+            if (!key.isEmpty())
+                entry.insert(key, component->property(propName.constData()));
+        }
+
+        components.append(entry);
+    }
+
+    QVariantList connections;
+    const QList<ConnectionModel *> connectionList = graph ? graph->connectionList() : QList<ConnectionModel *>();
+    connections.reserve(connectionList.size());
+    for (ConnectionModel *connection : connectionList) {
+        if (!connection)
+            continue;
+
+        connections.append(QVariantMap{
+            { QStringLiteral("id"), connection->id() },
+            { QStringLiteral("sourceId"), connection->sourceId() },
+            { QStringLiteral("targetId"), connection->targetId() },
+            { QStringLiteral("label"), connection->label() },
+            { QStringLiteral("sourceSide"), static_cast<int>(connection->sourceSide()) },
+            { QStringLiteral("targetSide"), static_cast<int>(connection->targetSide()) }
+        });
+    }
+
+    return QVariantMap{
+        { QStringLiteral("components"), components },
+        { QStringLiteral("connections"), connections }
+    };
+}
+
+bool ValidationService::issueIsError(const QVariantMap &issue)
+{
+    const QString severity = issue.value(QStringLiteral("severity")).toString().trimmed().toLower();
+    return severity.isEmpty() || severity == QStringLiteral("error");
 }

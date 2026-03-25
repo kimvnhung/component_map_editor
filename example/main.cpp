@@ -11,6 +11,7 @@
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
 #include "services/GraphExecutionSandbox.h"
+#include "services/ValidationService.h"
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
 #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
@@ -76,11 +77,16 @@ int main(int argc, char *argv[])
     GraphExecutionSandbox executionSandbox;
     executionSandbox.rebuildSemanticsFromRegistry(extensionContracts);
 
+    ValidationService validationService;
+    validationService.rebuildValidationFromRegistry(extensionContracts);
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("startupPropertySchemaRegistry"),
                                              &propertySchemas);
     engine.rootContext()->setContextProperty(QStringLiteral("startupExecutionSandbox"),
                                              &executionSandbox);
+    engine.rootContext()->setContextProperty(QStringLiteral("startupValidationService"),
+                                             &validationService);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

@@ -567,14 +567,18 @@ undoStack.clear()   // called when loading a new graph
 
 ## 7. Feature: Validation
 
-**Why useful:** `ValidationService` runs all registered `IValidationProvider`
-implementations and returns a human-readable list of errors (e.g. "Graph must
-contain exactly one start component").
+**Why useful:** `ValidationService` is provider-backed. It forwards a graph snapshot
+to registered `IValidationProvider` implementations and exposes both flattened
+error text and raw issue objects.
 
 ### Using `ValidationService` in QML
 
 ```qml
-ValidationService { id: validator }
+// If startupValidationService was injected from C++, prefer it so the service
+// uses the same registry-backed providers loaded at startup.
+property var validator: startupValidationService ? startupValidationService : validatorFallback
+
+ValidationService { id: validatorFallback }
 
 Button {
     text: "Validate"
@@ -593,6 +597,31 @@ Button {
 ```qml
 // Boolean check (no error list)
 var isOk = validator.validate(graph)
+```
+
+### Distinguish warnings vs errors in UI
+
+```qml
+var issues = validator.validationIssues(graph)
+var warnings = []
+var errors = []
+
+for (var i = 0; i < issues.length; ++i) {
+    var issue = issues[i]
+    var sev = (issue.severity || "error").toLowerCase()
+    if (sev === "warning")
+        warnings.push(issue.message)
+    else
+        errors.push(issue.message)
+}
+
+if (errors.length > 0) {
+    statusLabel.text = "✗ " + errors.join(" | ")
+} else if (warnings.length > 0) {
+    statusLabel.text = "WARN " + warnings.join(" | ")
+} else {
+    statusLabel.text = "✓ Graph is valid"
+}
 ```
 
 ### Writing a custom provider in C++

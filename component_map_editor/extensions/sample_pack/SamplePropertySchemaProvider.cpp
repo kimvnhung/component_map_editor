@@ -135,7 +135,13 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         };
         return {
             withSection(entry("label", "string", "Label", false, QString(), "textfield"),
+                        "Identity", 0),
+            withSection(entry("id", "string", "Connection ID", true, QString(), "textfield"),
                         "Identity", 1),
+            withSection(entry("sourceId", "string", "Source Component ID", true, QString(), "textfield"),
+                        "Identity", 2),
+            withSection(entry("targetId", "string", "Target Component ID", true, QString(), "textfield"),
+                        "Identity", 3),
             withSection(entry("sourceSide", "enum", "Source Side", true, -1, "dropdown"),
                         "Routing", 20, QString(), {}, {}, sideOptions),
             withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
