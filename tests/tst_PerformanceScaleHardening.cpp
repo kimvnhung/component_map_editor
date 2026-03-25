@@ -72,7 +72,7 @@ void buildScaleGraph(GraphModel &graph, int nodeCount)
 
 qint64 currentRssBytes()
 {
-#if defined(Q_OS_LINUX)
+#ifdef Q_OS_LINUX
     QFile file(QStringLiteral("/proc/self/statm"));
     if (!file.open(QIODevice::ReadOnly))
         return -1;
@@ -92,20 +92,6 @@ qint64 currentRssBytes()
         return -1;
 
     return residentPages * pageSize;
-#elif defined(Q_OS_WIN)
-    PROCESS_MEMORY_COUNTERS pmc = {};
-    pmc.cb = sizeof(pmc);
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
-        return static_cast<qint64>(pmc.WorkingSetSize);
-    return -1;
-#elif defined(Q_OS_MACOS)
-    mach_task_basic_info_data_t info;
-    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
-    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
-                  reinterpret_cast<task_info_t>(&info), &size) == KERN_SUCCESS
-        && size == MACH_TASK_BASIC_INFO_COUNT)
-        return static_cast<qint64>(info.resident_size);
-    return -1;
 #else
     return -1;
 #endif
