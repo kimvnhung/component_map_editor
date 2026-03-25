@@ -1,7 +1,5 @@
 #include "ValidationService.h"
 
-#include "GraphSchema.h"
-
 #include <QSet>
 
 ValidationService::ValidationService(QObject *parent)
@@ -19,8 +17,10 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
     // Collect component ids and check for duplicates
     QSet<QString> componentIds;
     for (ComponentModel *component : graph->componentList()) {
-        const QJsonObject serialized = GraphSchema::componentToJson(component);
-        const QString componentId = serialized[GraphSchema::Keys::componentId()].toString();
+        if (!component)
+            continue;
+
+        const QString componentId = component->id();
         if (componentId.isEmpty()) {
             errors << QStringLiteral("Component has an empty id");
             continue;
@@ -30,20 +30,22 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
         else
             componentIds.insert(componentId);
 
-        if (serialized[GraphSchema::Keys::componentWidth()].toDouble() <= 0.0)
+        if (component->width() <= 0.0)
             errors << QStringLiteral("Component '%1' has non-positive width").arg(componentId);
 
-        if (serialized[GraphSchema::Keys::componentHeight()].toDouble() <= 0.0)
+        if (component->height() <= 0.0)
             errors << QStringLiteral("Component '%1' has non-positive height").arg(componentId);
     }
 
     // Collect connection ids and validate references
     QSet<QString> connectionIds;
     for (ConnectionModel *connection : graph->connectionList()) {
-        const QJsonObject serialized = GraphSchema::connectionToJson(connection);
-        const QString connectionId = serialized[GraphSchema::Keys::connectionId()].toString();
-        const QString sourceId = serialized[GraphSchema::Keys::connectionSourceId()].toString();
-        const QString targetId = serialized[GraphSchema::Keys::connectionTargetId()].toString();
+        if (!connection)
+            continue;
+
+        const QString connectionId = connection->id();
+        const QString sourceId = connection->sourceId();
+        const QString targetId = connection->targetId();
         if (connectionId.isEmpty())
             errors << QStringLiteral("Connection has an empty id");
 
@@ -58,19 +60,23 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
         if (sourceId == targetId)
             errors << QStringLiteral("Connection '%1' is a self-loop").arg(connectionId);
 
-        const auto sourceSide = static_cast<ConnectionModel::Side>(
-            serialized[GraphSchema::Keys::connectionSourceSide()]
-                .toInt(static_cast<int>(ConnectionModel::SideAuto)));
-        if (GraphSchema::normalizeConnectionSide(static_cast<int>(sourceSide)) != sourceSide) {
+        const auto sourceSide = connection->sourceSide();
+        if (sourceSide != ConnectionModel::SideTop
+            && sourceSide != ConnectionModel::SideRight
+            && sourceSide != ConnectionModel::SideBottom
+            && sourceSide != ConnectionModel::SideLeft
+            && sourceSide != ConnectionModel::SideAuto) {
             errors << QStringLiteral("Connection '%1' has invalid sourceSide value %2")
                           .arg(connectionId)
                           .arg(static_cast<int>(sourceSide));
         }
 
-        const auto targetSide = static_cast<ConnectionModel::Side>(
-            serialized[GraphSchema::Keys::connectionTargetSide()]
-                .toInt(static_cast<int>(ConnectionModel::SideAuto)));
-        if (GraphSchema::normalizeConnectionSide(static_cast<int>(targetSide)) != targetSide) {
+        const auto targetSide = connection->targetSide();
+        if (targetSide != ConnectionModel::SideTop
+            && targetSide != ConnectionModel::SideRight
+            && targetSide != ConnectionModel::SideBottom
+            && targetSide != ConnectionModel::SideLeft
+            && targetSide != ConnectionModel::SideAuto) {
             errors << QStringLiteral("Connection '%1' has invalid targetSide value %2")
                           .arg(connectionId)
                           .arg(static_cast<int>(targetSide));

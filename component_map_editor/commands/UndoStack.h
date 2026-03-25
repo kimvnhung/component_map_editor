@@ -72,6 +72,7 @@ public slots:
     void undo();
     void redo();
     void clear();
+    void discardRedoHistory();
 
 signals:
     void canUndoChanged();

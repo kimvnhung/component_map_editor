@@ -20,24 +20,6 @@ ConnectionModel::Side sideFromInt(int sideValue)
     }
 }
 
-bool isComponentPropertyUndoable(const QString &name)
-{
-    static const QSet<QString> kAllowed {
-        QStringLiteral("id"),
-        QStringLiteral("title"),
-        QStringLiteral("content"),
-        QStringLiteral("icon"),
-        QStringLiteral("x"),
-        QStringLiteral("y"),
-        QStringLiteral("width"),
-        QStringLiteral("height"),
-        QStringLiteral("shape"),
-        QStringLiteral("color"),
-        QStringLiteral("type")
-    };
-    return kAllowed.contains(name);
-}
-
 bool isConnectionPropertyUndoable(const QString &name)
 {
     static const QSet<QString> kAllowed {
@@ -220,7 +202,7 @@ void UndoStack::pushSetComponentProperty(ComponentModel *component,
                                          const QString &propertyName,
                                          const QVariant &newValue)
 {
-    if (!component || !isComponentPropertyUndoable(propertyName))
+    if (!component || propertyName.trimmed().isEmpty())
         return;
 
     const QByteArray propertyUtf8 = propertyName.toUtf8();
@@ -309,6 +291,20 @@ void UndoStack::redo()
 
     ++m_index;
     m_commands.at(m_index)->redo();
+
+    notifyChanges(prevCanUndo, prevCanRedo, prevUndoText, prevRedoText, prevCount);
+}
+
+void UndoStack::discardRedoHistory()
+{
+    const bool prevCanUndo = canUndo();
+    const bool prevCanRedo = canRedo();
+    const QString prevUndoText = undoText();
+    const QString prevRedoText = redoText();
+    const int prevCount = count();
+
+    while (m_commands.size() > m_index + 1)
+        delete m_commands.takeLast();
 
     notifyChanges(prevCanUndo, prevCanRedo, prevUndoText, prevRedoText, prevCount);
 }

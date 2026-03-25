@@ -89,3 +89,255 @@ add_test(
     COMMAND tst_GraphModelIndexing
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_ExtensionContractRegistry
+    tst_ExtensionContractRegistry.cpp
+)
+
+target_link_libraries(tst_ExtensionContractRegistry
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ExtensionContractRegistry
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ExtensionContractRegistry
+    COMMAND tst_ExtensionContractRegistry
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_ExtensionStartupLoader
+    tst_ExtensionStartupLoader.cpp
+)
+
+target_link_libraries(tst_ExtensionStartupLoader
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ExtensionStartupLoader
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ExtensionStartupLoader
+    COMMAND tst_ExtensionStartupLoader
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_TypeRegistry
+    tst_TypeRegistry.cpp
+)
+
+target_link_libraries(tst_TypeRegistry
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_TypeRegistry
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_TypeRegistry
+    COMMAND tst_TypeRegistry
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_GraphEditorController
+    tst_GraphEditorController.cpp
+)
+
+target_link_libraries(tst_GraphEditorController
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_GraphEditorController
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_GraphEditorController
+    COMMAND tst_GraphEditorController
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_PropertySchemaRegistry
+    tst_PropertySchemaRegistry.cpp
+)
+
+target_link_libraries(tst_PropertySchemaRegistry
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_PropertySchemaRegistry
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_PropertySchemaRegistry
+    COMMAND tst_PropertySchemaRegistry
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_RuleCompilerRuntime
+    tst_RuleCompilerRuntime.cpp
+)
+
+target_link_libraries(tst_RuleCompilerRuntime
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_RuleCompilerRuntime
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_RuleCompilerRuntime
+    COMMAND tst_RuleCompilerRuntime
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_TraversalEngine
+    tst_TraversalEngine.cpp
+)
+
+target_link_libraries(tst_TraversalEngine
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_TraversalEngine
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_TraversalEngine
+    COMMAND tst_TraversalEngine
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_GraphExecutionSandbox
+    tst_GraphExecutionSandbox.cpp
+)
+
+target_link_libraries(tst_GraphExecutionSandbox
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_GraphExecutionSandbox
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_GraphExecutionSandbox
+    COMMAND tst_GraphExecutionSandbox
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_SecurityGuardrails
+    tst_SecurityGuardrails.cpp
+)
+
+target_link_libraries(tst_SecurityGuardrails
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_SecurityGuardrails
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_SecurityGuardrails
+    COMMAND tst_SecurityGuardrails
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_CompatibilityMigrationToolkit
+    tst_CompatibilityMigrationToolkit.cpp
+)
+
+target_link_libraries(tst_CompatibilityMigrationToolkit
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_CompatibilityMigrationToolkit
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_CompatibilityMigrationToolkit
+    COMMAND tst_CompatibilityMigrationToolkit
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_PerformanceScaleHardening
+    tst_PerformanceScaleHardening.cpp
+)
+
+target_link_libraries(tst_PerformanceScaleHardening
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_PerformanceScaleHardening
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_PerformanceScaleHardening
+    COMMAND tst_PerformanceScaleHardening
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_QaMatrixRunner
+    tst_QaMatrixRunner.cpp
+)
+
+target_link_libraries(tst_QaMatrixRunner
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_QaMatrixRunner
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_QaMatrixRunner
+    COMMAND tst_QaMatrixRunner
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
