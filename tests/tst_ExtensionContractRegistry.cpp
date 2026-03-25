@@ -2,11 +2,32 @@
 
 #include "extensions/contracts/ExtensionApiVersion.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
+#include "extensions/contracts/IComponentTypeProvider.h"
+#include "extensions/contracts/IConnectionPolicyProvider.h"
 #include "extensions/contracts/ExtensionManifest.h"
 #include "extensions/sample_pack/SampleComponentTypeProvider.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
 
 namespace {
+
+struct StubComponentTypeProviderById : public IComponentTypeProvider
+{
+    explicit StubComponentTypeProviderById(const QString &id) : m_id(id) {}
+    QString providerId() const override { return m_id; }
+    QStringList componentTypeIds() const override { return {}; }
+    QVariantMap componentTypeDescriptor(const QString &) const override { return {}; }
+    QVariantMap defaultComponentProperties(const QString &) const override { return {}; }
+    QString m_id;
+};
+
+struct StubConnectionPolicyProviderById : public IConnectionPolicyProvider
+{
+    explicit StubConnectionPolicyProviderById(const QString &id) : m_id(id) {}
+    QString providerId() const override { return m_id; }
+    bool canConnect(const QString &, const QString &, const QVariantMap &, QString *) const override { return true; }
+    QVariantMap normalizeConnectionProperties(const QString &, const QString &, const QVariantMap &raw) const override { return raw; }
+    QString m_id;
+};
 
 ExtensionManifest validManifest(const QString &id = QStringLiteral("test.pack"))
 {
@@ -122,6 +143,9 @@ private slots:
     void actionInvokeFailsWithMissingComponentId();
     void actionInvokeFailsWithInvalidPriority();
     void actionInvokeFailsWithUnknownActionId();
+
+    void componentTypeProvidersReturnedInRegistrationOrder();
+    void connectionPolicyProvidersReturnedInRegistrationOrder();
 };
 
 void ExtensionContractRegistryTests::manifestValidationRejectsEmptyId()
@@ -587,6 +611,42 @@ void ExtensionContractRegistryTests::actionInvokeFailsWithUnknownActionId()
     QString error;
     QVERIFY(!provider.invokeAction(QStringLiteral("nonexistent"), {}, nullptr, &error));
     QVERIFY(!error.isEmpty());
+}
+
+void ExtensionContractRegistryTests::componentTypeProvidersReturnedInRegistrationOrder()
+{
+    StubComponentTypeProviderById pA(QStringLiteral("provider.a"));
+    StubComponentTypeProviderById pB(QStringLiteral("provider.b"));
+    StubComponentTypeProviderById pC(QStringLiteral("provider.c"));
+
+    ExtensionContractRegistry reg(registryV1().coreApiVersion());
+    QVERIFY(reg.registerComponentTypeProvider(&pA));
+    QVERIFY(reg.registerComponentTypeProvider(&pB));
+    QVERIFY(reg.registerComponentTypeProvider(&pC));
+
+    const QList<const IComponentTypeProvider *> providers = reg.componentTypeProviders();
+    QCOMPARE(providers.size(), 3);
+    QCOMPARE(providers.at(0)->providerId(), QStringLiteral("provider.a"));
+    QCOMPARE(providers.at(1)->providerId(), QStringLiteral("provider.b"));
+    QCOMPARE(providers.at(2)->providerId(), QStringLiteral("provider.c"));
+}
+
+void ExtensionContractRegistryTests::connectionPolicyProvidersReturnedInRegistrationOrder()
+{
+    StubConnectionPolicyProviderById pX(QStringLiteral("policy.x"));
+    StubConnectionPolicyProviderById pY(QStringLiteral("policy.y"));
+    StubConnectionPolicyProviderById pZ(QStringLiteral("policy.z"));
+
+    ExtensionContractRegistry reg(registryV1().coreApiVersion());
+    QVERIFY(reg.registerConnectionPolicyProvider(&pX));
+    QVERIFY(reg.registerConnectionPolicyProvider(&pY));
+    QVERIFY(reg.registerConnectionPolicyProvider(&pZ));
+
+    const QList<const IConnectionPolicyProvider *> providers = reg.connectionPolicyProviders();
+    QCOMPARE(providers.size(), 3);
+    QCOMPARE(providers.at(0)->providerId(), QStringLiteral("policy.x"));
+    QCOMPARE(providers.at(1)->providerId(), QStringLiteral("policy.y"));
+    QCOMPARE(providers.at(2)->providerId(), QStringLiteral("policy.z"));
 }
 
 QTEST_MAIN(ExtensionContractRegistryTests)
