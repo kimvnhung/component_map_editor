@@ -32,7 +32,7 @@ class tst_PropertySchemaRegistry : public QObject
     Q_OBJECT
 
 private slots:
-    void samplePackProvidesSectionedTaskSchema()
+    void samplePackProvidesSectionedProcessSchema()
     {
         ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
         SampleExtensionPack pack;
@@ -41,11 +41,11 @@ private slots:
         PropertySchemaRegistry schemas;
         schemas.rebuildFromRegistry(contracts);
 
-        const QVariantList sections = schemas.sectionedSchemaForTarget(QStringLiteral("component/task"));
+        const QVariantList sections = schemas.sectionedSchemaForTarget(QStringLiteral("component/process"));
         QVERIFY(!sections.isEmpty());
 
         bool hasBehaviorSection = false;
-        bool hasPriorityField = false;
+        bool hasAddValueField = false;
 
         for (const QVariant &sectionValue : sections) {
             const QVariantMap section = sectionValue.toMap();
@@ -56,16 +56,15 @@ private slots:
             const QVariantList fields = section.value(QStringLiteral("fields")).toList();
             for (const QVariant &fieldValue : fields) {
                 const QVariantMap field = fieldValue.toMap();
-                if (field.value(QStringLiteral("key")).toString() == QStringLiteral("priority")) {
-                    hasPriorityField = true;
-                    QCOMPARE(field.value(QStringLiteral("widget")).toString(), QStringLiteral("dropdown"));
-                    QVERIFY(field.value(QStringLiteral("options")).toList().size() >= 3);
+                if (field.value(QStringLiteral("key")).toString() == QStringLiteral("addValue")) {
+                    hasAddValueField = true;
+                    QCOMPARE(field.value(QStringLiteral("widget")).toString(), QStringLiteral("spinbox"));
                 }
             }
         }
 
         QVERIFY(hasBehaviorSection);
-        QVERIFY(hasPriorityField);
+        QVERIFY(hasAddValueField);
     }
 
     void unknownTargetFallsBackToBuiltInSchema()

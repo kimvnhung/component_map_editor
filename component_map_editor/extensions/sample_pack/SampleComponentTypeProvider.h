@@ -4,15 +4,14 @@
 #include "extensions/contracts/IComponentTypeProvider.h"
 
 // Sample implementation of IComponentTypeProvider for a simple workflow domain.
-// Declares four component types: start, task, decision, end.
+// Declares three component types: start, process, stop.
 // Used as a reference implementation and contract test fixture.
 class SampleComponentTypeProvider : public IComponentTypeProvider
 {
 public:
     static constexpr const char *TypeStart    = "start";
-    static constexpr const char *TypeTask     = "task";
-    static constexpr const char *TypeDecision = "decision";
-    static constexpr const char *TypeEnd      = "end";
+    static constexpr const char *TypeProcess  = "process";
+    static constexpr const char *TypeStop     = "stop";
 
     QString      providerId() const override;
     QStringList  componentTypeIds() const override;
@@ -22,9 +21,9 @@ public:
     QVariantMap  componentTypeDescriptor(const QString &componentTypeId) const override;
 
     // Default property keys for each type:
-    //   task     -> priority("normal"), description("")
-    //   decision -> condition("")
-    //   start, end -> (empty defaults)
+    //   start   -> inputNumber(0)
+    //   process -> addValue(9), description("")
+    //   stop    -> (empty defaults)
     QVariantMap  defaultComponentProperties(const QString &componentTypeId) const override;
 };
 

@@ -120,20 +120,20 @@ ExtensionManifest ExtensionContractRegistry::manifest(const QString &extensionId
 
 QList<const IComponentTypeProvider *> ExtensionContractRegistry::componentTypeProviders() const
 {
-    return m_componentTypeProviders.values();
+    return m_componentTypeProviders.order;
 }
 
 QList<const IConnectionPolicyProvider *> ExtensionContractRegistry::connectionPolicyProviders() const
 {
-    return m_connectionPolicyProviders.values();
+    return m_connectionPolicyProviders.order;
 }
 
 QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchemaProviders() const
 {
-    return m_propertySchemaProviders.values();
+    return m_propertySchemaProviders.order;
 }
 
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const
 {
-    return m_executionSemanticsProviders.values();
+    return m_executionSemanticsProviders.order;
 }

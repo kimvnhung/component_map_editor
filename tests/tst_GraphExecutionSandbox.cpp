@@ -42,7 +42,7 @@ public:
 
     QStringList supportedComponentTypes() const override
     {
-        return { QStringLiteral("start"), QStringLiteral("task"), QStringLiteral("end") };
+        return { QStringLiteral("start"), QStringLiteral("process"), QStringLiteral("stop") };
     }
 
     bool executeComponent(const QString &componentType,
@@ -61,9 +61,9 @@ public:
         order.append(componentId);
         state.insert(QStringLiteral("order"), order);
 
-        if (componentType == QStringLiteral("task")) {
-            const int taskCount = state.value(QStringLiteral("taskCount"), 0).toInt() + 1;
-            state.insert(QStringLiteral("taskCount"), taskCount);
+        if (componentType == QStringLiteral("process")) {
+            const int processCount = state.value(QStringLiteral("processCount"), 0).toInt() + 1;
+            state.insert(QStringLiteral("processCount"), processCount);
         }
 
         state.insert(QStringLiteral("lastType"), componentType);
@@ -84,9 +84,9 @@ public:
 void buildLinearGraph(GraphModel &graph)
 {
     graph.addComponent(makeComponent(graph, QStringLiteral("A"), QStringLiteral("start")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("B"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("C"), QStringLiteral("task")));
-    graph.addComponent(makeComponent(graph, QStringLiteral("D"), QStringLiteral("end")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("B"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("C"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("D"), QStringLiteral("stop")));
 
     graph.addConnection(makeConnection(graph, QStringLiteral("e1"), QStringLiteral("A"), QStringLiteral("B")));
     graph.addConnection(makeConnection(graph, QStringLiteral("e2"), QStringLiteral("B"), QStringLiteral("C")));
@@ -113,7 +113,7 @@ void tst_GraphExecutionSandbox::executionDoesNotMutateLiveGraphOrUndoStack()
     buildLinearGraph(graph);
 
     UndoStack undoStack;
-    auto *extra = makeComponent(graph, QStringLiteral("X"), QStringLiteral("task"));
+    auto *extra = makeComponent(graph, QStringLiteral("X"), QStringLiteral("process"));
     undoStack.pushAddComponent(&graph, extra);
 
     const int componentCountBefore = graph.componentCount();

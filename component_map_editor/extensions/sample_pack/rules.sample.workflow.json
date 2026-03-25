@@ -3,27 +3,17 @@
   "connections": [
     {
       "source": "start",
-      "target": "task",
+      "target": "process",
       "allow": true
     },
     {
-      "source": "task",
-      "target": "task",
+      "source": "process",
+      "target": "process",
       "allow": true
     },
     {
-      "source": "task",
-      "target": "decision",
-      "allow": true
-    },
-    {
-      "source": "decision",
-      "target": "task",
-      "allow": true
-    },
-    {
-      "source": "decision",
-      "target": "end",
+      "source": "process",
+      "target": "stop",
       "allow": true
     }
   ],
@@ -37,10 +27,10 @@
     },
     {
       "kind": "exactlyOneType",
-      "type": "end",
+      "type": "stop",
       "code": "W002",
       "severity": "error",
-      "message": "Graph must contain exactly one end component."
+      "message": "Graph must contain exactly one stop component."
     },
     {
       "kind": "endpointExists",

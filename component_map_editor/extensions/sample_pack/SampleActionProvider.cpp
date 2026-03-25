@@ -55,10 +55,10 @@ bool SampleActionProvider::invokeAction(const QString &actionId,
 
     if (commandRequest) {
         *commandRequest = QVariantMap{
-            { QStringLiteral("commandType"),  QStringLiteral("setComponentProperty") },
-            { QStringLiteral("componentId"),  componentId },
-            { QStringLiteral("propertyName"), QStringLiteral("priority") },
-            { QStringLiteral("newValue"),     newPriority }
+            { QStringLiteral("command"),  QStringLiteral("setComponentProperty") },
+            { QStringLiteral("id"),       componentId },
+            { QStringLiteral("property"), QStringLiteral("priority") },
+            { QStringLiteral("value"),    newPriority }
         };
     }
     return true;
