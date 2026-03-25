@@ -18,6 +18,13 @@
 #include "IPropertySchemaProvider.h"
 #include "IValidationProvider.h"
 
+// Holds providers in insertion order while also providing O(1) duplicate-ID checks.
+template <typename T>
+struct ProviderRegistry {
+    QHash<QString, const T *> index; // keyed by provider ID for O(1) duplicate-ID checks during registration
+    QList<const T *>          order; // preserves registration order for deterministic iteration
+};
+
 class ExtensionContractRegistry
 {
 public:
@@ -51,8 +58,7 @@ private:
     // an ordered list (to preserve registration order for iteration).
     template <typename ProviderT>
     bool registerProviderInternal(const ProviderT *provider,
-                                  QHash<QString, const ProviderT *> *index,
-                                  QList<const ProviderT *> *ordered,
+                                  ProviderRegistry<ProviderT> *target,
                                   const QString &providerType,
                                   QString *error)
     {
@@ -71,32 +77,26 @@ private:
             return false;
         }
 
-        if (index->contains(id)) {
+        if (target->index.contains(id)) {
             if (error) {
                 *error = QStringLiteral("Duplicate %1 provider id: %2").arg(providerType, id);
             }
             return false;
         }
 
-        index->insert(id, provider);
-        ordered->append(provider);
+        target->index.insert(id, provider);
+        target->order.append(provider);
         return true;
     }
 
     ExtensionApiVersion m_coreApiVersion;
     QHash<QString, ExtensionManifest> m_manifests;
-    QHash<QString, const IComponentTypeProvider *> m_componentTypeProviders;
-    QList<const IComponentTypeProvider *> m_orderedComponentTypeProviders;
-    QHash<QString, const IConnectionPolicyProvider *> m_connectionPolicyProviders;
-    QList<const IConnectionPolicyProvider *> m_orderedConnectionPolicyProviders;
-    QHash<QString, const IPropertySchemaProvider *> m_propertySchemaProviders;
-    QList<const IPropertySchemaProvider *> m_orderedPropertySchemaProviders;
-    QHash<QString, const IValidationProvider *> m_validationProviders;
-    QList<const IValidationProvider *> m_orderedValidationProviders;
-    QHash<QString, const IActionProvider *> m_actionProviders;
-    QList<const IActionProvider *> m_orderedActionProviders;
-    QHash<QString, const IExecutionSemanticsProvider *> m_executionSemanticsProviders;
-    QList<const IExecutionSemanticsProvider *> m_orderedExecutionSemanticsProviders;
+    ProviderRegistry<IComponentTypeProvider>     m_componentTypeProviders;
+    ProviderRegistry<IConnectionPolicyProvider>  m_connectionPolicyProviders;
+    ProviderRegistry<IPropertySchemaProvider>    m_propertySchemaProviders;
+    ProviderRegistry<IValidationProvider>        m_validationProviders;
+    ProviderRegistry<IActionProvider>            m_actionProviders;
+    ProviderRegistry<IExecutionSemanticsProvider> m_executionSemanticsProviders;
     std::vector<std::unique_ptr<ExecutionSemanticsV0Adapter>> m_executionSemanticsV0Adapters;
 };
 

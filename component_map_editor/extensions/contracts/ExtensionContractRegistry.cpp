@@ -43,35 +43,30 @@ bool ExtensionContractRegistry::registerManifest(const ExtensionManifest &manife
 bool ExtensionContractRegistry::registerComponentTypeProvider(const IComponentTypeProvider *provider, QString *error)
 {
     return registerProviderInternal(provider, &m_componentTypeProviders,
-                                    &m_orderedComponentTypeProviders,
                                     QStringLiteral("component type"), error);
 }
 
 bool ExtensionContractRegistry::registerConnectionPolicyProvider(const IConnectionPolicyProvider *provider, QString *error)
 {
     return registerProviderInternal(provider, &m_connectionPolicyProviders,
-                                    &m_orderedConnectionPolicyProviders,
                                     QStringLiteral("connection policy"), error);
 }
 
 bool ExtensionContractRegistry::registerPropertySchemaProvider(const IPropertySchemaProvider *provider, QString *error)
 {
     return registerProviderInternal(provider, &m_propertySchemaProviders,
-                                    &m_orderedPropertySchemaProviders,
                                     QStringLiteral("property schema"), error);
 }
 
 bool ExtensionContractRegistry::registerValidationProvider(const IValidationProvider *provider, QString *error)
 {
     return registerProviderInternal(provider, &m_validationProviders,
-                                    &m_orderedValidationProviders,
                                     QStringLiteral("validation"), error);
 }
 
 bool ExtensionContractRegistry::registerActionProvider(const IActionProvider *provider, QString *error)
 {
     return registerProviderInternal(provider, &m_actionProviders,
-                                    &m_orderedActionProviders,
                                     QStringLiteral("action"), error);
 }
 
@@ -79,7 +74,6 @@ bool ExtensionContractRegistry::registerExecutionSemanticsProvider(const IExecut
                                                                    QString *error)
 {
     return registerProviderInternal(provider, &m_executionSemanticsProviders,
-                                    &m_orderedExecutionSemanticsProviders,
                                     QStringLiteral("execution semantics"), error);
 }
 
@@ -105,7 +99,6 @@ bool ExtensionContractRegistry::registerExecutionSemanticsProvider(const IExecut
 
     if (!registerProviderInternal(static_cast<const IExecutionSemanticsProvider *>(adapter.get()),
                                   &m_executionSemanticsProviders,
-                                  &m_orderedExecutionSemanticsProviders,
                                   QStringLiteral("execution semantics"),
                                   error)) {
         return false;
@@ -127,20 +120,20 @@ ExtensionManifest ExtensionContractRegistry::manifest(const QString &extensionId
 
 QList<const IComponentTypeProvider *> ExtensionContractRegistry::componentTypeProviders() const
 {
-    return m_orderedComponentTypeProviders;
+    return m_componentTypeProviders.order;
 }
 
 QList<const IConnectionPolicyProvider *> ExtensionContractRegistry::connectionPolicyProviders() const
 {
-    return m_orderedConnectionPolicyProviders;
+    return m_connectionPolicyProviders.order;
 }
 
 QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchemaProviders() const
 {
-    return m_orderedPropertySchemaProviders;
+    return m_propertySchemaProviders.order;
 }
 
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const
 {
-    return m_orderedExecutionSemanticsProviders;
+    return m_executionSemanticsProviders.order;
 }
