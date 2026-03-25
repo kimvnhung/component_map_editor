@@ -624,7 +624,7 @@ ApplicationWindow {
             statusLabel.text = "✓ Graph imported"
             statusLabel.color = "#2e7d32"
             canvas.edgeRenderer.repaint()
-            canvas.nodeRenderer.repaint()
+            canvas.componentRenderer.repaint()
         }
     }
 }

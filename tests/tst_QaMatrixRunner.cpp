@@ -107,11 +107,11 @@ private slots:
         result.executedBy = "automated";
         
         try {
-            // Create 5 nodes
+            // Create 5 components
             for (int i = 0; i < 5; ++i) {
                 ComponentModel *comp = new ComponentModel(
-                    QString("node_%1").arg(i),
-                    QString("Node %1").arg(i),
+                    QString("component_%1").arg(i),
+                    QString("Component %1").arg(i),
                     i * 50, 0,
                     "#4fc3f7",
                     "workflow_node",
@@ -205,23 +205,23 @@ private slots:
         result.executedBy = "automated";
         
         try {
-            // Create 500 nodes (grid layout)
-            int gridSize = 25;  // 25x25 = 625 nodes (trim to 500)
-            int nodeCount = 0;
+            // Create 500 components (grid layout)
+            int gridSize = 25;  // 25x25 = 625 components (trim to 500)
+            int componentCount = 0;
             m_graphModel->beginBatchUpdate();
             
-            for (int row = 0; row < gridSize && nodeCount < 500; ++row) {
-                for (int col = 0; col < gridSize && nodeCount < 500; ++col) {
+            for (int row = 0; row < gridSize && componentCount < 500; ++row) {
+                for (int col = 0; col < gridSize && componentCount < 500; ++col) {
                     ComponentModel *comp = new ComponentModel(
-                        QString("node_%1_%2").arg(row).arg(col),
-                        QString("N%1").arg(nodeCount),
+                        QString("component_%1_%2").arg(row).arg(col),
+                        QString("N%1").arg(componentCount),
                         col * 30, row * 30,
                         "#4fc3f7",
                         "workflow_node",
                         this
                     );
                     m_graphModel->addComponent(comp);
-                    nodeCount++;
+                    componentCount++;
                 }
             }
             
@@ -274,11 +274,11 @@ private slots:
         result.notes = "Large graph test; memory and performance validated separately";
         
         try {
-            // Create 2000 nodes
+            // Create 2000 components
             m_graphModel->beginBatchUpdate();
             for (int i = 0; i < 2000; ++i) {
                 ComponentModel *comp = new ComponentModel(
-                    QString("node_%1").arg(i),
+                    QString("component_%1").arg(i),
                     QString("N%1").arg(i),
                     (i % 50) * 30, (i / 50) * 30,
                     "#4fc3f7",
@@ -323,8 +323,8 @@ private slots:
             // Create components via legacy pack interface
             for (int i = 0; i < 5; ++i) {
                 ComponentModel *comp = new ComponentModel(
-                    QString("legacy_node_%1").arg(i),
-                    QString("Legacy Node %1").arg(i),
+                    QString("legacy_component_%1").arg(i),
+                    QString("Legacy Component %1").arg(i),
                     i * 50, 0,
                     "#4fc3f7",
                     "legacy_workflow_node",
@@ -502,8 +502,8 @@ private slots:
             // Create test graph
             for (int i = 0; i < 10; ++i) {
                 ComponentModel *comp = new ComponentModel(
-                    QString("node_%1").arg(i),
-                    QString("Node %1").arg(i),
+                    QString("component_%1").arg(i),
+                    QString("Component %1").arg(i),
                     i * 30, 0,
                     "#4fc3f7",
                     "workflow_node",

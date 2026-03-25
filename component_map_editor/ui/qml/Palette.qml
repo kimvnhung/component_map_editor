@@ -46,8 +46,8 @@ Rectangle {
         if (!graph)
             return
 
-        if (root.canvas && root.canvas.nodeRenderer)
-            root.canvas.nodeRenderer.renderNodes = true
+        if (root.canvas && root.canvas.componentRenderer)
+            root.canvas.componentRenderer.renderComponents = true
 
         var component = Qt.createQmlObject(
                     'import ComponentMapEditor; ComponentModel {}', graph)

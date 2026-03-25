@@ -5,7 +5,7 @@
 // All selection mutations and interaction mode transitions must go through the
 // API functions below.  External code should use property aliases defined on
 // GraphCanvas (selectedComponent, selectedComponentIds, selectedConnection,
-// nodeInteractionActive, enableBackgroundDrag, …) rather than reading this
+// componentInteractionActive, enableBackgroundDrag, …) rather than reading this
 // object directly.
 import QtQuick
 import ComponentMapEditor
@@ -15,11 +15,11 @@ QtObject {
 
     // ── Interaction mode ──────────────────────────────────────────────────
     // Transitions are always made via the start*/end* functions below so that
-    // nodeInteractionActive and backgroundDragEnabled stay in sync.
+    // componentInteractionActive and backgroundDragEnabled stay in sync.
     enum InteractionMode {
         Idle,
-        NodeMove,
-        NodeResize,
+        ComponentMove,
+        ComponentResize,
         ConnectionDraw,
         MarqueeSelect
     }
@@ -58,7 +58,7 @@ QtObject {
     property bool suppressNextTap: false
 
     // ── Derived / computed state (read-only outside this object) ──────────
-    readonly property bool nodeInteractionActive: mode !== InteractionStateManager.Idle
+    readonly property bool componentInteractionActive: mode !== InteractionStateManager.Idle
     readonly property bool backgroundDragEnabled: mode === InteractionStateManager.Idle
     readonly property bool connectionDragging: mode === InteractionStateManager.ConnectionDraw
     readonly property bool marqueeSelecting: mode === InteractionStateManager.MarqueeSelect
@@ -214,22 +214,22 @@ QtObject {
     // Interaction mode transitions
     // ════════════════════════════════════════════════════════════════════════
 
-    function startNodeMove(target) {
+    function startComponentMove(target) {
         interactionTarget = target
-        mode = InteractionStateManager.NodeMove
+        mode = InteractionStateManager.ComponentMove
     }
 
-    function endNodeMove() {
+    function endComponentMove() {
         interactionTarget = null
         mode = InteractionStateManager.Idle
     }
 
-    function startNodeResize(target) {
+    function startComponentResize(target) {
         interactionTarget = target
-        mode = InteractionStateManager.NodeResize
+        mode = InteractionStateManager.ComponentResize
     }
 
-    function endNodeResize() {
+    function endComponentResize() {
         interactionTarget = null
         mode = InteractionStateManager.Idle
     }

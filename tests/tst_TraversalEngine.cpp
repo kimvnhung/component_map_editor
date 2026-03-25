@@ -283,7 +283,7 @@ void tst_TraversalEngine::memoryGrowthBoundedDuringRepeatedRuns()
     engine.setGraph(&graph);
     engine.refreshCache();
 
-    const int nodeCountBefore = engine.cachedNodeCount();
+    const int componentCountBefore = engine.cachedComponentCount();
     const int edgeCountBefore = engine.cachedEdgeCount();
     const qint64 rssBefore = currentRssBytes();
 
@@ -297,9 +297,9 @@ void tst_TraversalEngine::memoryGrowthBoundedDuringRepeatedRuns()
     }
 
     const qint64 rssAfter = currentRssBytes();
-    QCOMPARE(engine.cachedNodeCount(), nodeCountBefore);
+    QCOMPARE(engine.cachedComponentCount(), componentCountBefore);
     QCOMPARE(engine.cachedEdgeCount(), edgeCountBefore);
-    QCOMPARE(engine.pendingDirtyNodeCount(), 0);
+    QCOMPARE(engine.pendingDirtyComponentCount(), 0);
     QCOMPARE(engine.pendingDirtyConnectionCount(), 0);
 
     if (rssBefore > 0 && rssAfter > 0) {

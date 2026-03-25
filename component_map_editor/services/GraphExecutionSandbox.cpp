@@ -88,12 +88,12 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
 
     appendTimelineEvent(QStringLiteral("simulationStarted"),
                         QVariantMap{
-                            { QStringLiteral("componentCount"), m_nodesById.size() },
+                            { QStringLiteral("componentCount"), m_componentsById.size() },
                             { QStringLiteral("inputKeys"), inputSnapshot.keys() }
                         });
 
     setStatus(RunStatus::Paused);
-    finalizeIfNoReadyNodes();
+    finalizeIfNoReadyComponents();
     return m_status != RunStatus::Error;
 }
 
@@ -127,7 +127,7 @@ int GraphExecutionSandbox::run(int maxSteps)
             break;
 
         if (m_readyQueue.isEmpty()) {
-            finalizeIfNoReadyNodes();
+            finalizeIfNoReadyComponents();
             break;
         }
 
@@ -198,9 +198,9 @@ QVariantMap GraphExecutionSandbox::componentState(const QString &componentId) co
 QVariantMap GraphExecutionSandbox::snapshotSummary() const
 {
     return QVariantMap{
-        { QStringLiteral("componentCount"), m_nodesById.size() },
+        { QStringLiteral("componentCount"), m_componentsById.size() },
         { QStringLiteral("executedCount"), m_executed.size() },
-        { QStringLiteral("pendingCount"), m_nodesById.size() - m_executed.size() },
+        { QStringLiteral("pendingCount"), m_componentsById.size() - m_executed.size() },
         { QStringLiteral("readyQueue"), m_readyQueue },
         { QStringLiteral("breakpoints"), breakpoints() }
     };
@@ -277,7 +277,7 @@ void GraphExecutionSandbox::clearSimulationData()
     flushTimelineChanged();
     emit lastErrorChanged();
 
-    m_nodesById.clear();
+    m_componentsById.clear();
     m_outgoingBySource.clear();
     m_pendingInDegree.clear();
     m_executed.clear();
@@ -300,14 +300,14 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
         if (componentId.isEmpty())
             continue;
 
-        NodeSnapshot node;
-        node.id = componentId;
-        node.type = component->type();
-        node.title = component->title();
-        node.attributes = QVariantMap{
-            { QStringLiteral("id"), node.id },
-            { QStringLiteral("type"), node.type },
-            { QStringLiteral("title"), node.title },
+        ComponentSnapshot snap;
+        snap.id = componentId;
+        snap.type = component->type();
+        snap.title = component->title();
+        snap.attributes = QVariantMap{
+            { QStringLiteral("id"), snap.id },
+            { QStringLiteral("type"), snap.type },
+            { QStringLiteral("title"), snap.title },
             { QStringLiteral("x"), component->x() },
             { QStringLiteral("y"), component->y() },
             { QStringLiteral("width"), component->width() },
@@ -323,13 +323,13 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
             const QString key = QString::fromUtf8(propName);
             if (key.isEmpty())
                 continue;
-            node.attributes.insert(key, component->property(propName.constData()));
+            snap.attributes.insert(key, component->property(propName.constData()));
         }
 
-        m_nodesById.insert(node.id, node);
+        m_componentsById.insert(snap.id, snap);
     }
 
-    for (auto it = m_nodesById.constBegin(); it != m_nodesById.constEnd(); ++it)
+    for (auto it = m_componentsById.constBegin(); it != m_componentsById.constEnd(); ++it)
         m_pendingInDegree.insert(it.key(), 0);
 
     const QList<ConnectionModel *> connections = m_graph->connectionList();
@@ -343,7 +343,7 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
         edge.targetId = connection->targetId();
         edge.label = connection->label();
 
-        if (!m_nodesById.contains(edge.sourceId) || !m_nodesById.contains(edge.targetId))
+        if (!m_componentsById.contains(edge.sourceId) || !m_componentsById.contains(edge.targetId))
             continue;
 
         QList<EdgeSnapshot> &out = m_outgoingBySource[edge.sourceId];
@@ -360,11 +360,11 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
         });
     }
 
-    QStringList nodeIds = m_nodesById.keys();
-    std::sort(nodeIds.begin(), nodeIds.end(), idComparator);
-    for (const QString &nodeId : nodeIds) {
-        if (m_pendingInDegree.value(nodeId, 0) == 0)
-            enqueueReadyNode(nodeId);
+    QStringList componentIds = m_componentsById.keys();
+    std::sort(componentIds.begin(), componentIds.end(), idComparator);
+    for (const QString &componentId : componentIds) {
+        if (m_pendingInDegree.value(componentId, 0) == 0)
+            enqueueReadyComponent(componentId);
     }
 
     return true;
@@ -373,7 +373,7 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
 bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 {
     if (m_readyQueue.isEmpty()) {
-        finalizeIfNoReadyNodes();
+        finalizeIfNoReadyComponents();
         return m_status != RunStatus::Error;
     }
 
@@ -390,16 +390,16 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
     m_readyQueue.removeFirst();
     m_readyQueueSet.remove(componentId);
-    const NodeSnapshot node = m_nodesById.value(componentId);
+    const ComponentSnapshot component = m_componentsById.value(componentId);
     QVariantMap trace;
     QVariantMap outputState = m_executionState;
 
-    const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(node.type, nullptr);
+    const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(component.type, nullptr);
     if (provider) {
         QString error;
-        if (!provider->executeComponent(node.type,
-                                        node.id,
-                                        toComponentSnapshotMap(node),
+        if (!provider->executeComponent(component.type,
+                                        component.id,
+                                        toComponentSnapshotMap(component),
                                         m_executionState,
                                         &outputState,
                                         &trace,
@@ -411,50 +411,50 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     } else {
         trace.insert(QStringLiteral("provider"), QStringLiteral("default"));
         trace.insert(QStringLiteral("note"), QStringLiteral("No execution semantics provider registered for component type."));
-        outputState.insert(QStringLiteral("lastExecutedComponentId"), node.id);
+        outputState.insert(QStringLiteral("lastExecutedComponentId"), component.id);
     }
 
     m_executionState = outputState;
     emit executionStateChanged();
 
-    QVariantMap state = m_componentStates.value(node.id).toMap();
+    QVariantMap state = m_componentStates.value(component.id).toMap();
     state.insert(QStringLiteral("status"), QStringLiteral("executed"));
     state.insert(QStringLiteral("tick"), m_tick);
-    state.insert(QStringLiteral("type"), node.type);
+    state.insert(QStringLiteral("type"), component.type);
     if (!trace.isEmpty())
         state.insert(QStringLiteral("trace"), trace);
-    m_componentStates.insert(node.id, state);
+    m_componentStates.insert(component.id, state);
 
-    m_executed.insert(node.id);
+    m_executed.insert(component.id);
 
     appendTimelineEvent(QStringLiteral("stepExecuted"),
                         QVariantMap{
-                            { QStringLiteral("componentId"), node.id },
-                            { QStringLiteral("componentType"), node.type },
+                            { QStringLiteral("componentId"), component.id },
+                            { QStringLiteral("componentType"), component.type },
                             { QStringLiteral("trace"), trace }
                         });
 
-    const QList<EdgeSnapshot> outgoing = m_outgoingBySource.value(node.id);
+    const QList<EdgeSnapshot> outgoing = m_outgoingBySource.value(component.id);
     for (const EdgeSnapshot &edge : outgoing) {
         const QString targetId = edge.targetId;
         const int updatedInDegree = m_pendingInDegree.value(targetId, 0) - 1;
         m_pendingInDegree[targetId] = updatedInDegree;
         if (updatedInDegree == 0)
-            enqueueReadyNode(targetId);
+            enqueueReadyComponent(targetId);
     }
 
     ++m_tick;
     emit currentTickChanged();
-    finalizeIfNoReadyNodes();
+    finalizeIfNoReadyComponents();
     return true;
 }
 
-void GraphExecutionSandbox::finalizeIfNoReadyNodes()
+void GraphExecutionSandbox::finalizeIfNoReadyComponents()
 {
     if (!m_readyQueue.isEmpty())
         return;
 
-    if (m_executed.size() == m_nodesById.size()) {
+    if (m_executed.size() == m_componentsById.size()) {
         appendTimelineEvent(QStringLiteral("simulationCompleted"),
                             QVariantMap{
                                 { QStringLiteral("executedCount"), m_executed.size() }
@@ -467,13 +467,13 @@ void GraphExecutionSandbox::finalizeIfNoReadyNodes()
         appendTimelineEvent(QStringLiteral("simulationBlocked"),
                             QVariantMap{
                                 { QStringLiteral("executedCount"), m_executed.size() },
-                                { QStringLiteral("remainingCount"), m_nodesById.size() - m_executed.size() }
+                                { QStringLiteral("remainingCount"), m_componentsById.size() - m_executed.size() }
                             });
         setStatus(RunStatus::Completed);
     }
 }
 
-void GraphExecutionSandbox::enqueueReadyNode(const QString &componentId)
+void GraphExecutionSandbox::enqueueReadyComponent(const QString &componentId)
 {
     if (componentId.isEmpty() || m_executed.contains(componentId) || m_readyQueueSet.contains(componentId))
         return;
@@ -483,7 +483,7 @@ void GraphExecutionSandbox::enqueueReadyNode(const QString &componentId)
     m_readyQueueSet.insert(componentId);
 }
 
-QVariantMap GraphExecutionSandbox::toComponentSnapshotMap(const NodeSnapshot &node) const
+QVariantMap GraphExecutionSandbox::toComponentSnapshotMap(const ComponentSnapshot &component) const
 {
-    return node.attributes;
+    return component.attributes;
 }

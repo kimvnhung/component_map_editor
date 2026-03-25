@@ -1,10 +1,10 @@
-#include "NodeRenderPass.h"
+#include "ComponentRenderPass.h"
 
 #include <QSGGeometry>
 #include <QSGGeometryNode>
 #include <QSGNode>
 
-namespace NodeRenderPass {
+namespace ComponentRenderPass {
 namespace {
 
 void clearColoredNode(QSGGeometryNode *node)
@@ -39,20 +39,20 @@ void appendTriangleRect(QSGGeometry::ColoredPoint2D *verts,
 
 } // namespace
 
-void updateNodeBodyGeometry(QSGGeometryNode *nodeFillGeomNode,
-                            QSGGeometryNode *nodeOutlineGeomNode,
-                            bool renderNodes,
-                            bool lodHideNodeOutlines,
-                            const QVector<QRectF> &worldRects,
-                            const QVector<QColor> &fillColors,
-                            const QVector<bool> &selectedFlags)
+void updateComponentBodyGeometry(QSGGeometryNode *componentFillGeomNode,
+                                  QSGGeometryNode *componentOutlineGeomNode,
+                                  bool renderComponents,
+                                  bool lodHideComponentOutlines,
+                                  const QVector<QRectF> &worldRects,
+                                  const QVector<QColor> &fillColors,
+                                  const QVector<bool> &selectedFlags)
 {
-    if (!nodeFillGeomNode || !nodeOutlineGeomNode)
+    if (!componentFillGeomNode || !componentOutlineGeomNode)
         return;
 
-    if (!renderNodes) {
-        clearColoredNode(nodeFillGeomNode);
-        clearColoredNode(nodeOutlineGeomNode);
+    if (!renderComponents) {
+        clearColoredNode(componentFillGeomNode);
+        clearColoredNode(componentOutlineGeomNode);
         return;
     }
 
@@ -61,15 +61,15 @@ void updateNodeBodyGeometry(QSGGeometryNode *nodeFillGeomNode,
         return;
 
     const int fillVertexCount = count * 6;
-    if (nodeFillGeomNode->geometry()->vertexCount() != fillVertexCount)
-        nodeFillGeomNode->geometry()->allocate(fillVertexCount);
+    if (componentFillGeomNode->geometry()->vertexCount() != fillVertexCount)
+        componentFillGeomNode->geometry()->allocate(fillVertexCount);
 
-    const int outlineVertexCount = lodHideNodeOutlines ? 0 : count * 24;
-    if (nodeOutlineGeomNode->geometry()->vertexCount() != outlineVertexCount)
-        nodeOutlineGeomNode->geometry()->allocate(outlineVertexCount);
+    const int outlineVertexCount = lodHideComponentOutlines ? 0 : count * 24;
+    if (componentOutlineGeomNode->geometry()->vertexCount() != outlineVertexCount)
+        componentOutlineGeomNode->geometry()->allocate(outlineVertexCount);
 
-    auto *fillVerts = nodeFillGeomNode->geometry()->vertexDataAsColoredPoint2D();
-    auto *outlineVerts = nodeOutlineGeomNode->geometry()->vertexDataAsColoredPoint2D();
+    auto *fillVerts = componentFillGeomNode->geometry()->vertexDataAsColoredPoint2D();
+    auto *outlineVerts = componentOutlineGeomNode->geometry()->vertexDataAsColoredPoint2D();
     int fillIdx = 0;
     int outlineIdx = 0;
 
@@ -79,7 +79,7 @@ void updateNodeBodyGeometry(QSGGeometryNode *nodeFillGeomNode,
 
         appendTriangleRect(fillVerts, fillIdx, viewRect, fillColor);
 
-        if (!lodHideNodeOutlines) {
+        if (!lodHideComponentOutlines) {
             const bool selected = selectedFlags.at(i);
             const qreal borderWidth = selected ? 2.5 : 1.5;
             const QColor borderColor = selected
@@ -111,8 +111,8 @@ void updateNodeBodyGeometry(QSGGeometryNode *nodeFillGeomNode,
         }
     }
 
-    nodeFillGeomNode->markDirty(QSGNode::DirtyGeometry);
-    nodeOutlineGeomNode->markDirty(QSGNode::DirtyGeometry);
+    componentFillGeomNode->markDirty(QSGNode::DirtyGeometry);
+    componentOutlineGeomNode->markDirty(QSGNode::DirtyGeometry);
 }
 
-} // namespace NodeRenderPass
+} // namespace ComponentRenderPass

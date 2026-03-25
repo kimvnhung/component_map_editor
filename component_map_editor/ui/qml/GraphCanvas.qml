@@ -57,14 +57,14 @@ Item {
     property real panY: 0
     // Interaction-mode derived state — mutated only through interactionState transitions.
     readonly property alias enableBackgroundDrag: interactionState.backgroundDragEnabled
-    readonly property alias nodeInteractionActive: interactionState.nodeInteractionActive
+    readonly property alias componentInteractionActive: interactionState.componentInteractionActive
     property bool pointerOverComponent: false
     property ComponentModel hoveredComponent: null
     // pressedComponent: transient per-pointer-event state only; not persisted interaction state.
     property ComponentModel pressedComponent: null
     readonly property alias activeInteractionComponent: interactionState.interactionTarget
     property alias suppressNextCanvasTap: interactionState.suppressNextTap
-    readonly property var nodeRenderer: nodeViewport
+    readonly property var componentRenderer: componentViewport
     readonly property var edgeRenderer: edgeViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
@@ -472,14 +472,14 @@ Item {
     }
 
     function viewToWorld(viewX, viewY) {
-        if (nodeViewport)
-            return nodeViewport.viewToWorld(viewX, viewY)
+        if (componentViewport)
+            return componentViewport.viewToWorld(viewX, viewY)
         return Qt.point(0, 0)
     }
 
     function worldToView(worldX, worldY) {
-        if (nodeViewport)
-            return nodeViewport.worldToView(worldX, worldY)
+        if (componentViewport)
+            return componentViewport.worldToView(worldX, worldY)
         return Qt.point(0, 0)
     }
 
@@ -491,10 +491,10 @@ Item {
     // Zooms around a view-space anchor and lets C++ compute the camera state,
     // keeping one authoritative camera math path.
     function zoomAtView(viewX, viewY, zoomFactor) {
-        if (!nodeViewport)
+        if (!componentViewport)
             return
 
-        var state = nodeViewport.zoomAtViewAnchor(viewX,
+        var state = componentViewport.zoomAtViewAnchor(viewX,
                                                   viewY,
                                                   zoomFactor,
                                                   minZoom,
@@ -776,7 +776,7 @@ Item {
     }
 
     GraphViewportItem {
-        id: nodeViewport
+        id: componentViewport
         anchors.fill: parent
         z: 0.2
         graph: root.graph
@@ -785,7 +785,7 @@ Item {
         zoom: root.zoom
         renderGrid: false
         renderEdges: false
-        renderNodes: true
+        renderComponents: true
         selectedComponent: root.selectedComponent
         selectedComponentIds: root.selectedComponentIds
     }
@@ -849,7 +849,7 @@ Item {
         DragHandler {
             id: canvasDrag
             enabled: root.enableBackgroundDrag
-                     && !root.nodeInteractionActive
+                     && !root.componentInteractionActive
                      && !root.ctrlSelectionModifierActive
                      && !root.pressedComponent
             target: null
@@ -1110,7 +1110,7 @@ Item {
                         }
 
                         onMoveStarted: {
-                            interactionState.startNodeMove(modelData)
+                            interactionState.startComponentMove(modelData)
                             var nextMoveStart = root.moveStartPositions
                             nextMoveStart[modelData.id] = Qt.point(modelData.x,
                                                                    modelData.y)
@@ -1126,17 +1126,17 @@ Item {
                         onMoveFinished: {
                             root.commitMoveCommands(modelData)
                             root.endGroupMove()
-                            interactionState.endNodeMove()
+                            interactionState.endComponentMove()
                             if (root.telemetry) root.telemetry.notifyDragEnded()
                         }
 
                         onResizeStarted: {
-                            interactionState.startNodeResize(modelData)
+                            interactionState.startComponentResize(modelData)
                             root.startResizeCapture(modelData)
                         }
                         onResizeFinished: {
                             root.commitResizeCommand(modelData)
-                            interactionState.endNodeResize()
+                            interactionState.endComponentResize()
                         }
 
                         onHoverPositionChanged: function (hoverX, hoverY) {

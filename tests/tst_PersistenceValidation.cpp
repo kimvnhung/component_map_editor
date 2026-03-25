@@ -153,7 +153,7 @@ void PersistenceValidationTests::validationCatchesExpectedSchemaErrors()
     graph.beginBatchUpdate();
 
     auto *componentA = new ComponentModel(QStringLiteral("A"),
-                                          QStringLiteral("NodeA"),
+                                          QStringLiteral("ComponentA"),
                                           0.0,
                                           0.0);
     graph.addComponent(componentA);

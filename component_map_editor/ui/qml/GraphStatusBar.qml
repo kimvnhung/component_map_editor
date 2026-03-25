@@ -105,7 +105,7 @@ Rectangle {
 
             StatPill {
                 iconName: "tag"
-                valueText: "Node " + root.selectedComponentTitle
+                valueText: "Component " + root.selectedComponentTitle
                 accent: "#ff9f7f"
             }
 

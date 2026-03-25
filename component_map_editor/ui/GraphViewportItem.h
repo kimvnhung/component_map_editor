@@ -38,7 +38,7 @@ class GraphViewportItem : public QQuickItem
 
     Q_PROPERTY(bool renderGrid READ renderGrid WRITE setRenderGrid NOTIFY renderGridChanged FINAL)
     Q_PROPERTY(bool renderEdges READ renderEdges WRITE setRenderEdges NOTIFY renderEdgesChanged FINAL)
-    Q_PROPERTY(bool renderNodes READ renderNodes WRITE setRenderNodes NOTIFY renderNodesChanged FINAL)
+    Q_PROPERTY(bool renderComponents READ renderComponents WRITE setRenderComponents NOTIFY renderComponentsChanged FINAL)
 
     Q_PROPERTY(qreal baseGridStep READ baseGridStep WRITE setBaseGridStep NOTIFY baseGridStepChanged FINAL)
     Q_PROPERTY(qreal minGridPixelStep READ minGridPixelStep WRITE setMinGridPixelStep NOTIFY minGridPixelStepChanged FINAL)
@@ -73,8 +73,8 @@ public:
     bool renderEdges() const;
     void setRenderEdges(bool value);
 
-    bool renderNodes() const;
-    void setRenderNodes(bool value);
+    bool renderComponents() const;
+    void setRenderComponents(bool value);
 
     qreal baseGridStep() const;
     void setBaseGridStep(qreal value);
@@ -149,7 +149,7 @@ signals:
     void zoomChanged();
     void renderGridChanged();
     void renderEdgesChanged();
-    void renderNodesChanged();
+    void renderComponentsChanged();
     void baseGridStepChanged();
     void minGridPixelStepChanged();
     void maxGridPixelStepChanged();
@@ -178,7 +178,7 @@ private:
     void scheduleGraphRebuild();
     void executeScheduledGraphRebuild();
     void updateLodState();
-    void requestNodeRepaint();
+    void requestComponentRepaint();
 
     void markSpatialIndexDirty();
     void ensureSpatialIndex();
@@ -187,8 +187,8 @@ private:
     void clearConnectionGeometryConnections();
     QVector<int> visibleComponentIndices() const;
     QVector<IndexedComponent> visibleComponentsSnapshot() const;
-    void updateNodeGeometry();
-    void updateLabelNodes();
+    void updateComponentGeometry();
+    void updateLabelComponents();
     QString labelCacheKey(const ComponentModel *component) const;
     void clearLabelTexturesOnRenderThread();
 
@@ -212,7 +212,7 @@ private:
 
     bool m_renderGrid = false;
     bool m_renderEdges = false;
-    bool m_renderNodes = false;
+    bool m_renderComponents = false;
 
     qreal m_baseGridStep = 30.0;
     qreal m_minGridPixelStep = 16.0;
@@ -236,11 +236,11 @@ private:
     // Persistent scene-graph node cache (render-thread only).
     QSGNode          *m_rootNode              = nullptr;
     QSGGeometryNode  *m_gridGeomNode          = nullptr;
-    QSGNode          *m_nodesRootNode         = nullptr;
-    QSGTransformNode *m_nodesTransformNode    = nullptr;
-    QSGGeometryNode  *m_nodeFillGeomNode      = nullptr;
-    QSGGeometryNode  *m_nodeOutlineGeomNode   = nullptr;
-    QSGNode          *m_nodeLabelsRootNode    = nullptr;
+    QSGNode          *m_componentsRootNode         = nullptr;
+    QSGTransformNode *m_componentsTransformNode    = nullptr;
+    QSGGeometryNode  *m_componentFillGeomNode      = nullptr;
+    QSGGeometryNode  *m_componentOutlineGeomNode   = nullptr;
+    QSGNode          *m_componentLabelsRootNode    = nullptr;
     QSGTransformNode *m_edgesTransformNode    = nullptr;
     QSGGeometryNode  *m_normalEdgesGeomNode   = nullptr;
     QSGGeometryNode  *m_selectedEdgesGeomNode = nullptr;
@@ -251,13 +251,13 @@ private:
     // Dirty flags: written on main thread, read on render thread (sync phase).
     bool m_graphDirty  = true;   // edge/temp geometry must be rebuilt
     bool m_cameraDirty = true;   // grid geometry + edge transform matrix must update
-    bool m_nodeDirty   = true;   // node fill/outline and label state must update
+    bool m_componentDirty   = true;   // component fill/outline and label state must update
     bool m_graphRebuildScheduled = false;
 
     // Phase 6 LOD flags (updated from camera zoom).
     bool m_lodSimpleEdges = false;
-    bool m_lodHideNodeLabels = false;
-    bool m_lodHideNodeOutlines = false;
+    bool m_lodHideComponentLabels = false;
+    bool m_lodHideComponentOutlines = false;
 
     // Spatial index (main thread only; used by QML hit-test invokables).
     bool m_spatialIndexDirty = true;

@@ -232,8 +232,8 @@ Rectangle {
         var datasetSize = root.matrixDatasets[root.matrixDatasetIndex]
         if (root.matrixStageIndex === 0) {
             root._captureBaseline()
-            if (root.canvas && root.canvas.nodeRenderer)
-                root.canvas.nodeRenderer.renderNodes = true
+            if (root.canvas && root.canvas.componentRenderer)
+                root.canvas.componentRenderer.renderComponents = true
             benchHelper.populateGraph(root.graph, datasetSize)
         }
 
@@ -440,9 +440,9 @@ Rectangle {
             Label {
                 text: "RSS: " + (root._rssKb / 1024).toFixed(1) + " MB"
                       + "   Δ " + ((root._rssKb - root._baselineRssKb) / 1024).toFixed(1) + " MB"
-                                            + (root.canvas && root.canvas.nodeRenderer
-                                                     ? "   Renderer≈" + root.canvas.nodeRenderer.rendererMemoryEstimateMb().toFixed(1) + " MB"
-                                                         + "   LabelCache=" + root.canvas.nodeRenderer.labelTextureCacheSize()
+                                            + (root.canvas && root.canvas.componentRenderer
+                                                     ? "   Renderer≈" + root.canvas.componentRenderer.rendererMemoryEstimateMb().toFixed(1) + " MB"
+                                                         + "   LabelCache=" + root.canvas.componentRenderer.labelTextureCacheSize()
                                                      : "")
                 font.pixelSize: 11
                 color: "#555"
@@ -467,8 +467,8 @@ Rectangle {
                     implicitWidth:  44
                     onClicked: {
                         root._captureBaseline()
-                        if (root.canvas && root.canvas.nodeRenderer)
-                            root.canvas.nodeRenderer.renderNodes = true
+                        if (root.canvas && root.canvas.componentRenderer)
+                            root.canvas.componentRenderer.renderComponents = true
                         benchHelper.populateGraph(root.graph, modelData)
                     }
                 }
@@ -499,10 +499,10 @@ Rectangle {
                     root.telemetry.enabled = false
                     root.frameTelemetry.enabled = false
                     if (root.canvas) {
-                        if (root.canvas.nodeRenderer)
-                            root.canvas.nodeRenderer.renderNodes = false
+                        if (root.canvas.componentRenderer)
+                            root.canvas.componentRenderer.renderComponents = false
                         root.canvas.tempConnectionDragging = false
-                        root.canvas.nodeInteractionActive = false
+                        root.canvas.componentInteractionActive = false
                         root.canvas.enableBackgroundDrag = true
                         root.canvas.selectedComponent = null
                         root.canvas.selectedConnection = null

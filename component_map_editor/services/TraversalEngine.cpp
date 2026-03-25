@@ -223,7 +223,7 @@ QVariantMap TraversalEngine::topologicalTraversal(const QVariantMap &policyMap)
     result.insert(QStringLiteral("order"), order);
     result.insert(QStringLiteral("acyclic"), order.size() == nodes.size());
     result.insert(QStringLiteral("visitedCount"), order.size());
-    result.insert(QStringLiteral("nodeCount"), nodes.size());
+    result.insert(QStringLiteral("componentCount"), nodes.size());
     return result;
 }
 
@@ -232,16 +232,16 @@ QVariantList TraversalEngine::stronglyConnectedComponents(const QVariantMap &pol
     ensureCacheReady();
     const RuntimePolicy policy = parsePolicy({}, policyMap);
 
-    QHash<QString, int> indexByNode;
-    QHash<QString, int> lowlinkByNode;
+    QHash<QString, int> indexByComponent;
+    QHash<QString, int> lowlinkByComponent;
     QSet<QString> onStack;
     QStringList stack;
     QVariantList components;
     int index = 0;
 
     std::function<void(const QString &)> strongConnect = [&](const QString &node) {
-        indexByNode.insert(node, index);
-        lowlinkByNode.insert(node, index);
+        indexByComponent.insert(node, index);
+        lowlinkByComponent.insert(node, index);
         ++index;
         stack.append(node);
         onStack.insert(node);
@@ -251,15 +251,15 @@ QVariantList TraversalEngine::stronglyConnectedComponents(const QVariantMap &pol
             const QString next = edge.targetId;
             if (isPruned(next, policy))
                 continue;
-            if (!indexByNode.contains(next)) {
+            if (!indexByComponent.contains(next)) {
                 strongConnect(next);
-                lowlinkByNode[node] = qMin(lowlinkByNode[node], lowlinkByNode[next]);
+                lowlinkByComponent[node] = qMin(lowlinkByComponent[node], lowlinkByComponent[next]);
             } else if (onStack.contains(next)) {
-                lowlinkByNode[node] = qMin(lowlinkByNode[node], indexByNode[next]);
+                lowlinkByComponent[node] = qMin(lowlinkByComponent[node], indexByComponent[next]);
             }
         }
 
-        if (lowlinkByNode.value(node) == indexByNode.value(node)) {
+        if (lowlinkByComponent.value(node) == indexByComponent.value(node)) {
             QVariantList component;
             while (!stack.isEmpty()) {
                 const QString top = stack.takeLast();
@@ -277,7 +277,7 @@ QVariantList TraversalEngine::stronglyConnectedComponents(const QVariantMap &pol
     for (const QString &node : std::as_const(nodes)) {
         if (isPruned(node, policy))
             continue;
-        if (!indexByNode.contains(node))
+        if (!indexByComponent.contains(node))
             strongConnect(node);
     }
 
@@ -309,8 +309,8 @@ QStringList TraversalEngine::shortestPath(const QString &sourceId,
     QHash<QString, QString> prev;
     QSet<QString> unvisited;
 
-    const QStringList allNodes = m_componentTypeById.keys();
-    for (const QString &node : allNodes) {
+    const QStringList allComponents = m_componentTypeById.keys();
+    for (const QString &node : allComponents) {
         if (isPruned(node, policy))
             continue;
         dist.insert(node, std::numeric_limits<double>::infinity());
@@ -385,7 +385,7 @@ int TraversalEngine::incrementalRecomputeCount() const
     return m_incrementalRecomputeCount;
 }
 
-int TraversalEngine::cachedNodeCount() const
+int TraversalEngine::cachedComponentCount() const
 {
     return m_componentTypeById.size();
 }
@@ -395,7 +395,7 @@ int TraversalEngine::cachedEdgeCount() const
     return m_edgesById.size();
 }
 
-int TraversalEngine::pendingDirtyNodeCount() const
+int TraversalEngine::pendingDirtyComponentCount() const
 {
     return m_dirtyComponentIds.size();
 }

@@ -64,7 +64,7 @@ signals:
     void lastErrorChanged();
 
 private:
-    struct NodeSnapshot {
+    struct ComponentSnapshot {
         QString id;
         QString type;
         QString title;
@@ -95,11 +95,11 @@ private:
     void clearSimulationData();
     bool captureGraphSnapshot();
     bool executeOneStep(bool bypassBreakpoint);
-    void finalizeIfNoReadyNodes();
+    void finalizeIfNoReadyComponents();
     void flushTimelineChanged();
 
-    void enqueueReadyNode(const QString &componentId);
-    QVariantMap toComponentSnapshotMap(const NodeSnapshot &node) const;
+    void enqueueReadyComponent(const QString &componentId);
+    QVariantMap toComponentSnapshotMap(const ComponentSnapshot &component) const;
 
     QPointer<GraphModel> m_graph;
     RunStatus m_status = RunStatus::Idle;
@@ -111,7 +111,7 @@ private:
     QVariantList m_timeline;
     QString m_lastError;
 
-    QHash<QString, NodeSnapshot> m_nodesById;
+    QHash<QString, ComponentSnapshot> m_componentsById;
     QHash<QString, QList<EdgeSnapshot>> m_outgoingBySource;
     QHash<QString, int> m_pendingInDegree;
     QSet<QString> m_executed;

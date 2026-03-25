@@ -48,9 +48,9 @@ public:
 
     int fullRebuildCount() const;
     int incrementalRecomputeCount() const;
-    int cachedNodeCount() const;
+    int cachedComponentCount() const;
     int cachedEdgeCount() const;
-    int pendingDirtyNodeCount() const;
+    int pendingDirtyComponentCount() const;
     int pendingDirtyConnectionCount() const;
     void markFullDirtyForTest();
 

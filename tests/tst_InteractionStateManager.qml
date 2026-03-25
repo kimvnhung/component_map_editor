@@ -46,7 +46,7 @@ TestCase {
         compare(sm.connectionIds.length, 0)
         compare(sm.mode, InteractionStateManager.Idle)
         compare(sm.interactionTarget, null)
-        compare(sm.nodeInteractionActive, false)
+        compare(sm.componentInteractionActive, false)
         compare(sm.backgroundDragEnabled, true)
         compare(sm.connectionDragging, false)
         compare(sm.marqueeSelecting, false)
@@ -241,32 +241,32 @@ TestCase {
         verify(!sm.isSelected(null))
     }
 
-    // ── Interaction mode: NodeMove ─────────────────────────────────────────
+    // ── Interaction mode: ComponentMove ─────────────────────────────────────────
 
     function test_nodeMove_startEnd() {
         var c1 = makeComponent("c1")
         compare(sm.mode, InteractionStateManager.Idle)
-        sm.startNodeMove(c1)
-        compare(sm.mode, InteractionStateManager.NodeMove)
+        sm.startComponentMove(c1)
+        compare(sm.mode, InteractionStateManager.ComponentMove)
         compare(sm.interactionTarget, c1)
-        compare(sm.nodeInteractionActive, true)
+        compare(sm.componentInteractionActive, true)
         compare(sm.backgroundDragEnabled, false)
-        sm.endNodeMove()
+        sm.endComponentMove()
         compare(sm.mode, InteractionStateManager.Idle)
         compare(sm.interactionTarget, null)
-        compare(sm.nodeInteractionActive, false)
+        compare(sm.componentInteractionActive, false)
         compare(sm.backgroundDragEnabled, true)
     }
 
-    // ── Interaction mode: NodeResize ───────────────────────────────────────
+    // ── Interaction mode: ComponentResize ───────────────────────────────────────
 
     function test_nodeResize_startEnd() {
         var c1 = makeComponent("c1")
-        sm.startNodeResize(c1)
-        compare(sm.mode, InteractionStateManager.NodeResize)
+        sm.startComponentResize(c1)
+        compare(sm.mode, InteractionStateManager.ComponentResize)
         compare(sm.interactionTarget, c1)
-        compare(sm.nodeInteractionActive, true)
-        sm.endNodeResize()
+        compare(sm.componentInteractionActive, true)
+        sm.endComponentResize()
         compare(sm.mode, InteractionStateManager.Idle)
         compare(sm.interactionTarget, null)
     }
@@ -280,6 +280,7 @@ TestCase {
         sm.startConnectionDraw(c1, vs, ve)
         compare(sm.mode, InteractionStateManager.ConnectionDraw)
         compare(sm.connectionDragging, true)
+        compare(sm.componentInteractionActive, true)
         compare(sm.interactionTarget, c1)
         compare(sm.tempStart.x, 10)
         compare(sm.tempStart.y, 20)
@@ -317,7 +318,7 @@ TestCase {
     function test_resetInteraction_preservesSelection() {
         var c1 = makeComponent("c1")
         sm.selectSingle(c1)
-        sm.startNodeMove(c1)
+        sm.startComponentMove(c1)
         sm.suppressNextTap = true
         sm.resetInteraction()
         compare(sm.mode, InteractionStateManager.Idle)

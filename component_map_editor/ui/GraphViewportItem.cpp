@@ -9,7 +9,7 @@
 #include "rendering/LabelTextureBuilder.h"
 #include "rendering/LabelRenderPass.h"
 #include "rendering/LabelTextureNode.h"
-#include "rendering/NodeRenderPass.h"
+#include "rendering/ComponentRenderPass.h"
 #include "routing/OrthogonalHeuristicStrategy.h"
 #include "routing/RoutingEngine.h"
 #include "routing/RoutingHelpers.h"
@@ -875,7 +875,7 @@ void GraphViewportItem::geometryChange(const QRectF &newGeometry, const QRectF &
         return;
 
     m_cameraDirty = true;
-    m_nodeDirty = true;
+    m_componentDirty = true;
     update();
 }
 
@@ -911,7 +911,7 @@ void GraphViewportItem::setGraph(QObject *value)
     emit graphChanged();
     markSpatialIndexDirty();
     m_graphDirty = true;
-    m_nodeDirty = true;
+    m_componentDirty = true;
     update();
 }
 
@@ -997,18 +997,18 @@ void GraphViewportItem::setRenderEdges(bool value)
     update();
 }
 
-bool GraphViewportItem::renderNodes() const
+bool GraphViewportItem::renderComponents() const
 {
-    return m_renderNodes;
+    return m_renderComponents;
 }
 
-void GraphViewportItem::setRenderNodes(bool value)
+void GraphViewportItem::setRenderComponents(bool value)
 {
-    if (m_renderNodes == value)
+    if (m_renderComponents == value)
         return;
-    m_renderNodes = value;
-    emit renderNodesChanged();
-    m_nodeDirty = true;
+    m_renderComponents = value;
+    emit renderComponentsChanged();
+    m_componentDirty = true;
     m_cameraDirty = true;
     update();
 }
@@ -1107,7 +1107,7 @@ void GraphViewportItem::setSelectedComponent(QObject *value)
         return;
     m_selectedComponent = value;
     emit selectedComponentChanged();
-    m_nodeDirty = true;
+    m_componentDirty = true;
     update();
 }
 
@@ -1130,7 +1130,7 @@ void GraphViewportItem::setSelectedComponentIds(const QVariantList &value)
     }
 
     emit selectedComponentIdsChanged();
-    m_nodeDirty = true;
+    m_componentDirty = true;
     update();
 }
 
@@ -1370,7 +1370,7 @@ void GraphViewportItem::requestGraphRebuild()
 {
     markSpatialIndexDirty();
     m_graphDirty = true;
-    m_nodeDirty = true;
+    m_componentDirty = true;
     scheduleGraphRebuild();
     update();
 }
@@ -1391,7 +1391,7 @@ void GraphViewportItem::executeScheduledGraphRebuild()
     m_graphRebuildScheduled = false;
     ensureSpatialIndex();
     m_graphDirty = true;
-    m_nodeDirty = true;
+    m_componentDirty = true;
     update();
 }
 
@@ -1405,13 +1405,13 @@ void GraphViewportItem::updateLodState()
     if (edgeModeChanged)
         m_lodSimpleEdges = simpleEdges;
 
-    const bool labelModeChanged = (hideLabels != m_lodHideNodeLabels);
+    const bool labelModeChanged = (hideLabels != m_lodHideComponentLabels);
     if (labelModeChanged)
-        m_lodHideNodeLabels = hideLabels;
+        m_lodHideComponentLabels = hideLabels;
 
-    const bool outlineModeChanged = (hideOutlines != m_lodHideNodeOutlines);
+    const bool outlineModeChanged = (hideOutlines != m_lodHideComponentOutlines);
     if (outlineModeChanged)
-        m_lodHideNodeOutlines = hideOutlines;
+        m_lodHideComponentOutlines = hideOutlines;
 
     if (edgeModeChanged) {
         auto *normalGeom = m_normalEdgesGeomNode ? m_normalEdgesGeomNode->geometry() : nullptr;
@@ -1448,12 +1448,12 @@ void GraphViewportItem::updateLodState()
     }
 
     if (labelModeChanged || outlineModeChanged)
-        m_nodeDirty = true;
+        m_componentDirty = true;
 }
 
-void GraphViewportItem::requestNodeRepaint()
+void GraphViewportItem::requestComponentRepaint()
 {
-    m_nodeDirty = true;
+    m_componentDirty = true;
     update();
 }
 
@@ -1490,16 +1490,16 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         m_gridGeomNode = createEmptyLineNode(QColor(QStringLiteral("#e0e0e0")), 1.0f);
         m_rootNode->appendChildNode(m_gridGeomNode);
 
-        m_nodesRootNode = new QSGNode();
-        m_nodesTransformNode = new QSGTransformNode();
-        m_nodeFillGeomNode = createEmptyColoredNode();
-        m_nodeOutlineGeomNode = createEmptyColoredNode();
-        m_nodeLabelsRootNode = new QSGNode();
-        m_nodesTransformNode->appendChildNode(m_nodeFillGeomNode);
-        m_nodesTransformNode->appendChildNode(m_nodeOutlineGeomNode);
-        m_nodesTransformNode->appendChildNode(m_nodeLabelsRootNode);
-        m_nodesRootNode->appendChildNode(m_nodesTransformNode);
-        m_rootNode->appendChildNode(m_nodesRootNode);
+        m_componentsRootNode = new QSGNode();
+        m_componentsTransformNode = new QSGTransformNode();
+        m_componentFillGeomNode = createEmptyColoredNode();
+        m_componentOutlineGeomNode = createEmptyColoredNode();
+        m_componentLabelsRootNode = new QSGNode();
+        m_componentsTransformNode->appendChildNode(m_componentFillGeomNode);
+        m_componentsTransformNode->appendChildNode(m_componentOutlineGeomNode);
+        m_componentsTransformNode->appendChildNode(m_componentLabelsRootNode);
+        m_componentsRootNode->appendChildNode(m_componentsTransformNode);
+        m_rootNode->appendChildNode(m_componentsRootNode);
 
         m_edgesTransformNode    = new QSGTransformNode();
         m_normalEdgesGeomNode   = createEmptyLineNode(QColor(QStringLiteral("#607d8b")), 2.0f);
@@ -1518,7 +1518,7 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         // Force a full update on the first frame.
         m_graphDirty  = true;
         m_cameraDirty = true;
-        m_nodeDirty = true;
+        m_componentDirty = true;
         oldNode = m_rootNode;
     }
 
@@ -1554,15 +1554,15 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         cam.translate(float(m_panX), float(m_panY));
         cam.scale(float(m_zoom));
         m_edgesTransformNode->setMatrix(cam);
-        if (m_nodesTransformNode)
-            m_nodesTransformNode->setMatrix(cam);
+        if (m_componentsTransformNode)
+            m_componentsTransformNode->setMatrix(cam);
 
         m_cameraDirty = false;
     }
 
-    if (m_nodeDirty) {
-        updateNodeGeometry();
-        m_nodeDirty = false;
+    if (m_componentDirty) {
+        updateComponentGeometry();
+        m_componentDirty = false;
     }
 
     return oldNode;
@@ -1680,17 +1680,17 @@ QVector<GraphViewportItem::IndexedComponent> GraphViewportItem::visibleComponent
     return result;
 }
 
-void GraphViewportItem::updateNodeGeometry()
+void GraphViewportItem::updateComponentGeometry()
 {
-    if (!m_renderNodes || !m_nodesRootNode) {
-        NodeRenderPass::updateNodeBodyGeometry(m_nodeFillGeomNode,
-                                               m_nodeOutlineGeomNode,
+    if (!m_renderComponents || !m_componentsRootNode) {
+        ComponentRenderPass::updateComponentBodyGeometry(m_componentFillGeomNode,
+                                               m_componentOutlineGeomNode,
                                                false,
-                                               m_lodHideNodeOutlines,
+                                               m_lodHideComponentOutlines,
                                                QVector<QRectF>(),
                                                QVector<QColor>(),
                                                QVector<bool>());
-        updateLabelNodes();
+        updateLabelComponents();
         return;
     }
 
@@ -1714,14 +1714,14 @@ void GraphViewportItem::updateNodeGeometry()
                              || m_selectedComponentIdSet.contains(component->id()));
     }
 
-    NodeRenderPass::updateNodeBodyGeometry(m_nodeFillGeomNode,
-                                           m_nodeOutlineGeomNode,
+    ComponentRenderPass::updateComponentBodyGeometry(m_componentFillGeomNode,
+                                           m_componentOutlineGeomNode,
                                            true,
-                                           m_lodHideNodeOutlines,
+                                           m_lodHideComponentOutlines,
                                            worldRects,
                                            fillColors,
                                            selectedFlags);
-    updateLabelNodes();
+    updateLabelComponents();
 }
 
 QString GraphViewportItem::labelCacheKey(const ComponentModel *component) const
@@ -1736,16 +1736,16 @@ QString GraphViewportItem::labelCacheKey(const ComponentModel *component) const
                                                   availableHeight);
 }
 
-void GraphViewportItem::updateLabelNodes()
+void GraphViewportItem::updateLabelComponents()
 {
-    if (!m_nodeLabelsRootNode)
+    if (!m_componentLabelsRootNode)
         return;
 
-    const QVector<IndexedComponent> visible = (m_renderNodes ? visibleComponentsSnapshot()
+    const QVector<IndexedComponent> visible = (m_renderComponents ? visibleComponentsSnapshot()
                                                             : QVector<IndexedComponent>());
 
-    QVector<LabelTextureNode *> labelNodes = LabelRenderPass::collectLabelNodes(m_nodeLabelsRootNode);
-    LabelRenderPass::ensureLabelNodeCount(m_nodeLabelsRootNode, labelNodes, visible.size());
+    QVector<LabelTextureNode *> labelNodes = LabelRenderPass::collectLabelNodes(m_componentLabelsRootNode);
+    LabelRenderPass::ensureLabelNodeCount(m_componentLabelsRootNode, labelNodes, visible.size());
 
     // Avoid runtime texture destruction during active rendering paths.
 
@@ -1775,7 +1775,7 @@ void GraphViewportItem::updateLabelNodes()
 
     for (int i = 0; i < labelNodes.size(); ++i) {
         LabelTextureNode *node = labelNodes.at(i);
-        if (i >= visible.size() || !m_renderNodes || m_lodHideNodeLabels) {
+        if (i >= visible.size() || !m_renderComponents || m_lodHideComponentLabels) {
             node->setRect(0, 0, 0, 0);
             continue;
         }
@@ -1836,8 +1836,8 @@ void GraphViewportItem::clearLabelTexturesOnRenderThread()
 {
     // Walk the current scene-graph subtree instead of relying on cached
     // pointers which can be stale after scene-graph invalidation.
-    if (m_nodeLabelsRootNode) {
-        LabelRenderPass::clearAllLabelTextures(m_nodeLabelsRootNode);
+    if (m_componentLabelsRootNode) {
+        LabelRenderPass::clearAllLabelTextures(m_componentLabelsRootNode);
     }
 
     m_labelTextureCache.clear();
@@ -1918,19 +1918,19 @@ void GraphViewportItem::rebuildSpatialIndex()
                     this, &GraphViewportItem::requestGraphRebuild));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::titleChanged,
-                this, &GraphViewportItem::requestNodeRepaint));
+                this, &GraphViewportItem::requestComponentRepaint));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::contentChanged,
-                this, &GraphViewportItem::requestNodeRepaint));
+                this, &GraphViewportItem::requestComponentRepaint));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::iconChanged,
-                this, &GraphViewportItem::requestNodeRepaint));
+                this, &GraphViewportItem::requestComponentRepaint));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::colorChanged,
-                this, &GraphViewportItem::requestNodeRepaint));
+                this, &GraphViewportItem::requestComponentRepaint));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::shapeChanged,
-                this, &GraphViewportItem::requestNodeRepaint));
+                this, &GraphViewportItem::requestComponentRepaint));
         m_componentGeometryChangedConns.append(
             connect(component, &ComponentModel::idChanged,
                 this, &GraphViewportItem::requestGraphRebuild));

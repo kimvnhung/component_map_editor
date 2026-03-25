@@ -63,7 +63,7 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
                         QStringLiteral("Human-friendly label shown on the graph.")),
             withSection(entry("inputNumber", "number", "Input Number", true, 0, "spinbox"),
                         "Behavior", 20,
-                        QStringLiteral("Seed number consumed by the start node when simulation begins."),
+                        QStringLiteral("Seed number consumed by the start component when simulation begins."),
                         QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
             withSection(entry("icon", "string", "Icon", false, QString(), "textfield"),
                         "Appearance", 30,
@@ -83,7 +83,7 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         return {
             withSection(entry("title", "string", "Title", true, QString(), "textfield"),
                         "Identity", 1,
-                        QStringLiteral("Display title used in the node body.")),
+                        QStringLiteral("Display title used in the component body.")),
             withSection(entry("description", "string", "Description", false, QString(), "textarea"),
                         "Behavior", 20,
                         QStringLiteral("Optional implementation notes for this process.")),
