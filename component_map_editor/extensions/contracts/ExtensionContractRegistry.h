@@ -2,6 +2,7 @@
 #define EXTENSIONCONTRACTREGISTRY_H
 
 #include <QHash>
+#include <QList>
 #include <QString>
 #include <memory>
 #include <vector>
@@ -16,6 +17,13 @@
 #include "IExecutionSemanticsProviderV0.h"
 #include "IPropertySchemaProvider.h"
 #include "IValidationProvider.h"
+
+// Holds providers in insertion order while also providing O(1) duplicate-ID checks.
+template <typename T>
+struct ProviderRegistry {
+    QHash<QString, const T *> index; // keyed by provider ID for O(1) duplicate-ID checks during registration
+    QList<const T *>          order; // preserves registration order for deterministic iteration
+};
 
 class ExtensionContractRegistry
 {
@@ -39,15 +47,18 @@ public:
     ExtensionManifest manifest(const QString &extensionId) const;
 
     // Provider accessors used by TypeRegistry to build its O(1) cache.
+    // Providers are returned in registration order.
     QList<const IComponentTypeProvider *> componentTypeProviders() const;
     QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
     QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
     QList<const IExecutionSemanticsProvider *> executionSemanticsProviders() const;
 
 private:
+    // Registers a provider into both a hash index (for O(1) duplicate detection) and
+    // an ordered list (to preserve registration order for iteration).
     template <typename ProviderT>
     bool registerProviderInternal(const ProviderT *provider,
-                                  QHash<QString, const ProviderT *> *target,
+                                  ProviderRegistry<ProviderT> *target,
                                   const QString &providerType,
                                   QString *error)
     {
@@ -66,25 +77,26 @@ private:
             return false;
         }
 
-        if (target->contains(id)) {
+        if (target->index.contains(id)) {
             if (error) {
                 *error = QStringLiteral("Duplicate %1 provider id: %2").arg(providerType, id);
             }
             return false;
         }
 
-        target->insert(id, provider);
+        target->index.insert(id, provider);
+        target->order.append(provider);
         return true;
     }
 
     ExtensionApiVersion m_coreApiVersion;
     QHash<QString, ExtensionManifest> m_manifests;
-    QHash<QString, const IComponentTypeProvider *> m_componentTypeProviders;
-    QHash<QString, const IConnectionPolicyProvider *> m_connectionPolicyProviders;
-    QHash<QString, const IPropertySchemaProvider *> m_propertySchemaProviders;
-    QHash<QString, const IValidationProvider *> m_validationProviders;
-    QHash<QString, const IActionProvider *> m_actionProviders;
-    QHash<QString, const IExecutionSemanticsProvider *> m_executionSemanticsProviders;
+    ProviderRegistry<IComponentTypeProvider>     m_componentTypeProviders;
+    ProviderRegistry<IConnectionPolicyProvider>  m_connectionPolicyProviders;
+    ProviderRegistry<IPropertySchemaProvider>    m_propertySchemaProviders;
+    ProviderRegistry<IValidationProvider>        m_validationProviders;
+    ProviderRegistry<IActionProvider>            m_actionProviders;
+    ProviderRegistry<IExecutionSemanticsProvider> m_executionSemanticsProviders;
     std::vector<std::unique_ptr<ExecutionSemanticsV0Adapter>> m_executionSemanticsV0Adapters;
 };
 

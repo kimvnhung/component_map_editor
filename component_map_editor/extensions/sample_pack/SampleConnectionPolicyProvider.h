@@ -5,13 +5,12 @@
 
 // Sample implementation of IConnectionPolicyProvider for the workflow domain.
 // Allowed connections between component types:
-//   start    -> task
-//   task     -> task, decision
-//   decision -> task, end
+//   start    -> process
+//   process  -> process, stop
 // Denied:
 //   * -> start     (start has no incoming connections)
-//   end -> *       (end has no outgoing connections)
-//   start -> decision, start -> end, decision -> decision, task -> end (direct)
+//   stop -> *       (stop has no outgoing connections)
+//   start -> stop, process -> start
 // normalizeConnectionProperties always adds type="flow" to the returned map.
 class SampleConnectionPolicyProvider : public IConnectionPolicyProvider
 {

@@ -33,15 +33,10 @@ Rectangle {
             "color": "#5c6bc0",
             "type": "process"
         }, {
-            "title": "Decision",
-            "icon": "code-branch",
-            "color": "#ab47bc",
-            "type": "decision"
-        }, {
-            "title": "End",
-            "icon": "flag-checkered",
+            "title": "Stop",
+            "icon": "stop",
             "color": "#ef5350",
-            "type": "end"
+            "type": "stop"
         }]
 
     // Tracks next auto-generated id suffix

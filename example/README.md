@@ -455,20 +455,20 @@ PropertySchemaRegistry reg;
 reg.rebuildFromRegistry(extensionContracts);
 
 // All fields for a component type
-QVariantList fields = reg.componentSchema("task");
+QVariantList fields = reg.componentSchema("process");
 
 // Grouped by section for rendering a collapsible form
-QVariantList sections = reg.sectionedSchemaForTarget("component/task");
+QVariantList sections = reg.sectionedSchemaForTarget("component/process");
 ```
 
 ### Querying schemas from QML
 
 ```qml
 // startupPropertySchemaRegistry is the C++ context property
-var fields = startupPropertySchemaRegistry.componentSchema("task")
+var fields = startupPropertySchemaRegistry.componentSchema("process")
 
 // Check whether any schema exists for this type
-if (startupPropertySchemaRegistry.hasTarget("component/task")) {
+if (startupPropertySchemaRegistry.hasTarget("component/process")) {
     // render fields...
 }
 ```
@@ -704,19 +704,21 @@ public:
     QString providerId() const override { return "my.domain.components"; }
 
     QStringList componentTypeIds() const override {
-        return { "task", "decision", "start", "end" };
+        return { "start", "process", "stop" };
     }
 
     QVariantMap componentTypeDescriptor(const QString &id) const override {
-        if (id == "task")
-            return {{ "id", "task" }, { "title", "Task" }, { "category", "Flow" }};
+        if (id == "process")
+            return {{ "id", "process" }, { "title", "Process" }, { "category", "Flow" }};
         // ... other types
         return {};
     }
 
     QVariantMap defaultComponentProperties(const QString &id) const override {
-        if (id == "task")
-            return {{ "color", "#5c6bc0" }, { "shape", "rounded" }};
+        if (id == "start")
+            return {{ "inputNumber", 0 }};
+        if (id == "process")
+            return {{ "addValue", 9 }, { "color", "#5c6bc0" }, { "shape", "rounded" }};
         return {};
     }
 };
@@ -739,11 +741,13 @@ public:
     bool canConnect(const QString &srcType, const QString &dstType,
                     const QVariantMap & /*context*/, QString *reason) const override
     {
-        // Only allow task → decision and task → task
-        if (srcType == "start"  && dstType == "task")     return true;
-        if (srcType == "task"   && dstType == "task")     return true;
-        if (srcType == "task"   && dstType == "decision") return true;
-        if (srcType == "decision" && dstType == "end")    return true;
+        // start has output-only behavior; stop has input-only behavior.
+        if (dstType == "start") return false;
+        if (srcType == "stop")  return false;
+
+        if (srcType == "start"   && dstType == "process") return true;
+        if (srcType == "process" && dstType == "process") return true;
+        if (srcType == "process" && dstType == "stop")    return true;
 
         if (reason)
             *reason = QString("Connection from '%1' to '%2' is not allowed.")
@@ -787,6 +791,11 @@ public:
                                   {"message","Graph must have exactly one Start node."},
                                   {"entityType","graph"},{"entityId",""}};
 
+        if (countOfType("stop") != 1)
+            issues << QVariantMap{{"code","W002"},{"severity","error"},
+                                  {"message","Graph must have exactly one Stop node."},
+                                  {"entityType","graph"},{"entityId",""}};
+
         return issues;
     }
 };
@@ -807,15 +816,15 @@ public:
     QString providerId() const override { return "my.domain.schema"; }
 
     QStringList schemaTargets() const override {
-        return { "component/task", "component/decision", "connection/flow" };
+        return { "component/start", "component/process", "component/stop", "connection/flow" };
     }
 
     QVariantList propertySchema(const QString &targetId) const override {
-        if (targetId == "component/task") {
+        if (targetId == "component/process") {
             return {
-                QVariantMap{{ "key","title"  },{ "type","string" },{ "title","Task Name"   },{ "order",1 },{ "section","General" }},
-                QVariantMap{{ "key","content"},{ "type","string" },{ "title","Description" },{ "order",2 },{ "section","General" }},
-                QVariantMap{{ "key","color"  },{ "type","color"  },{ "title","Color"        },{ "order",3 },{ "section","Appearance" }},
+                QVariantMap{{ "key","title"   },{ "type","string" },{ "title","Process Name" },{ "order",1 },{ "section","General" }},
+                QVariantMap{{ "key","addValue"},{ "type","int"    },{ "title","Add Value"    },{ "order",2 },{ "section","Behavior" }},
+                QVariantMap{{ "key","color"   },{ "type","color"  },{ "title","Color"        },{ "order",3 },{ "section","Appearance" }},
             };
         }
         return {};
@@ -838,7 +847,7 @@ public:
     QString providerId() const override { return "my.domain.execution"; }
 
     QStringList supportedComponentTypes() const override {
-        return { "task", "decision", "start", "end" };
+        return { "start", "process", "stop" };
     }
 
     bool executeComponent(const QString &type, const QString &id,
@@ -848,10 +857,27 @@ public:
                           QVariantMap *trace,
                           QString *error) const override
     {
-        Q_UNUSED(snapshot)
-        if (type == "task") {
-            (*outputState)["status"] = "completed";
-            (*trace)["log"] = QString("Task %1 executed.").arg(id);
+        if (type == "start") {
+            (*outputState)["workingNumber"] = snapshot.value("inputNumber").toInt();
+            (*trace)["log"] = QString("Start %1 seeded input.").arg(id);
+            return true;
+        }
+        if (type == "process") {
+            const int current = inputState.value("workingNumber", 0).toInt();
+            const int addValue = snapshot.value("addValue", 9).toInt();
+            const int result = current + addValue;
+            (*outputState)["workingNumber"] = result;
+            (*trace)["log"] = QString("Process %1: %2 + %3 = %4")
+                                .arg(id)
+                                .arg(current)
+                                .arg(addValue)
+                                .arg(result);
+            return true;
+        }
+        if (type == "stop") {
+            const int result = inputState.value("workingNumber", 0).toInt();
+            (*outputState)["finalResult"] = result;
+            (*trace)["log"] = QString("Stop %1 final result: %2").arg(id).arg(result);
             return true;
         }
         if (error) *error = "Unknown type: " + type;
@@ -931,10 +957,9 @@ restart.  This is ideal for rapid iteration on business logic.
   "defaultConnectionAllow": false,
 
   "connections": [
-    { "source": "start",    "target": "task",     "allow": true },
-    { "source": "task",     "target": "task",     "allow": true },
-    { "source": "task",     "target": "decision", "allow": true },
-    { "source": "decision", "target": "end",      "allow": true }
+    { "source": "start",   "target": "process", "allow": true },
+    { "source": "process", "target": "process", "allow": true },
+    { "source": "process", "target": "stop",    "allow": true }
   ],
 
   "validations": [
@@ -945,6 +970,13 @@ restart.  This is ideal for rapid iteration on business logic.
       "severity": "error",
       "message":  "Graph must contain exactly one start component."
     },
+        {
+            "kind":     "exactlyOneType",
+            "type":     "stop",
+            "code":     "W002",
+            "severity": "error",
+            "message":  "Graph must contain exactly one stop component."
+        },
     {
       "kind":     "noIsolated",
       "code":     "W004",
@@ -994,12 +1026,24 @@ for (const auto &diag : hotReload.lastDiagnostics()) {
 
 **Why useful:** Simulate or "run" a graph by stepping through each node and
 collecting output state.  The semantics are entirely domain-defined: a workflow
-engine might mark tasks "completed"; a data-flow graph might propagate values;
-a state machine might track active states.
+engine might transform numbers through the pipeline: **start** seeds an input,
+**process** adds a configured value (default $+9$), and **stop** logs the
+final result.
 
 The `IExecutionSemanticsProvider` interface (shown in Section 9) is the only
 integration point.  The library calls it; your C++ code decides what execution
 means.
+
+### Workflow: Start -> Process -> Stop
+
+The sample pack now models a simple numeric pipeline:
+
+1. `start` has an `inputNumber` property (for example `12`).
+2. `process` reads the current value and adds `addValue` (default `9`).
+3. `stop` stores `finalResult` in state and prints a log line.
+
+For example, with `inputNumber = 12` and `addValue = 9`, the final output is
+$12 + 9 = 21$.
 
 ### Legacy V0 adapter
 

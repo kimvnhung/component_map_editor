@@ -12,10 +12,10 @@
 //   newPriority  (required) – one of: "low", "normal", "high"
 //
 // Produced commandRequest keys (consumed by core command gateway):
-//   commandType   = "setComponentProperty"
-//   componentId   = <from context>
-//   propertyName  = "priority"
-//   newValue      = <from context newPriority>
+//   command   = "setComponentProperty"
+//   id        = <from context>
+//   property  = "priority"
+//   value     = <from context newPriority>
 class SampleActionProvider : public IActionProvider
 {
 public:

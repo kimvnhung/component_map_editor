@@ -1,12 +1,18 @@
 #include <QtTest>
 
 #include <algorithm>
-#ifdef Q_OS_LINUX
-#include <unistd.h>
-#endif
 
 #include <QElapsedTimer>
 #include <QFile>
+
+#if defined(Q_OS_LINUX)
+#  include <unistd.h>
+#elif defined(Q_OS_WIN)
+#  include <windows.h>
+#  include <psapi.h>
+#elif defined(Q_OS_MACOS)
+#  include <mach/mach.h>
+#endif
 
 #include "commands/UndoStack.h"
 #include "models/ComponentModel.h"
@@ -25,7 +31,7 @@ ComponentModel *makeComponent(GraphModel &graph, const QString &id)
 {
     auto *component = new ComponentModel(&graph);
     component->setId(id);
-    component->setType(QStringLiteral("task"));
+    component->setType(QStringLiteral("process"));
     component->setTitle(id);
     return component;
 }
@@ -140,7 +146,7 @@ void tst_PerformanceScaleHardening::commandLatencyP95UnderBudgetForCommonActions
                                    QVariantMap{
                                        { QStringLiteral("command"), QStringLiteral("addComponent") },
                                        { QStringLiteral("id"), QStringLiteral("hot") },
-                                       { QStringLiteral("typeId"), QStringLiteral("task") },
+                                       { QStringLiteral("typeId"), QStringLiteral("process") },
                                        { QStringLiteral("x"), 0.0 },
                                        { QStringLiteral("y"), 0.0 }
                                    }));

@@ -11,12 +11,13 @@ Item {
     property bool readOnly: false
 
     // Optional map for enum side values if a schema uses sourceSide/targetSide.
+    // Values must match ConnectionModel::Side: SideAuto=-1, SideTop=0, SideRight=1, SideBottom=2, SideLeft=3
     property var sideModel: [
-        { text: "Auto", value: 0 },
-        { text: "Top", value: 1 },
-        { text: "Right", value: 2 },
-        { text: "Bottom", value: 3 },
-        { text: "Left", value: 4 }
+        { text: "Auto", value: -1 },
+        { text: "Top", value: 0 },
+        { text: "Right", value: 1 },
+        { text: "Bottom", value: 2 },
+        { text: "Left", value: 3 }
     ]
 
     signal propertyEditRequested(string propertyName, var value)

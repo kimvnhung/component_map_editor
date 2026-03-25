@@ -23,52 +23,45 @@ ApplicationWindow {
                         'import ComponentMapEditor; ComponentModel {}', graph)
             n1.id = "n1"
             n1.title = "Start"
-            n1.x = 960
+            n1.x = 860
             n1.y = 540
             n1.color = "#26a69a"
             n1.type = "start"
+            n1.inputNumber = 12
             graph.addComponent(n1)
 
-            // var n2 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n2.id = "n2"; n2.title = "Process A"; n2.x = 280; n2.y = 140
-            // n2.color = "#5c6bc0"; n2.type = "process"
-            // graph.addComponent(n2)
+            var n2 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
+            n2.id = "n2"
+            n2.title = "Process"
+            n2.x = 1080
+            n2.y = 540
+            n2.color = "#5c6bc0"
+            n2.type = "process"
+            n2.addValue = 9
+            graph.addComponent(n2)
 
-            // var n3 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n3.id = "n3"; n3.title = "Process B"; n3.x = 280; n3.y = 300
-            // n3.color = "#5c6bc0"; n3.type = "process"
-            // graph.addComponent(n3)
+            var n3 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
+            n3.id = "n3"
+            n3.title = "Stop"
+            n3.x = 1320
+            n3.y = 540
+            n3.color = "#ef5350"
+            n3.type = "stop"
+            graph.addComponent(n3)
 
-            // var n4 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n4.id = "n4"; n4.title = "Decide";  n4.x = 480; n4.y = 220
-            // n4.color = "#ab47bc"; n4.type = "decision"
-            // graph.addComponent(n4)
+            var e1 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
+            e1.id = "e1"
+            e1.sourceId = "n1"
+            e1.targetId = "n2"
+            e1.label = "input"
+            graph.addConnection(e1)
 
-            // var n5 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
-            // n5.id = "n5"; n5.title = "End";     n5.x = 680; n5.y = 220
-            // n5.color = "#ef5350"; n5.type = "end"
-            // graph.addComponent(n5)
-
-            // // Seed some connections
-            // var e1 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
-            // e1.id = "e1"; e1.sourceId = "n1"; e1.targetId = "n2"; e1.label = "path A"
-            // graph.addConnection(e1)
-
-            // var e2 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
-            // e2.id = "e2"; e2.sourceId = "n1"; e2.targetId = "n3"; e2.label = "path B"
-            // graph.addConnection(e2)
-
-            // var e3 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
-            // e3.id = "e3"; e3.sourceId = "n2"; e3.targetId = "n4"
-            // graph.addConnection(e3)
-
-            // var e4 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
-            // e4.id = "e4"; e4.sourceId = "n3"; e4.targetId = "n4"
-            // graph.addConnection(e4)
-
-            // var e5 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
-            // e5.id = "e5"; e5.sourceId = "n4"; e5.targetId = "n5"; e5.label = "done"
-            // graph.addConnection(e5)
+            var e2 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', graph)
+            e2.id = "e2"
+            e2.sourceId = "n2"
+            e2.targetId = "n3"
+            e2.label = "+9"
+            graph.addConnection(e2)
         }
     }
 
