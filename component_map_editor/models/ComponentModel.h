@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariant>
 #include <QQmlEngine>
 
 class ComponentModel : public QObject
@@ -29,6 +30,9 @@ public:
                    const QString &color = QStringLiteral("#4fc3f7"),
                    const QString &type = QStringLiteral("default"),
                    QObject *parent = nullptr);
+
+    Q_INVOKABLE bool setDynamicProperty(const QString &name, const QVariant &value);
+    Q_INVOKABLE QVariant dynamicPropertyValue(const QString &name) const;
 
     QString id() const;
     void setId(const QString &id);

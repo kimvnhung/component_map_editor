@@ -237,9 +237,28 @@ GraphModel {
         node.color = "#26a69a"   // any CSS colour string
         node.type  = "start"     // matched against your extension pack types
 
+        // Schema-defined runtime fields are dynamic properties.
+        // Use the explicit QML-facing API instead of direct assignment.
+        node.setDynamicProperty("inputNumber", 12)
+
         graph.addComponent(node)
     }
 }
+```
+
+For schema-defined runtime fields such as `inputNumber` or `addValue`, prefer
+`setDynamicProperty(...)` in QML:
+
+```qml
+var processNode = Qt.createQmlObject(
+    'import ComponentMapEditor; ComponentModel {}', graph)
+
+processNode.id = "node-2"
+processNode.title = "Process"
+processNode.type = "process"
+processNode.setDynamicProperty("addValue", 9)
+
+graph.addComponent(processNode)
 ```
 
 ### Adding components from C++
@@ -1038,12 +1057,37 @@ means.
 
 The sample pack now models a simple numeric pipeline:
 
-1. `start` has an `inputNumber` property (for example `12`).
-2. `process` reads the current value and adds `addValue` (default `9`).
+1. `start` stores `inputNumber` (for example `12`) via `setDynamicProperty("inputNumber", 12)` in QML.
+2. `process` stores `addValue` (default `9`) via `setDynamicProperty("addValue", 9)` in QML.
 3. `stop` stores `finalResult` in state and prints a log line.
 
 For example, with `inputNumber = 12` and `addValue = 9`, the final output is
 $12 + 9 = 21$.
+
+### Execution Panel In The Example App
+
+The example application now includes an `Execution` tab beside the normal
+`Properties` inspector. It is backed by `GraphExecutionSandbox` and lets you
+run the current graph with the loaded execution semantics providers.
+
+Use the controls as follows:
+
+1. `Start` resets the sandbox, captures the current graph snapshot, and prepares
+    the ready queue without executing any node.
+2. `Step` executes exactly one ready component and appends a timeline entry.
+3. `Run` keeps executing until the graph completes, blocks, or hits an error.
+4. `Reset` clears execution state, timeline entries, and per-component sandbox state.
+
+The panel also shows:
+
+1. Current sandbox `status` and `tick`.
+2. A JSON summary of ready and executed nodes.
+3. The global execution state map.
+4. The selected component's execution state.
+5. A readable execution timeline for each step.
+
+With the seeded sample graph (`start -> process -> stop`), click `Start` and
+then `Run` to demonstrate the full pipeline and confirm that the final result is `21`.
 
 ### Legacy V0 adapter
 

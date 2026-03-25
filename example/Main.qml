@@ -11,6 +11,45 @@ ApplicationWindow {
     visible: true
     title: "Component Map Editor — Example"
 
+    property var executionSandbox: startupExecutionSandbox
+    property int inspectorTabIndex: 0
+
+    function prettyJson(value) {
+        if (value === undefined || value === null)
+            return "{}"
+        return JSON.stringify(value, null, 2)
+    }
+
+    function timelineText(entries) {
+        if (!entries || entries.length === 0)
+            return "No execution events yet."
+
+        var lines = []
+        for (var i = 0; i < entries.length; ++i) {
+            var entry = entries[i]
+            var payload = {}
+            for (var key in entry) {
+                if (key === "event" || key === "tick")
+                    continue
+                payload[key] = entry[key]
+            }
+            var suffix = Object.keys(payload).length ? "  " + JSON.stringify(payload) : ""
+            lines.push("[" + entry.tick + "] " + entry.event + suffix)
+        }
+        return lines.join("\n")
+    }
+
+    function selectedExecutionStateText() {
+        if (!executionSandbox || !propertyPanel.component)
+            return "Select a component to inspect per-node execution state."
+
+        var state = executionSandbox.componentState(propertyPanel.component.id)
+        if (!state || Object.keys(state).length === 0)
+            return "No execution state recorded for component '" + propertyPanel.component.id + "'."
+
+        return prettyJson(state)
+    }
+
     // -----------------------------------------------------------------------
     // Data models
     // -----------------------------------------------------------------------
@@ -27,7 +66,7 @@ ApplicationWindow {
             n1.y = 540
             n1.color = "#26a69a"
             n1.type = "start"
-            n1.inputNumber = 12
+            n1.setDynamicProperty("inputNumber", 12)
             graph.addComponent(n1)
 
             var n2 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
@@ -37,7 +76,7 @@ ApplicationWindow {
             n2.y = 540
             n2.color = "#5c6bc0"
             n2.type = "process"
-            n2.addValue = 9
+            n2.setDynamicProperty("addValue", 9)
             graph.addComponent(n2)
 
             var n3 = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph)
@@ -73,6 +112,11 @@ ApplicationWindow {
     }
     ExportService {
         id: exporter
+    }
+
+    Component.onCompleted: {
+        if (executionSandbox)
+            executionSandbox.graph = graph
     }
 
     // -----------------------------------------------------------------------
@@ -229,12 +273,206 @@ ApplicationWindow {
             color: "#e0e0e0"
         }
 
-        PropertyPanel {
-            id: propertyPanel
-            Layout.preferredWidth: 210
+        Rectangle {
+            Layout.preferredWidth: 320
             Layout.fillHeight: true
-            undoStack: undoStack
-            propertySchemaRegistry: startupPropertySchemaRegistry
+            color: "#ffffff"
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 0
+                spacing: 0
+
+                TabBar {
+                    id: inspectorTabs
+                    Layout.fillWidth: true
+                    currentIndex: window.inspectorTabIndex
+                    onCurrentIndexChanged: window.inspectorTabIndex = currentIndex
+
+                    TabButton { text: "Properties" }
+                    TabButton { text: "Execution" }
+                }
+
+                StackLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    currentIndex: window.inspectorTabIndex
+
+                    PropertyPanel {
+                        id: propertyPanel
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        undoStack: undoStack
+                        propertySchemaRegistry: startupPropertySchemaRegistry
+                    }
+
+                    ScrollView {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        ColumnLayout {
+                            width: parent ? parent.width : 300
+                            spacing: 10
+                            anchors.left: parent ? parent.left : undefined
+                            anchors.right: parent ? parent.right : undefined
+                            anchors.margins: 10
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: "GraphExecutionSandbox Demo"
+                                font.bold: true
+                                font.pixelSize: 13
+                                horizontalAlignment: Text.AlignHCenter
+                                topPadding: 10
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                color: "#666"
+                                text: "Run the current graph with the loaded execution semantics pack. The seeded example should produce finalResult = 21."
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                Button {
+                                    text: "Start"
+                                    onClicked: {
+                                        if (!executionSandbox)
+                                            return
+                                        if (executionSandbox.start()) {
+                                            statusLabel.text = "Sandbox initialized"
+                                            statusLabel.color = "#1565c0"
+                                        } else {
+                                            statusLabel.text = "Sandbox start failed: " + executionSandbox.lastError
+                                            statusLabel.color = "#c62828"
+                                        }
+                                    }
+                                }
+
+                                Button {
+                                    text: "Step"
+                                    enabled: executionSandbox
+                                             && executionSandbox.status !== "completed"
+                                             && executionSandbox.status !== "error"
+                                    onClicked: {
+                                        if (!executionSandbox)
+                                            return
+                                        if (executionSandbox.status === "idle")
+                                            executionSandbox.start()
+                                        executionSandbox.step()
+                                    }
+                                }
+
+                                Button {
+                                    text: "Run"
+                                    enabled: executionSandbox
+                                             && executionSandbox.status !== "completed"
+                                             && executionSandbox.status !== "error"
+                                    onClicked: {
+                                        if (!executionSandbox)
+                                            return
+                                        if (executionSandbox.status === "idle") {
+                                            if (!executionSandbox.start())
+                                                return
+                                        }
+                                        executionSandbox.run()
+                                    }
+                                }
+
+                                Button {
+                                    text: "Reset"
+                                    onClicked: {
+                                        if (executionSandbox)
+                                            executionSandbox.reset()
+                                    }
+                                }
+                            }
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 8
+                                rowSpacing: 4
+
+                                Label { text: "Status"; font.bold: true }
+                                Label { text: executionSandbox ? executionSandbox.status : "unavailable" }
+
+                                Label { text: "Tick"; font.bold: true }
+                                Label { text: executionSandbox ? String(executionSandbox.currentTick) : "0" }
+
+                                Label { text: "Summary"; font.bold: true }
+                                Label {
+                                    Layout.fillWidth: true
+                                    wrapMode: Text.WordWrap
+                                    text: executionSandbox
+                                          ? prettyJson(executionSandbox.snapshotSummary())
+                                          : "{}"
+                                }
+
+                                Label {
+                                    text: "Last Error"
+                                    font.bold: true
+                                    visible: executionSandbox && executionSandbox.lastError.length > 0
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    wrapMode: Text.WordWrap
+                                    color: "#c62828"
+                                    visible: executionSandbox && executionSandbox.lastError.length > 0
+                                    text: executionSandbox ? executionSandbox.lastError : ""
+                                }
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: "Execution State"
+                                font.bold: true
+                            }
+
+                            TextArea {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 120
+                                readOnly: true
+                                wrapMode: TextArea.Wrap
+                                font.family: "monospace"
+                                text: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: "Selected Component State"
+                                font.bold: true
+                            }
+
+                            TextArea {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 120
+                                readOnly: true
+                                wrapMode: TextArea.Wrap
+                                font.family: "monospace"
+                                text: selectedExecutionStateText()
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: "Timeline"
+                                font.bold: true
+                            }
+
+                            TextArea {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 220
+                                readOnly: true
+                                wrapMode: TextArea.WrapAnywhere
+                                font.family: "monospace"
+                                text: executionSandbox ? timelineText(executionSandbox.timeline) : "Sandbox unavailable."
+                            }
+                        }
+                    }
+                }
+            }
         }
         }
 

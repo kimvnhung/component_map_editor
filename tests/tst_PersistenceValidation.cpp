@@ -26,7 +26,9 @@ private slots:
     void roundTripIsStable();
     void importsLegacyTopLeftV2();
     void importsLegacyYUpWithoutCoordinateSystem();
+    void componentModelAcceptsDynamicProperties();
     void validationCatchesExpectedSchemaErrors();
+    void validationRequiresExactlyOneStartAndStop();
 };
 
 void PersistenceValidationTests::roundTripIsStable()
@@ -135,6 +137,16 @@ void PersistenceValidationTests::importsLegacyYUpWithoutCoordinateSystem()
     QCOMPARE(component->y(), -30.0);
 }
 
+void PersistenceValidationTests::componentModelAcceptsDynamicProperties()
+{
+    ComponentModel component;
+    QVERIFY(component.setDynamicProperty(QStringLiteral("inputNumber"), 12));
+    QVERIFY(component.setDynamicProperty(QStringLiteral("addValue"), 9));
+
+    QCOMPARE(component.dynamicPropertyValue(QStringLiteral("inputNumber")).toInt(), 12);
+    QCOMPARE(component.dynamicPropertyValue(QStringLiteral("addValue")).toInt(), 9);
+}
+
 void PersistenceValidationTests::validationCatchesExpectedSchemaErrors()
 {
     GraphModel graph;
@@ -168,6 +180,52 @@ void PersistenceValidationTests::validationCatchesExpectedSchemaErrors()
     QVERIFY(containsFragment(errors, QStringLiteral("references unknown target component 'MissingTarget'")));
     QVERIFY(containsFragment(errors, QStringLiteral("invalid sourceSide value 99")));
     QVERIFY(containsFragment(errors, QStringLiteral("invalid targetSide value 99")));
+}
+
+void PersistenceValidationTests::validationRequiresExactlyOneStartAndStop()
+{
+    GraphModel graph;
+
+    auto *processOnly = new ComponentModel(QStringLiteral("P1"),
+                                           QStringLiteral("Process"),
+                                           0.0,
+                                           0.0,
+                                           QStringLiteral("#4fc3f7"),
+                                           QStringLiteral("process"));
+    graph.addComponent(processOnly);
+
+    ValidationService validation;
+    const QStringList missingErrors = validation.validationErrors(&graph);
+    QVERIFY(containsFragment(missingErrors,
+                             QStringLiteral("exactly one start component (found 0)")));
+    QVERIFY(containsFragment(missingErrors,
+                             QStringLiteral("exactly one stop component (found 0)")));
+
+    auto *startA = new ComponentModel(QStringLiteral("S1"),
+                                      QStringLiteral("Start A"),
+                                      10.0,
+                                      10.0,
+                                      QStringLiteral("#66bb6a"),
+                                      QStringLiteral("start"));
+    auto *startB = new ComponentModel(QStringLiteral("S2"),
+                                      QStringLiteral("Start B"),
+                                      20.0,
+                                      20.0,
+                                      QStringLiteral("#66bb6a"),
+                                      QStringLiteral("start"));
+    auto *stop = new ComponentModel(QStringLiteral("T1"),
+                                    QStringLiteral("Stop"),
+                                    30.0,
+                                    30.0,
+                                    QStringLiteral("#ef5350"),
+                                    QStringLiteral("stop"));
+    graph.addComponent(startA);
+    graph.addComponent(startB);
+    graph.addComponent(stop);
+
+    const QStringList duplicateStartErrors = validation.validationErrors(&graph);
+    QVERIFY(containsFragment(duplicateStartErrors,
+                             QStringLiteral("exactly one start component (found 2)")));
 }
 
 QTEST_MAIN(PersistenceValidationTests)

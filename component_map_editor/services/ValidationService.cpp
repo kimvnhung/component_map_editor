@@ -16,6 +16,8 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
 
     // Collect component ids and check for duplicates
     QSet<QString> componentIds;
+    int startCount = 0;
+    int stopCount = 0;
     for (ComponentModel *component : graph->componentList()) {
         if (!component)
             continue;
@@ -30,11 +32,25 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
         else
             componentIds.insert(componentId);
 
+        if (component->type() == QStringLiteral("start"))
+            ++startCount;
+        else if (component->type() == QStringLiteral("stop"))
+            ++stopCount;
+
         if (component->width() <= 0.0)
             errors << QStringLiteral("Component '%1' has non-positive width").arg(componentId);
 
         if (component->height() <= 0.0)
             errors << QStringLiteral("Component '%1' has non-positive height").arg(componentId);
+    }
+
+    if (startCount != 1) {
+        errors << QStringLiteral("Graph must contain exactly one start component (found %1).")
+                      .arg(startCount);
+    }
+    if (stopCount != 1) {
+        errors << QStringLiteral("Graph must contain exactly one stop component (found %1).")
+                      .arg(stopCount);
     }
 
     // Collect connection ids and validate references

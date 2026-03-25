@@ -10,6 +10,7 @@
 #include "extensions/runtime/rules/RuleHotReloadService.h"
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
+#include "services/GraphExecutionSandbox.h"
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
 #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
@@ -72,9 +73,14 @@ int main(int argc, char *argv[])
     PropertySchemaRegistry propertySchemas;
     propertySchemas.rebuildFromRegistry(extensionContracts);
 
+    GraphExecutionSandbox executionSandbox;
+    executionSandbox.rebuildSemanticsFromRegistry(extensionContracts);
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("startupPropertySchemaRegistry"),
                                              &propertySchemas);
+    engine.rootContext()->setContextProperty(QStringLiteral("startupExecutionSandbox"),
+                                             &executionSandbox);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,
