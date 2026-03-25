@@ -5,6 +5,7 @@
 #include <QQueue>
 #include <QSet>
 
+#include "extensions/contracts/ExtensionApiVersion.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/ExtensionManifestJson.h"
 
@@ -86,6 +87,42 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
     const QVector<QString> orderedIds = dependencyOrder(manifests, &result.diagnostics);
     for (const QString &extensionId : orderedIds) {
         const DiscoveredManifest discovered = manifests.value(extensionId);
+        QString registrationError;
+
+        // Preflight manifest validation before provider registration so
+        // incompatible packs cannot partially mutate the registry.
+        if (!discovered.manifest.isValid(&registrationError)) {
+            result.diagnostics.append({
+                ExtensionLoadDiagnostic::Severity::Error,
+                extensionId,
+                discovered.path,
+                QStringLiteral("Manifest rejected: %1").arg(registrationError)
+            });
+            continue;
+        }
+
+        const ExtensionCompatibilityReport compatibility = evaluateCompatibility(
+            registry.coreApiVersion(), discovered.manifest.minCoreApi, discovered.manifest.maxCoreApi);
+        if (!compatibility.compatible()) {
+            result.diagnostics.append({
+                ExtensionLoadDiagnostic::Severity::Error,
+                extensionId,
+                discovered.path,
+                QStringLiteral("Manifest rejected: %1").arg(compatibility.message)
+            });
+            continue;
+        }
+
+        if (registry.hasManifest(extensionId)) {
+            result.diagnostics.append({
+                ExtensionLoadDiagnostic::Severity::Error,
+                extensionId,
+                discovered.path,
+                QStringLiteral("Manifest rejected: Duplicate manifest extensionId: %1")
+                    .arg(extensionId)
+            });
+            continue;
+        }
 
         const auto factoryIt = m_factories.constFind(extensionId);
         if (factoryIt == m_factories.constEnd()) {
@@ -98,8 +135,6 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
             });
             continue;
         }
-
-        QString registrationError;
 
         std::unique_ptr<IExtensionPack> pack = (*factoryIt)();
         if (!pack) {
