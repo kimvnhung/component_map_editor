@@ -623,7 +623,7 @@ ApplicationWindow {
             propertyPanel.connection = null
             statusLabel.text = "✓ Graph imported"
             statusLabel.color = "#2e7d32"
-            canvas.edgeRenderer.repaint()
+            canvas.connectionRenderer.repaint()
             canvas.componentRenderer.repaint()
         }
     }

@@ -54,15 +54,15 @@ void buildScaleGraph(GraphModel &graph, int nodeCount)
     for (int i = 0; i < nodeCount; ++i)
         graph.addComponent(makeComponent(graph, QStringLiteral("n%1").arg(i)));
 
-    int edgeIdx = 0;
+    int connIdx = 0;
     for (int i = 0; i < nodeCount - 1; ++i) {
         graph.addConnection(makeConnection(graph,
-                                           QStringLiteral("e%1").arg(edgeIdx++),
+                                           QStringLiteral("conn%1").arg(connIdx++),
                                            QStringLiteral("n%1").arg(i),
                                            QStringLiteral("n%1").arg(i + 1)));
         if (i + 5 < nodeCount) {
             graph.addConnection(makeConnection(graph,
-                                               QStringLiteral("e%1").arg(edgeIdx++),
+                                               QStringLiteral("conn%1").arg(connIdx++),
                                                QStringLiteral("n%1").arg(i),
                                                QStringLiteral("n%1").arg(i + 5)));
         }

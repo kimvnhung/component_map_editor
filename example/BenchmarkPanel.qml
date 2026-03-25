@@ -98,15 +98,15 @@ Rectangle {
         root.telemetry.enabled = true
         root.frameTelemetry.enabled = true
         root.manualDragWindowActive = false
-        if (root.canvas && root.canvas.edgeRenderer
-                && typeof root.canvas.edgeRenderer.resetRouteRebuildTelemetry === "function") {
+        if (root.canvas && root.canvas.connectionRenderer
+                && typeof root.canvas.connectionRenderer.resetRouteRebuildTelemetry === "function") {
             // Prefer explicit reset of route-rebuild telemetry to avoid cumulative stats
-            root.canvas.edgeRenderer.resetRouteRebuildTelemetry()
+            root.canvas.connectionRenderer.resetRouteRebuildTelemetry()
             root._routeRebuildStartCount = 0
         } else {
             // Fallback: record start count so downstream code can compute per-run deltas
-            root._routeRebuildStartCount = (root.canvas && root.canvas.edgeRenderer)
-                    ? root.canvas.edgeRenderer.routeRebuildSampleCount()
+            root._routeRebuildStartCount = (root.canvas && root.canvas.connectionRenderer)
+                    ? root.canvas.connectionRenderer.routeRebuildSampleCount()
                     : 0
         }
     }
@@ -126,14 +126,14 @@ Rectangle {
         root.telemetry.report(reportTag)
         root.frameTelemetry.report(reportTag)
 
-        var routeP50 = (root.canvas && root.canvas.edgeRenderer)
-            ? root.canvas.edgeRenderer.routeRebuildP50Ms()
+        var routeP50 = (root.canvas && root.canvas.connectionRenderer)
+            ? root.canvas.connectionRenderer.routeRebuildP50Ms()
             : 0
-        var routeP95 = (root.canvas && root.canvas.edgeRenderer)
-            ? root.canvas.edgeRenderer.routeRebuildP95Ms()
+        var routeP95 = (root.canvas && root.canvas.connectionRenderer)
+            ? root.canvas.connectionRenderer.routeRebuildP95Ms()
             : 0
-        var routeSamples = (root.canvas && root.canvas.edgeRenderer)
-            ? root.canvas.edgeRenderer.routeRebuildSampleCount()
+        var routeSamples = (root.canvas && root.canvas.connectionRenderer)
+            ? root.canvas.connectionRenderer.routeRebuildSampleCount()
             : 0
         var routeRebuildDelta = Math.max(0, routeSamples - root._routeRebuildStartCount)
 
@@ -638,9 +638,9 @@ Rectangle {
                     { lbl: "Cam p95",  val: root.telemetry.frameTimeP95,   n: -1 },
                     { lbl: "Drag p50", val: root.telemetry.dragLatencyP50, n: root.telemetry.dragLatencySampleCount },
                                         { lbl: "Drag p95", val: root.telemetry.dragLatencyP95, n: -1 },
-                                        { lbl: "Route p50", val: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildP50Ms() : 0,
-                                            n: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildSampleCount() : 0 },
-                                        { lbl: "Route p95", val: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildP95Ms() : 0,
+                                        { lbl: "Route p50", val: root.canvas && root.canvas.connectionRenderer ? root.canvas.connectionRenderer.routeRebuildP50Ms() : 0,
+                                            n: root.canvas && root.canvas.connectionRenderer ? root.canvas.connectionRenderer.routeRebuildSampleCount() : 0 },
+                                        { lbl: "Route p95", val: root.canvas && root.canvas.connectionRenderer ? root.canvas.connectionRenderer.routeRebuildP95Ms() : 0,
                                             n: -1 }
                 ]
 

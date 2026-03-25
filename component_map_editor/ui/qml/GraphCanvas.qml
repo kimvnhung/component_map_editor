@@ -65,7 +65,7 @@ Item {
     readonly property alias activeInteractionComponent: interactionState.interactionTarget
     property alias suppressNextCanvasTap: interactionState.suppressNextTap
     readonly property var componentRenderer: componentViewport
-    readonly property var edgeRenderer: edgeViewport
+    readonly property var connectionRenderer: connectionViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
     property int livePointerModifiers: 0
@@ -160,7 +160,7 @@ Item {
             root.componentSelected(interactionState.primaryComponent)
         else
             root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     // Resets all interaction mode and selection in one call.
@@ -227,7 +227,7 @@ Item {
         for (var j = 0; j < idsToRemove.length; ++j)
             root.removeConnectionById(idsToRemove[j], shouldUseUndo)
 
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     function deleteComponent(component) {
@@ -249,7 +249,7 @@ Item {
         }
         if (!root.selectedComponent)
             root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     function duplicateComponent(component) {
@@ -277,7 +277,7 @@ Item {
         root.selectSingleComponent(copy)
         root.selectedConnection = null
         root.componentSelected(copy)
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     function addComponentAtWorldPos(worldPos) {
@@ -304,7 +304,7 @@ Item {
         root.selectSingleComponent(component)
         root.selectedConnection = null
         root.componentSelected(component)
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     function addPaletteComponentAtScenePos(title, icon, color, type, scenePos) {
@@ -338,7 +338,7 @@ Item {
         root.selectSingleComponent(component)
         root.selectedConnection = null
         root.componentSelected(component)
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
         return true
     }
 
@@ -356,7 +356,7 @@ Item {
 
         root.selectedConnection = null
         root.selectedConnectionIds = []
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     function clearAllComponents() {
@@ -376,7 +376,7 @@ Item {
         }
         interactionState.clearAll()
         root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     function commitMoveCommands(anchorComponent) {
@@ -659,7 +659,7 @@ Item {
         else
             root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
 
-        edgeCanvas.repaint()
+        connectionCanvas.repaint()
     }
 
     function beginGroupMove(anchorComponent) {
@@ -743,7 +743,7 @@ Item {
 
     // C++ viewport layers (Phase 2)
     // - gridViewport: background grid
-    // - edgeViewport: connection lines + temp drag preview
+    // - connectionViewport: connection lines + temp drag preview
     GraphViewportItem {
         id: gridViewport
         anchors.fill: parent
@@ -752,14 +752,14 @@ Item {
         panY: root.panY
         zoom: root.zoom
         renderGrid: true
-        renderEdges: false
+        renderConnections: false
         baseGridStep: root.baseGridStep
         minGridPixelStep: root.minGridPixelStep
         maxGridPixelStep: root.maxGridPixelStep
     }
 
     GraphViewportItem {
-        id: edgeViewport
+        id: connectionViewport
         anchors.fill: parent
         z: 1
         graph: root.graph
@@ -767,7 +767,7 @@ Item {
         panY: root.panY
         zoom: root.zoom
         renderGrid: false
-        renderEdges: true
+        renderConnections: true
         selectedConnection: root.selectedConnection
         selectedConnectionIds: root.selectedConnectionIds
         tempConnectionDragging: root.tempConnectionDragging
@@ -784,7 +784,7 @@ Item {
         panY: root.panY
         zoom: root.zoom
         renderGrid: false
-        renderEdges: false
+        renderConnections: false
         renderComponents: true
         selectedComponent: root.selectedComponent
         selectedComponentIds: root.selectedComponentIds
@@ -799,9 +799,9 @@ Item {
     }
 
     QtObject {
-        id: edgeCanvas
+        id: connectionCanvas
         function repaint() {
-            edgeViewport.repaint()
+            connectionViewport.repaint()
         }
     }
 
@@ -886,7 +886,7 @@ Item {
                     root.forceActiveFocus()
                     root.livePointerModifiers = point.modifiers
                     root.syncCtrlModifierState(point.modifiers)
-                    root.pressedComponent = edgeViewport.hitTestComponentAtView(point.position.x,
+                    root.pressedComponent = connectionViewport.hitTestComponentAtView(point.position.x,
                                                                                  point.position.y)
                     root.debugInputLog("mouse_press")
                 } else {
@@ -906,7 +906,7 @@ Item {
                           var viewPos = Qt.point(point.position.x,
                                                  point.position.y)
 
-                          var hitComponent = edgeViewport.hitTestComponentAtView(viewPos.x,
+                          var hitComponent = connectionViewport.hitTestComponentAtView(viewPos.x,
                                                                                   viewPos.y)
                           if (hitComponent) {
                               root.handleLeftComponentClick(hitComponent,
@@ -914,12 +914,12 @@ Item {
                               return
                           }
 
-                          var hitConnection = edgeViewport.hitTestConnectionAtView(viewPos.x,
+                          var hitConnection = connectionViewport.hitTestConnectionAtView(viewPos.x,
                                                                                     viewPos.y,
                                                                                     10.0)
                           if (hitConnection) {
                               root.selectConnection(hitConnection)
-                              edgeCanvas.repaint()
+                              connectionCanvas.repaint()
                               return
                           }
 
@@ -929,7 +929,7 @@ Item {
                           var worldPos = root.viewToWorld(point.position.x,
                                                           point.position.y)
                           root.backgroundClicked(worldPos.x, worldPos.y)
-                          edgeCanvas.repaint()
+                          connectionCanvas.repaint()
                       }
         }
 
@@ -941,7 +941,7 @@ Item {
                           root.menuTargetWorldPos = root.viewToWorld(viewPos.x,
                                                                      viewPos.y)
 
-                          root.menuTargetComponent = edgeViewport.hitTestComponentAtView(viewPos.x,
+                          root.menuTargetComponent = connectionViewport.hitTestComponentAtView(viewPos.x,
                                                                                            viewPos.y)
                           if (root.menuTargetComponent) {
                               componentMenu.popup(point.position.x,
@@ -949,7 +949,7 @@ Item {
                               return
                           }
 
-                          root.menuTargetConnection = edgeViewport.hitTestConnectionAtView(viewPos.x,
+                          root.menuTargetConnection = connectionViewport.hitTestConnectionAtView(viewPos.x,
                                                                                              viewPos.y,
                                                                                              10.0)
                           if (root.menuTargetConnection) {
@@ -1069,27 +1069,27 @@ Item {
                                 interactionState.updateConnectionDraw(viewStart, viewEnd)
                             else
                                 interactionState.startConnectionDraw(sourceComponent, viewStart, viewEnd)
-                            edgeCanvas.repaint()
+                            connectionCanvas.repaint()
                         }
                         onConnectionDropped: function (sourceComponent, sourceSide, startP, targetP) {
                             interactionState.endConnectionDraw()
 
                             var dropPoint = root.windowSceneToView(targetP)
-                            var component = edgeViewport.hitTestComponentAtView(dropPoint.x,
+                            var component = connectionViewport.hitTestComponentAtView(dropPoint.x,
                                                                                 dropPoint.y)
                             if (!component) {
-                                edgeCanvas.repaint()
+                                connectionCanvas.repaint()
                                 return
                             }
 
                             if (component === sourceComponent) {
-                                edgeCanvas.repaint()
+                                connectionCanvas.repaint()
                                 return
                             }
 
                             var connectionId = "conn_" + sourceComponent.id + "_" + component.id
                             if (root.graph.connectionById(connectionId)) {
-                                edgeCanvas.repaint()
+                                connectionCanvas.repaint()
                                 return
                             }
 
@@ -1106,7 +1106,7 @@ Item {
                                 root.undoStack.pushAddConnection(root.graph, e1)
                             else
                                 root.graph.addConnection(e1)
-                            edgeCanvas.repaint()
+                            connectionCanvas.repaint()
                         }
 
                         onMoveStarted: {
@@ -1120,7 +1120,7 @@ Item {
                         }
                         onMoved: {
                             root.updateGroupMove(modelData)
-                            edgeCanvas.repaint()
+                            connectionCanvas.repaint()
                             if (root.telemetry) root.telemetry.notifyDragMoved()
                         }
                         onMoveFinished: {
@@ -1255,11 +1255,11 @@ Item {
             root.endGroupMove()
             interactionState.resetInteraction()
             interactionState.pruneStaleComponents(root.graph)
-            edgeCanvas.repaint()
+            connectionCanvas.repaint()
         }
         function onConnectionsChanged() {
             interactionState.pruneStaleConnection(root.graph)
-            edgeCanvas.repaint()
+            connectionCanvas.repaint()
         }
     }
 
@@ -1297,7 +1297,7 @@ Item {
             onTriggered: {
                 if (root.menuTargetConnection)
                     root.removeConnectionById(root.menuTargetConnection.id)
-                edgeCanvas.repaint()
+                connectionCanvas.repaint()
             }
         }
     }
@@ -1343,8 +1343,8 @@ Item {
         }
     }
 
-    onSelectedConnectionChanged: edgeCanvas.repaint()
-    onGraphChanged: edgeCanvas.repaint()
+    onSelectedConnectionChanged: connectionCanvas.repaint()
+    onGraphChanged: connectionCanvas.repaint()
     onPanXChanged: {
         if (telemetry) telemetry.notifyCameraChanged()
         root.updateMouseWorldPos()
@@ -1360,7 +1360,7 @@ Item {
         root.viewTransformChanged(root.panX, root.panY, root.zoom)
     }
     onMouseViewPosChanged: {
-        root.hoveredComponent = edgeViewport.hitTestComponentAtView(root.mouseViewPos.x,
+        root.hoveredComponent = connectionViewport.hitTestComponentAtView(root.mouseViewPos.x,
                                                                      root.mouseViewPos.y)
         root.pointerOverComponent = root.hoveredComponent !== null
         root.updateMouseWorldPos()

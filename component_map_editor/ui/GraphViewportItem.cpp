@@ -4,7 +4,7 @@
 #include "ConnectionModel.h"
 #include "FontAwesome.h"
 #include "GraphModel.h"
-#include "rendering/EdgeRenderPass.h"
+#include "rendering/ConnectionRenderPass.h"
 #include "rendering/GridRenderPass.h"
 #include "rendering/LabelTextureBuilder.h"
 #include "rendering/LabelRenderPass.h"
@@ -982,17 +982,17 @@ void GraphViewportItem::setRenderGrid(bool value)
     update();
 }
 
-bool GraphViewportItem::renderEdges() const
+bool GraphViewportItem::renderConnections() const
 {
-    return m_renderEdges;
+    return m_renderConnections;
 }
 
-void GraphViewportItem::setRenderEdges(bool value)
+void GraphViewportItem::setRenderConnections(bool value)
 {
-    if (m_renderEdges == value)
+    if (m_renderConnections == value)
         return;
-    m_renderEdges = value;
-    emit renderEdgesChanged();
+    m_renderConnections = value;
+    emit renderConnectionsChanged();
     m_graphDirty = true;
     update();
 }
@@ -1397,13 +1397,13 @@ void GraphViewportItem::executeScheduledGraphRebuild()
 
 void GraphViewportItem::updateLodState()
 {
-    const bool simpleEdges = m_zoom < 0.60;
+    const bool simpleConnections = m_zoom < 0.60;
     const bool hideLabels = m_zoom < 0.68;
     const bool hideOutlines = m_zoom < 0.50;
 
-    const bool edgeModeChanged = (simpleEdges != m_lodSimpleEdges);
-    if (edgeModeChanged)
-        m_lodSimpleEdges = simpleEdges;
+    const bool connectionModeChanged = (simpleConnections != m_lodSimpleConnections);
+    if (connectionModeChanged)
+        m_lodSimpleConnections = simpleConnections;
 
     const bool labelModeChanged = (hideLabels != m_lodHideComponentLabels);
     if (labelModeChanged)
@@ -1413,37 +1413,37 @@ void GraphViewportItem::updateLodState()
     if (outlineModeChanged)
         m_lodHideComponentOutlines = hideOutlines;
 
-    if (edgeModeChanged) {
-        auto *normalGeom = m_normalEdgesGeomNode ? m_normalEdgesGeomNode->geometry() : nullptr;
-        auto *selectedGeom = m_selectedEdgesGeomNode ? m_selectedEdgesGeomNode->geometry() : nullptr;
+    if (connectionModeChanged) {
+        auto *normalGeom = m_normalConnectionsGeomNode ? m_normalConnectionsGeomNode->geometry() : nullptr;
+        auto *selectedGeom = m_selectedConnectionsGeomNode ? m_selectedConnectionsGeomNode->geometry() : nullptr;
         if (normalGeom) {
-            normalGeom->setLineWidth(simpleEdges ? 1.0f : 2.0f);
-            m_normalEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
+            normalGeom->setLineWidth(simpleConnections ? 1.0f : 2.0f);
+            m_normalConnectionsGeomNode->markDirty(QSGNode::DirtyGeometry);
         }
         if (selectedGeom) {
-            selectedGeom->setLineWidth(simpleEdges ? 1.0f : 3.0f);
-            m_selectedEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
+            selectedGeom->setLineWidth(simpleConnections ? 1.0f : 3.0f);
+            m_selectedConnectionsGeomNode->markDirty(QSGNode::DirtyGeometry);
         }
 
-        auto *normalMat = m_normalEdgesGeomNode
-            ? static_cast<QSGFlatColorMaterial *>(m_normalEdgesGeomNode->material())
+        auto *normalMat = m_normalConnectionsGeomNode
+            ? static_cast<QSGFlatColorMaterial *>(m_normalConnectionsGeomNode->material())
             : nullptr;
-        auto *selectedMat = m_selectedEdgesGeomNode
-            ? static_cast<QSGFlatColorMaterial *>(m_selectedEdgesGeomNode->material())
+        auto *selectedMat = m_selectedConnectionsGeomNode
+            ? static_cast<QSGFlatColorMaterial *>(m_selectedConnectionsGeomNode->material())
             : nullptr;
-        const QColor normalColor = simpleEdges
+        const QColor normalColor = simpleConnections
             ? QColor(QStringLiteral("#546e7a"))
             : QColor(QStringLiteral("#607d8b"));
-        const QColor selectedColor = simpleEdges
+        const QColor selectedColor = simpleConnections
             ? QColor(QStringLiteral("#546e7a"))
             : QColor(QStringLiteral("#ff5722"));
         if (normalMat) {
             normalMat->setColor(normalColor);
-            m_normalEdgesGeomNode->markDirty(QSGNode::DirtyMaterial);
+            m_normalConnectionsGeomNode->markDirty(QSGNode::DirtyMaterial);
         }
         if (selectedMat) {
             selectedMat->setColor(selectedColor);
-            m_selectedEdgesGeomNode->markDirty(QSGNode::DirtyMaterial);
+            m_selectedConnectionsGeomNode->markDirty(QSGNode::DirtyMaterial);
         }
     }
 
@@ -1468,12 +1468,12 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
     // Node layout:
     //   m_rootNode
     //   ├── m_gridGeomNode          (screen-space grid lines)
-    //   ├── m_edgesTransformNode    (camera world→screen transform)
-    //   │   ├── m_normalEdgesGeomNode   (world-space, normal edges)
-    //   │   ├── m_selectedEdgesGeomNode (world-space, selected edge)
+    //   ├── m_connectionsTransformNode (camera world→screen transform)
+    //   │   ├── m_normalConnectionsGeomNode   (world-space, normal connections)
+    //   │   ├── m_selectedConnectionsGeomNode (world-space, selected connection)
     //   │   ├── m_normalArrowsGeomNode  (world-space, normal arrowheads)
     //   │   └── m_selectedArrowsGeomNode(world-space, selected arrowheads)
-    //   └── m_tempEdgeGeomNode      (screen-space, drag-in-progress edge)
+    //   └── m_tempConnectionGeomNode  (screen-space, drag-in-progress connection)
     // -----------------------------------------------------------------------
     if (!oldNode) {
         // Scene graph was recreated; cached node pointers from a previous graph
@@ -1501,19 +1501,19 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         m_componentsRootNode->appendChildNode(m_componentsTransformNode);
         m_rootNode->appendChildNode(m_componentsRootNode);
 
-        m_edgesTransformNode    = new QSGTransformNode();
-        m_normalEdgesGeomNode   = createEmptyLineNode(QColor(QStringLiteral("#607d8b")), 2.0f);
-        m_selectedEdgesGeomNode = createEmptyLineNode(QColor(QStringLiteral("#ff5722")), 3.0f);
+        m_connectionsTransformNode    = new QSGTransformNode();
+        m_normalConnectionsGeomNode   = createEmptyLineNode(QColor(QStringLiteral("#607d8b")), 2.0f);
+        m_selectedConnectionsGeomNode = createEmptyLineNode(QColor(QStringLiteral("#ff5722")), 3.0f);
         m_normalArrowsGeomNode = createEmptyColoredNode();
         m_selectedArrowsGeomNode = createEmptyColoredNode();
-        m_edgesTransformNode->appendChildNode(m_normalEdgesGeomNode);
-        m_edgesTransformNode->appendChildNode(m_selectedEdgesGeomNode);
-        m_edgesTransformNode->appendChildNode(m_normalArrowsGeomNode);
-        m_edgesTransformNode->appendChildNode(m_selectedArrowsGeomNode);
-        m_rootNode->appendChildNode(m_edgesTransformNode);
+        m_connectionsTransformNode->appendChildNode(m_normalConnectionsGeomNode);
+        m_connectionsTransformNode->appendChildNode(m_selectedConnectionsGeomNode);
+        m_connectionsTransformNode->appendChildNode(m_normalArrowsGeomNode);
+        m_connectionsTransformNode->appendChildNode(m_selectedArrowsGeomNode);
+        m_rootNode->appendChildNode(m_connectionsTransformNode);
 
-        m_tempEdgeGeomNode = createEmptyLineNode(QColor(QStringLiteral("#90caf9")), 2.0f);
-        m_rootNode->appendChildNode(m_tempEdgeGeomNode);
+        m_tempConnectionGeomNode = createEmptyLineNode(QColor(QStringLiteral("#90caf9")), 2.0f);
+        m_rootNode->appendChildNode(m_tempConnectionGeomNode);
 
         // Force a full update on the first frame.
         m_graphDirty  = true;
@@ -1529,15 +1529,15 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         clearLabelTexturesOnRenderThread();
 
     // -----------------------------------------------------------------------
-    // Graph dirty: rebuild edge/temp geometry in world space (O(N+E)).
+    // Graph dirty: rebuild connection/temp geometry in world space (O(N+E)).
     // Happens only when topology or selection changes — NOT on every pan frame.
     // -----------------------------------------------------------------------
     if (m_graphDirty) {
         QElapsedTimer routeRebuildTimer;
         routeRebuildTimer.start();
-        updateEdgesGeometry();
+        updateConnectionsGeometry();
         recordRouteRebuildSample(qreal(routeRebuildTimer.nsecsElapsed()) / 1000000.0);
-        updateTempEdgeGeometry();
+        updateTempConnectionGeometry();
         m_graphDirty = false;
     }
 
@@ -1553,7 +1553,7 @@ QSGNode *GraphViewportItem::updatePaintNode(QSGNode *oldNode,
         cam.setToIdentity();
         cam.translate(float(m_panX), float(m_panY));
         cam.scale(float(m_zoom));
-        m_edgesTransformNode->setMatrix(cam);
+        m_connectionsTransformNode->setMatrix(cam);
         if (m_componentsTransformNode)
             m_componentsTransformNode->setMatrix(cam);
 
@@ -1589,39 +1589,39 @@ void GraphViewportItem::updateGridGeometry()
 }
 
 // ---------------------------------------------------------------------------
-// updateEdgesGeometry
-// Rebuilds edge vertex buffers in WORLD space.  Called from the render
+// updateConnectionsGeometry
+// Rebuilds connection vertex buffers in WORLD space.  Called from the render
 // thread only when m_graphDirty is true (topology / selection change).
 //
 // Vertices are world-space coordinates; the parent QSGTransformNode applies
 // the camera matrix so that pan/zoom only requires a matrix update, not a
 // full vertex rebuild.
 // ---------------------------------------------------------------------------
-void GraphViewportItem::updateEdgesGeometry()
+void GraphViewportItem::updateConnectionsGeometry()
 {
-    EdgeRenderPass::updateEdgesGeometry(m_graph,
-                                        m_routingEngine.get(),
-                                        m_selectedConnection,
-                                        m_selectedConnectionIdSet,
-                                        m_renderEdges,
-                                        m_lodSimpleEdges,
-                                        m_normalEdgesGeomNode,
-                                        m_selectedEdgesGeomNode,
-                                        m_normalArrowsGeomNode,
-                                        m_selectedArrowsGeomNode);
+    ConnectionRenderPass::updateConnectionsGeometry(m_graph,
+                                                    m_routingEngine.get(),
+                                                    m_selectedConnection,
+                                                    m_selectedConnectionIdSet,
+                                                    m_renderConnections,
+                                                    m_lodSimpleConnections,
+                                                    m_normalConnectionsGeomNode,
+                                                    m_selectedConnectionsGeomNode,
+                                                    m_normalArrowsGeomNode,
+                                                    m_selectedArrowsGeomNode);
 }
 
 // ---------------------------------------------------------------------------
-// updateTempEdgeGeometry
+// updateTempConnectionGeometry
 // Updates the in-progress connection drag line.  Coordinates are in screen
 // (view) space and sit outside the camera QSGTransformNode.
 // ---------------------------------------------------------------------------
-void GraphViewportItem::updateTempEdgeGeometry()
+void GraphViewportItem::updateTempConnectionGeometry()
 {
-    EdgeRenderPass::updateTempEdgeGeometry(m_tempConnectionDragging,
-                                           m_tempStart,
-                                           m_tempEnd,
-                                           m_tempEdgeGeomNode);
+    ConnectionRenderPass::updateTempConnectionGeometry(m_tempConnectionDragging,
+                                                       m_tempStart,
+                                                       m_tempEnd,
+                                                       m_tempConnectionGeomNode);
 }
 
 QVector<int> GraphViewportItem::visibleComponentIndices() const

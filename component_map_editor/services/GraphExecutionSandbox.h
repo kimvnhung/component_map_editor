@@ -71,7 +71,7 @@ private:
         QVariantMap attributes;
     };
 
-    struct EdgeSnapshot {
+    struct ConnectionSnapshot {
         QString id;
         QString sourceId;
         QString targetId;
@@ -112,7 +112,7 @@ private:
     QString m_lastError;
 
     QHash<QString, ComponentSnapshot> m_componentsById;
-    QHash<QString, QList<EdgeSnapshot>> m_outgoingBySource;
+    QHash<QString, QList<ConnectionSnapshot>> m_outgoingBySource;
     QHash<QString, int> m_pendingInDegree;
     QSet<QString> m_executed;
     QStringList m_readyQueue;

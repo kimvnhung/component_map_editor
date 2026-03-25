@@ -37,7 +37,7 @@ class GraphViewportItem : public QQuickItem
     Q_PROPERTY(qreal zoom READ zoom WRITE setZoom NOTIFY zoomChanged FINAL)
 
     Q_PROPERTY(bool renderGrid READ renderGrid WRITE setRenderGrid NOTIFY renderGridChanged FINAL)
-    Q_PROPERTY(bool renderEdges READ renderEdges WRITE setRenderEdges NOTIFY renderEdgesChanged FINAL)
+    Q_PROPERTY(bool renderConnections READ renderConnections WRITE setRenderConnections NOTIFY renderConnectionsChanged FINAL)
     Q_PROPERTY(bool renderComponents READ renderComponents WRITE setRenderComponents NOTIFY renderComponentsChanged FINAL)
 
     Q_PROPERTY(qreal baseGridStep READ baseGridStep WRITE setBaseGridStep NOTIFY baseGridStepChanged FINAL)
@@ -70,8 +70,8 @@ public:
     bool renderGrid() const;
     void setRenderGrid(bool value);
 
-    bool renderEdges() const;
-    void setRenderEdges(bool value);
+    bool renderConnections() const;
+    void setRenderConnections(bool value);
 
     bool renderComponents() const;
     void setRenderComponents(bool value);
@@ -148,7 +148,7 @@ signals:
     void panYChanged();
     void zoomChanged();
     void renderGridChanged();
-    void renderEdgesChanged();
+    void renderConnectionsChanged();
     void renderComponentsChanged();
     void baseGridStepChanged();
     void minGridPixelStepChanged();
@@ -202,8 +202,8 @@ private:
 
     // Called from updatePaintNode (render thread during sync).
     void updateGridGeometry();
-    void updateEdgesGeometry();
-    void updateTempEdgeGeometry();
+    void updateConnectionsGeometry();
+    void updateTempConnectionGeometry();
 
     QObject *m_graph = nullptr;
     qreal m_panX = 0.0;
@@ -211,7 +211,7 @@ private:
     qreal m_zoom = 1.0;
 
     bool m_renderGrid = false;
-    bool m_renderEdges = false;
+    bool m_renderConnections = false;
     bool m_renderComponents = false;
 
     qreal m_baseGridStep = 30.0;
@@ -241,21 +241,21 @@ private:
     QSGGeometryNode  *m_componentFillGeomNode      = nullptr;
     QSGGeometryNode  *m_componentOutlineGeomNode   = nullptr;
     QSGNode          *m_componentLabelsRootNode    = nullptr;
-    QSGTransformNode *m_edgesTransformNode    = nullptr;
-    QSGGeometryNode  *m_normalEdgesGeomNode   = nullptr;
-    QSGGeometryNode  *m_selectedEdgesGeomNode = nullptr;
+    QSGTransformNode *m_connectionsTransformNode = nullptr;
+    QSGGeometryNode  *m_normalConnectionsGeomNode  = nullptr;
+    QSGGeometryNode  *m_selectedConnectionsGeomNode = nullptr;
     QSGGeometryNode  *m_normalArrowsGeomNode  = nullptr;
     QSGGeometryNode  *m_selectedArrowsGeomNode = nullptr;
-    QSGGeometryNode  *m_tempEdgeGeomNode      = nullptr;
+    QSGGeometryNode  *m_tempConnectionGeomNode      = nullptr;
 
     // Dirty flags: written on main thread, read on render thread (sync phase).
-    bool m_graphDirty  = true;   // edge/temp geometry must be rebuilt
+    bool m_graphDirty  = true;   // connection/temp geometry must be rebuilt
     bool m_cameraDirty = true;   // grid geometry + edge transform matrix must update
     bool m_componentDirty   = true;   // component fill/outline and label state must update
     bool m_graphRebuildScheduled = false;
 
     // Phase 6 LOD flags (updated from camera zoom).
-    bool m_lodSimpleEdges = false;
+    bool m_lodSimpleConnections = false;
     bool m_lodHideComponentLabels = false;
     bool m_lodHideComponentOutlines = false;
 

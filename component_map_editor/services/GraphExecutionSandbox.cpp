@@ -337,23 +337,23 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
         if (!connection)
             continue;
 
-        EdgeSnapshot edge;
-        edge.id = connection->id();
-        edge.sourceId = connection->sourceId();
-        edge.targetId = connection->targetId();
-        edge.label = connection->label();
+        ConnectionSnapshot conn;
+        conn.id = connection->id();
+        conn.sourceId = connection->sourceId();
+        conn.targetId = connection->targetId();
+        conn.label = connection->label();
 
-        if (!m_componentsById.contains(edge.sourceId) || !m_componentsById.contains(edge.targetId))
+        if (!m_componentsById.contains(conn.sourceId) || !m_componentsById.contains(conn.targetId))
             continue;
 
-        QList<EdgeSnapshot> &out = m_outgoingBySource[edge.sourceId];
-        out.append(edge);
-        m_pendingInDegree[edge.targetId] = m_pendingInDegree.value(edge.targetId, 0) + 1;
+        QList<ConnectionSnapshot> &out = m_outgoingBySource[conn.sourceId];
+        out.append(conn);
+        m_pendingInDegree[conn.targetId] = m_pendingInDegree.value(conn.targetId, 0) + 1;
     }
 
     for (auto it = m_outgoingBySource.begin(); it != m_outgoingBySource.end(); ++it) {
-        QList<EdgeSnapshot> &edges = it.value();
-        std::sort(edges.begin(), edges.end(), [](const EdgeSnapshot &a, const EdgeSnapshot &b) {
+        QList<ConnectionSnapshot> &edges = it.value();
+        std::sort(edges.begin(), edges.end(), [](const ConnectionSnapshot &a, const ConnectionSnapshot &b) {
             if (a.targetId != b.targetId)
                 return a.targetId < b.targetId;
             return a.id < b.id;
@@ -434,8 +434,8 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
                             { QStringLiteral("trace"), trace }
                         });
 
-    const QList<EdgeSnapshot> outgoing = m_outgoingBySource.value(component.id);
-    for (const EdgeSnapshot &edge : outgoing) {
+    const QList<ConnectionSnapshot> outgoing = m_outgoingBySource.value(component.id);
+    for (const ConnectionSnapshot &edge : outgoing) {
         const QString targetId = edge.targetId;
         const int updatedInDegree = m_pendingInDegree.value(targetId, 0) - 1;
         m_pendingInDegree[targetId] = updatedInDegree;

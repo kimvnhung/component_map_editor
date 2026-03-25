@@ -1,4 +1,4 @@
-#include "EdgeRenderPass.h"
+#include "ConnectionRenderPass.h"
 
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
@@ -16,7 +16,7 @@
 
 #include <cmath>
 
-namespace EdgeRenderPass {
+namespace ConnectionRenderPass {
 namespace {
 
 void clearNode(QSGGeometryNode *n)
@@ -62,23 +62,23 @@ void appendArrowTriangle(QSGGeometry::ColoredPoint2D *verts,
 
 } // namespace
 
-void updateEdgesGeometry(QObject *graph,
-                         RoutingEngine *routingEngine,
-                         QObject *selectedConnection,
-                         const QSet<QString> &selectedConnectionIdSet,
-                         bool renderEdges,
-                         bool lodSimpleEdges,
-                         QSGGeometryNode *normalEdgesGeomNode,
-                         QSGGeometryNode *selectedEdgesGeomNode,
-                         QSGGeometryNode *normalArrowsGeomNode,
-                         QSGGeometryNode *selectedArrowsGeomNode)
+void updateConnectionsGeometry(QObject *graph,
+                               RoutingEngine *routingEngine,
+                               QObject *selectedConnection,
+                               const QSet<QString> &selectedConnectionIdSet,
+                               bool renderConnections,
+                               bool lodSimpleConnections,
+                               QSGGeometryNode *normalConnectionsGeomNode,
+                               QSGGeometryNode *selectedConnectionsGeomNode,
+                               QSGGeometryNode *normalArrowsGeomNode,
+                               QSGGeometryNode *selectedArrowsGeomNode)
 {
-    if (!normalEdgesGeomNode || !selectedEdgesGeomNode || !normalArrowsGeomNode || !selectedArrowsGeomNode)
+    if (!normalConnectionsGeomNode || !selectedConnectionsGeomNode || !normalArrowsGeomNode || !selectedArrowsGeomNode)
         return;
 
-    if (!renderEdges) {
-        clearNode(normalEdgesGeomNode);
-        clearNode(selectedEdgesGeomNode);
+    if (!renderConnections) {
+        clearNode(normalConnectionsGeomNode);
+        clearNode(selectedConnectionsGeomNode);
         clearNode(normalArrowsGeomNode);
         clearNode(selectedArrowsGeomNode);
         return;
@@ -86,8 +86,8 @@ void updateEdgesGeometry(QObject *graph,
 
     auto *graphModel = qobject_cast<GraphModel *>(graph);
     if (!graphModel) {
-        clearNode(normalEdgesGeomNode);
-        clearNode(selectedEdgesGeomNode);
+        clearNode(normalConnectionsGeomNode);
+        clearNode(selectedConnectionsGeomNode);
         clearNode(normalArrowsGeomNode);
         clearNode(selectedArrowsGeomNode);
         return;
@@ -151,28 +151,28 @@ void updateEdgesGeometry(QObject *graph,
         }
     }
 
-    if (normalEdgesGeomNode->geometry()->vertexCount() != normalCount * 2)
-        normalEdgesGeomNode->geometry()->allocate(normalCount * 2);
-    if (selectedEdgesGeomNode->geometry()->vertexCount() != selectedCount * 2)
-        selectedEdgesGeomNode->geometry()->allocate(selectedCount * 2);
+    if (normalConnectionsGeomNode->geometry()->vertexCount() != normalCount * 2)
+        normalConnectionsGeomNode->geometry()->allocate(normalCount * 2);
+    if (selectedConnectionsGeomNode->geometry()->vertexCount() != selectedCount * 2)
+        selectedConnectionsGeomNode->geometry()->allocate(selectedCount * 2);
     if (normalArrowsGeomNode->geometry()->vertexCount() != normalArrowCount * 3)
         normalArrowsGeomNode->geometry()->allocate(normalArrowCount * 3);
     if (selectedArrowsGeomNode->geometry()->vertexCount() != selectedArrowCount * 3)
         selectedArrowsGeomNode->geometry()->allocate(selectedArrowCount * 3);
 
-    auto *normalV = normalEdgesGeomNode->geometry()->vertexDataAsPoint2D();
-    auto *selectedV = selectedEdgesGeomNode->geometry()->vertexDataAsPoint2D();
+    auto *normalV = normalConnectionsGeomNode->geometry()->vertexDataAsPoint2D();
+    auto *selectedV = selectedConnectionsGeomNode->geometry()->vertexDataAsPoint2D();
     auto *normalArrowV = normalArrowsGeomNode->geometry()->vertexDataAsColoredPoint2D();
     auto *selectedArrowV = selectedArrowsGeomNode->geometry()->vertexDataAsColoredPoint2D();
     int nIdx = 0, sIdx = 0;
     int nArrowIdx = 0, sArrowIdx = 0;
 
-    const qreal arrowLength = lodSimpleEdges ? 8.0 : 12.0;
-    const qreal arrowWidth = lodSimpleEdges ? 3.5 : 5.0;
-    const QColor normalColor = lodSimpleEdges
+    const qreal arrowLength = lodSimpleConnections ? 8.0 : 12.0;
+    const qreal arrowWidth = lodSimpleConnections ? 3.5 : 5.0;
+    const QColor normalColor = lodSimpleConnections
         ? QColor(QStringLiteral("#546e7a"))
         : QColor(QStringLiteral("#607d8b"));
-    const QColor selectedColor = lodSimpleEdges
+    const QColor selectedColor = lodSimpleConnections
         ? QColor(QStringLiteral("#546e7a"))
         : QColor(QStringLiteral("#ff5722"));
 
@@ -214,26 +214,26 @@ void updateEdgesGeometry(QObject *graph,
         }
     }
 
-    normalEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
-    selectedEdgesGeomNode->markDirty(QSGNode::DirtyGeometry);
+    normalConnectionsGeomNode->markDirty(QSGNode::DirtyGeometry);
+    selectedConnectionsGeomNode->markDirty(QSGNode::DirtyGeometry);
     normalArrowsGeomNode->markDirty(QSGNode::DirtyGeometry);
     selectedArrowsGeomNode->markDirty(QSGNode::DirtyGeometry);
 }
 
-void updateTempEdgeGeometry(bool tempConnectionDragging,
-                            const QPointF &tempStart,
-                            const QPointF &tempEnd,
-                            QSGGeometryNode *tempEdgeGeomNode)
+void updateTempConnectionGeometry(bool tempConnectionDragging,
+                                  const QPointF &tempStart,
+                                  const QPointF &tempEnd,
+                                  QSGGeometryNode *tempConnectionGeomNode)
 {
-    if (!tempEdgeGeomNode)
+    if (!tempConnectionGeomNode)
         return;
 
-    auto *geom = tempEdgeGeomNode->geometry();
+    auto *geom = tempConnectionGeomNode->geometry();
 
     if (!tempConnectionDragging) {
         if (geom->vertexCount() > 0) {
             geom->allocate(0);
-            tempEdgeGeomNode->markDirty(QSGNode::DirtyGeometry);
+            tempConnectionGeomNode->markDirty(QSGNode::DirtyGeometry);
         }
         return;
     }
@@ -244,7 +244,7 @@ void updateTempEdgeGeometry(bool tempConnectionDragging,
     auto *v = geom->vertexDataAsPoint2D();
     v[0].set(float(tempStart.x()), float(tempStart.y()));
     v[1].set(float(tempEnd.x()), float(tempEnd.y()));
-    tempEdgeGeomNode->markDirty(QSGNode::DirtyGeometry);
+    tempConnectionGeomNode->markDirty(QSGNode::DirtyGeometry);
 }
 
-} // namespace EdgeRenderPass
+} // namespace ConnectionRenderPass

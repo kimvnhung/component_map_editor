@@ -111,7 +111,7 @@ Rectangle {
 
             StatPill {
                 iconName: "link"
-                valueText: "Edge " + root.selectedConnectionLabel
+                valueText: "Connection " + root.selectedConnectionLabel
                 accent: "#d4a5ff"
             }
 

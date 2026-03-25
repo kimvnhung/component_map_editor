@@ -185,14 +185,14 @@ void tst_TraversalEngine::policyHooksAffectTraversalAndPathSelection()
 
     QVariantMap policy;
     policy.insert(QStringLiteral("entryComponentIds"), QVariantList{QStringLiteral("start")});
-    policy.insert(QStringLiteral("blockedEdgeLabels"), QVariantList{QStringLiteral("fast")});
+    policy.insert(QStringLiteral("blockedConnectionLabels"), QVariantList{QStringLiteral("fast")});
 
     const QStringList bfsOrder = engine.bfs({}, policy);
     QVERIFY(!bfsOrder.contains(QStringLiteral("fast")));
     QVERIFY(bfsOrder.contains(QStringLiteral("slow")));
 
     QVariantMap scorePolicy;
-    scorePolicy.insert(QStringLiteral("edgeLabelScores"), QVariantMap{{QStringLiteral("slow"), 0.9}});
+    scorePolicy.insert(QStringLiteral("connectionLabelScores"), QVariantMap{{QStringLiteral("slow"), 0.9}});
     const QStringList preferredPath = engine.shortestPath(QStringLiteral("start"), QStringLiteral("stop"), scorePolicy);
     QVERIFY(preferredPath.contains(QStringLiteral("slow")));
 }
@@ -207,15 +207,15 @@ void tst_TraversalEngine::incrementalRecomputeFasterThanFullOnLocalEdit()
         for (int i = 0; i < componentCount; ++i)
             graph->addComponent(makeComponent(*graph, QStringLiteral("n%1").arg(i), QStringLiteral("process")));
 
-        int edgeCounter = 0;
+        int connCounter = 0;
         for (int i = 0; i < componentCount - 1; ++i) {
             graph->addConnection(makeConnection(*graph,
-                                                QStringLiteral("e%1").arg(edgeCounter++),
+                                                QStringLiteral("conn%1").arg(connCounter++),
                                                 QStringLiteral("n%1").arg(i),
                                                 QStringLiteral("n%1").arg(i + 1)));
             if (i + 2 < componentCount) {
                 graph->addConnection(makeConnection(*graph,
-                                                    QStringLiteral("e%1").arg(edgeCounter++),
+                                                    QStringLiteral("conn%1").arg(connCounter++),
                                                     QStringLiteral("n%1").arg(i),
                                                     QStringLiteral("n%1").arg(i + 2)));
             }
@@ -230,7 +230,7 @@ void tst_TraversalEngine::incrementalRecomputeFasterThanFullOnLocalEdit()
         engine.setGraph(graph.get());
         engine.refreshCache();
 
-        auto *editedConnection = graph->connectionById(QStringLiteral("e100"));
+        auto *editedConnection = graph->connectionById(QStringLiteral("conn100"));
         if (!editedConnection)
             return qint64(-1);
 
@@ -269,10 +269,10 @@ void tst_TraversalEngine::memoryGrowthBoundedDuringRepeatedRuns()
     for (int i = 0; i < componentCount; ++i)
         graph.addComponent(makeComponent(graph, QStringLiteral("m%1").arg(i), QStringLiteral("process")));
 
-    int edgeCounter = 0;
+    int connCounter = 0;
     for (int i = 0; i < componentCount - 1; ++i) {
         graph.addConnection(makeConnection(graph,
-                                           QStringLiteral("me%1").arg(edgeCounter++),
+                                           QStringLiteral("mconn%1").arg(connCounter++),
                                            QStringLiteral("m%1").arg(i),
                                            QStringLiteral("m%1").arg(i + 1),
                                            (i % 2 == 0) ? QStringLiteral("a") : QStringLiteral("b")));
@@ -284,7 +284,7 @@ void tst_TraversalEngine::memoryGrowthBoundedDuringRepeatedRuns()
     engine.refreshCache();
 
     const int componentCountBefore = engine.cachedComponentCount();
-    const int edgeCountBefore = engine.cachedEdgeCount();
+    const int connectionCountBefore = engine.cachedConnectionCount();
     const qint64 rssBefore = currentRssBytes();
 
     for (int i = 0; i < 300; ++i) {
@@ -298,7 +298,7 @@ void tst_TraversalEngine::memoryGrowthBoundedDuringRepeatedRuns()
 
     const qint64 rssAfter = currentRssBytes();
     QCOMPARE(engine.cachedComponentCount(), componentCountBefore);
-    QCOMPARE(engine.cachedEdgeCount(), edgeCountBefore);
+    QCOMPARE(engine.cachedConnectionCount(), connectionCountBefore);
     QCOMPARE(engine.pendingDirtyComponentCount(), 0);
     QCOMPARE(engine.pendingDirtyConnectionCount(), 0);
 

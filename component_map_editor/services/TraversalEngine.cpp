@@ -60,8 +60,8 @@ void TraversalEngine::setGraph(GraphModel *graph)
     m_graph = graph;
 
     m_componentTypeById.clear();
-    m_edgesById.clear();
-    m_outgoingEdgeIds.clear();
+    m_connectionsById.clear();
+    m_outgoingConnectionIds.clear();
     m_inDegree.clear();
     m_trackedComponentIds.clear();
     m_trackedConnectionIds.clear();
@@ -108,9 +108,9 @@ QStringList TraversalEngine::bfs(const QVariantList &entryIds, const QVariantMap
         if (policy.maxDepth >= 0 && depth >= policy.maxDepth)
             continue;
 
-        const QList<EdgeInfo> edges = outgoingEdges(current, policy);
-        for (const EdgeInfo &edge : edges) {
-            const QString next = edge.targetId;
+        const QList<ConnectionInfo> conns = outgoingConnections(current, policy);
+        for (const ConnectionInfo &conn : conns) {
+            const QString next = conn.targetId;
             if (isPruned(next, policy))
                 continue;
             if (visited.contains(next))
@@ -155,9 +155,9 @@ QStringList TraversalEngine::dfs(const QVariantList &entryIds, const QVariantMap
         if (policy.maxDepth >= 0 && depth >= policy.maxDepth)
             continue;
 
-        const QList<EdgeInfo> edges = outgoingEdges(current, policy);
-        for (int i = edges.size() - 1; i >= 0; --i) {
-            const QString next = edges.at(i).targetId;
+        const QList<ConnectionInfo> conns = outgoingConnections(current, policy);
+        for (int i = conns.size() - 1; i >= 0; --i) {
+            const QString next = conns.at(i).targetId;
             if (isPruned(next, policy))
                 continue;
             if (!visited.contains(next))
@@ -185,13 +185,13 @@ QVariantMap TraversalEngine::topologicalTraversal(const QVariantMap &policyMap)
         indegree.insert(id, 0);
     }
 
-    for (auto it = m_edgesById.constBegin(); it != m_edgesById.constEnd(); ++it) {
-        const EdgeInfo &edge = it.value();
-        if (!indegree.contains(edge.sourceId) || !indegree.contains(edge.targetId))
+    for (auto it = m_connectionsById.constBegin(); it != m_connectionsById.constEnd(); ++it) {
+        const ConnectionInfo &conn = it.value();
+        if (!indegree.contains(conn.sourceId) || !indegree.contains(conn.targetId))
             continue;
-        if (!edgeAllowed(edge, policy))
+        if (!connectionAllowed(conn, policy))
             continue;
-        indegree[edge.targetId] += 1;
+        indegree[conn.targetId] += 1;
     }
 
     QStringList zero;
@@ -207,13 +207,13 @@ QVariantMap TraversalEngine::topologicalTraversal(const QVariantMap &policyMap)
         const QString current = zero.takeFirst();
         order.append(current);
 
-        const QList<EdgeInfo> edges = outgoingEdges(current, policy);
-        for (const EdgeInfo &edge : edges) {
-            if (!indegree.contains(edge.targetId))
+        const QList<ConnectionInfo> conns = outgoingConnections(current, policy);
+        for (const ConnectionInfo &conn : conns) {
+            if (!indegree.contains(conn.targetId))
                 continue;
-            indegree[edge.targetId] -= 1;
-            if (indegree.value(edge.targetId) == 0) {
-                zero.append(edge.targetId);
+            indegree[conn.targetId] -= 1;
+            if (indegree.value(conn.targetId) == 0) {
+                zero.append(conn.targetId);
                 std::sort(zero.begin(), zero.end(), topoComparator);
             }
         }
@@ -246,9 +246,9 @@ QVariantList TraversalEngine::stronglyConnectedComponents(const QVariantMap &pol
         stack.append(node);
         onStack.insert(node);
 
-        const QList<EdgeInfo> edges = outgoingEdges(node, policy);
-        for (const EdgeInfo &edge : edges) {
-            const QString next = edge.targetId;
+        const QList<ConnectionInfo> conns = outgoingConnections(node, policy);
+        for (const ConnectionInfo &conn : conns) {
+            const QString next = conn.targetId;
             if (isPruned(next, policy))
                 continue;
             if (!indexByComponent.contains(next)) {
@@ -340,13 +340,13 @@ QStringList TraversalEngine::shortestPath(const QString &sourceId,
         if (current == targetId)
             break;
 
-        const QList<EdgeInfo> edges = outgoingEdges(current, policy);
-        for (const EdgeInfo &edge : edges) {
-            const QString next = edge.targetId;
+        const QList<ConnectionInfo> conns = outgoingConnections(current, policy);
+        for (const ConnectionInfo &conn : conns) {
+            const QString next = conn.targetId;
             if (!unvisited.contains(next))
                 continue;
 
-            const double nextDist = dist.value(current) + edgeTraversalCost(edge, policy);
+            const double nextDist = dist.value(current) + connectionTraversalCost(conn, policy);
             if (nextDist < dist.value(next)) {
                 dist[next] = nextDist;
                 prev[next] = current;
@@ -390,9 +390,9 @@ int TraversalEngine::cachedComponentCount() const
     return m_componentTypeById.size();
 }
 
-int TraversalEngine::cachedEdgeCount() const
+int TraversalEngine::cachedConnectionCount() const
 {
-    return m_edgesById.size();
+    return m_connectionsById.size();
 }
 
 int TraversalEngine::pendingDirtyComponentCount() const
@@ -596,10 +596,10 @@ TraversalEngine::RuntimePolicy TraversalEngine::parsePolicy(const QVariantList &
 
         policy.pruneComponentIds = toStringSet(policyMap.value(QStringLiteral("pruneComponentIds")).toList());
         policy.pruneComponentTypes = toStringSet(policyMap.value(QStringLiteral("pruneComponentTypes")).toList());
-        policy.allowedEdgeLabels = toStringSet(policyMap.value(QStringLiteral("allowedEdgeLabels")).toList());
-        policy.blockedEdgeLabels = toStringSet(policyMap.value(QStringLiteral("blockedEdgeLabels")).toList());
+        policy.allowedConnectionLabels = toStringSet(policyMap.value(QStringLiteral("allowedConnectionLabels")).toList());
+        policy.blockedConnectionLabels = toStringSet(policyMap.value(QStringLiteral("blockedConnectionLabels")).toList());
         policy.componentTypeScores = toDoubleMap(policyMap.value(QStringLiteral("componentTypeScores")).toMap());
-        policy.edgeLabelScores = toDoubleMap(policyMap.value(QStringLiteral("edgeLabelScores")).toMap());
+        policy.connectionLabelScores = toDoubleMap(policyMap.value(QStringLiteral("connectionLabelScores")).toMap());
         policy.maxDepth = policyMap.value(QStringLiteral("maxDepth"), -1).toInt();
     }
 
@@ -641,27 +641,27 @@ bool TraversalEngine::isPruned(const QString &componentId, const RuntimePolicy &
     return false;
 }
 
-bool TraversalEngine::edgeAllowed(const EdgeInfo &edge, const RuntimePolicy &policy) const
+bool TraversalEngine::connectionAllowed(const ConnectionInfo &connection, const RuntimePolicy &policy) const
 {
-    if (!policy.allowedEdgeLabels.isEmpty() && !policy.allowedEdgeLabels.contains(edge.label))
+    if (!policy.allowedConnectionLabels.isEmpty() && !policy.allowedConnectionLabels.contains(connection.label))
         return false;
-    if (policy.blockedEdgeLabels.contains(edge.label))
+    if (policy.blockedConnectionLabels.contains(connection.label))
         return false;
     return true;
 }
 
-double TraversalEngine::edgeTraversalScore(const EdgeInfo &edge, const RuntimePolicy &policy) const
+double TraversalEngine::connectionTraversalScore(const ConnectionInfo &connection, const RuntimePolicy &policy) const
 {
     double score = 0.0;
-    const QString targetType = m_componentTypeById.value(edge.targetId);
+    const QString targetType = m_componentTypeById.value(connection.targetId);
     score += policy.componentTypeScores.value(targetType, 0.0);
-    score += policy.edgeLabelScores.value(edge.label, 0.0);
+    score += policy.connectionLabelScores.value(connection.label, 0.0);
     return score;
 }
 
-double TraversalEngine::edgeTraversalCost(const EdgeInfo &edge, const RuntimePolicy &policy) const
+double TraversalEngine::connectionTraversalCost(const ConnectionInfo &connection, const RuntimePolicy &policy) const
 {
-    const double raw = 1.0 - edgeTraversalScore(edge, policy);
+    const double raw = 1.0 - connectionTraversalScore(connection, policy);
     return qMax(0.001, raw);
 }
 
@@ -672,7 +672,7 @@ void TraversalEngine::ensureCacheReady()
 
     if (!m_fullDirty) {
         if (m_componentTypeById.size() != m_graph->componentCount() ||
-            m_edgesById.size() != m_graph->connectionCount()) {
+            m_connectionsById.size() != m_graph->connectionCount()) {
             m_fullDirty = true;
         }
     }
@@ -692,8 +692,8 @@ void TraversalEngine::rebuildCacheFull()
         return;
 
     m_componentTypeById.clear();
-    m_edgesById.clear();
-    m_outgoingEdgeIds.clear();
+    m_connectionsById.clear();
+    m_outgoingConnectionIds.clear();
     m_inDegree.clear();
 
     const QList<ComponentModel *> components = m_graph->componentList();
@@ -712,17 +712,17 @@ void TraversalEngine::rebuildCacheFull()
         if (!connection)
             continue;
 
-        EdgeInfo edge;
-        edge.id = connection->id();
-        edge.sourceId = connection->sourceId();
-        edge.targetId = connection->targetId();
-        edge.label = connection->label();
+        ConnectionInfo conn;
+        conn.id = connection->id();
+        conn.sourceId = connection->sourceId();
+        conn.targetId = connection->targetId();
+        conn.label = connection->label();
 
-        if (edge.id.isEmpty())
+        if (conn.id.isEmpty())
             continue;
 
-        m_edgesById.insert(edge.id, edge);
-        addEdgeToAdjacency(edge);
+        m_connectionsById.insert(conn.id, conn);
+        addConnectionToAdjacency(conn);
     }
 
     m_dirtyComponentIds.clear();
@@ -746,32 +746,32 @@ void TraversalEngine::applyIncrementalDirtySet()
         if (!component) {
             m_componentTypeById.remove(componentId);
             m_inDegree.remove(componentId);
-            m_outgoingEdgeIds.remove(componentId);
+            m_outgoingConnectionIds.remove(componentId);
 
-            for (auto it = m_outgoingEdgeIds.begin(); it != m_outgoingEdgeIds.end(); ++it) {
-                QList<QString> &edgeIds = it.value();
-                edgeIds.erase(std::remove_if(edgeIds.begin(),
-                                             edgeIds.end(),
-                                             [&](const QString &edgeId) {
-                                                 const EdgeInfo edge = m_edgesById.value(edgeId);
-                                                 return edge.targetId == componentId;
+            for (auto it = m_outgoingConnectionIds.begin(); it != m_outgoingConnectionIds.end(); ++it) {
+                QList<QString> &connIds = it.value();
+                connIds.erase(std::remove_if(connIds.begin(),
+                                             connIds.end(),
+                                             [&](const QString &connId) {
+                                                 const ConnectionInfo conn = m_connectionsById.value(connId);
+                                                 return conn.targetId == componentId;
                                              }),
-                              edgeIds.end());
+                              connIds.end());
             }
 
-            QList<QString> removeEdges;
-            for (auto edgeIt = m_edgesById.constBegin(); edgeIt != m_edgesById.constEnd(); ++edgeIt) {
-                if (edgeIt->sourceId == componentId || edgeIt->targetId == componentId)
-                    removeEdges.append(edgeIt.key());
+            QList<QString> removeConns;
+            for (auto connIt = m_connectionsById.constBegin(); connIt != m_connectionsById.constEnd(); ++connIt) {
+                if (connIt->sourceId == componentId || connIt->targetId == componentId)
+                    removeConns.append(connIt.key());
             }
-            for (const QString &edgeId : std::as_const(removeEdges)) {
-                const EdgeInfo edge = m_edgesById.take(edgeId);
-                removeEdgeFromAdjacency(edge);
+            for (const QString &connId : std::as_const(removeConns)) {
+                const ConnectionInfo conn = m_connectionsById.take(connId);
+                removeConnectionFromAdjacency(conn);
             }
         } else {
             m_componentTypeById.insert(componentId, component->type());
             m_inDegree.insert(componentId, m_inDegree.value(componentId, 0));
-            m_outgoingEdgeIds.insert(componentId, m_outgoingEdgeIds.value(componentId));
+                m_outgoingConnectionIds.insert(componentId, m_outgoingConnectionIds.value(componentId));
         }
     }
 
@@ -779,23 +779,23 @@ void TraversalEngine::applyIncrementalDirtySet()
         if (connectionId.isEmpty())
             continue;
 
-        if (m_edgesById.contains(connectionId)) {
-            const EdgeInfo oldEdge = m_edgesById.take(connectionId);
-            removeEdgeFromAdjacency(oldEdge);
+        if (m_connectionsById.contains(connectionId)) {
+            const ConnectionInfo oldConn = m_connectionsById.take(connectionId);
+            removeConnectionFromAdjacency(oldConn);
         }
 
         ConnectionModel *connection = m_graph->connectionById(connectionId);
         if (!connection)
             continue;
 
-        EdgeInfo edge;
-        edge.id = connectionId;
-        edge.sourceId = connection->sourceId();
-        edge.targetId = connection->targetId();
-        edge.label = connection->label();
+        ConnectionInfo conn;
+        conn.id = connectionId;
+        conn.sourceId = connection->sourceId();
+        conn.targetId = connection->targetId();
+        conn.label = connection->label();
 
-        m_edgesById.insert(connectionId, edge);
-        addEdgeToAdjacency(edge);
+        m_connectionsById.insert(connectionId, conn);
+        addConnectionToAdjacency(conn);
     }
 
     m_dirtyComponentIds.clear();
@@ -806,51 +806,51 @@ void TraversalEngine::applyIncrementalDirtySet()
     emit cacheRevisionChanged();
 }
 
-void TraversalEngine::removeEdgeFromAdjacency(const EdgeInfo &edge)
+void TraversalEngine::removeConnectionFromAdjacency(const ConnectionInfo &connection)
 {
-    if (edge.sourceId.isEmpty() || edge.targetId.isEmpty())
+    if (connection.sourceId.isEmpty() || connection.targetId.isEmpty())
         return;
 
-    QList<QString> &out = m_outgoingEdgeIds[edge.sourceId];
-    out.erase(std::remove(out.begin(), out.end(), edge.id), out.end());
+    QList<QString> &out = m_outgoingConnectionIds[connection.sourceId];
+    out.erase(std::remove(out.begin(), out.end(), connection.id), out.end());
 
-    if (m_inDegree.contains(edge.targetId))
-        m_inDegree[edge.targetId] = qMax(0, m_inDegree.value(edge.targetId) - 1);
+    if (m_inDegree.contains(connection.targetId))
+        m_inDegree[connection.targetId] = qMax(0, m_inDegree.value(connection.targetId) - 1);
 }
 
-void TraversalEngine::addEdgeToAdjacency(const EdgeInfo &edge)
+void TraversalEngine::addConnectionToAdjacency(const ConnectionInfo &connection)
 {
-    if (edge.sourceId.isEmpty() || edge.targetId.isEmpty())
+    if (connection.sourceId.isEmpty() || connection.targetId.isEmpty())
         return;
-    if (!m_componentTypeById.contains(edge.sourceId) || !m_componentTypeById.contains(edge.targetId))
+    if (!m_componentTypeById.contains(connection.sourceId) || !m_componentTypeById.contains(connection.targetId))
         return;
 
-    QList<QString> &out = m_outgoingEdgeIds[edge.sourceId];
-    if (!out.contains(edge.id))
-        out.append(edge.id);
+    QList<QString> &out = m_outgoingConnectionIds[connection.sourceId];
+    if (!out.contains(connection.id))
+        out.append(connection.id);
 
-    m_inDegree[edge.targetId] = m_inDegree.value(edge.targetId, 0) + 1;
+    m_inDegree[connection.targetId] = m_inDegree.value(connection.targetId, 0) + 1;
 }
 
-QList<TraversalEngine::EdgeInfo> TraversalEngine::outgoingEdges(const QString &componentId,
-                                                                const RuntimePolicy &policy) const
+QList<TraversalEngine::ConnectionInfo> TraversalEngine::outgoingConnections(const QString &componentId,
+                                                                             const RuntimePolicy &policy) const
 {
-    QList<EdgeInfo> edges;
-    const QList<QString> edgeIds = m_outgoingEdgeIds.value(componentId);
-    edges.reserve(edgeIds.size());
+    QList<ConnectionInfo> conns;
+    const QList<QString> connIds = m_outgoingConnectionIds.value(componentId);
+    conns.reserve(connIds.size());
 
-    for (const QString &edgeId : edgeIds) {
-        const EdgeInfo edge = m_edgesById.value(edgeId);
-        if (edge.id.isEmpty())
+    for (const QString &connId : connIds) {
+        const ConnectionInfo conn = m_connectionsById.value(connId);
+        if (conn.id.isEmpty())
             continue;
-        if (!edgeAllowed(edge, policy))
+        if (!connectionAllowed(conn, policy))
             continue;
-        edges.append(edge);
+        conns.append(conn);
     }
 
-    std::sort(edges.begin(), edges.end(), [&](const EdgeInfo &a, const EdgeInfo &b) {
-        const double sa = edgeTraversalScore(a, policy);
-        const double sb = edgeTraversalScore(b, policy);
+    std::sort(conns.begin(), conns.end(), [&](const ConnectionInfo &a, const ConnectionInfo &b) {
+        const double sa = connectionTraversalScore(a, policy);
+        const double sb = connectionTraversalScore(b, policy);
         if (!qFuzzyCompare(sa + 1.0, sb + 1.0))
             return sa > sb;
         if (a.targetId != b.targetId)
@@ -858,5 +858,5 @@ QList<TraversalEngine::EdgeInfo> TraversalEngine::outgoingEdges(const QString &c
         return a.id < b.id;
     });
 
-    return edges;
+    return conns;
 }

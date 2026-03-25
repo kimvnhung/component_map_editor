@@ -49,7 +49,7 @@ public:
     int fullRebuildCount() const;
     int incrementalRecomputeCount() const;
     int cachedComponentCount() const;
-    int cachedEdgeCount() const;
+    int cachedConnectionCount() const;
     int pendingDirtyComponentCount() const;
     int pendingDirtyConnectionCount() const;
     void markFullDirtyForTest();
@@ -59,7 +59,7 @@ signals:
     void cacheRevisionChanged();
 
 private:
-    struct EdgeInfo {
+    struct ConnectionInfo {
         QString id;
         QString sourceId;
         QString targetId;
@@ -71,10 +71,10 @@ private:
         bool useZeroIndegreeEntries = false;
         QSet<QString> pruneComponentIds;
         QSet<QString> pruneComponentTypes;
-        QSet<QString> allowedEdgeLabels;
-        QSet<QString> blockedEdgeLabels;
+        QSet<QString> allowedConnectionLabels;
+        QSet<QString> blockedConnectionLabels;
         QHash<QString, double> componentTypeScores;
-        QHash<QString, double> edgeLabelScores;
+        QHash<QString, double> connectionLabelScores;
         int maxDepth = -1;
     };
 
@@ -99,24 +99,24 @@ private:
 
     QStringList entryPointsForPolicy(const RuntimePolicy &policy) const;
     bool isPruned(const QString &componentId, const RuntimePolicy &policy) const;
-    bool edgeAllowed(const EdgeInfo &edge, const RuntimePolicy &policy) const;
-    double edgeTraversalScore(const EdgeInfo &edge, const RuntimePolicy &policy) const;
-    double edgeTraversalCost(const EdgeInfo &edge, const RuntimePolicy &policy) const;
+    bool connectionAllowed(const ConnectionInfo &connection, const RuntimePolicy &policy) const;
+    double connectionTraversalScore(const ConnectionInfo &connection, const RuntimePolicy &policy) const;
+    double connectionTraversalCost(const ConnectionInfo &connection, const RuntimePolicy &policy) const;
 
     void ensureCacheReady();
     void rebuildCacheFull();
     void applyIncrementalDirtySet();
 
-    void removeEdgeFromAdjacency(const EdgeInfo &edge);
-    void addEdgeToAdjacency(const EdgeInfo &edge);
+    void removeConnectionFromAdjacency(const ConnectionInfo &connection);
+    void addConnectionToAdjacency(const ConnectionInfo &connection);
 
-    QList<EdgeInfo> outgoingEdges(const QString &componentId, const RuntimePolicy &policy) const;
+    QList<ConnectionInfo> outgoingConnections(const QString &componentId, const RuntimePolicy &policy) const;
 
     QPointer<GraphModel> m_graph;
 
     QHash<QString, QString> m_componentTypeById;
-    QHash<QString, EdgeInfo> m_edgesById;
-    QHash<QString, QList<QString>> m_outgoingEdgeIds;
+    QHash<QString, ConnectionInfo> m_connectionsById;
+    QHash<QString, QList<QString>> m_outgoingConnectionIds;
     QHash<QString, int> m_inDegree;
 
     QHash<ComponentModel *, QString> m_trackedComponentIds;
