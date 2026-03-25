@@ -126,13 +126,20 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
     }
 
     if (targetId == QStringLiteral("connection/flow")) {
+        const QVariantList sideOptions{
+            QVariantMap{{QStringLiteral("text"), QStringLiteral("Auto")},   {QStringLiteral("value"), -1}},
+            QVariantMap{{QStringLiteral("text"), QStringLiteral("Top")},    {QStringLiteral("value"),  0}},
+            QVariantMap{{QStringLiteral("text"), QStringLiteral("Right")},  {QStringLiteral("value"),  1}},
+            QVariantMap{{QStringLiteral("text"), QStringLiteral("Bottom")}, {QStringLiteral("value"),  2}},
+            QVariantMap{{QStringLiteral("text"), QStringLiteral("Left")},   {QStringLiteral("value"),  3}}
+        };
         return {
             withSection(entry("label", "string", "Label", false, QString(), "textfield"),
                         "Identity", 1),
             withSection(entry("sourceSide", "enum", "Source Side", true, -1, "dropdown"),
-                        "Routing", 20),
+                        "Routing", 20, QString(), {}, {}, sideOptions),
             withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
-                        "Routing", 21)
+                        "Routing", 21, QString(), {}, {}, sideOptions)
         };
     }
 
