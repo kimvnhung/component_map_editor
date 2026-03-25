@@ -47,12 +47,15 @@ public:
     ExtensionManifest manifest(const QString &extensionId) const;
 
     // Provider accessors used by TypeRegistry to build its O(1) cache.
+    // Providers are returned in registration order.
     QList<const IComponentTypeProvider *> componentTypeProviders() const;
     QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
     QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
     QList<const IExecutionSemanticsProvider *> executionSemanticsProviders() const;
 
 private:
+    // Registers a provider into both a hash index (for O(1) duplicate detection) and
+    // an ordered list (to preserve registration order for iteration).
     template <typename ProviderT>
     bool registerProviderInternal(const ProviderT *provider,
                                   ProviderRegistry<ProviderT> *target,

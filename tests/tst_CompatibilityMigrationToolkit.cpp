@@ -115,7 +115,7 @@ void CompatibilityMigrationToolkitTests::legacyExecutionPackRegistersViaAdapterW
     QVariantMap output;
     QVariantMap trace;
     QString execError;
-    QVERIFY(providers.first()->executeComponent(QStringLiteral("task"),
+    QVERIFY(providers.first()->executeComponent(QStringLiteral("start"),
                                                 QStringLiteral("t-1"),
                                                 QVariantMap{},
                                                 QVariantMap{},
@@ -123,7 +123,7 @@ void CompatibilityMigrationToolkitTests::legacyExecutionPackRegistersViaAdapterW
                                                 &trace,
                                                 &execError));
     QVERIFY(execError.isEmpty());
-    QCOMPARE(output.value(QStringLiteral("taskCount")).toInt(), 1);
+    QCOMPARE(output.value(QStringLiteral("started")).toBool(), true);
     QCOMPARE(trace.value(QStringLiteral("adapter")).toString(),
              QStringLiteral("executionSemantics.v0"));
 }

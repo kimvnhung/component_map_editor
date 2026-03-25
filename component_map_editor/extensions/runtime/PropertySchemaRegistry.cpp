@@ -212,8 +212,8 @@ QVariantList PropertySchemaRegistry::fallbackConnectionRows()
         makeFallbackField(QStringLiteral("Source"), QStringLiteral("sourceId"), QStringLiteral("textfield"), QString(), QStringLiteral("Identity"), 1),
         makeFallbackField(QStringLiteral("Target"), QStringLiteral("targetId"), QStringLiteral("textfield"), QString(), QStringLiteral("Identity"), 2),
         makeFallbackField(QStringLiteral("Label"), QStringLiteral("label"), QStringLiteral("textfield"), QString(), QStringLiteral("Identity"), 3),
-        makeFallbackField(QStringLiteral("Source Side"), QStringLiteral("sourceSide"), QStringLiteral("dropdown"), 0, QStringLiteral("Routing"), 10),
-        makeFallbackField(QStringLiteral("Target Side"), QStringLiteral("targetSide"), QStringLiteral("dropdown"), 0, QStringLiteral("Routing"), 11)
+        makeFallbackField(QStringLiteral("Source Side"), QStringLiteral("sourceSide"), QStringLiteral("dropdown"), -1, QStringLiteral("Routing"), 10),
+        makeFallbackField(QStringLiteral("Target Side"), QStringLiteral("targetSide"), QStringLiteral("dropdown"), -1, QStringLiteral("Routing"), 11)
     };
 }
 

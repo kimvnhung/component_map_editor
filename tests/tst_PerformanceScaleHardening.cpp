@@ -1,10 +1,18 @@
 #include <QtTest>
 
 #include <algorithm>
-#include <unistd.h>
 
 #include <QElapsedTimer>
 #include <QFile>
+
+#if defined(Q_OS_LINUX)
+#  include <unistd.h>
+#elif defined(Q_OS_WIN)
+#  include <windows.h>
+#  include <psapi.h>
+#elif defined(Q_OS_MACOS)
+#  include <mach/mach.h>
+#endif
 
 #include "commands/UndoStack.h"
 #include "models/ComponentModel.h"
@@ -23,7 +31,7 @@ ComponentModel *makeComponent(GraphModel &graph, const QString &id)
 {
     auto *component = new ComponentModel(&graph);
     component->setId(id);
-    component->setType(QStringLiteral("task"));
+    component->setType(QStringLiteral("process"));
     component->setTitle(id);
     return component;
 }
@@ -64,6 +72,7 @@ void buildScaleGraph(GraphModel &graph, int nodeCount)
 
 qint64 currentRssBytes()
 {
+#if defined(Q_OS_LINUX)
     QFile file(QStringLiteral("/proc/self/statm"));
     if (!file.open(QIODevice::ReadOnly))
         return -1;
@@ -83,6 +92,23 @@ qint64 currentRssBytes()
         return -1;
 
     return residentPages * pageSize;
+#elif defined(Q_OS_WIN)
+    PROCESS_MEMORY_COUNTERS pmc = {};
+    pmc.cb = sizeof(pmc);
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
+        return static_cast<qint64>(pmc.WorkingSetSize);
+    return -1;
+#elif defined(Q_OS_MACOS)
+    mach_task_basic_info_data_t info;
+    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
+                  reinterpret_cast<task_info_t>(&info), &size) == KERN_SUCCESS
+        && size == MACH_TASK_BASIC_INFO_COUNT)
+        return static_cast<qint64>(info.resident_size);
+    return -1;
+#else
+    return -1;
+#endif
 }
 
 double p95Ms(const QVector<double> &samples)
@@ -134,7 +160,7 @@ void tst_PerformanceScaleHardening::commandLatencyP95UnderBudgetForCommonActions
                                    QVariantMap{
                                        { QStringLiteral("command"), QStringLiteral("addComponent") },
                                        { QStringLiteral("id"), QStringLiteral("hot") },
-                                       { QStringLiteral("typeId"), QStringLiteral("task") },
+                                       { QStringLiteral("typeId"), QStringLiteral("process") },
                                        { QStringLiteral("x"), 0.0 },
                                        { QStringLiteral("y"), 0.0 }
                                    }));

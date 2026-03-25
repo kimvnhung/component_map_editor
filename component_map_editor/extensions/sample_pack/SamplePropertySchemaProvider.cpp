@@ -48,28 +48,30 @@ QStringList SamplePropertySchemaProvider::schemaTargets() const
 {
     return {
         QStringLiteral("component/start"),
-        QStringLiteral("component/task"),
-        QStringLiteral("component/decision"),
-        QStringLiteral("component/end"),
+        QStringLiteral("component/process"),
+        QStringLiteral("component/stop"),
         QStringLiteral("connection/flow")
     };
 }
 
 QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetId) const
 {
-    if (targetId == QStringLiteral("component/start") ||
-        targetId == QStringLiteral("component/end")) {
+    if (targetId == QStringLiteral("component/start")) {
         return {
             withSection(entry("title", "string", "Title", true, QString(), "textfield"),
                         "Identity", 1,
                         QStringLiteral("Human-friendly label shown on the graph.")),
+            withSection(entry("inputNumber", "number", "Input Number", true, 0, "spinbox"),
+                        "Behavior", 20,
+                        QStringLiteral("Seed number consumed by the start node when simulation begins."),
+                        QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
             withSection(entry("icon", "string", "Icon", false, QString(), "textfield"),
-                        "Appearance", 10,
+                        "Appearance", 30,
                         QStringLiteral("FontAwesome icon key, for example 'play' or 'stop'.")),
             withSection(entry("color", "string", "Color", true, QStringLiteral("#66bb6a"), "textfield"),
-                        "Appearance", 11),
+                        "Appearance", 31),
             withSection(entry("shape", "enum", "Shape", true, QStringLiteral("rounded"), "dropdown"),
-                        "Appearance", 12,
+                        "Appearance", 32,
                         QString(),
                         {},
                         {},
@@ -77,24 +79,18 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         };
     }
 
-    if (targetId == QStringLiteral("component/task")) {
+    if (targetId == QStringLiteral("component/process")) {
         return {
             withSection(entry("title", "string", "Title", true, QString(), "textfield"),
                         "Identity", 1,
                         QStringLiteral("Display title used in the node body.")),
             withSection(entry("description", "string", "Description", false, QString(), "textarea"),
                         "Behavior", 20,
-                        QStringLiteral("Optional implementation notes for this task.")),
-            withSection(entry("priority", "enum", "Priority", true, QStringLiteral("normal"), "dropdown"),
+                        QStringLiteral("Optional implementation notes for this process.")),
+            withSection(entry("addValue", "number", "Add Value", true, 9, "spinbox"),
                         "Behavior", 21,
-                        QStringLiteral("Higher priority tasks can be highlighted by business rules."),
-                        {},
-                        {},
-                        QVariantList{
-                            QVariantMap{{QStringLiteral("text"), QStringLiteral("Low")}, {QStringLiteral("value"), QStringLiteral("low")}},
-                            QVariantMap{{QStringLiteral("text"), QStringLiteral("Normal")}, {QStringLiteral("value"), QStringLiteral("normal")}},
-                            QVariantMap{{QStringLiteral("text"), QStringLiteral("High")}, {QStringLiteral("value"), QStringLiteral("high")}}
-                        }),
+                        QStringLiteral("Number added to the current simulation value (default +9)."),
+                        QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
             withSection(entry("x", "number", "X", true, 0, "spinbox"),
                         "Layout", 40,
                         QString(),
@@ -114,19 +110,18 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         };
     }
 
-    if (targetId == QStringLiteral("component/decision")) {
+    if (targetId == QStringLiteral("component/stop")) {
         return {
             withSection(entry("title", "string", "Title", true, QString(), "textfield"),
                         "Identity", 1),
-            withSection(entry("condition", "string", "Condition", true, QString(), "textfield"),
-                        "Behavior", 20,
-                        QStringLiteral("Expression evaluated by the business runtime."),
-                        QVariantMap{{QStringLiteral("requiredMessage"), QStringLiteral("Condition is required.")}}),
             withSection(entry("description", "string", "Description", false, QString(), "textarea"),
-                        "Behavior", 21,
-                        QStringLiteral("Shown only when a condition exists."),
-                        {},
-                        QVariantMap{{QStringLiteral("property"), QStringLiteral("condition")}, {QStringLiteral("truthy"), true}})
+                        "Behavior", 20,
+                        QStringLiteral("Optional notes shown in the inspector.")),
+            withSection(entry("icon", "string", "Icon", false, QString(), "textfield"),
+                        "Appearance", 30,
+                        QStringLiteral("FontAwesome icon key, for example 'stop' or 'flag-checkered'.")),
+            withSection(entry("color", "string", "Color", true, QStringLiteral("#ef5350"), "textfield"),
+                        "Appearance", 31)
         };
     }
 
@@ -134,9 +129,9 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         return {
             withSection(entry("label", "string", "Label", false, QString(), "textfield"),
                         "Identity", 1),
-            withSection(entry("sourceSide", "enum", "Source Side", true, 0, "dropdown"),
+            withSection(entry("sourceSide", "enum", "Source Side", true, -1, "dropdown"),
                         "Routing", 20),
-            withSection(entry("targetSide", "enum", "Target Side", true, 0, "dropdown"),
+            withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
                         "Routing", 21)
         };
     }

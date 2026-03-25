@@ -315,6 +315,17 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
             { QStringLiteral("color"), component->color() },
             { QStringLiteral("shape"), component->shape() }
         };
+
+        // Capture dynamic QML properties so extension execution semantics can
+        // consume schema-defined fields (for example inputNumber/addValue).
+        const QList<QByteArray> dynamicProps = component->dynamicPropertyNames();
+        for (const QByteArray &propName : dynamicProps) {
+            const QString key = QString::fromUtf8(propName);
+            if (key.isEmpty())
+                continue;
+            node.attributes.insert(key, component->property(propName.constData()));
+        }
+
         m_nodesById.insert(node.id, node);
     }
 

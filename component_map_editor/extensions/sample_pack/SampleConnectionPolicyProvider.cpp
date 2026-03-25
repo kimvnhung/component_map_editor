@@ -19,39 +19,29 @@ bool SampleConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
         return false;
     }
 
-    // End node has no outgoing connections.
-    if (sourceTypeId == QLatin1String(SampleComponentTypeProvider::TypeEnd)) {
+    // Stop node has no outgoing connections.
+    if (sourceTypeId == QLatin1String(SampleComponentTypeProvider::TypeStop)) {
         if (reason)
-            *reason = QStringLiteral("End component does not have outgoing connections.");
+            *reason = QStringLiteral("Stop component does not have outgoing connections.");
         return false;
     }
 
-    // start -> task only.
+    // start -> process only.
     if (sourceTypeId == QLatin1String(SampleComponentTypeProvider::TypeStart)) {
-        if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeTask))
+        if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeProcess))
             return true;
         if (reason)
-            *reason = QStringLiteral("Start component can only connect to task components.");
+            *reason = QStringLiteral("Start component can only connect to process components.");
         return false;
     }
 
-    // task -> task or decision.
-    if (sourceTypeId == QLatin1String(SampleComponentTypeProvider::TypeTask)) {
-        if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeTask) ||
-            targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeDecision))
+    // process -> process or stop.
+    if (sourceTypeId == QLatin1String(SampleComponentTypeProvider::TypeProcess)) {
+        if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeProcess) ||
+            targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeStop))
             return true;
         if (reason)
-            *reason = QStringLiteral("Task component can connect to task or decision components only.");
-        return false;
-    }
-
-    // decision -> task or end.
-    if (sourceTypeId == QLatin1String(SampleComponentTypeProvider::TypeDecision)) {
-        if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeTask) ||
-            targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeEnd))
-            return true;
-        if (reason)
-            *reason = QStringLiteral("Decision component can connect to task or end components only.");
+            *reason = QStringLiteral("Process component can connect to process or stop components only.");
         return false;
     }
 

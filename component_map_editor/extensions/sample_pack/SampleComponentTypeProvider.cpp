@@ -9,9 +9,8 @@ QStringList SampleComponentTypeProvider::componentTypeIds() const
 {
     return {
         QString::fromLatin1(TypeStart),
-        QString::fromLatin1(TypeTask),
-        QString::fromLatin1(TypeDecision),
-        QString::fromLatin1(TypeEnd)
+        QString::fromLatin1(TypeProcess),
+        QString::fromLatin1(TypeStop)
     };
 }
 
@@ -29,10 +28,9 @@ QVariantMap SampleComponentTypeProvider::componentTypeDescriptor(const QString &
     };
 
     static const Descriptor descriptors[] = {
-        { TypeStart,    "Start",    "control", 80.0,  80.0,  "#66bb6a", false, true  },
-        { TypeTask,     "Task",     "work",    160.0, 96.0,  "#4fc3f7", true,  true  },
-        { TypeDecision, "Decision", "control", 120.0, 120.0, "#ffa726", true,  true  },
-        { TypeEnd,      "End",      "control", 80.0,  80.0,  "#ef5350", true,  false }
+        { TypeStart,   "Start",   "control", 92.0,  92.0,  "#66bb6a", false, true  },
+        { TypeProcess, "Process", "work",    164.0, 100.0, "#4fc3f7", true,  true  },
+        { TypeStop,    "Stop",    "control", 92.0,  92.0,  "#ef5350", true,  false }
     };
 
     for (const auto &d : descriptors) {
@@ -54,16 +52,18 @@ QVariantMap SampleComponentTypeProvider::componentTypeDescriptor(const QString &
 
 QVariantMap SampleComponentTypeProvider::defaultComponentProperties(const QString &componentTypeId) const
 {
-    if (componentTypeId == QLatin1String(TypeTask)) {
+    if (componentTypeId == QLatin1String(TypeStart)) {
         return {
-            { QStringLiteral("priority"),    QStringLiteral("normal") },
+            { QStringLiteral("inputNumber"), 0 }
+        };
+    }
+
+    if (componentTypeId == QLatin1String(TypeProcess)) {
+        return {
+            { QStringLiteral("addValue"),    9 },
             { QStringLiteral("description"), QString() }
         };
     }
-    if (componentTypeId == QLatin1String(TypeDecision)) {
-        return {
-            { QStringLiteral("condition"), QString() }
-        };
-    }
+
     return {};
 }

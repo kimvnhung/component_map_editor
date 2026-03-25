@@ -2,11 +2,32 @@
 
 #include "extensions/contracts/ExtensionApiVersion.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
+#include "extensions/contracts/IComponentTypeProvider.h"
+#include "extensions/contracts/IConnectionPolicyProvider.h"
 #include "extensions/contracts/ExtensionManifest.h"
 #include "extensions/sample_pack/SampleComponentTypeProvider.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
 
 namespace {
+
+struct StubComponentTypeProviderById : public IComponentTypeProvider
+{
+    explicit StubComponentTypeProviderById(const QString &id) : m_id(id) {}
+    QString providerId() const override { return m_id; }
+    QStringList componentTypeIds() const override { return {}; }
+    QVariantMap componentTypeDescriptor(const QString &) const override { return {}; }
+    QVariantMap defaultComponentProperties(const QString &) const override { return {}; }
+    QString m_id;
+};
+
+struct StubConnectionPolicyProviderById : public IConnectionPolicyProvider
+{
+    explicit StubConnectionPolicyProviderById(const QString &id) : m_id(id) {}
+    QString providerId() const override { return m_id; }
+    bool canConnect(const QString &, const QString &, const QVariantMap &, QString *) const override { return true; }
+    QVariantMap normalizeConnectionProperties(const QString &, const QString &, const QVariantMap &raw) const override { return raw; }
+    QString m_id;
+};
 
 ExtensionManifest validManifest(const QString &id = QStringLiteral("test.pack"))
 {
@@ -30,13 +51,13 @@ QVariantMap minimalValidSnapshot()
     startComponent[QStringLiteral("id")] = QStringLiteral("n1");
     startComponent[QStringLiteral("type")] = QStringLiteral("start");
 
-    QVariantMap taskComponent;
-    taskComponent[QStringLiteral("id")] = QStringLiteral("n2");
-    taskComponent[QStringLiteral("type")] = QStringLiteral("task");
+    QVariantMap processComponent;
+    processComponent[QStringLiteral("id")] = QStringLiteral("n2");
+    processComponent[QStringLiteral("type")] = QStringLiteral("process");
 
-    QVariantMap endComponent;
-    endComponent[QStringLiteral("id")] = QStringLiteral("n3");
-    endComponent[QStringLiteral("type")] = QStringLiteral("end");
+    QVariantMap stopComponent;
+    stopComponent[QStringLiteral("id")] = QStringLiteral("n3");
+    stopComponent[QStringLiteral("type")] = QStringLiteral("stop");
 
     QVariantMap conn1;
     conn1[QStringLiteral("id")] = QStringLiteral("e1");
@@ -49,7 +70,7 @@ QVariantMap minimalValidSnapshot()
     conn2[QStringLiteral("targetId")] = QStringLiteral("n3");
 
     QVariantMap snapshot;
-    snapshot[QStringLiteral("components")] = QVariantList{ startComponent, taskComponent, endComponent };
+    snapshot[QStringLiteral("components")] = QVariantList{ startComponent, processComponent, stopComponent };
     snapshot[QStringLiteral("connections")] = QVariantList{ conn1, conn2 };
     return snapshot;
 }
@@ -83,35 +104,35 @@ private slots:
     void samplePackManifestIsPresent();
     void samplePackSecondRegisterFails();
 
-    void componentTypeProviderReturnsFourTypes();
+    void componentTypeProviderReturnsThreeTypes();
     void componentTypeDescriptorContainsRequiredKeys();
-    void componentTypeDefaultsForTask();
-    void componentTypeDefaultsForDecisionHasCondition();
-    void componentTypeDefaultsForStartIsEmpty();
+    void componentTypeDefaultsForProcess();
+    void componentTypeDefaultsForStartHasInputNumber();
+    void componentTypeDefaultsForStopIsEmpty();
 
-    void connectionPolicyAllowsStartToTask();
-    void connectionPolicyAllowsTaskToTask();
-    void connectionPolicyAllowsTaskToDecision();
-    void connectionPolicyAllowsDecisionToTask();
-    void connectionPolicyAllowsDecisionToEnd();
+    void connectionPolicyAllowsStartToProcess();
+    void connectionPolicyAllowsProcessToProcess();
+    void connectionPolicyAllowsProcessToStop();
+    void connectionPolicyDeniesStopToProcess();
+    void connectionPolicyAllowsProcessToStopWithProperties();
     void connectionPolicyDeniesStartAsTarget();
-    void connectionPolicyDeniesEndAsSource();
-    void connectionPolicyDeniesStartToDecision();
-    void connectionPolicyDeniesStartToEnd();
+    void connectionPolicyDeniesStopAsSource();
+    void connectionPolicyDeniesStartToStop();
+    void connectionPolicyDeniesStartToStopWithProperties();
     void connectionPolicyNormalizeAddsFlowType();
     void connectionPolicyNormalizePreservesExistingType();
 
     void propertySchemaTargetsCoverAllComponentTypes();
-    void propertySchemaForTaskHasDynamicLayoutEntries();
+    void propertySchemaForProcessHasDynamicLayoutEntries();
     void propertySchemaEntriesContainRequiredKeys();
-    void propertySchemaForDecisionHasConditionEntry();
+    void propertySchemaForStartHasInputNumberEntry();
     void propertySchemaForFlowConnectionHasLabelEntry();
     void propertySchemaForUnknownTargetIsEmpty();
 
     void validationAcceptsMinimalValidGraph();
     void validationDetectsMissingStartComponent();
     void validationDetectsMultipleStartComponents();
-    void validationDetectsMissingEndComponent();
+    void validationDetectsMissingStopComponent();
     void validationDetectsDanglingConnectionSource();
     void validationDetectsDanglingConnectionTarget();
     void validationWarnsAboutIsolatedComponent();
@@ -122,6 +143,9 @@ private slots:
     void actionInvokeFailsWithMissingComponentId();
     void actionInvokeFailsWithInvalidPriority();
     void actionInvokeFailsWithUnknownActionId();
+
+    void componentTypeProvidersReturnedInRegistrationOrder();
+    void connectionPolicyProvidersReturnedInRegistrationOrder();
 };
 
 void ExtensionContractRegistryTests::manifestValidationRejectsEmptyId()
@@ -215,14 +239,13 @@ void ExtensionContractRegistryTests::samplePackSecondRegisterFails()
     QVERIFY(!error.isEmpty());
 }
 
-void ExtensionContractRegistryTests::componentTypeProviderReturnsFourTypes()
+void ExtensionContractRegistryTests::componentTypeProviderReturnsThreeTypes()
 {
     SampleComponentTypeProvider provider;
-    QCOMPARE(provider.componentTypeIds().size(), 4);
+    QCOMPARE(provider.componentTypeIds().size(), 3);
     QVERIFY(provider.componentTypeIds().contains(QString::fromLatin1(SampleComponentTypeProvider::TypeStart)));
-    QVERIFY(provider.componentTypeIds().contains(QString::fromLatin1(SampleComponentTypeProvider::TypeTask)));
-    QVERIFY(provider.componentTypeIds().contains(QString::fromLatin1(SampleComponentTypeProvider::TypeDecision)));
-    QVERIFY(provider.componentTypeIds().contains(QString::fromLatin1(SampleComponentTypeProvider::TypeEnd)));
+    QVERIFY(provider.componentTypeIds().contains(QString::fromLatin1(SampleComponentTypeProvider::TypeProcess)));
+    QVERIFY(provider.componentTypeIds().contains(QString::fromLatin1(SampleComponentTypeProvider::TypeStop)));
 }
 
 void ExtensionContractRegistryTests::componentTypeDescriptorContainsRequiredKeys()
@@ -241,94 +264,98 @@ void ExtensionContractRegistryTests::componentTypeDescriptorContainsRequiredKeys
     }
 }
 
-void ExtensionContractRegistryTests::componentTypeDefaultsForTask()
+void ExtensionContractRegistryTests::componentTypeDefaultsForProcess()
 {
     SampleComponentTypeProvider provider;
     const QVariantMap defaults = provider.defaultComponentProperties(
-        QString::fromLatin1(SampleComponentTypeProvider::TypeTask));
-    QVERIFY(defaults.contains(QStringLiteral("priority")));
-    QCOMPARE(defaults.value(QStringLiteral("priority")).toString(), QStringLiteral("normal"));
+        QString::fromLatin1(SampleComponentTypeProvider::TypeProcess));
+    QVERIFY(defaults.contains(QStringLiteral("addValue")));
+    QCOMPARE(defaults.value(QStringLiteral("addValue")).toInt(), 9);
     QVERIFY(defaults.contains(QStringLiteral("description")));
 }
 
-void ExtensionContractRegistryTests::componentTypeDefaultsForDecisionHasCondition()
+void ExtensionContractRegistryTests::componentTypeDefaultsForStartHasInputNumber()
 {
     SampleComponentTypeProvider provider;
     const QVariantMap defaults = provider.defaultComponentProperties(
-        QString::fromLatin1(SampleComponentTypeProvider::TypeDecision));
-    QVERIFY(defaults.contains(QStringLiteral("condition")));
+        QString::fromLatin1(SampleComponentTypeProvider::TypeStart));
+    QVERIFY(defaults.contains(QStringLiteral("inputNumber")));
+    QCOMPARE(defaults.value(QStringLiteral("inputNumber")).toInt(), 0);
 }
 
-void ExtensionContractRegistryTests::componentTypeDefaultsForStartIsEmpty()
+void ExtensionContractRegistryTests::componentTypeDefaultsForStopIsEmpty()
 {
     SampleComponentTypeProvider provider;
-    QVERIFY(provider.defaultComponentProperties(QString::fromLatin1(SampleComponentTypeProvider::TypeStart)).isEmpty());
-    QVERIFY(provider.defaultComponentProperties(QString::fromLatin1(SampleComponentTypeProvider::TypeEnd)).isEmpty());
+    QVERIFY(provider.defaultComponentProperties(QString::fromLatin1(SampleComponentTypeProvider::TypeStop)).isEmpty());
 }
 
-void ExtensionContractRegistryTests::connectionPolicyAllowsStartToTask()
+void ExtensionContractRegistryTests::connectionPolicyAllowsStartToProcess()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("start"), QStringLiteral("task"), {}, nullptr));
+    QVERIFY(provider.canConnect(QStringLiteral("start"), QStringLiteral("process"), {}, nullptr));
 }
 
-void ExtensionContractRegistryTests::connectionPolicyAllowsTaskToTask()
+void ExtensionContractRegistryTests::connectionPolicyAllowsProcessToProcess()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("task"), QStringLiteral("task"), {}, nullptr));
+    QVERIFY(provider.canConnect(QStringLiteral("process"), QStringLiteral("process"), {}, nullptr));
 }
 
-void ExtensionContractRegistryTests::connectionPolicyAllowsTaskToDecision()
+void ExtensionContractRegistryTests::connectionPolicyAllowsProcessToStop()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("task"), QStringLiteral("decision"), {}, nullptr));
+    QVERIFY(provider.canConnect(QStringLiteral("process"), QStringLiteral("stop"), {}, nullptr));
 }
 
-void ExtensionContractRegistryTests::connectionPolicyAllowsDecisionToTask()
+void ExtensionContractRegistryTests::connectionPolicyDeniesStopToProcess()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("decision"), QStringLiteral("task"), {}, nullptr));
+    QVERIFY(!provider.canConnect(QStringLiteral("stop"), QStringLiteral("process"), {}, nullptr));
 }
 
-void ExtensionContractRegistryTests::connectionPolicyAllowsDecisionToEnd()
+void ExtensionContractRegistryTests::connectionPolicyAllowsProcessToStopWithProperties()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("decision"), QStringLiteral("end"), {}, nullptr));
+    QVariantMap properties;
+    properties.insert(QStringLiteral("type"), QStringLiteral("flow"));
+    QVERIFY(provider.canConnect(QStringLiteral("process"), QStringLiteral("stop"), properties, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyDeniesStartAsTarget()
 {
     SampleConnectionPolicyProvider provider;
     QString reason;
-    QVERIFY(!provider.canConnect(QStringLiteral("task"), QStringLiteral("start"), {}, &reason));
+    QVERIFY(!provider.canConnect(QStringLiteral("process"), QStringLiteral("start"), {}, &reason));
     QVERIFY(!reason.isEmpty());
 }
 
-void ExtensionContractRegistryTests::connectionPolicyDeniesEndAsSource()
+void ExtensionContractRegistryTests::connectionPolicyDeniesStopAsSource()
 {
     SampleConnectionPolicyProvider provider;
     QString reason;
-    QVERIFY(!provider.canConnect(QStringLiteral("end"), QStringLiteral("task"), {}, &reason));
+    QVERIFY(!provider.canConnect(QStringLiteral("stop"), QStringLiteral("process"), {}, &reason));
     QVERIFY(!reason.isEmpty());
 }
 
-void ExtensionContractRegistryTests::connectionPolicyDeniesStartToDecision()
+void ExtensionContractRegistryTests::connectionPolicyDeniesStartToStop()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(!provider.canConnect(QStringLiteral("start"), QStringLiteral("decision"), {}, nullptr));
+    QVERIFY(!provider.canConnect(QStringLiteral("start"), QStringLiteral("stop"), {}, nullptr));
 }
 
-void ExtensionContractRegistryTests::connectionPolicyDeniesStartToEnd()
+void ExtensionContractRegistryTests::connectionPolicyDeniesStartToStopWithProperties()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(!provider.canConnect(QStringLiteral("start"), QStringLiteral("end"), {}, nullptr));
+    QVariantMap properties;
+    properties.insert(QStringLiteral("type"), QStringLiteral("flow"));
+    QVERIFY(!provider.canConnect(QStringLiteral("start"), QStringLiteral("stop"), properties, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyNormalizeAddsFlowType()
 {
     SampleConnectionPolicyProvider provider;
     const QVariantMap result = provider.normalizeConnectionProperties(
-        QStringLiteral("task"), QStringLiteral("task"), {});
+        QStringLiteral("process"), QStringLiteral("process"), {});
     QCOMPARE(result.value(QStringLiteral("type")).toString(), QStringLiteral("flow"));
 }
 
@@ -338,7 +365,7 @@ void ExtensionContractRegistryTests::connectionPolicyNormalizePreservesExistingT
     QVariantMap raw;
     raw[QStringLiteral("type")] = QStringLiteral("dependency");
     const QVariantMap result = provider.normalizeConnectionProperties(
-        QStringLiteral("task"), QStringLiteral("task"), raw);
+        QStringLiteral("process"), QStringLiteral("process"), raw);
     QCOMPARE(result.value(QStringLiteral("type")).toString(), QStringLiteral("dependency"));
 }
 
@@ -347,35 +374,32 @@ void ExtensionContractRegistryTests::propertySchemaTargetsCoverAllComponentTypes
     SamplePropertySchemaProvider provider;
     const QStringList targets = provider.schemaTargets();
     QVERIFY(targets.contains(QStringLiteral("component/start")));
-    QVERIFY(targets.contains(QStringLiteral("component/task")));
-    QVERIFY(targets.contains(QStringLiteral("component/decision")));
-    QVERIFY(targets.contains(QStringLiteral("component/end")));
+    QVERIFY(targets.contains(QStringLiteral("component/process")));
+    QVERIFY(targets.contains(QStringLiteral("component/stop")));
     QVERIFY(targets.contains(QStringLiteral("connection/flow")));
 }
 
-void ExtensionContractRegistryTests::propertySchemaForTaskHasDynamicLayoutEntries()
+void ExtensionContractRegistryTests::propertySchemaForProcessHasDynamicLayoutEntries()
 {
     SamplePropertySchemaProvider provider;
-    const QVariantList schema = provider.propertySchema(QStringLiteral("component/task"));
+    const QVariantList schema = provider.propertySchema(QStringLiteral("component/process"));
     QVERIFY(schema.size() >= 6);
 
     bool hasSection = false;
     bool hasOrder = false;
-    bool hasOptions = false;
-    bool hasValidation = false;
+    bool hasNumericBehavior = false;
 
     for (const QVariant &value : schema) {
         const QVariantMap row = value.toMap();
         hasSection = hasSection || row.contains(QStringLiteral("section"));
         hasOrder = hasOrder || row.contains(QStringLiteral("order"));
-        hasOptions = hasOptions || row.contains(QStringLiteral("options"));
-        hasValidation = hasValidation || row.contains(QStringLiteral("validation"));
+        if (row.value(QStringLiteral("key")).toString() == QStringLiteral("addValue"))
+            hasNumericBehavior = true;
     }
 
     QVERIFY(hasSection);
     QVERIFY(hasOrder);
-    QVERIFY(hasOptions);
-    QVERIFY(hasValidation);
+    QVERIFY(hasNumericBehavior);
 }
 
 void ExtensionContractRegistryTests::propertySchemaEntriesContainRequiredKeys()
@@ -395,13 +419,13 @@ void ExtensionContractRegistryTests::propertySchemaEntriesContainRequiredKeys()
     }
 }
 
-void ExtensionContractRegistryTests::propertySchemaForDecisionHasConditionEntry()
+void ExtensionContractRegistryTests::propertySchemaForStartHasInputNumberEntry()
 {
     SamplePropertySchemaProvider provider;
-    const QVariantList schema = provider.propertySchema(QStringLiteral("component/decision"));
+    const QVariantList schema = provider.propertySchema(QStringLiteral("component/start"));
     bool found = false;
     for (const QVariant &value : schema) {
-        if (value.toMap().value(QStringLiteral("key")).toString() == QStringLiteral("condition"))
+        if (value.toMap().value(QStringLiteral("key")).toString() == QStringLiteral("inputNumber"))
             found = true;
     }
     QVERIFY(found);
@@ -449,16 +473,16 @@ void ExtensionContractRegistryTests::validationDetectsMultipleStartComponents()
     QVariantMap c2;
     c2[QStringLiteral("id")] = QStringLiteral("s2");
     c2[QStringLiteral("type")] = QStringLiteral("start");
-    QVariantMap endComponent;
-    endComponent[QStringLiteral("id")] = QStringLiteral("e1");
-    endComponent[QStringLiteral("type")] = QStringLiteral("end");
+    QVariantMap stopComponent;
+    stopComponent[QStringLiteral("id")] = QStringLiteral("e1");
+    stopComponent[QStringLiteral("type")] = QStringLiteral("stop");
     QVariantMap snapshot;
-    snapshot[QStringLiteral("components")] = QVariantList{ c1, c2, endComponent };
+    snapshot[QStringLiteral("components")] = QVariantList{ c1, c2, stopComponent };
     snapshot[QStringLiteral("connections")] = QVariantList{};
     QVERIFY(hasIssueWithCode(provider.validateGraph(snapshot), QStringLiteral("W001")));
 }
 
-void ExtensionContractRegistryTests::validationDetectsMissingEndComponent()
+void ExtensionContractRegistryTests::validationDetectsMissingStopComponent()
 {
     SampleValidationProvider provider;
     QVariantMap startComponent;
@@ -504,14 +528,14 @@ void ExtensionContractRegistryTests::validationWarnsAboutIsolatedComponent()
     QVariantMap startComponent;
     startComponent[QStringLiteral("id")] = QStringLiteral("n1");
     startComponent[QStringLiteral("type")] = QStringLiteral("start");
-    QVariantMap endComponent;
-    endComponent[QStringLiteral("id")] = QStringLiteral("n3");
-    endComponent[QStringLiteral("type")] = QStringLiteral("end");
+    QVariantMap stopComponent;
+    stopComponent[QStringLiteral("id")] = QStringLiteral("n3");
+    stopComponent[QStringLiteral("type")] = QStringLiteral("stop");
     QVariantMap isolatedComponent;
     isolatedComponent[QStringLiteral("id")] = QStringLiteral("iso");
-    isolatedComponent[QStringLiteral("type")] = QStringLiteral("task");
+    isolatedComponent[QStringLiteral("type")] = QStringLiteral("process");
     QVariantMap snapshot;
-    snapshot[QStringLiteral("components")] = QVariantList{ startComponent, endComponent, isolatedComponent };
+    snapshot[QStringLiteral("components")] = QVariantList{ startComponent, stopComponent, isolatedComponent };
     snapshot[QStringLiteral("connections")] = QVariantList{};
     QVERIFY(hasIssueWithCode(provider.validateGraph(snapshot), QStringLiteral("W004")));
 }
@@ -539,7 +563,7 @@ void ExtensionContractRegistryTests::actionInvokeProducesCorrectCommandRequest()
 {
     SampleActionProvider provider;
     QVariantMap context;
-    context[QStringLiteral("componentId")] = QStringLiteral("task-42");
+    context[QStringLiteral("componentId")] = QStringLiteral("process-42");
     context[QStringLiteral("newPriority")] = QStringLiteral("high");
     QVariantMap commandRequest;
     QString error;
@@ -549,7 +573,7 @@ void ExtensionContractRegistryTests::actionInvokeProducesCorrectCommandRequest()
     QCOMPARE(commandRequest.value(QStringLiteral("commandType")).toString(),
              QStringLiteral("setComponentProperty"));
     QCOMPARE(commandRequest.value(QStringLiteral("componentId")).toString(),
-             QStringLiteral("task-42"));
+             QStringLiteral("process-42"));
     QCOMPARE(commandRequest.value(QStringLiteral("propertyName")).toString(),
              QStringLiteral("priority"));
     QCOMPARE(commandRequest.value(QStringLiteral("newValue")).toString(),
@@ -572,7 +596,7 @@ void ExtensionContractRegistryTests::actionInvokeFailsWithInvalidPriority()
 {
     SampleActionProvider provider;
     QVariantMap context;
-    context[QStringLiteral("componentId")] = QStringLiteral("task-1");
+    context[QStringLiteral("componentId")] = QStringLiteral("process-1");
     context[QStringLiteral("newPriority")] = QStringLiteral("critical");
     QString error;
     QVERIFY(!provider.invokeAction(
@@ -587,6 +611,42 @@ void ExtensionContractRegistryTests::actionInvokeFailsWithUnknownActionId()
     QString error;
     QVERIFY(!provider.invokeAction(QStringLiteral("nonexistent"), {}, nullptr, &error));
     QVERIFY(!error.isEmpty());
+}
+
+void ExtensionContractRegistryTests::componentTypeProvidersReturnedInRegistrationOrder()
+{
+    StubComponentTypeProviderById pA(QStringLiteral("provider.a"));
+    StubComponentTypeProviderById pB(QStringLiteral("provider.b"));
+    StubComponentTypeProviderById pC(QStringLiteral("provider.c"));
+
+    ExtensionContractRegistry reg(registryV1().coreApiVersion());
+    QVERIFY(reg.registerComponentTypeProvider(&pA));
+    QVERIFY(reg.registerComponentTypeProvider(&pB));
+    QVERIFY(reg.registerComponentTypeProvider(&pC));
+
+    const QList<const IComponentTypeProvider *> providers = reg.componentTypeProviders();
+    QCOMPARE(providers.size(), 3);
+    QCOMPARE(providers.at(0)->providerId(), QStringLiteral("provider.a"));
+    QCOMPARE(providers.at(1)->providerId(), QStringLiteral("provider.b"));
+    QCOMPARE(providers.at(2)->providerId(), QStringLiteral("provider.c"));
+}
+
+void ExtensionContractRegistryTests::connectionPolicyProvidersReturnedInRegistrationOrder()
+{
+    StubConnectionPolicyProviderById pX(QStringLiteral("policy.x"));
+    StubConnectionPolicyProviderById pY(QStringLiteral("policy.y"));
+    StubConnectionPolicyProviderById pZ(QStringLiteral("policy.z"));
+
+    ExtensionContractRegistry reg(registryV1().coreApiVersion());
+    QVERIFY(reg.registerConnectionPolicyProvider(&pX));
+    QVERIFY(reg.registerConnectionPolicyProvider(&pY));
+    QVERIFY(reg.registerConnectionPolicyProvider(&pZ));
+
+    const QList<const IConnectionPolicyProvider *> providers = reg.connectionPolicyProviders();
+    QCOMPARE(providers.size(), 3);
+    QCOMPARE(providers.at(0)->providerId(), QStringLiteral("policy.x"));
+    QCOMPARE(providers.at(1)->providerId(), QStringLiteral("policy.y"));
+    QCOMPARE(providers.at(2)->providerId(), QStringLiteral("policy.z"));
 }
 
 QTEST_MAIN(ExtensionContractRegistryTests)
