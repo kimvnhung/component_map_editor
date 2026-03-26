@@ -6,6 +6,7 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/ExtensionStartupLoader.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
+#include "extensions/runtime/TypeRegistry.h"
 #include "extensions/runtime/rules/RuleBackedProviders.h"
 #include "extensions/runtime/rules/RuleHotReloadService.h"
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
@@ -74,6 +75,9 @@ int main(int argc, char *argv[])
     PropertySchemaRegistry propertySchemas;
     propertySchemas.rebuildFromRegistry(extensionContracts);
 
+    TypeRegistry typeRegistry;
+    typeRegistry.rebuildFromRegistry(extensionContracts);
+
     GraphExecutionSandbox executionSandbox;
     executionSandbox.rebuildSemanticsFromRegistry(extensionContracts);
 
@@ -83,6 +87,8 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("startupPropertySchemaRegistry"),
                                              &propertySchemas);
+    engine.rootContext()->setContextProperty(QStringLiteral("startupComponentTypeRegistry"),
+                                             &typeRegistry);
     engine.rootContext()->setContextProperty(QStringLiteral("startupExecutionSandbox"),
                                              &executionSandbox);
     engine.rootContext()->setContextProperty(QStringLiteral("startupValidationService"),

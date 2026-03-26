@@ -236,6 +236,7 @@ ApplicationWindow {
             graph: graph
             undoStack: undoStack
             canvas: canvas
+            componentTypeRegistry: startupComponentTypeRegistry
         }
 
         // Thin separator

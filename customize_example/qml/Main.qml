@@ -18,4 +18,20 @@ ApplicationWindow {
         anchors.fill: parent
         graph: graph
     }
+
+    Palette {
+        id: palette
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 200
+    }
+
+    PropertyPanel {
+        id: propertyPanel
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 200
+    }
 }
