@@ -1,0 +1,19 @@
+{
+  "extensionId":      "customize.workflow",
+  "displayName":      "Customize Workflow",
+  "extensionVersion": "1.0.0",
+  "minCoreApi":       "1.0.0",
+  "maxCoreApi":       "1.99.99",
+  "capabilities":     [
+    "componentTypes",
+    "connectionPolicy",
+    "propertySchema",
+    "validation",
+    "actions"
+  ],
+  "dependencies": [],
+  "metadata": {
+    "owner": "damselfly-dev",
+    "purpose": "test purpose"
+  }
+}

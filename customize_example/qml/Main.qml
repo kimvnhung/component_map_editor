@@ -25,6 +25,8 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: 200
+        graph: graph
+        componentTypeRegistry: customizeComponentTypeRegistry
     }
 
     PropertyPanel {

@@ -17,7 +17,7 @@ qt_add_executable(customize_example_app
 set(EXAMPLE_EXTENSION_MANIFEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/extensions")
 file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_MANIFEST_DIR}")
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/extensions/manifests/manifest.customize.workflow.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/manifest.customize.workflow.json"
     "${EXAMPLE_EXTENSION_MANIFEST_DIR}/manifest.customize.workflow.json"
     COPYONLY
 )
@@ -26,7 +26,7 @@ set(EXAMPLE_EXTENSION_RULE_DIR "${CMAKE_CURRENT_BINARY_DIR}/rules")
 file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_RULE_DIR}")
 set(EXAMPLE_EXTENSION_RULE_FILE "${EXAMPLE_EXTENSION_RULE_DIR}/rules.customize.workflow.json")
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/extensions/manifests/rules.customize.workflow.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/rules.customize.workflow.json"
     "${EXAMPLE_EXTENSION_RULE_FILE}"
     COPYONLY
 )
@@ -35,11 +35,19 @@ file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     *.qml
 )
 
+file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/
+    *.cpp
+    *.h
+)
+
 qt_add_qml_module(customize_example_app
     URI customize_example
     VERSION 1.0
     QML_FILES
         ${QML_FILES}
+    SOURCES
+        ${SOURCE_FILES}
+        SOURCES src/extensions/providers/customizecomponenttypeprovider.h src/extensions/providers/customizecomponenttypeprovider.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -61,7 +69,7 @@ target_link_libraries(customize_example_app
 )
 
 
-target_compile_definitions(example_app
+target_compile_definitions(customize_example_app
     PRIVATE
         EXAMPLE_EXTENSION_MANIFEST_DIR="${EXAMPLE_EXTENSION_MANIFEST_DIR}"
         EXAMPLE_EXTENSION_RULE_FILE="${EXAMPLE_EXTENSION_RULE_FILE}"

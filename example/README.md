@@ -169,6 +169,34 @@ int main(int argc, char *argv[])
 }
 ```
 
+```plantuml
+@startuml
+actor "App Startup (main.cpp)" as App
+
+App -> ExtensionContractRegistry : create (coreApiVersion)
+App -> RuleRuntimeRegistry : create
+App -> RuleBackedConnectionPolicyProvider : create (&ruleRegistry)
+App -> RuleBackedValidationProvider : create (&ruleRegistry)
+App -> ExtensionContractRegistry : registerConnectionPolicyProvider
+App -> ExtensionContractRegistry : registerValidationProvider
+App -> RuleHotReloadService : create (&ruleRegistry)
+App -> RuleHotReloadService : startWatchingFile(ruleFilePath)
+App -> ExtensionStartupLoader : create
+App -> ExtensionStartupLoader : registerFactory("sample.workflow", ...)
+App -> ExtensionStartupLoader : loadFromDirectory(manifestDir, extensionContracts)
+ExtensionStartupLoader -> ExtensionContractRegistry : registerManifest(manifest)
+ExtensionStartupLoader -> ExtensionContractRegistry : registerComponentTypeProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerConnectionPolicyProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerPropertySchemaProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerValidationProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerActionProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerExecutionSemanticsProvider
+App -> PropertySchemaRegistry : create
+App -> PropertySchemaRegistry : rebuildFromRegistry(extensionContracts)
+App -> QQmlApplicationEngine : setContextProperty("startupPropertySchemaRegistry", &propertySchemas)
+@enduml
+```
+
 > **Why expose `PropertySchemaRegistry` to QML?**  
 > `PropertyPanel` uses it to discover which fields should appear for a selected
 > component type.  Without it, the panel falls back to a generic title/content

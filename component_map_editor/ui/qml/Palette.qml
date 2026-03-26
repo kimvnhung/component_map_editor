@@ -19,7 +19,14 @@ Rectangle {
     border.color: "#e0e0e0"
     border.width: 1
 
-    readonly property var componentTypes: componentTypeRegistry ? componentTypeRegistry.componentTypeDescriptors : []
+    property var componentTypes: []
+    onComponentTypeRegistryChanged: {
+        if (componentTypeRegistry) {
+            root.componentTypes = componentTypeRegistry.componentTypeDescriptors;
+        } else {
+            root.componentTypes = [];
+        }
+    }
 
     // Tracks next auto-generated id suffix
     property int _idCounter: 1
