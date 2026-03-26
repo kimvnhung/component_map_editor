@@ -17,7 +17,7 @@ Rectangle {
     property real zoom: 1.0
 
     function formatCoord(value) {
-        return Number(value).toFixed(1)
+        return Number(value).toFixed(1);
     }
 
     height: 34
@@ -70,70 +70,57 @@ Rectangle {
         }
     }
 
-    Flickable {
-        anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
-        clip: true
-        contentWidth: metricsRow.implicitWidth
-        contentHeight: metricsRow.implicitHeight
-        interactive: contentWidth > width
-        boundsBehavior: Flickable.StopAtBounds
+    Row {
+        id: metricsRow
+        spacing: 8
+        anchors.centerIn: parent
 
-        Row {
-            id: metricsRow
-            spacing: 8
-            anchors.verticalCenter: parent.verticalCenter
+        StatPill {
+            iconName: "cubes"
+            valueText: "Components " + root.componentCount
+            accent: "#4fc3f7"
+        }
 
-            StatPill {
-                iconName: "cubes"
-                valueText: "Components " + root.componentCount
-                accent: "#4fc3f7"
-            }
+        StatPill {
+            iconName: "share-nodes"
+            valueText: "Connections " + root.connectionCount
+            accent: "#80cbc4"
+        }
 
-            StatPill {
-                iconName: "share-nodes"
-                valueText: "Connections " + root.connectionCount
-                accent: "#80cbc4"
-            }
+        StatPill {
+            iconName: "check-double"
+            valueText: "Selected " + root.selectedTotalCount
+            accent: "#ffd166"
+        }
 
-            StatPill {
-                iconName: "check-double"
-                valueText: "Selected " + root.selectedTotalCount
-                accent: "#ffd166"
-            }
+        StatPill {
+            iconName: "tag"
+            valueText: "Component " + root.selectedComponentTitle
+            accent: "#ff9f7f"
+        }
 
-            StatPill {
-                iconName: "tag"
-                valueText: "Component " + root.selectedComponentTitle
-                accent: "#ff9f7f"
-            }
+        StatPill {
+            iconName: "link"
+            valueText: "Connection " + root.selectedConnectionLabel
+            accent: "#d4a5ff"
+        }
 
-            StatPill {
-                iconName: "link"
-                valueText: "Connection " + root.selectedConnectionLabel
-                accent: "#d4a5ff"
-            }
+        StatPill {
+            iconName: "arrows-up-down-left-right"
+            valueText: "View [" + root.formatCoord(root.mouseViewPos.x) + ", " + root.formatCoord(root.mouseViewPos.y) + "]"
+            accent: "#9ad1ff"
+        }
 
-            StatPill {
-                iconName: "arrows-up-down-left-right"
-                valueText: "View [" + root.formatCoord(root.mouseViewPos.x)
-                           + ", " + root.formatCoord(root.mouseViewPos.y) + "]"
-                accent: "#9ad1ff"
-            }
+        StatPill {
+            iconName: "crosshairs"
+            valueText: "World [" + root.formatCoord(root.mouseWorldPos.x) + ", " + root.formatCoord(root.mouseWorldPos.y) + "]"
+            accent: "#b3e5fc"
+        }
 
-            StatPill {
-                iconName: "crosshairs"
-                valueText: "World [" + root.formatCoord(root.mouseWorldPos.x)
-                           + ", " + root.formatCoord(root.mouseWorldPos.y) + "]"
-                accent: "#b3e5fc"
-            }
-
-            StatPill {
-                iconName: "magnifying-glass"
-                valueText: "Zoom " + root.zoom.toFixed(2)
-                accent: "#ffcc80"
-            }
+        StatPill {
+            iconName: "magnifying-glass"
+            valueText: "Zoom " + root.zoom.toFixed(2)
+            accent: "#ffcc80"
         }
     }
 }
