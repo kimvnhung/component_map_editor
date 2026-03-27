@@ -31,6 +31,18 @@ Rectangle {
     // Tracks next auto-generated id suffix
     property int _idCounter: 1
 
+    // Palette gesture states for one-gesture/one-action arbitration.
+    readonly property int gestureIdle: 0
+    readonly property int gesturePressed: 1
+    readonly property int gestureDragging: 2
+    readonly property int gestureResolved: 3
+    readonly property int gestureCanceled: 4
+
+    // Gesture outcomes are resolved by a single dispatch path.
+    readonly property int gestureActionNone: 0
+    readonly property int gestureActionTapCreate: 1
+    readonly property int gestureActionDragDropCreate: 2
+
     function _applyDefaultProperties(component, type) {
         if (!componentTypeRegistry || !component)
             return;
@@ -77,6 +89,56 @@ Rectangle {
             root.undoStack.pushAddComponent(graph, component);
         else
             graph.addComponent(component);
+
+        return true;
+    }
+
+    function _setPaletteDragLifecycle(active) {
+        if (!root.canvas)
+            return;
+        if (active) {
+            if (root.canvas.beginPaletteDrag)
+                root.canvas.beginPaletteDrag();
+            else if (root.canvas.paletteDragInProgress !== undefined)
+                root.canvas.paletteDragInProgress = true;
+            return;
+        }
+
+        if (root.canvas.endPaletteDrag)
+            root.canvas.endPaletteDrag();
+        else if (root.canvas.paletteDragInProgress !== undefined)
+            root.canvas.paletteDragInProgress = false;
+    }
+
+    function _descriptorFromModel(modelData) {
+        return {
+            "title": modelData ? (modelData.title || modelData.id || "Component") : "Component",
+            "icon": modelData ? (modelData.icon || "") : "",
+            "defaultColor": modelData ? (modelData.defaultColor || "#4fc3f7") : "#4fc3f7",
+            "id": modelData ? (modelData.id || modelData.type || "default") : "default",
+            "type": modelData ? (modelData.type || modelData.id || "default") : "default"
+        };
+    }
+
+    function _resolveDropScenePos(primaryScenePos, fallbackScenePos) {
+        if (primaryScenePos && !(primaryScenePos.x === 0 && primaryScenePos.y === 0))
+            return primaryScenePos;
+        if (fallbackScenePos && !(fallbackScenePos.x === 0 && fallbackScenePos.y === 0))
+            return fallbackScenePos;
+        return Qt.point(0, 0);
+    }
+
+    function _dispatchGestureAction(descriptor, action, primaryScenePos, fallbackScenePos) {
+        if (action === root.gestureActionTapCreate)
+            return root._addComponent(descriptor);
+
+        if (action === root.gestureActionDragDropCreate) {
+            var resolvedPos = root._resolveDropScenePos(primaryScenePos, fallbackScenePos);
+            root._handlePaletteDrop(descriptor, resolvedPos);
+            return true;
+        }
+
+        return false;
     }
 
     function _handlePaletteDrop(descriptor, scenePos) {
@@ -126,21 +188,34 @@ Rectangle {
             delegate: Rectangle {
                 required property var modelData
 
-                // Guard that distinguishes a drag gesture from a tap within the
-                // same press cycle.  DragHandler uses target:null, so Qt Quick
-                // may not always issue an exclusive grab and cancel the sibling
-                // TapHandler.  Without this flag both handlers would fire on a
-                // drag, creating one component at the drop position (via
-                // addPaletteComponentAtScenePos) and a second one at the canvas
-                // centre (via _addComponent).
-                property bool _didDrag: false
-                // Ensures one press gesture can produce at most one create action
-                // even if DragHandler toggles active more than once.
-                property bool _creationHandledInPress: false
+                // One-gesture state machine. Exactly one terminal action
+                // (tap-create, drag-drop-create, or canceled) is allowed.
+                property int gestureState: root.gestureIdle
                 // Last known cursor position in scene coordinates for this
-                // drag gesture. We cache this because centroid.position may be
-                // stale/reset when DragHandler transitions to inactive.
-                property point _lastScenePos: Qt.point(0, 0)
+                // drag gesture. Cached because centroid.position may reset.
+                property point lastScenePos: Qt.point(0, 0)
+
+                function descriptor() {
+                    return root._descriptorFromModel(modelData);
+                }
+
+                function resetGestureCycle() {
+                    gestureState = root.gesturePressed;
+                    lastScenePos = Qt.point(0, 0);
+                }
+
+                function commitActionOnce(action, primaryScenePos, fallbackScenePos) {
+                    if (gestureState === root.gestureResolved || gestureState === root.gestureCanceled)
+                        return;
+                    root._dispatchGestureAction(descriptor(), action, primaryScenePos, fallbackScenePos);
+                    gestureState = root.gestureResolved;
+                }
+
+                function cancelGestureCycle() {
+                    if (gestureState === root.gestureResolved)
+                        return;
+                    gestureState = root.gestureCanceled;
+                }
 
                 Layout.fillWidth: true
                 height: 36
@@ -176,25 +251,18 @@ Rectangle {
                     }
 
                     function updateLastScenePos() {
-                        parent._lastScenePos = scenePos();
+                        parent.lastScenePos = scenePos();
                     }
 
                     onActiveChanged: {
                         if (active) {
-                            parent._didDrag = true;
-                            if (root.canvas && root.canvas.paletteDragInProgress !== undefined)
-                                root.canvas.paletteDragInProgress = true;
+                            parent.gestureState = root.gestureDragging;
+                            root._setPaletteDragLifecycle(true);
                             updateLastScenePos();
                         } else {
-                            if (parent._didDrag && !parent._creationHandledInPress) {
-                                parent._creationHandledInPress = true;
-                                var dropPos = parent._lastScenePos;
-                                if (dropPos.x === 0 && dropPos.y === 0)
-                                    dropPos = scenePos();
-                                root.paletteDropRequested(modelData.title || modelData.id, modelData.icon || "", modelData.defaultColor || "#4fc3f7", modelData.id || modelData.type, dropPos);
-                            }
-                            if (root.canvas && root.canvas.paletteDragInProgress !== undefined)
-                                root.canvas.paletteDragInProgress = false;
+                            root._setPaletteDragLifecycle(false);
+                            if (parent.gestureState === root.gestureDragging)
+                                parent.commitActionOnce(root.gestureActionDragDropCreate, parent.lastScenePos, scenePos());
                         }
                     }
 
@@ -202,26 +270,25 @@ Rectangle {
                         if (active)
                             updateLastScenePos();
                     }
+
+                    onCanceled: {
+                        root._setPaletteDragLifecycle(false);
+                        parent.cancelGestureCycle();
+                    }
                 }
 
                 TapHandler {
                     acceptedButtons: Qt.LeftButton
                     onPressedChanged: {
-                        // Reset the drag flag at the start of every new press so
-                        // a subsequent tap after a previous drag is not blocked.
-                        if (pressed) {
-                            parent._didDrag = false;
-                            parent._creationHandledInPress = false;
-                            parent._lastScenePos = Qt.point(0, 0);
-                        }
+                        if (pressed)
+                            parent.resetGestureCycle();
                     }
                     onTapped: {
-                        // Only create a component for genuine taps (no preceding
-                        // drag in this press cycle).
-                        if (!parent._didDrag && !parent._creationHandledInPress) {
-                            parent._creationHandledInPress = true;
-                            root._addComponent(modelData);
-                        }
+                        if (parent.gestureState === root.gesturePressed)
+                            parent.commitActionOnce(root.gestureActionTapCreate, Qt.point(0, 0), Qt.point(0, 0));
+                    }
+                    onCanceled: {
+                        parent.cancelGestureCycle();
                     }
                 }
             }

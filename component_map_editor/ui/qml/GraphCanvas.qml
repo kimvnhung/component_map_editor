@@ -331,6 +331,20 @@ Item {
         return true;
     }
 
+    function beginPaletteDrag() {
+        root.paletteDragInProgress = true;
+        root.pressedComponent = null;
+        // Palette drag is an external gesture source. Cancel marquee to avoid
+        // simultaneous interaction modes competing for pointer semantics.
+        if (interactionState.marqueeSelecting)
+            interactionState.intentCancel();
+    }
+
+    function endPaletteDrag() {
+        root.paletteDragInProgress = false;
+        root.pressedComponent = null;
+    }
+
     function clearAllConnections() {
         if (!root.graph)
             return;
@@ -777,7 +791,7 @@ Item {
                 // Keep marquee endpoint in sync with pointer movement even if
                 // DragHandler does not become active for this gesture.
                 if (interactionState.marqueeSelecting && root.ctrlSelectionModifierActive) {
-                    interactionState.updateMarqueeSelect(interactionState.marqueeStart, root.mouseViewPos);
+                    interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, root.mouseViewPos);
                 }
 
                 if (root.ctrlSelectionModifierActive || interactionState.marqueeSelecting)

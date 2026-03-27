@@ -24,6 +24,7 @@ qt_add_resources(tst_InteractionStateManager "qml_test_res"
     PREFIX "/"
     FILES
         tst_InteractionStateManager.qml
+    tst_PaletteGestureArbitration.qml
 )
 
 # QuickTest's default discovery scans the current working directory for
@@ -32,6 +33,12 @@ qt_add_resources(tst_InteractionStateManager "qml_test_res"
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/tst_InteractionStateManager.qml
     ${CMAKE_CURRENT_BINARY_DIR}/tst_InteractionStateManager.qml
+    COPYONLY
+)
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/tst_PaletteGestureArbitration.qml
+    ${CMAKE_CURRENT_BINARY_DIR}/tst_PaletteGestureArbitration.qml
     COPYONLY
 )
 
