@@ -1360,6 +1360,83 @@ int GraphViewportItem::routeRebuildSampleCount() const
     return m_routeRebuildSampleCount.load();
 }
 
+void GraphViewportItem::clearInteractionTelemetry()
+{
+    m_interactionTransitionRejectCount.store(0);
+    m_intentLatencySamples.clear();
+    m_actionLatencySamples.clear();
+    m_intentLatencyP50Ms.store(0.0);
+    m_intentLatencyP95Ms.store(0.0);
+    m_intentLatencySampleCount.store(0);
+    m_actionLatencyP50Ms.store(0.0);
+    m_actionLatencyP95Ms.store(0.0);
+    m_actionLatencySampleCount.store(0);
+    emit interactionTelemetryChanged();
+}
+
+void GraphViewportItem::recordTransitionReject()
+{
+    m_interactionTransitionRejectCount.fetch_add(1);
+    emit interactionTelemetryChanged();
+}
+
+void GraphViewportItem::recordIntentLatencySample(qreal ms)
+{
+    recordLatencySample(m_intentLatencySamples,
+                        m_intentLatencyMaxSamples,
+                        ms,
+                        m_intentLatencyP50Ms,
+                        m_intentLatencyP95Ms,
+                        m_intentLatencySampleCount);
+    emit interactionTelemetryChanged();
+}
+
+void GraphViewportItem::recordActionLatencySample(qreal ms)
+{
+    recordLatencySample(m_actionLatencySamples,
+                        m_actionLatencyMaxSamples,
+                        ms,
+                        m_actionLatencyP50Ms,
+                        m_actionLatencyP95Ms,
+                        m_actionLatencySampleCount);
+    emit interactionTelemetryChanged();
+}
+
+int GraphViewportItem::interactionTransitionRejectCount() const
+{
+    return m_interactionTransitionRejectCount.load();
+}
+
+qreal GraphViewportItem::intentLatencyP50Ms() const
+{
+    return m_intentLatencyP50Ms.load();
+}
+
+qreal GraphViewportItem::intentLatencyP95Ms() const
+{
+    return m_intentLatencyP95Ms.load();
+}
+
+int GraphViewportItem::intentLatencySampleCount() const
+{
+    return m_intentLatencySampleCount.load();
+}
+
+qreal GraphViewportItem::actionLatencyP50Ms() const
+{
+    return m_actionLatencyP50Ms.load();
+}
+
+qreal GraphViewportItem::actionLatencyP95Ms() const
+{
+    return m_actionLatencyP95Ms.load();
+}
+
+int GraphViewportItem::actionLatencySampleCount() const
+{
+    return m_actionLatencySampleCount.load();
+}
+
 void GraphViewportItem::repaint()
 {
     m_cameraDirty = true;
@@ -2103,6 +2180,30 @@ void GraphViewportItem::recordRouteRebuildSample(qreal ms)
     if ((m_routeRebuildSamples.size() % 8) == 0) {
         m_routeRebuildP50Ms.store(percentile(m_routeRebuildSamples, 0.50));
         m_routeRebuildP95Ms.store(percentile(m_routeRebuildSamples, 0.95));
+    }
+}
+
+void GraphViewportItem::recordLatencySample(QVector<qreal> &samples,
+                                            int maxSamples,
+                                            qreal ms,
+                                            std::atomic<qreal> &p50,
+                                            std::atomic<qreal> &p95,
+                                            std::atomic<int> &count)
+{
+    if (ms <= 0.0 || ms > 10000.0)
+        return;
+
+    samples.push_back(ms);
+    if (samples.size() > maxSamples)
+        samples.removeFirst();
+
+    count.store(samples.size());
+    if (samples.size() < 2)
+        return;
+
+    if ((samples.size() % 8) == 0) {
+        p50.store(percentile(samples, 0.50));
+        p95.store(percentile(samples, 0.95));
     }
 }
 

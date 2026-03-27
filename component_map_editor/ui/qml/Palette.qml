@@ -17,6 +17,8 @@ Rectangle {
     }
     property var canvas: null
     property var componentTypeRegistry: null
+    property bool legacyDropFallbackEnabled: false
+    property bool interactionTelemetryEnabled: true
 
     signal paletteDropRequested(string title, string icon, string color, string type, point scenePos)
 
@@ -35,6 +37,23 @@ Rectangle {
 
     // Tracks next auto-generated id suffix
     property int _idCounter: 1
+
+    function _timestampMs() {
+        return Date.now();
+    }
+
+    function _recordActionLatency(ms) {
+        if (!root.interactionTelemetryEnabled || !root.canvas || !root.canvas.connectionRenderer || !root.canvas.connectionRenderer.recordActionLatencySample)
+            return;
+        root.canvas.connectionRenderer.recordActionLatencySample(ms);
+    }
+
+    function _runAction(actionFn) {
+        var startMs = root._timestampMs();
+        var result = actionFn();
+        root._recordActionLatency(root._timestampMs() - startMs);
+        return result;
+    }
 
     // Palette gesture states for one-gesture/one-action arbitration.
     readonly property int gestureIdle: 0
@@ -71,14 +90,16 @@ Rectangle {
             worldY = centerWorld.y;
         }
 
-        var componentId = root.graphEditorController.createPaletteComponent(type,
-                                                                            title,
-                                                                            icon,
-                                                                            color,
-                                                                            worldX,
-                                                                            worldY,
-                                                                            defaultWidth,
-                                                                            defaultHeight);
+        var componentId = root._runAction(function () {
+            return root.graphEditorController.createPaletteComponent(type,
+                                                                     title,
+                                                                     icon,
+                                                                     color,
+                                                                     worldX,
+                                                                     worldY,
+                                                                     defaultWidth,
+                                                                     defaultHeight);
+        });
         if (!componentId || componentId.length === 0)
             return false;
 
@@ -86,20 +107,31 @@ Rectangle {
     }
 
     function _setPaletteDragLifecycle(active) {
+        if (!root.canvas || !root.canvas.beginPaletteDrag || !root.canvas.endPaletteDrag)
+            return;
+        if (active)
+            root.canvas.beginPaletteDrag();
+        else
+            root.canvas.endPaletteDrag();
+    }
+
+    function _setPaletteStrictMode(enabled) {
+        if (root.graphEditorController && root.graphEditorController.strictMode !== undefined)
+            root.graphEditorController.strictMode = enabled;
+    }
+
+    function _setPaletteInvariantChecker(checker) {
+        if (root.graphEditorController && root.graphEditorController.invariantChecker !== undefined)
+            root.graphEditorController.invariantChecker = checker;
+    }
+
+    onCanvasChanged: {
         if (!root.canvas)
             return;
-        if (active) {
-            if (root.canvas.beginPaletteDrag)
-                root.canvas.beginPaletteDrag();
-            else if (root.canvas.paletteDragInProgress !== undefined)
-                root.canvas.paletteDragInProgress = true;
-            return;
-        }
-
-        if (root.canvas.endPaletteDrag)
-            root.canvas.endPaletteDrag();
-        else if (root.canvas.paletteDragInProgress !== undefined)
-            root.canvas.paletteDragInProgress = false;
+        if (root.canvas.mutationStrictMode !== undefined)
+            root._setPaletteStrictMode(root.canvas.mutationStrictMode);
+        if (root.canvas.mutationInvariantChecker !== undefined)
+            root._setPaletteInvariantChecker(root.canvas.mutationInvariantChecker);
     }
 
     function _descriptorFromModel(modelData) {
@@ -140,13 +172,15 @@ Rectangle {
         var type = descriptor ? (descriptor.id || descriptor.type || "default") : "default";
 
         if (root.canvas && root.canvas.addPaletteComponentAtScenePos) {
-            const created = root.canvas.addPaletteComponentAtScenePos(title, icon, color, type, scenePos);
+            const created = root._runAction(function () {
+                return root.canvas.addPaletteComponentAtScenePos(title, icon, color, type, scenePos);
+            });
             if (created)
                 return;
         }
 
-        // Fallback: if drop cannot be mapped into canvas, keep previous behavior.
-        root._addComponent(descriptor);
+        if (root.legacyDropFallbackEnabled)
+            root._addComponent(descriptor);
     }
 
     onPaletteDropRequested: function (title, icon, color, type, scenePos) {

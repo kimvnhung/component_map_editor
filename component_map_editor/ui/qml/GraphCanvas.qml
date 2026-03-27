@@ -43,6 +43,8 @@ Item {
         graph: root.graph
         undoStack: root.undoStack
     }
+    property bool mutationStrictMode: true
+    property var mutationInvariantChecker: null
     property ComponentModel menuTargetComponent: null
     property ConnectionModel menuTargetConnection: null
     property point menuTargetWorldPos: Qt.point(0, 0)
@@ -91,11 +93,59 @@ Item {
     // collect camera-update and drag-event interval samples for Phase 0 baseline.
     // Leave null (default) for zero overhead in production.
     property PerformanceTelemetry telemetry: null
+    property bool interactionTelemetryEnabled: true
+
+    onMutationStrictModeChanged: {
+        if (root.graphEditorController && root.graphEditorController.strictMode !== undefined)
+            root.graphEditorController.strictMode = root.mutationStrictMode;
+    }
+    onMutationInvariantCheckerChanged: {
+        if (root.graphEditorController && root.graphEditorController.invariantChecker !== undefined)
+            root.graphEditorController.invariantChecker = root.mutationInvariantChecker;
+    }
 
     signal componentSelected(ComponentModel component)
     signal connectionSelected(ConnectionModel connection)
     signal backgroundClicked(real x, real y)
     signal viewTransformChanged(real panX, real panY, real zoom)
+
+    function _timestampMs() {
+        return Date.now();
+    }
+
+    function _recordTransitionReject() {
+        if (!root.interactionTelemetryEnabled || !connectionViewport || !connectionViewport.recordTransitionReject)
+            return;
+        connectionViewport.recordTransitionReject();
+    }
+
+    function _recordIntentLatency(ms) {
+        if (!root.interactionTelemetryEnabled || !connectionViewport || !connectionViewport.recordIntentLatencySample)
+            return;
+        connectionViewport.recordIntentLatencySample(ms);
+    }
+
+    function _recordActionLatency(ms) {
+        if (!root.interactionTelemetryEnabled || !connectionViewport || !connectionViewport.recordActionLatencySample)
+            return;
+        connectionViewport.recordActionLatencySample(ms);
+    }
+
+    function _runIntent(intentFn) {
+        var startMs = root._timestampMs();
+        var ok = intentFn();
+        root._recordIntentLatency(root._timestampMs() - startMs);
+        if (!ok)
+            root._recordTransitionReject();
+        return ok;
+    }
+
+    function _runAction(actionFn) {
+        var startMs = root._timestampMs();
+        var result = actionFn();
+        root._recordActionLatency(root._timestampMs() - startMs);
+        return result;
+    }
 
     function syncCtrlModifierState(modifiers) {
         var next = (modifiers & Qt.ControlModifier) !== 0;
@@ -189,10 +239,12 @@ Item {
         if (!root.graph || !connectionId)
             return;
         var shouldUseUndo = useUndo === undefined ? true : useUndo;
-        if (shouldUseUndo && root.undoStack)
+        if (!shouldUseUndo || !root.undoStack)
+            return;
+        root._runAction(function () {
             root.undoStack.pushRemoveConnection(root.graph, connectionId);
-        else
-            root.graph.removeConnection(connectionId);
+            return true;
+        });
 
         if (root.selectedConnection && root.selectedConnection.id === connectionId)
             root.selectedConnection = null;
@@ -223,12 +275,12 @@ Item {
     function deleteComponent(component) {
         if (!root.graph || !component)
             return;
-        if (root.undoStack) {
+        if (!root.undoStack)
+            return;
+        root._runAction(function () {
             root.undoStack.pushRemoveComponent(root.graph, component.id);
-        } else {
-            root.clearComponentConnections(component, true, true, false);
-            root.graph.removeComponent(component.id);
-        }
+            return true;
+        });
         root.removeComponentFromSelection(component);
         if (root.selectedComponentIds.length > 0) {
             var lastId = root.selectedComponentIds[root.selectedComponentIds.length - 1];
@@ -244,7 +296,9 @@ Item {
     function duplicateComponent(component) {
         if (!root.graph || !component || !root.graphEditorController)
             return;
-        var copyId = root.graphEditorController.duplicateComponent(component.id, 40, 40);
+        var copyId = root._runAction(function () {
+            return root.graphEditorController.duplicateComponent(component.id, 40, 40);
+        });
         if (!copyId || copyId.length === 0)
             return;
         var copy = root.graph.componentById(copyId);
@@ -259,7 +313,9 @@ Item {
     function addComponentAtWorldPos(worldPos) {
         if (!root.graph || !root.graphEditorController)
             return;
-        var componentId = root.graphEditorController.createPaletteComponent("default", "Component", "cube", "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        var componentId = root._runAction(function () {
+            return root.graphEditorController.createPaletteComponent("default", "Component", "cube", "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        });
         if (!componentId || componentId.length === 0)
             return;
         var component = root.graph.componentById(componentId);
@@ -294,7 +350,9 @@ Item {
         if (!root.graphEditorController)
             return false;
 
-        var componentId = root.graphEditorController.createPaletteComponent(type && type.length > 0 ? type : "default", title && title.length > 0 ? title : "Component", icon && icon.length > 0 ? icon : "cube", color && color.length > 0 ? color : "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        var componentId = root._runAction(function () {
+            return root.graphEditorController.createPaletteComponent(type && type.length > 0 ? type : "default", title && title.length > 0 ? title : "Component", icon && icon.length > 0 ? icon : "cube", color && color.length > 0 ? color : "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        });
         if (!componentId || componentId.length === 0)
             return false;
 
@@ -347,12 +405,13 @@ Item {
         for (var i = 0; i < components.length; ++i)
             ids.push(components[i].id);
 
-        if (root.undoStack) {
+        if (!root.undoStack)
+            return;
+        root._runAction(function () {
             for (var j = 0; j < ids.length; ++j)
                 root.undoStack.pushRemoveComponent(root.graph, ids[j]);
-        } else {
-            root.graph.clear();
-        }
+            return true;
+        });
         interactionState.clearAll();
         root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y);
         connectionCanvas.repaint();
@@ -390,8 +449,11 @@ Item {
             }
         }
 
-        if (batchedMoves.length > 0 && root.graphEditorController)
-            root.graphEditorController.commitMoveBatch(batchedMoves);
+        if (batchedMoves.length > 0 && root.graphEditorController) {
+            root._runAction(function () {
+                return root.graphEditorController.commitMoveBatch(batchedMoves);
+            });
+        }
 
         var nextMoveStart = root.moveStartPositions;
         delete nextMoveStart[anchorComponent.id];
@@ -415,8 +477,11 @@ Item {
         if (!component)
             return;
         var start = root.resizeStartGeometries[component.id];
-        if (start && root.graphEditorController)
-            root.graphEditorController.commitResize(component.id, start.x, start.y, start.width, start.height, component.x, component.y, component.width, component.height);
+        if (start && root.graphEditorController) {
+            root._runAction(function () {
+                return root.graphEditorController.commitResize(component.id, start.x, start.y, start.width, start.height, component.x, component.y, component.width, component.height);
+            });
+        }
 
         var nextResize = root.resizeStartGeometries;
         delete nextResize[component.id];
@@ -711,6 +776,11 @@ Item {
         tempConnectionDragging: root.tempConnectionDragging
         tempStart: Qt.point(root.tempStart.x, root.tempStart.y)
         tempEnd: Qt.point(root.tempEnd.x, root.tempEnd.y)
+
+            Component.onCompleted: {
+                if (root.interactionTelemetryEnabled && connectionViewport.clearInteractionTelemetry)
+                    connectionViewport.clearInteractionTelemetry();
+            }
     }
 
     GraphViewportItem {
@@ -984,15 +1054,21 @@ Item {
                             var viewEnd = root.windowSceneToView(targetP);
                             // Use intent-based API (PR2: thin adapter layer)
                             if (interactionState.mode === InteractionStateManager.ConnectionDraw) {
-                                interactionState.intentUpdateConnectionDraw(viewStart, viewEnd);
+                                root._runIntent(function () {
+                                    return interactionState.intentUpdateConnectionDraw(viewStart, viewEnd);
+                                });
                             } else {
-                                interactionState.intentStartConnectionDraw(sourceComponent, viewStart, viewEnd);
+                                root._runIntent(function () {
+                                    return interactionState.intentStartConnectionDraw(sourceComponent, viewStart, viewEnd);
+                                });
                             }
                             connectionCanvas.repaint();
                         }
                         onConnectionDropped: function (sourceComponent, sourceSide, startP, targetP) {
                             // Use intent-based API (PR2: thin adapter layer)
-                            interactionState.intentEndConnectionDraw();
+                            root._runIntent(function () {
+                                return interactionState.intentEndConnectionDraw();
+                            });
 
                             var dropPoint = root.windowSceneToView(targetP);
                             var component = connectionViewport.hitTestComponentAtView(dropPoint.x, dropPoint.y);
@@ -1008,19 +1084,23 @@ Item {
 
                             if (root.graphEditorController) {
                                 var preferredId = "conn_" + sourceComponent.id + "_" + component.id;
-                                root.graphEditorController.connectComponentsFromDrag(sourceComponent.id,
-                                                                                     component.id,
-                                                                                     sourceSide,
-                                                                                     -1,
-                                                                                     preferredId,
-                                                                                     "path A");
+                                root._runAction(function () {
+                                    return root.graphEditorController.connectComponentsFromDrag(sourceComponent.id,
+                                                                                                component.id,
+                                                                                                sourceSide,
+                                                                                                -1,
+                                                                                                preferredId,
+                                                                                                "path A");
+                                });
                             }
                             connectionCanvas.repaint();
                         }
 
                         onMoveStarted: {
                             // Use intent-based API (PR2: thin adapter layer)
-                            var success = interactionState.intentStartComponentMove(modelData);
+                            var success = root._runIntent(function () {
+                                return interactionState.intentStartComponentMove(modelData);
+                            });
                             if (success) {
                                 var nextMoveStart = root.moveStartPositions;
                                 nextMoveStart[modelData.id] = Qt.point(modelData.x, modelData.y);
@@ -1040,21 +1120,27 @@ Item {
                             root.commitMoveCommands(modelData);
                             root.endGroupMove();
                             // Use intent-based API (PR2: thin adapter layer)
-                            var success = interactionState.intentEndComponentMove();
+                            var success = root._runIntent(function () {
+                                return interactionState.intentEndComponentMove();
+                            });
                             if (success && root.telemetry)
                                 root.telemetry.notifyDragEnded();
                         }
 
                         onResizeStarted: {
                             // Use intent-based API (PR2: thin adapter layer)
-                            var success = interactionState.intentStartComponentResize(modelData);
+                            var success = root._runIntent(function () {
+                                return interactionState.intentStartComponentResize(modelData);
+                            });
                             if (success)
                                 root.startResizeCapture(modelData);
                         }
                         onResizeFinished: {
                             root.commitResizeCommand(modelData);
                             // Use intent-based API (PR2: thin adapter layer)
-                            interactionState.intentEndComponentResize();
+                            root._runIntent(function () {
+                                return interactionState.intentEndComponentResize();
+                            });
                         }
 
                         onHoverPositionChanged: function (hoverX, hoverY) {
@@ -1092,7 +1178,9 @@ Item {
                     return;
                 var start = Qt.point(mouse.x, mouse.y);
                 // Use intent-based API (PR2: thin adapter layer)
-                var success = interactionState.intentStartMarqueeSelect(start, start);
+                var success = root._runIntent(function () {
+                    return interactionState.intentStartMarqueeSelect(start, start);
+                });
                 if (success)
                     root.debugInputLog("marquee_start_press");
             }
@@ -1104,7 +1192,9 @@ Item {
                 if (!pressed || !interactionState.marqueeSelecting)
                     return;
                 // Use intent-based API (PR2: thin adapter layer)
-                interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                root._runIntent(function () {
+                    return interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                });
                 root.mouseViewPos = Qt.point(mouse.x, mouse.y);
                 root.updateMouseWorldPos();
                 root.debugInputLog("drag_update_marquee");
@@ -1116,7 +1206,9 @@ Item {
                     return;
                 if (!interactionState.marqueeSelecting)
                     return;
-                interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                root._runIntent(function () {
+                    return interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                });
                 root.mouseViewPos = Qt.point(mouse.x, mouse.y);
                 root.updateMouseWorldPos();
                 root.finishMarqueeSelection();
@@ -1159,6 +1251,11 @@ Item {
         mouseViewPos: root.mouseViewPos
         mouseWorldPos: root.mouseWorldPos
         zoom: root.zoom
+        interactionTransitionRejectCount: connectionViewport.interactionTransitionRejectCount
+        intentLatencyP50Ms: connectionViewport.intentLatencyP50Ms
+        intentLatencyP95Ms: connectionViewport.intentLatencyP95Ms
+        actionLatencyP50Ms: connectionViewport.actionLatencyP50Ms
+        actionLatencyP95Ms: connectionViewport.actionLatencyP95Ms
     }
 
     // React to graph-level changes
@@ -1292,7 +1389,9 @@ Item {
             // Exit marquee mode if active when Ctrl is released
             if (interactionState.marqueeSelecting) {
                 // Use intent-based API (PR2: thin adapter layer)
-                interactionState.intentCancel();
+                root._runIntent(function () {
+                    return interactionState.intentCancel();
+                });
                 root.finishMarqueeSelection();
             }
             root.debugInputLog("key_ctrl_released");
@@ -1303,7 +1402,9 @@ Item {
         if (!activeFocus) {
             if (interactionState.marqueeSelecting) {
                 // Use intent-based API (PR2: thin adapter layer)
-                interactionState.intentCancel();
+                root._runIntent(function () {
+                    return interactionState.intentCancel();
+                });
                 root.finishMarqueeSelection();
             }
             root.ctrlSelectionModifierActive = false;
@@ -1316,6 +1417,10 @@ Item {
 
     Component.onCompleted: {
         FontAwesome.ensureLoaded();
+        if (root.graphEditorController && root.graphEditorController.strictMode !== undefined)
+            root.graphEditorController.strictMode = root.mutationStrictMode;
+        if (root.graphEditorController && root.graphEditorController.invariantChecker !== undefined)
+            root.graphEditorController.invariantChecker = root.mutationInvariantChecker;
         root.updateMouseWorldPos();
     }
 }

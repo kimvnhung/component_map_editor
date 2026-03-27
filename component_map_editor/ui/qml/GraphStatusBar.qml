@@ -15,6 +15,11 @@ Rectangle {
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
     property real zoom: 1.0
+    property int interactionTransitionRejectCount: 0
+    property real intentLatencyP50Ms: 0.0
+    property real intentLatencyP95Ms: 0.0
+    property real actionLatencyP50Ms: 0.0
+    property real actionLatencyP95Ms: 0.0
 
     function formatCoord(value) {
         return Number(value).toFixed(1);
@@ -121,6 +126,24 @@ Rectangle {
             iconName: "magnifying-glass"
             valueText: "Zoom " + root.zoom.toFixed(2)
             accent: "#ffcc80"
+        }
+
+        StatPill {
+            iconName: "triangle-exclamation"
+            valueText: "Rejects " + root.interactionTransitionRejectCount
+            accent: "#ff8a80"
+        }
+
+        StatPill {
+            iconName: "stopwatch"
+            valueText: "Intent p50/p95 " + root.intentLatencyP50Ms.toFixed(1) + "/" + root.intentLatencyP95Ms.toFixed(1) + "ms"
+            accent: "#81d4fa"
+        }
+
+        StatPill {
+            iconName: "gauge-high"
+            valueText: "Action p50/p95 " + root.actionLatencyP50Ms.toFixed(1) + "/" + root.actionLatencyP95Ms.toFixed(1) + "ms"
+            accent: "#a5d6a7"
         }
     }
 }

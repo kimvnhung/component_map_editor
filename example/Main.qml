@@ -14,6 +14,9 @@ ApplicationWindow {
     property var executionSandbox: startupExecutionSandbox
     property var validator: startupValidationService ? startupValidationService : validatorFallback
     property int inspectorTabIndex: 0
+    property bool enableInteractionTelemetry: true
+    property bool enableStrictMutationGuards: true
+    property bool enableLegacyPaletteDropFallback: false
 
     function prettyJson(value) {
         if (value === undefined || value === null)
@@ -237,6 +240,8 @@ ApplicationWindow {
             undoStack: undoStack
             canvas: canvas
             componentTypeRegistry: startupComponentTypeRegistry
+            interactionTelemetryEnabled: window.enableInteractionTelemetry
+            legacyDropFallbackEnabled: window.enableLegacyPaletteDropFallback
         }
 
         // Thin separator
@@ -253,6 +258,8 @@ ApplicationWindow {
             graph: graph
             undoStack: undoStack
             telemetry: perfTelemetry
+            interactionTelemetryEnabled: window.enableInteractionTelemetry
+            mutationStrictMode: window.enableStrictMutationGuards
 
             onComponentSelected: component => {
                                      propertyPanel.component = component

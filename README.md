@@ -3,6 +3,45 @@
 A reusable Qt/QML module (ComponentMapEditor) for building interactive graph or component-map editors.
 The module exposes C++ models, services, and commands together with ready-made QML components.
 
+## Final Interaction Architecture (PR6)
+
+The editor now follows a boundary-first interaction architecture:
+
+- Interaction coordination: [component_map_editor/ui/qml/InteractionStateManager.qml](component_map_editor/ui/qml/InteractionStateManager.qml) is the only state machine for pointer interaction mode transitions.
+- UI orchestration: [component_map_editor/ui/qml/GraphCanvas.qml](component_map_editor/ui/qml/GraphCanvas.qml) owns gesture flow, selection behavior, and telemetry hooks.
+- Mutation boundary: [component_map_editor/services/GraphEditorController.h](component_map_editor/services/GraphEditorController.h) is the default write path for interactive creates/connects/moves/resizes.
+- Command persistence: [component_map_editor/commands/UndoStack.h](component_map_editor/commands/UndoStack.h) remains the undo/redo source of truth.
+- Rendering and interaction telemetry sink: [component_map_editor/ui/GraphViewportItem.h](component_map_editor/ui/GraphViewportItem.h).
+
+Legacy direct-mutation paths from QML are removed where they were superseded by controller/facade flow, or left behind an explicit off-by-default fallback toggle.
+
+### Interaction telemetry metrics
+
+`GraphViewportItem` now tracks:
+
+- Transition rejects: count of rejected intent transitions.
+- Intent latency: p50/p95 for intent calls.
+- Action latency: p50/p95 for mutation actions.
+- Route rebuild latency: existing renderer route-rebuild p50/p95.
+
+These metrics are exposed in `GraphStatusBar` for live manual/soak validation.
+
+### Migration toggles and safe defaults
+
+The example app (`example/Main.qml`) ships with explicit migration toggles:
+
+- `enableInteractionTelemetry: true`
+- `enableStrictMutationGuards: true`
+- `enableLegacyPaletteDropFallback: false`
+
+Recommended production default remains legacy fallback disabled. Strict guards are safe-by-default and become effective when an invariant checker is wired into the active mutation path.
+
+### Extension points
+
+- Add/override component and connection policy defaults through `TypeRegistry`.
+- Enforce additional mutation invariants via `GraphEditorController.invariantChecker`.
+- Extend telemetry consumption by reading `GraphViewportItem` interaction and route metrics.
+
 ## Project structure
 
 component_map_editor/

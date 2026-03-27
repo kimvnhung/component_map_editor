@@ -52,6 +52,14 @@ class GraphViewportItem : public QQuickItem
     Q_PROPERTY(QPointF tempStart READ tempStart WRITE setTempStart NOTIFY tempStartChanged FINAL)
     Q_PROPERTY(QPointF tempEnd READ tempEnd WRITE setTempEnd NOTIFY tempEndChanged FINAL)
 
+    Q_PROPERTY(int interactionTransitionRejectCount READ interactionTransitionRejectCount NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal intentLatencyP50Ms READ intentLatencyP50Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal intentLatencyP95Ms READ intentLatencyP95Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(int intentLatencySampleCount READ intentLatencySampleCount NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal actionLatencyP50Ms READ actionLatencyP50Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal actionLatencyP95Ms READ actionLatencyP95Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(int actionLatencySampleCount READ actionLatencySampleCount NOTIFY interactionTelemetryChanged FINAL)
+
 public:
     explicit GraphViewportItem(QQuickItem *parent = nullptr);
 
@@ -138,6 +146,20 @@ public:
     Q_INVOKABLE qreal routeRebuildP95Ms() const;
     Q_INVOKABLE int routeRebuildSampleCount() const;
 
+    // Interaction telemetry hooks (driven from QML interaction coordinator).
+    Q_INVOKABLE void clearInteractionTelemetry();
+    Q_INVOKABLE void recordTransitionReject();
+    Q_INVOKABLE void recordIntentLatencySample(qreal ms);
+    Q_INVOKABLE void recordActionLatencySample(qreal ms);
+
+    int interactionTransitionRejectCount() const;
+    qreal intentLatencyP50Ms() const;
+    qreal intentLatencyP95Ms() const;
+    int intentLatencySampleCount() const;
+    qreal actionLatencyP50Ms() const;
+    qreal actionLatencyP95Ms() const;
+    int actionLatencySampleCount() const;
+
 protected:
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *updatePaintNodeData) override;
@@ -160,6 +182,7 @@ signals:
     void tempConnectionDraggingChanged();
     void tempStartChanged();
     void tempEndChanged();
+    void interactionTelemetryChanged();
 
 private:
     struct IndexedComponent {
@@ -199,6 +222,12 @@ private:
                                           const QPointF &b);
     static qreal percentile(const QVector<qreal> &samples, qreal p);
     void recordRouteRebuildSample(qreal ms);
+    static void recordLatencySample(QVector<qreal> &samples,
+                                    int maxSamples,
+                                    qreal ms,
+                                    std::atomic<qreal> &p50,
+                                    std::atomic<qreal> &p95,
+                                    std::atomic<int> &count);
 
     // Called from updatePaintNode (render thread during sync).
     void updateGridGeometry();
@@ -280,6 +309,18 @@ private:
     std::atomic<qreal> m_routeRebuildP50Ms{0.0};
     std::atomic<qreal> m_routeRebuildP95Ms{0.0};
     std::atomic<int> m_routeRebuildSampleCount{0};
+
+    std::atomic<int> m_interactionTransitionRejectCount{0};
+    QVector<qreal> m_intentLatencySamples;
+    int m_intentLatencyMaxSamples = 2000;
+    std::atomic<qreal> m_intentLatencyP50Ms{0.0};
+    std::atomic<qreal> m_intentLatencyP95Ms{0.0};
+    std::atomic<int> m_intentLatencySampleCount{0};
+    QVector<qreal> m_actionLatencySamples;
+    int m_actionLatencyMaxSamples = 2000;
+    std::atomic<qreal> m_actionLatencyP50Ms{0.0};
+    std::atomic<qreal> m_actionLatencyP95Ms{0.0};
+    std::atomic<int> m_actionLatencySampleCount{0};
     std::unique_ptr<RoutingEngine> m_routingEngine;
 };
 

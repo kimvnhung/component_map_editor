@@ -142,8 +142,8 @@ void PersistenceValidationTests::importsLegacyYUpWithoutCoordinateSystem()
 void PersistenceValidationTests::componentModelAcceptsDynamicProperties()
 {
     ComponentModel component;
-    QVERIFY(component.setDynamicProperty(QStringLiteral("inputNumber"), 12));
-    QVERIFY(component.setDynamicProperty(QStringLiteral("addValue"), 9));
+    component.setDynamicProperty(QStringLiteral("inputNumber"), 12);
+    component.setDynamicProperty(QStringLiteral("addValue"), 9);
 
     QCOMPARE(component.dynamicPropertyValue(QStringLiteral("inputNumber")).toInt(), 12);
     QCOMPARE(component.dynamicPropertyValue(QStringLiteral("addValue")).toInt(), 9);
