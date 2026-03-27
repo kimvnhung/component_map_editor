@@ -9,6 +9,7 @@
 #include "models/GraphModel.h"
 #include "commands/UndoStack.h"
 #include "extensions/runtime/TypeRegistry.h"
+#include "services/InvariantChecker.h"
 
 /**
  * GraphEditorController orchestrates type-aware graph mutations.
@@ -30,23 +31,31 @@ class GraphEditorController : public QObject
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(GraphModel   *graph        READ graph        WRITE setGraph
-                   NOTIFY graphChanged        FINAL)
-    Q_PROPERTY(UndoStack    *undoStack    READ undoStack    WRITE setUndoStack
-                   NOTIFY undoStackChanged    FINAL)
-    Q_PROPERTY(TypeRegistry *typeRegistry READ typeRegistry WRITE setTypeRegistry
-                   NOTIFY typeRegistryChanged FINAL)
+    Q_PROPERTY(GraphModel      *graph            READ graph            WRITE setGraph
+                   NOTIFY graphChanged            FINAL)
+    Q_PROPERTY(UndoStack       *undoStack        READ undoStack        WRITE setUndoStack
+                   NOTIFY undoStackChanged        FINAL)
+    Q_PROPERTY(TypeRegistry    *typeRegistry     READ typeRegistry     WRITE setTypeRegistry
+                   NOTIFY typeRegistryChanged     FINAL)
+    Q_PROPERTY(InvariantChecker *invariantChecker READ invariantChecker WRITE setInvariantChecker
+                   NOTIFY invariantCheckerChanged FINAL)
+    Q_PROPERTY(bool             strictMode       READ strictMode       WRITE setStrictMode
+                   NOTIFY strictModeChanged       FINAL)
 
 public:
     explicit GraphEditorController(QObject *parent = nullptr);
 
-    GraphModel   *graph()        const;
-    UndoStack    *undoStack()    const;
-    TypeRegistry *typeRegistry() const;
+    GraphModel      *graph()            const;
+    UndoStack       *undoStack()        const;
+    TypeRegistry    *typeRegistry()     const;
+    InvariantChecker *invariantChecker() const;
+    bool             strictMode()       const;
 
     void setGraph(GraphModel *graph);
     void setUndoStack(UndoStack *undoStack);
     void setTypeRegistry(TypeRegistry *registry);
+    void setInvariantChecker(InvariantChecker *checker);
+    void setStrictMode(bool strict);
 
     /**
     * Creates a new component of @p typeId at (@p x, @p y).
@@ -133,6 +142,8 @@ signals:
     void graphChanged();
     void undoStackChanged();
     void typeRegistryChanged();
+    void invariantCheckerChanged();
+    void strictModeChanged();
 
     void componentCreated(const QString &componentId, const QString &typeId);
 
@@ -145,6 +156,16 @@ signals:
     void connectionRejected(const QString &sourceId,
                             const QString &targetId,
                             const QString &reason);
+
+    // ── Strict-mode observability signals ─────────────────────────────────
+    // Emitted when a UI mutation is blocked by a pre-check invariant violation
+    // or when a post-check violation fires (before rollback).
+    void mutationBlocked(const QString &operationType, const QString &reason);
+
+    // Emitted after a post-mutation invariant failure.  The command is rolled
+    // back before this signal fires.
+    void invariantViolationRolledBack(const QString &operationType,
+                                      const QString &violation);
 
 private:
     // Resolves default component geometry/visuals for @p typeId.
@@ -160,6 +181,21 @@ private:
     UndoStack    *m_undoStack    = nullptr;
     TypeRegistry *m_typeRegistry = nullptr;
     QString       m_lastRejectionReason;
+
+    // ── Strict-mode enforcement ───────────────────────────────────────────
+    // When strictMode is true, every write method runs pre- and post-mutation
+    // invariant checks via m_invariantChecker.  A pre-failure rejects the
+    // mutation before any command is pushed.  A post-failure rolls back the
+    // last-pushed command via UndoStack::undo() + discardRedoHistory().
+    InvariantChecker *m_invariantChecker = nullptr;
+    bool              m_strictMode       = false;
+
+    // Returns true (pass) or false (blocked); emits mutationBlocked on false.
+    bool preCheckInvariants(const QString &operationType, QString *error);
+
+    // Returns true (pass) or false (rolled back); emits
+    // invariantViolationRolledBack + mutationBlocked on false.
+    bool postCheckAndRollback(const QString &operationType, QString *error);
 };
 
 #endif // GRAPHEDITORCONTROLLER_H

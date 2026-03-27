@@ -3,6 +3,7 @@
 #include <QUuid>
 
 #include "commands/GraphCommands.h"
+#include "InvariantChecker.h"
 
 GraphEditorController::GraphEditorController(QObject *parent)
     : QObject(parent)
@@ -38,6 +39,73 @@ void GraphEditorController::setTypeRegistry(TypeRegistry *registry)
         return;
     m_typeRegistry = registry;
     emit typeRegistryChanged();
+}
+
+InvariantChecker *GraphEditorController::invariantChecker() const { return m_invariantChecker; }
+bool              GraphEditorController::strictMode()        const { return m_strictMode; }
+
+void GraphEditorController::setInvariantChecker(InvariantChecker *checker)
+{
+    if (m_invariantChecker == checker)
+        return;
+    m_invariantChecker = checker;
+    emit invariantCheckerChanged();
+}
+
+void GraphEditorController::setStrictMode(bool strict)
+{
+    if (m_strictMode == strict)
+        return;
+    m_strictMode = strict;
+    emit strictModeChanged();
+}
+
+// ---------------------------------------------------------------------------
+// Strict-mode invariant helpers
+// ---------------------------------------------------------------------------
+
+// Runs pre-mutation invariant check when strictMode is on.
+// Returns true (pass through) or false (mutation blocked).
+// Emits mutationBlocked on failure.
+bool GraphEditorController::preCheckInvariants(const QString &operationType, QString *error)
+{
+    if (!m_strictMode || !m_invariantChecker || !m_graph)
+        return true;
+
+    QString violation;
+    if (!m_invariantChecker->checkAll(m_graph, &violation)) {
+        const QString msg =
+            QStringLiteral("Pre-mutation invariant violation [%1]: %2")
+                .arg(operationType, violation);
+        if (error)
+            *error = msg;
+        emit mutationBlocked(operationType, msg);
+        return false;
+    }
+    return true;
+}
+
+// Runs post-mutation invariant check when strictMode is on.
+// On failure: rolls back the last-pushed command, emits signals, returns false.
+bool GraphEditorController::postCheckAndRollback(const QString &operationType, QString *error)
+{
+    if (!m_strictMode || !m_invariantChecker || !m_graph)
+        return true;
+
+    QString violation;
+    if (!m_invariantChecker->checkAll(m_graph, &violation)) {
+        if (m_undoStack && m_undoStack->canUndo())
+            m_undoStack->undo();
+        if (m_undoStack)
+            m_undoStack->discardRedoHistory();
+
+        if (error)
+            *error = violation;
+        emit invariantViolationRolledBack(operationType, violation);
+        emit mutationBlocked(operationType, violation);
+        return false;
+    }
+    return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +151,12 @@ QString GraphEditorController::createComponentWithId(const QString &id,
     if (!m_graph || !m_undoStack || id.isEmpty())
         return {};
 
+    {
+        QString err;
+        if (!preCheckInvariants(QStringLiteral("createComponentWithId"), &err))
+            return {};
+    }
+
     const ComponentDefaults d = resolveComponentDefaults(typeId);
 
     auto *component = new ComponentModel(id, typeId.isEmpty()
@@ -101,6 +175,13 @@ QString GraphEditorController::createComponentWithId(const QString &id,
     }
 
     m_undoStack->pushAddComponent(m_graph, component);
+
+    {
+        QString err;
+        if (!postCheckAndRollback(QStringLiteral("createComponentWithId"), &err))
+            return {};
+    }
+
     emit componentCreated(id, typeId);
     return id;
 }
@@ -116,6 +197,12 @@ QString GraphEditorController::createPaletteComponent(const QString &typeId,
 {
     if (!m_graph || !m_undoStack)
         return {};
+
+    {
+        QString err;
+        if (!preCheckInvariants(QStringLiteral("createPaletteComponent"), &err))
+            return {};
+    }
 
     const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const ComponentDefaults d = resolveComponentDefaults(typeId);
@@ -140,6 +227,13 @@ QString GraphEditorController::createPaletteComponent(const QString &typeId,
     }
 
     m_undoStack->pushAddComponent(m_graph, component);
+
+    {
+        QString err;
+        if (!postCheckAndRollback(QStringLiteral("createPaletteComponent"), &err))
+            return {};
+    }
+
     emit componentCreated(id, typeId);
     return id;
 }
@@ -150,6 +244,12 @@ QString GraphEditorController::duplicateComponent(const QString &sourceId,
 {
     if (!m_graph || !m_undoStack || sourceId.isEmpty())
         return {};
+
+    {
+        QString err;
+        if (!preCheckInvariants(QStringLiteral("duplicateComponent"), &err))
+            return {};
+    }
 
     ComponentModel *source = m_graph->componentById(sourceId);
     if (!source)
@@ -170,6 +270,13 @@ QString GraphEditorController::duplicateComponent(const QString &sourceId,
     copy->setShape(source->shape());
 
     m_undoStack->pushAddComponent(m_graph, copy);
+
+    {
+        QString err;
+        if (!postCheckAndRollback(QStringLiteral("duplicateComponent"), &err))
+            return {};
+    }
+
     emit componentCreated(id, copy->type());
     return id;
 }
@@ -231,6 +338,12 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
     if (sourceId.isEmpty() || targetId.isEmpty() || sourceId == targetId)
         return {};
 
+    {
+        QString err;
+        if (!preCheckInvariants(QStringLiteral("connectComponentsFromDrag"), &err))
+            return {};
+    }
+
     ComponentModel *src = m_graph->componentById(sourceId);
     ComponentModel *tgt = m_graph->componentById(targetId);
     if (!src || !tgt)
@@ -271,6 +384,13 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
                                          label,
                                          sourceSide,
                                          targetSide);
+
+    {
+        QString err;
+        if (!postCheckAndRollback(QStringLiteral("connectComponentsFromDrag"), &err))
+            return {};
+    }
+
     emit connectionCreated(connId, sourceId, targetId);
     return connId;
 }
@@ -280,8 +400,21 @@ bool GraphEditorController::commitMoveBatch(const QVariantList &moves)
     if (!m_graph || !m_undoStack || moves.isEmpty())
         return false;
 
+    {
+        QString err;
+        if (!preCheckInvariants(QStringLiteral("commitMoveBatch"), &err))
+            return false;
+    }
+
     const int before = m_undoStack->count();
     m_undoStack->pushMoveComponents(m_graph, moves);
+
+    {
+        QString err;
+        if (!postCheckAndRollback(QStringLiteral("commitMoveBatch"), &err))
+            return false;
+    }
+
     return m_undoStack->count() > before;
 }
 
@@ -302,6 +435,12 @@ bool GraphEditorController::commitResize(const QString &componentId,
     if (!component)
         return false;
 
+    {
+        QString err;
+        if (!preCheckInvariants(QStringLiteral("commitResize"), &err))
+            return false;
+    }
+
     const int before = m_undoStack->count();
     m_undoStack->pushSetComponentGeometry(component,
                                           oldX,
@@ -312,6 +451,13 @@ bool GraphEditorController::commitResize(const QString &componentId,
                                           newY,
                                           newWidth,
                                           newHeight);
+
+    {
+        QString err;
+        if (!postCheckAndRollback(QStringLiteral("commitResize"), &err))
+            return false;
+    }
+
     return m_undoStack->count() > before;
 }
 
