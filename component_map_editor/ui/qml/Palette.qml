@@ -126,6 +126,22 @@ Rectangle {
             delegate: Rectangle {
                 required property var modelData
 
+                // Guard that distinguishes a drag gesture from a tap within the
+                // same press cycle.  DragHandler uses target:null, so Qt Quick
+                // may not always issue an exclusive grab and cancel the sibling
+                // TapHandler.  Without this flag both handlers would fire on a
+                // drag, creating one component at the drop position (via
+                // addPaletteComponentAtScenePos) and a second one at the canvas
+                // centre (via _addComponent).
+                property bool _didDrag: false
+                // Ensures one press gesture can produce at most one create action
+                // even if DragHandler toggles active more than once.
+                property bool _creationHandledInPress: false
+                // Last known cursor position in scene coordinates for this
+                // drag gesture. We cache this because centroid.position may be
+                // stale/reset when DragHandler transitions to inactive.
+                property point _lastScenePos: Qt.point(0, 0)
+
                 Layout.fillWidth: true
                 height: 36
                 radius: 6
@@ -151,18 +167,62 @@ Rectangle {
                     cursorShape: active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
 
                     function scenePos() {
-                        return parent.mapToItem(null, centroid.position.x, centroid.position.y);
+                        // Derive pointer scene position from stable drag state.
+                        // centroid.position can be stale/reset at release on some
+                        // grab transitions, which misplaces drop coordinates.
+                        var px = centroid.pressPosition.x + translation.x;
+                        var py = centroid.pressPosition.y + translation.y;
+                        return parent.mapToItem(null, px, py);
+                    }
+
+                    function updateLastScenePos() {
+                        parent._lastScenePos = scenePos();
                     }
 
                     onActiveChanged: {
-                        if (!active)
-                            root.paletteDropRequested(modelData.title || modelData.id, modelData.icon || "", modelData.defaultColor || "#4fc3f7", modelData.id || modelData.type, scenePos());
+                        if (active) {
+                            parent._didDrag = true;
+                            if (root.canvas && root.canvas.paletteDragInProgress !== undefined)
+                                root.canvas.paletteDragInProgress = true;
+                            updateLastScenePos();
+                        } else {
+                            if (parent._didDrag && !parent._creationHandledInPress) {
+                                parent._creationHandledInPress = true;
+                                var dropPos = parent._lastScenePos;
+                                if (dropPos.x === 0 && dropPos.y === 0)
+                                    dropPos = scenePos();
+                                root.paletteDropRequested(modelData.title || modelData.id, modelData.icon || "", modelData.defaultColor || "#4fc3f7", modelData.id || modelData.type, dropPos);
+                            }
+                            if (root.canvas && root.canvas.paletteDragInProgress !== undefined)
+                                root.canvas.paletteDragInProgress = false;
+                        }
+                    }
+
+                    onTranslationChanged: {
+                        if (active)
+                            updateLastScenePos();
                     }
                 }
 
                 TapHandler {
                     acceptedButtons: Qt.LeftButton
-                    onTapped: root._addComponent(modelData)
+                    onPressedChanged: {
+                        // Reset the drag flag at the start of every new press so
+                        // a subsequent tap after a previous drag is not blocked.
+                        if (pressed) {
+                            parent._didDrag = false;
+                            parent._creationHandledInPress = false;
+                            parent._lastScenePos = Qt.point(0, 0);
+                        }
+                    }
+                    onTapped: {
+                        // Only create a component for genuine taps (no preceding
+                        // drag in this press cycle).
+                        if (!parent._didDrag && !parent._creationHandledInPress) {
+                            parent._creationHandledInPress = true;
+                            root._addComponent(modelData);
+                        }
+                    }
                 }
             }
         }

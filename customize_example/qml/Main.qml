@@ -15,6 +15,7 @@ ApplicationWindow {
     }
 
     GraphCanvas {
+        id: graphCanvas
         anchors.fill: parent
         graph: graph
     }
@@ -26,6 +27,7 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         width: 200
         graph: graph
+        canvas: graphCanvas
         componentTypeRegistry: customizeComponentTypeRegistry
     }
 

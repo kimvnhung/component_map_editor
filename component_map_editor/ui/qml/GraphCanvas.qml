@@ -68,6 +68,10 @@ Item {
     readonly property var connectionRenderer: connectionViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
+    // Set by Palette while dragging from palette into graph. During this
+    // interval, drop placement should use live canvas mouse position and
+    // background panning must stay disabled.
+    property bool paletteDragInProgress: false
     property int livePointerModifiers: 0
     property bool ctrlSelectionModifierActive: false
     property bool ctrlReleasedByKey: false  // Flag to prevent stale modifiers from re-enabling Ctrl
@@ -288,6 +292,16 @@ Item {
             return false;
 
         var viewPos = root.mapFromItem(null, scenePos.x, scenePos.y);
+        if (root.paletteDragInProgress)
+            viewPos = Qt.point(root.mouseViewPos.x, root.mouseViewPos.y);
+
+        // Fallback when a drag source provides an invalid/stale scene point
+        // (e.g., release-time grab reset). mouseViewPos is continuously
+        // tracked on this canvas and is a safer last-known cursor location.
+        if ((scenePos.x === 0 && scenePos.y === 0) || viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height) {
+            viewPos = Qt.point(root.mouseViewPos.x, root.mouseViewPos.y);
+        }
+
         if (viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height)
             return false;
 
@@ -746,6 +760,9 @@ Item {
         property real startPanX: 0
         property real startPanY: 0
         property bool dragStartedWithCtrl: false
+        // True when a canvas drag gesture started on top of a component;
+        // while set, background pan updates are ignored for this gesture.
+        property bool suppressPanFromComponentPress: false
 
         HoverHandler {
             id: canvasHover
@@ -770,27 +787,37 @@ Item {
 
         DragHandler {
             id: canvasDrag
-            enabled: root.enableBackgroundDrag && !root.componentInteractionActive && !root.ctrlSelectionModifierActive && !root.pressedComponent
+            enabled: root.enableBackgroundDrag && !root.componentInteractionActive && !root.ctrlSelectionModifierActive && !root.pressedComponent && !root.pointerOverComponent && !root.paletteDragInProgress
             target: null
             acceptedButtons: Qt.LeftButton
             dragThreshold: root.panStartThreshold
 
             onActiveChanged: {
                 if (active) {
+                    var hitComponent = connectionViewport.hitTestComponentAtView(centroid.position.x, centroid.position.y);
+                    interactionLayer.suppressPanFromComponentPress = hitComponent !== null;
+                    if (interactionLayer.suppressPanFromComponentPress) {
+                        root.pressedComponent = hitComponent;
+                        root.debugInputLog("drag_pan_suppressed_component_press");
+                        return;
+                    }
                     interactionLayer.startPanX = root.panX;
                     interactionLayer.startPanY = root.panY;
                     root.debugInputLog("drag_start_pan");
                     if (root.telemetry)
                         root.telemetry.notifyDragStarted();
                 } else {
-                    if (root.telemetry)
+                    if (!interactionLayer.suppressPanFromComponentPress && root.telemetry)
                         root.telemetry.notifyDragEnded();
+                    interactionLayer.suppressPanFromComponentPress = false;
                     interactionLayer.dragStartedWithCtrl = false;
                     root.debugInputLog("drag_end");
                 }
             }
 
             onTranslationChanged: {
+                if (interactionLayer.suppressPanFromComponentPress)
+                    return;
                 root.panX = interactionLayer.startPanX + translation.x;
                 root.panY = interactionLayer.startPanY + translation.y;
                 if (root.telemetry)
