@@ -38,7 +38,11 @@ Item {
     property alias selectedComponentIds: interactionState.componentIds
     property alias selectedConnection: interactionState.connection
     property alias selectedConnectionIds: interactionState.connectionIds
-    property UndoStack undoStack: null
+    property UndoStack undoStack: UndoStack {}
+    property GraphEditorController graphEditorController: GraphEditorController {
+        graph: root.graph
+        undoStack: root.undoStack
+    }
     property ComponentModel menuTargetComponent: null
     property ConnectionModel menuTargetConnection: null
     property point menuTargetWorldPos: Qt.point(0, 0)
@@ -238,24 +242,14 @@ Item {
     }
 
     function duplicateComponent(component) {
-        if (!root.graph || !component)
+        if (!root.graph || !component || !root.graphEditorController)
             return;
-        var copy = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', root.graph);
-        copy.id = root.uniqueComponentId(component.id + "_copy");
-        copy.title = component.title + " Copy";
-        copy.content = component.content;
-        copy.icon = component.icon;
-        copy.x = component.x + 40;
-        copy.y = component.y + 40;
-        copy.width = component.width;
-        copy.height = component.height;
-        copy.shape = component.shape;
-        copy.color = component.color;
-        copy.type = component.type;
-        if (root.undoStack)
-            root.undoStack.pushAddComponent(root.graph, copy);
-        else
-            root.graph.addComponent(copy);
+        var copyId = root.graphEditorController.duplicateComponent(component.id, 40, 40);
+        if (!copyId || copyId.length === 0)
+            return;
+        var copy = root.graph.componentById(copyId);
+        if (!copy)
+            return;
         root.selectSingleComponent(copy);
         root.selectedConnection = null;
         root.componentSelected(copy);
@@ -263,24 +257,14 @@ Item {
     }
 
     function addComponentAtWorldPos(worldPos) {
-        if (!root.graph)
+        if (!root.graph || !root.graphEditorController)
             return;
-        var component = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', root.graph);
-        component.id = root.uniqueComponentId("component");
-        component.title = "Component";
-        component.content = "";
-        component.icon = "cube";
-        component.x = worldPos.x;
-        component.y = worldPos.y;
-        component.width = 96;
-        component.height = 96;
-        component.color = "#4fc3f7";
-        component.shape = "rounded";
-        component.type = "default";
-        if (root.undoStack)
-            root.undoStack.pushAddComponent(root.graph, component);
-        else
-            root.graph.addComponent(component);
+        var componentId = root.graphEditorController.createPaletteComponent("default", "Component", "cube", "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        if (!componentId || componentId.length === 0)
+            return;
+        var component = root.graph.componentById(componentId);
+        if (!component)
+            return;
         root.selectSingleComponent(component);
         root.selectedConnection = null;
         root.componentSelected(component);
@@ -307,23 +291,17 @@ Item {
 
         var worldPos = root.viewToWorld(viewPos.x, viewPos.y);
 
-        var component = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', root.graph);
-        component.id = root.uniqueComponentId("component");
-        component.title = title && title.length > 0 ? title : "Component";
-        component.content = "";
-        component.icon = icon && icon.length > 0 ? icon : "cube";
-        component.x = worldPos.x;
-        component.y = worldPos.y;
-        component.width = 96;
-        component.height = 96;
-        component.color = color && color.length > 0 ? color : "#4fc3f7";
-        component.shape = "rounded";
-        component.type = type && type.length > 0 ? type : "default";
+        if (!root.graphEditorController)
+            return false;
 
-        if (root.undoStack)
-            root.undoStack.pushAddComponent(root.graph, component);
-        else
-            root.graph.addComponent(component);
+        var componentId = root.graphEditorController.createPaletteComponent(type && type.length > 0 ? type : "default", title && title.length > 0 ? title : "Component", icon && icon.length > 0 ? icon : "cube", color && color.length > 0 ? color : "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        if (!componentId || componentId.length === 0)
+            return false;
+
+        var component = root.graph.componentById(componentId);
+        if (!component)
+            return false;
+
         root.selectSingleComponent(component);
         root.selectedConnection = null;
         root.componentSelected(component);
@@ -412,8 +390,8 @@ Item {
             }
         }
 
-        if (batchedMoves.length > 0)
-            root.undoStack.pushMoveComponents(root.graph, batchedMoves);
+        if (batchedMoves.length > 0 && root.graphEditorController)
+            root.graphEditorController.commitMoveBatch(batchedMoves);
 
         var nextMoveStart = root.moveStartPositions;
         delete nextMoveStart[anchorComponent.id];
@@ -437,9 +415,8 @@ Item {
         if (!component)
             return;
         var start = root.resizeStartGeometries[component.id];
-        if (start && root.undoStack) {
-            root.undoStack.pushSetComponentGeometry(component, start.x, start.y, start.width, start.height, component.x, component.y, component.width, component.height);
-        }
+        if (start && root.graphEditorController)
+            root.graphEditorController.commitResize(component.id, start.x, start.y, start.width, start.height, component.x, component.y, component.width, component.height);
 
         var nextResize = root.resizeStartGeometries;
         delete nextResize[component.id];
@@ -1029,23 +1006,15 @@ Item {
                                 return;
                             }
 
-                            var connectionId = "conn_" + sourceComponent.id + "_" + component.id;
-                            if (root.graph.connectionById(connectionId)) {
-                                connectionCanvas.repaint();
-                                return;
+                            if (root.graphEditorController) {
+                                var preferredId = "conn_" + sourceComponent.id + "_" + component.id;
+                                root.graphEditorController.connectComponentsFromDrag(sourceComponent.id,
+                                                                                     component.id,
+                                                                                     sourceSide,
+                                                                                     -1,
+                                                                                     preferredId,
+                                                                                     "path A");
                             }
-
-                            // Add connection from sourceComponent to component.
-                            var e1 = Qt.createQmlObject('import ComponentMapEditor; ConnectionModel {}', root.graph);
-                            e1.id = connectionId;
-                            e1.sourceId = sourceComponent.id;
-                            e1.targetId = component.id;
-                            e1.label = "path A";
-                            e1.sourceSide = sourceSide;
-                            if (root.undoStack)
-                                root.undoStack.pushAddConnection(root.graph, e1);
-                            else
-                                root.graph.addConnection(e1);
                             connectionCanvas.repaint();
                         }
 

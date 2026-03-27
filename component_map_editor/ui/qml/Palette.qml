@@ -9,7 +9,12 @@ Rectangle {
     id: root
 
     property GraphModel graph: null
-    property UndoStack undoStack: null
+    property UndoStack undoStack: UndoStack {}
+    property GraphEditorController graphEditorController: GraphEditorController {
+        graph: root.graph
+        undoStack: root.undoStack
+        typeRegistry: root.componentTypeRegistry
+    }
     property var canvas: null
     property var componentTypeRegistry: null
 
@@ -43,16 +48,8 @@ Rectangle {
     readonly property int gestureActionTapCreate: 1
     readonly property int gestureActionDragDropCreate: 2
 
-    function _applyDefaultProperties(component, type) {
-        if (!componentTypeRegistry || !component)
-            return;
-        var defaults = componentTypeRegistry.defaultComponentProperties(type);
-        for (var key in defaults)
-            component.setDynamicProperty(key, defaults[key]);
-    }
-
     function _addComponent(descriptor) {
-        if (!graph || !descriptor)
+        if (!graph || !descriptor || !root.graphEditorController)
             return;
         var title = descriptor.title || descriptor.id || "Component";
         var icon = descriptor.icon || "";
@@ -64,31 +61,26 @@ Rectangle {
         if (root.canvas && root.canvas.componentRenderer)
             root.canvas.componentRenderer.renderComponents = true;
 
-        var component = Qt.createQmlObject('import ComponentMapEditor; ComponentModel {}', graph);
-        component.id = "component_" + root._idCounter++;
-        component.title = title;
-        component.content = "";
-        component.icon = icon;
-        component.color = color;
-        component.type = type;
-        component.width = defaultWidth;
-        component.height = defaultHeight;
-        root._applyDefaultProperties(component, type);
+        var worldX = 0;
+        var worldY = 0;
 
         // Place new nodes at viewport center in world space so they are always visible.
         if (root.canvas && root.canvas.viewToWorld) {
             var centerWorld = root.canvas.viewToWorld(root.canvas.width * 0.5, root.canvas.height * 0.5);
-            component.x = centerWorld.x;
-            component.y = centerWorld.y;
-        } else {
-            component.x = 0;
-            component.y = 0;
+            worldX = centerWorld.x;
+            worldY = centerWorld.y;
         }
 
-        if (root.undoStack)
-            root.undoStack.pushAddComponent(graph, component);
-        else
-            graph.addComponent(component);
+        var componentId = root.graphEditorController.createPaletteComponent(type,
+                                                                            title,
+                                                                            icon,
+                                                                            color,
+                                                                            worldX,
+                                                                            worldY,
+                                                                            defaultWidth,
+                                                                            defaultHeight);
+        if (!componentId || componentId.length === 0)
+            return false;
 
         return true;
     }

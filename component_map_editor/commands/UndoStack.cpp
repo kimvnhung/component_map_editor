@@ -236,6 +236,23 @@ void UndoStack::pushAddConnection(GraphModel *graph, ConnectionModel *connection
     push(new AddConnectionCommand(graph, connection));
 }
 
+void UndoStack::pushAddConnectionBySpec(GraphModel *graph,
+                                        const QString &connectionId,
+                                        const QString &sourceId,
+                                        const QString &targetId,
+                                        const QString &label,
+                                        int sourceSide,
+                                        int targetSide)
+{
+    if (!graph || connectionId.isEmpty() || sourceId.isEmpty() || targetId.isEmpty())
+        return;
+
+    auto *connection = new ConnectionModel(connectionId, sourceId, targetId, label, graph);
+    connection->setSourceSide(sideFromInt(sourceSide));
+    connection->setTargetSide(sideFromInt(targetSide));
+    pushAddConnection(graph, connection);
+}
+
 void UndoStack::pushRemoveConnection(GraphModel *graph, const QString &connectionId)
 {
     if (!graph || connectionId.isEmpty())

@@ -375,6 +375,192 @@ private slots:
         QCOMPARE(spy.at(0).at(2).toString(), QStringLiteral("n2"));
     }
 
+    void createPaletteComponentUsesFacadeAndSupportsUndoRedo()
+    {
+        TestContext ctx;
+        const QString id = ctx.controller.createPaletteComponent(
+            QLatin1String(SampleComponentTypeProvider::TypeProcess),
+            QStringLiteral("Palette Node"),
+            QStringLiteral("cube"),
+            QStringLiteral("#123456"),
+            33,
+            44,
+            96,
+            120);
+        QVERIFY(!id.isEmpty());
+
+        ComponentModel *component = ctx.graph.componentById(id);
+        QVERIFY(component != nullptr);
+        QCOMPARE(component->title(), QStringLiteral("Palette Node"));
+        QCOMPARE(component->icon(), QStringLiteral("cube"));
+        QCOMPARE(component->color(), QStringLiteral("#123456"));
+        QCOMPARE(component->x(), 33.0);
+        QCOMPARE(component->y(), 44.0);
+        QCOMPARE(component->width(), 96.0);
+        QCOMPARE(component->height(), 120.0);
+
+        ctx.undoStack.undo();
+        QVERIFY(ctx.graph.componentById(id) == nullptr);
+        ctx.undoStack.redo();
+        QVERIFY(ctx.graph.componentById(id) != nullptr);
+    }
+
+    void connectFromDragIsDeterministicAndDuplicateSafe()
+    {
+        TestContext ctx;
+        ctx.controller.createComponentWithId(QStringLiteral("n1"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             0,
+                                             0);
+        ctx.controller.createComponentWithId(QStringLiteral("n2"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             200,
+                                             0);
+
+        const int stackBefore = ctx.undoStack.count();
+        const QString connId = ctx.controller.connectComponentsFromDrag(QStringLiteral("n1"),
+                                                                        QStringLiteral("n2"),
+                                                                        ConnectionModel::SideRight,
+                                                                        ConnectionModel::SideLeft,
+                                                                        QStringLiteral("conn_n1_n2"),
+                                                                        QStringLiteral("path A"));
+        QCOMPARE(connId, QStringLiteral("conn_n1_n2"));
+        QCOMPARE(ctx.undoStack.count(), stackBefore + 1);
+
+        ConnectionModel *connection = ctx.graph.connectionById(connId);
+        QVERIFY(connection != nullptr);
+        QCOMPARE(connection->sourceSide(), ConnectionModel::SideRight);
+        QCOMPARE(connection->targetSide(), ConnectionModel::SideLeft);
+
+        // Duplicate call with the same deterministic id must be rejected.
+        const QString duplicate = ctx.controller.connectComponentsFromDrag(QStringLiteral("n1"),
+                                                                           QStringLiteral("n2"),
+                                                                           ConnectionModel::SideRight,
+                                                                           ConnectionModel::SideLeft,
+                                                                           QStringLiteral("conn_n1_n2"),
+                                                                           QStringLiteral("path A"));
+        QVERIFY(duplicate.isEmpty());
+        QCOMPARE(ctx.graph.connectionCount(), 1);
+        QCOMPARE(ctx.undoStack.count(), stackBefore + 1);
+    }
+
+    void commitMoveBatchCreatesUndoableMoveComponentsCommand()
+    {
+        TestContext ctx;
+        ctx.controller.createComponentWithId(QStringLiteral("n1"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             10,
+                                             20);
+        ctx.controller.createComponentWithId(QStringLiteral("n2"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             30,
+                                             40);
+
+        QVariantList moves;
+        moves.append(QVariantMap{{QStringLiteral("id"), QStringLiteral("n1")},
+                                 {QStringLiteral("oldX"), 10.0},
+                                 {QStringLiteral("oldY"), 20.0},
+                                 {QStringLiteral("newX"), 110.0},
+                                 {QStringLiteral("newY"), 120.0}});
+        moves.append(QVariantMap{{QStringLiteral("id"), QStringLiteral("n2")},
+                                 {QStringLiteral("oldX"), 30.0},
+                                 {QStringLiteral("oldY"), 40.0},
+                                 {QStringLiteral("newX"), 130.0},
+                                 {QStringLiteral("newY"), 140.0}});
+
+        const int stackBefore = ctx.undoStack.count();
+        QVERIFY(ctx.controller.commitMoveBatch(moves));
+        QCOMPARE(ctx.undoStack.count(), stackBefore + 1);
+        QCOMPARE(ctx.undoStack.undoText(), QStringLiteral("Move Components"));
+
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n1"))->x(), 110.0);
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n1"))->y(), 120.0);
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n2"))->x(), 130.0);
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n2"))->y(), 140.0);
+
+        ctx.undoStack.undo();
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n1"))->x(), 10.0);
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n1"))->y(), 20.0);
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n2"))->x(), 30.0);
+        QCOMPARE(ctx.graph.componentById(QStringLiteral("n2"))->y(), 40.0);
+    }
+
+    void commitResizeCreatesUndoableResizeCommand()
+    {
+        TestContext ctx;
+        const QString id = ctx.controller.createComponentWithId(QStringLiteral("n1"),
+                                                                 QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                                                 10,
+                                                                 20);
+        ComponentModel *component = ctx.graph.componentById(id);
+        QVERIFY(component != nullptr);
+
+        component->setWidth(160);
+        component->setHeight(100);
+        const int stackBefore = ctx.undoStack.count();
+
+        component->setX(50);
+        component->setY(60);
+        component->setWidth(220);
+        component->setHeight(140);
+
+        QVERIFY(ctx.controller.commitResize(id,
+                                            10,
+                                            20,
+                                            160,
+                                            100,
+                                            component->x(),
+                                            component->y(),
+                                            component->width(),
+                                            component->height()));
+        QCOMPARE(ctx.undoStack.count(), stackBefore + 1);
+        QCOMPARE(ctx.undoStack.undoText(), QStringLiteral("Resize Component"));
+
+        ctx.undoStack.undo();
+        QCOMPARE(component->x(), 10.0);
+        QCOMPARE(component->y(), 20.0);
+        QCOMPARE(component->width(), 160.0);
+        QCOMPARE(component->height(), 100.0);
+    }
+
+    void connectFromDragKeepsUndoTextAndCountEquivalentToConnectComponents()
+    {
+        TestContext ctxA;
+        ctxA.controller.createComponentWithId(QStringLiteral("a1"),
+                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                              0,
+                                              0);
+        ctxA.controller.createComponentWithId(QStringLiteral("a2"),
+                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                              200,
+                                              0);
+        const int beforeA = ctxA.undoStack.count();
+        const QString normalId = ctxA.controller.connectComponents(QStringLiteral("a1"), QStringLiteral("a2"));
+        QVERIFY(!normalId.isEmpty());
+        QCOMPARE(ctxA.undoStack.count(), beforeA + 1);
+        const QString normalUndoText = ctxA.undoStack.undoText();
+
+        TestContext ctxB;
+        ctxB.controller.createComponentWithId(QStringLiteral("b1"),
+                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                              0,
+                                              0);
+        ctxB.controller.createComponentWithId(QStringLiteral("b2"),
+                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                              200,
+                                              0);
+        const int beforeB = ctxB.undoStack.count();
+        const QString dragId = ctxB.controller.connectComponentsFromDrag(QStringLiteral("b1"),
+                                                                         QStringLiteral("b2"),
+                                                                         ConnectionModel::SideRight,
+                                                                         ConnectionModel::SideLeft,
+                                                                         QStringLiteral("conn_b1_b2"),
+                                                                         QStringLiteral("path A"));
+        QVERIFY(!dragId.isEmpty());
+        QCOMPARE(ctxB.undoStack.count(), beforeB + 1);
+        QCOMPARE(ctxB.undoStack.undoText(), normalUndoText);
+    }
+
     void connectWithNoTypeRegistryAlwaysSucceeds()
     {
         GraphModel graph;

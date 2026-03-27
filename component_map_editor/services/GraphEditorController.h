@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantList>
 #include <QQmlEngine>
 
 #include "models/GraphModel.h"
@@ -67,6 +68,22 @@ public:
                                               qreal x,
                                               qreal y);
 
+    // Creates a component for palette/menu flows with explicit visual fields.
+    // Width/height <= 0 fallback to type defaults.
+    Q_INVOKABLE QString createPaletteComponent(const QString &typeId,
+                                               const QString &title,
+                                               const QString &icon,
+                                               const QString &color,
+                                               qreal x,
+                                               qreal y,
+                                               qreal width,
+                                               qreal height);
+
+    // Duplicates an existing component with positional offset.
+    Q_INVOKABLE QString duplicateComponent(const QString &sourceId,
+                                           qreal offsetX = 40.0,
+                                           qreal offsetY = 40.0);
+
     /**
     * Validates and creates a directed connection from the component
     * identified by @p sourceId to the component identified by @p targetId.
@@ -80,6 +97,30 @@ public:
      */
     Q_INVOKABLE QString connectComponents(const QString &sourceId,
                                           const QString &targetId);
+
+    // Deterministic connect API for drag-drop flows.
+    // preferredConnectionId defaults to "conn_<source>_<target>" if empty.
+    // Returns empty if invalid, rejected by policy, or duplicate id already exists.
+    Q_INVOKABLE QString connectComponentsFromDrag(const QString &sourceId,
+                                                  const QString &targetId,
+                                                  int sourceSide,
+                                                  int targetSide = -1,
+                                                  const QString &preferredConnectionId = QString(),
+                                                  const QString &fallbackLabel = QStringLiteral("path A"));
+
+    // Commits grouped move operations through UndoStack command batching.
+    Q_INVOKABLE bool commitMoveBatch(const QVariantList &moves);
+
+    // Commits resize geometry through UndoStack to preserve undo semantics.
+    Q_INVOKABLE bool commitResize(const QString &componentId,
+                                  qreal oldX,
+                                  qreal oldY,
+                                  qreal oldWidth,
+                                  qreal oldHeight,
+                                  qreal newX,
+                                  qreal newY,
+                                  qreal newWidth,
+                                  qreal newHeight);
 
     /**
      * Returns the policy-rejection message from the most recent failed

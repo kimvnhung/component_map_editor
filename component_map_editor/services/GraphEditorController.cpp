@@ -105,6 +105,75 @@ QString GraphEditorController::createComponentWithId(const QString &id,
     return id;
 }
 
+QString GraphEditorController::createPaletteComponent(const QString &typeId,
+                                                      const QString &title,
+                                                      const QString &icon,
+                                                      const QString &color,
+                                                      qreal x,
+                                                      qreal y,
+                                                      qreal width,
+                                                      qreal height)
+{
+    if (!m_graph || !m_undoStack)
+        return {};
+
+    const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const ComponentDefaults d = resolveComponentDefaults(typeId);
+
+    auto *component = new ComponentModel(id,
+                                         title.isEmpty() ? (typeId.isEmpty() ? QStringLiteral("Component") : typeId)
+                                                         : title,
+                                         x,
+                                         y,
+                                         color.isEmpty() ? d.color : color,
+                                         typeId,
+                                         m_graph);
+    component->setIcon(icon.isEmpty() ? QStringLiteral("cube") : icon);
+    component->setWidth(width > 0.0 ? width : d.width);
+    component->setHeight(height > 0.0 ? height : d.height);
+    component->setShape(d.shape);
+
+    if (m_typeRegistry && m_typeRegistry->hasComponentType(typeId)) {
+        const QVariantMap extras = m_typeRegistry->defaultComponentProperties(typeId);
+        for (auto it = extras.constBegin(); it != extras.constEnd(); ++it)
+            component->setProperty(it.key().toUtf8().constData(), it.value());
+    }
+
+    m_undoStack->pushAddComponent(m_graph, component);
+    emit componentCreated(id, typeId);
+    return id;
+}
+
+QString GraphEditorController::duplicateComponent(const QString &sourceId,
+                                                  qreal offsetX,
+                                                  qreal offsetY)
+{
+    if (!m_graph || !m_undoStack || sourceId.isEmpty())
+        return {};
+
+    ComponentModel *source = m_graph->componentById(sourceId);
+    if (!source)
+        return {};
+
+    const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    auto *copy = new ComponentModel(id,
+                                    source->title() + QStringLiteral(" Copy"),
+                                    source->x() + offsetX,
+                                    source->y() + offsetY,
+                                    source->color(),
+                                    source->type(),
+                                    m_graph);
+    copy->setContent(source->content());
+    copy->setIcon(source->icon());
+    copy->setWidth(source->width());
+    copy->setHeight(source->height());
+    copy->setShape(source->shape());
+
+    m_undoStack->pushAddComponent(m_graph, copy);
+    emit componentCreated(id, copy->type());
+    return id;
+}
+
 // ---------------------------------------------------------------------------
 // connectComponents
 // ---------------------------------------------------------------------------
@@ -148,6 +217,102 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
     m_undoStack->pushAddConnection(m_graph, connection);
     emit connectionCreated(connId, sourceId, targetId);
     return connId;
+}
+
+QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId,
+                                                         const QString &targetId,
+                                                         int sourceSide,
+                                                         int targetSide,
+                                                         const QString &preferredConnectionId,
+                                                         const QString &fallbackLabel)
+{
+    if (!m_graph || !m_undoStack)
+        return {};
+    if (sourceId.isEmpty() || targetId.isEmpty() || sourceId == targetId)
+        return {};
+
+    ComponentModel *src = m_graph->componentById(sourceId);
+    ComponentModel *tgt = m_graph->componentById(targetId);
+    if (!src || !tgt)
+        return {};
+
+    const QString srcType = src->type();
+    const QString tgtType = tgt->type();
+    if (m_typeRegistry) {
+        QString reason;
+        if (!m_typeRegistry->canConnect(srcType, tgtType, {}, &reason)) {
+            m_lastRejectionReason = reason;
+            emit connectionRejected(sourceId, targetId, reason);
+            return {};
+        }
+    }
+
+    m_lastRejectionReason.clear();
+
+    QString connId = preferredConnectionId;
+    if (connId.isEmpty())
+        connId = QStringLiteral("conn_%1_%2").arg(sourceId, targetId);
+
+    if (m_graph->connectionById(connId))
+        return {};
+
+    QVariantMap props;
+    if (m_typeRegistry)
+        props = m_typeRegistry->normalizeConnectionProperties(srcType, tgtType, {});
+
+    const QString label = props.value(QStringLiteral("label")).toString().isEmpty()
+        ? fallbackLabel
+        : props.value(QStringLiteral("label")).toString();
+
+    m_undoStack->pushAddConnectionBySpec(m_graph,
+                                         connId,
+                                         sourceId,
+                                         targetId,
+                                         label,
+                                         sourceSide,
+                                         targetSide);
+    emit connectionCreated(connId, sourceId, targetId);
+    return connId;
+}
+
+bool GraphEditorController::commitMoveBatch(const QVariantList &moves)
+{
+    if (!m_graph || !m_undoStack || moves.isEmpty())
+        return false;
+
+    const int before = m_undoStack->count();
+    m_undoStack->pushMoveComponents(m_graph, moves);
+    return m_undoStack->count() > before;
+}
+
+bool GraphEditorController::commitResize(const QString &componentId,
+                                         qreal oldX,
+                                         qreal oldY,
+                                         qreal oldWidth,
+                                         qreal oldHeight,
+                                         qreal newX,
+                                         qreal newY,
+                                         qreal newWidth,
+                                         qreal newHeight)
+{
+    if (!m_undoStack || componentId.isEmpty())
+        return false;
+
+    ComponentModel *component = m_graph ? m_graph->componentById(componentId) : nullptr;
+    if (!component)
+        return false;
+
+    const int before = m_undoStack->count();
+    m_undoStack->pushSetComponentGeometry(component,
+                                          oldX,
+                                          oldY,
+                                          oldWidth,
+                                          oldHeight,
+                                          newX,
+                                          newY,
+                                          newWidth,
+                                          newHeight);
+    return m_undoStack->count() > before;
 }
 
 QString GraphEditorController::lastConnectionRejectionReason() const
