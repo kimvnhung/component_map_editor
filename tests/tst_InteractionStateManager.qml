@@ -425,4 +425,209 @@ TestCase {
         verify(sm.isSelected(c1))
         verify(sm.isSelected(c3))
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PR1: Intent-based API tests (transition matrix and guard conditions)
+    // ════════════════════════════════════════════════════════════════════════
+
+    function test_intent_startComponentMove_fromIdle_succeeds() {
+        var c1 = makeComponent("c1")
+        var result = sm.intentStartComponentMove(c1)
+        verify(result)
+        compare(sm.mode, InteractionStateManager.ComponentMove)
+        compare(sm.interactionTarget, c1)
+    }
+
+    function test_intent_startComponentMove_null_fails() {
+        var result = sm.intentStartComponentMove(null)
+        verify(!result)
+        compare(sm.mode, InteractionStateManager.Idle)
+    }
+
+    function test_intent_startComponentMove_fromMove_isIdempotent() {
+        var c1 = makeComponent("c1")
+        sm.intentStartComponentMove(c1)
+        var result = sm.intentStartComponentMove(c1)
+        verify(result)   // idempotent: already in ComponentMove
+        compare(sm.mode, InteractionStateManager.ComponentMove)
+    }
+
+    function test_intent_startComponentMove_fromResize_fails() {
+        var c1 = makeComponent("c1")
+        sm.intentStartComponentResize(c1)
+        compare(sm.mode, InteractionStateManager.ComponentResize)
+        var result = sm.intentStartComponentMove(c1)
+        verify(!result)  // illegal transition from Resize to Move
+        compare(sm.mode, InteractionStateManager.ComponentResize)
+    }
+
+    function test_intent_endComponentMove_fromMove_succeeds() {
+        var c1 = makeComponent("c1")
+        sm.intentStartComponentMove(c1)
+        var result = sm.intentEndComponentMove()
+        verify(result)
+        compare(sm.mode, InteractionStateManager.Idle)
+    }
+
+    function test_intent_endComponentMove_fromIdle_fails() {
+        var result = sm.intentEndComponentMove()
+        verify(!result)  // cannot end move if not moving
+        compare(sm.mode, InteractionStateManager.Idle)
+    }
+
+    function test_intent_endComponentMove_fromResize_fails() {
+        var c1 = makeComponent("c1")
+        sm.intentStartComponentResize(c1)
+        var result = sm.intentEndComponentMove()
+        verify(!result)  // cannot end move from resize mode
+        compare(sm.mode, InteractionStateManager.ComponentResize)
+    }
+
+    function test_intent_startComponentResize_fromIdle_succeeds() {
+        var c1 = makeComponent("c1")
+        var result = sm.intentStartComponentResize(c1)
+        verify(result)
+        compare(sm.mode, InteractionStateManager.ComponentResize)
+        compare(sm.interactionTarget, c1)
+    }
+
+    function test_intent_startComponentResize_fromMove_fails() {
+        var c1 = makeComponent("c1")
+        sm.intentStartComponentMove(c1)
+        var result = sm.intentStartComponentResize(c1)
+        verify(!result)
+        compare(sm.mode, InteractionStateManager.ComponentMove)
+    }
+
+    function test_intent_endComponentResize_succeeds() {
+        var c1 = makeComponent("c1")
+        sm.intentStartComponentResize(c1)
+        var result = sm.intentEndComponentResize()
+        verify(result)
+        compare(sm.mode, InteractionStateManager.Idle)
+    }
+
+    function test_intent_startConnectionDraw_fromIdle_succeeds() {
+        var c1 = makeComponent("c1")
+        var result = sm.intentStartConnectionDraw(c1, Qt.point(5, 5), Qt.point(10, 10))
+        verify(result)
+        compare(sm.mode, InteractionStateManager.ConnectionDraw)
+        compare(sm.tempStart.x, 5)
+    }
+
+    function test_intent_updateConnectionDraw_fromDraw_succeeds() {
+        var c1 = makeComponent("c1")
+        sm.intentStartConnectionDraw(c1, Qt.point(0, 0), Qt.point(0, 0))
+        var result = sm.intentUpdateConnectionDraw(Qt.point(15, 15), Qt.point(20, 20))
+        verify(result)
+        compare(sm.tempEnd.x, 20)
+    }
+
+    function test_intent_updateConnectionDraw_fromIdle_fails() {
+        var result = sm.intentUpdateConnectionDraw(Qt.point(5, 5), Qt.point(10, 10))
+        verify(!result)  // cannot update draw endpoint when not drawing
+    }
+
+    function test_intent_endConnectionDraw_succeeds() {
+        var c1 = makeComponent("c1")
+        sm.intentStartConnectionDraw(c1, Qt.point(0, 0), Qt.point(0, 0))
+        var result = sm.intentEndConnectionDraw()
+        verify(result)
+        compare(sm.mode, InteractionStateManager.Idle)
+        compare(sm.tempStart.x, 0)
+    }
+
+    function test_intent_startMarqueeSelect_fromIdle_succeeds() {
+        var result = sm.intentStartMarqueeSelect(Qt.point(1, 1), Qt.point(1, 1))
+        verify(result)
+        compare(sm.mode, InteractionStateManager.MarqueeSelect)
+        compare(sm.marqueeStart.x, 1)
+    }
+
+    function test_intent_updateMarqueeSelect_fromMarquee_succeeds() {
+        sm.intentStartMarqueeSelect(Qt.point(0, 0), Qt.point(0, 0))
+        var result = sm.intentUpdateMarqueeSelect(Qt.point(1, 1), Qt.point(10, 10))
+        verify(result)
+        compare(sm.marqueeEnd.x, 10)
+    }
+
+    function test_intent_updateMarqueeSelect_fromIdle_fails() {
+        var result = sm.intentUpdateMarqueeSelect(Qt.point(5, 5), Qt.point(10, 10))
+        verify(!result)
+    }
+
+    function test_intent_endMarqueeSelect_succeeds() {
+        sm.intentStartMarqueeSelect(Qt.point(0, 0), Qt.point(10, 10))
+        var result = sm.intentEndMarqueeSelect()
+        verify(result)
+        compare(sm.mode, InteractionStateManager.Idle)
+        compare(sm.marqueeStart.x, 0)
+    }
+
+    function test_intent_cancel_fromMove_resetsToIdle() {
+        var c1 = makeComponent("c1")
+        sm.selectSingle(c1)
+        sm.intentStartComponentMove(c1)
+        var result = sm.intentCancel()
+        verify(result)
+        compare(sm.mode, InteractionStateManager.Idle)
+        compare(sm.interactionTarget, null)
+        // selection should be preserved
+        compare(sm.primaryComponent, c1)
+    }
+
+    function test_intent_cancel_fromMarquee_resetsToIdle() {
+        sm.intentStartMarqueeSelect(Qt.point(0, 0), Qt.point(10, 10))
+        sm.suppressNextTap = true
+        var result = sm.intentCancel()
+        verify(result)
+        compare(sm.mode, InteractionStateManager.Idle)
+        compare(sm.suppressNextTap, false)
+        compare(sm.marqueeStart.x, 0)
+    }
+
+    function test_intent_cancel_fromIdle_isIdempotent() {
+        var result = sm.intentCancel()
+        verify(result)  // always succeeds
+        compare(sm.mode, InteractionStateManager.Idle)
+    }
+
+    function test_intent_checkInvariant_alwaysOne() {
+        // Invariant: exactly one mode at a time
+        verify(sm._checkInvariant())
+        var c1 = makeComponent("c1")
+        sm.intentStartComponentMove(c1)
+        verify(sm._checkInvariant())
+        sm.intentEndComponentMove()
+        verify(sm._checkInvariant())
+        sm.intentStartMarqueeSelect(Qt.point(0, 0), Qt.point(0, 0))
+        verify(sm._checkInvariant())
+        sm.intentCancel()
+        verify(sm._checkInvariant())
+    }
+
+    // ── Ctrl modifier and focus loss edge cases ────────────────────────────
+
+    function test_intent_cancel_during_marquee_forcesClearance() {
+        // Simulates Ctrl release mid-marquee
+        sm.intentStartMarqueeSelect(Qt.point(0, 0), Qt.point(20, 20))
+        compare(sm.marqueeSelecting, true)
+        sm.intentCancel()
+        compare(sm.marqueeSelecting, false)
+        compare(sm.mode, InteractionStateManager.Idle)
+    }
+
+    function test_intent_marquee_preservesSelection_onCancel() {
+        var c1 = makeComponent("c1")
+        var c2 = makeComponent("c2")
+        sm.selectSingle(c1)
+        sm.toggleComponent(c2, null)
+        compare(sm.componentIds.length, 2)
+        sm.intentStartMarqueeSelect(Qt.point(0, 0), Qt.point(0, 0))
+        sm.intentCancel()
+        // Selection must be preserved even after marquee cancel
+        compare(sm.componentIds.length, 2)
+        verify(sm.isSelected(c1))
+        verify(sm.isSelected(c2))
+    }
 }

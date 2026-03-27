@@ -991,14 +991,17 @@ Item {
                         onConnectionDragged: function (sourceComponent, sourceSide, startP, targetP) {
                             var viewStart = root.windowSceneToView(startP);
                             var viewEnd = root.windowSceneToView(targetP);
-                            if (interactionState.mode === InteractionStateManager.ConnectionDraw)
-                                interactionState.updateConnectionDraw(viewStart, viewEnd);
-                            else
-                                interactionState.startConnectionDraw(sourceComponent, viewStart, viewEnd);
+                            // Use intent-based API (PR2: thin adapter layer)
+                            if (interactionState.mode === InteractionStateManager.ConnectionDraw) {
+                                interactionState.intentUpdateConnectionDraw(viewStart, viewEnd);
+                            } else {
+                                interactionState.intentStartConnectionDraw(sourceComponent, viewStart, viewEnd);
+                            }
                             connectionCanvas.repaint();
                         }
                         onConnectionDropped: function (sourceComponent, sourceSide, startP, targetP) {
-                            interactionState.endConnectionDraw();
+                            // Use intent-based API (PR2: thin adapter layer)
+                            interactionState.intentEndConnectionDraw();
 
                             var dropPoint = root.windowSceneToView(targetP);
                             var component = connectionViewport.hitTestComponentAtView(dropPoint.x, dropPoint.y);
@@ -1033,13 +1036,16 @@ Item {
                         }
 
                         onMoveStarted: {
-                            interactionState.startComponentMove(modelData);
-                            var nextMoveStart = root.moveStartPositions;
-                            nextMoveStart[modelData.id] = Qt.point(modelData.x, modelData.y);
-                            root.moveStartPositions = nextMoveStart;
-                            root.beginGroupMove(modelData);
-                            if (root.telemetry)
-                                root.telemetry.notifyDragStarted();
+                            // Use intent-based API (PR2: thin adapter layer)
+                            var success = interactionState.intentStartComponentMove(modelData);
+                            if (success) {
+                                var nextMoveStart = root.moveStartPositions;
+                                nextMoveStart[modelData.id] = Qt.point(modelData.x, modelData.y);
+                                root.moveStartPositions = nextMoveStart;
+                                root.beginGroupMove(modelData);
+                                if (root.telemetry)
+                                    root.telemetry.notifyDragStarted();
+                            }
                         }
                         onMoved: {
                             root.updateGroupMove(modelData);
@@ -1050,18 +1056,22 @@ Item {
                         onMoveFinished: {
                             root.commitMoveCommands(modelData);
                             root.endGroupMove();
-                            interactionState.endComponentMove();
-                            if (root.telemetry)
+                            // Use intent-based API (PR2: thin adapter layer)
+                            var success = interactionState.intentEndComponentMove();
+                            if (success && root.telemetry)
                                 root.telemetry.notifyDragEnded();
                         }
 
                         onResizeStarted: {
-                            interactionState.startComponentResize(modelData);
-                            root.startResizeCapture(modelData);
+                            // Use intent-based API (PR2: thin adapter layer)
+                            var success = interactionState.intentStartComponentResize(modelData);
+                            if (success)
+                                root.startResizeCapture(modelData);
                         }
                         onResizeFinished: {
                             root.commitResizeCommand(modelData);
-                            interactionState.endComponentResize();
+                            // Use intent-based API (PR2: thin adapter layer)
+                            interactionState.intentEndComponentResize();
                         }
 
                         onHoverPositionChanged: function (hoverX, hoverY) {
@@ -1098,8 +1108,10 @@ Item {
                 if (!root.ctrlSelectionModifierActive)
                     return;
                 var start = Qt.point(mouse.x, mouse.y);
-                interactionState.startMarqueeSelect(start, start);
-                root.debugInputLog("marquee_start_press");
+                // Use intent-based API (PR2: thin adapter layer)
+                var success = interactionState.intentStartMarqueeSelect(start, start);
+                if (success)
+                    root.debugInputLog("marquee_start_press");
             }
 
             onPositionChanged: mouse => {
@@ -1108,7 +1120,8 @@ Item {
                     return;
                 if (!pressed || !interactionState.marqueeSelecting)
                     return;
-                interactionState.updateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                // Use intent-based API (PR2: thin adapter layer)
+                interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
                 root.mouseViewPos = Qt.point(mouse.x, mouse.y);
                 root.updateMouseWorldPos();
                 root.debugInputLog("drag_update_marquee");
@@ -1120,7 +1133,7 @@ Item {
                     return;
                 if (!interactionState.marqueeSelecting)
                     return;
-                interactionState.updateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
                 root.mouseViewPos = Qt.point(mouse.x, mouse.y);
                 root.updateMouseWorldPos();
                 root.finishMarqueeSelection();
@@ -1295,6 +1308,8 @@ Item {
             root.ctrlReleasedByKey = true;  // Set flag to prevent stale modifiers from re-enabling Ctrl
             // Exit marquee mode if active when Ctrl is released
             if (interactionState.marqueeSelecting) {
+                // Use intent-based API (PR2: thin adapter layer)
+                interactionState.intentCancel();
                 root.finishMarqueeSelection();
             }
             root.debugInputLog("key_ctrl_released");
@@ -1303,8 +1318,11 @@ Item {
     }
     onActiveFocusChanged: {
         if (!activeFocus) {
-            if (interactionState.marqueeSelecting)
+            if (interactionState.marqueeSelecting) {
+                // Use intent-based API (PR2: thin adapter layer)
+                interactionState.intentCancel();
                 root.finishMarqueeSelection();
+            }
             root.ctrlSelectionModifierActive = false;
             root.ctrlReleasedByKey = false;
             root.debugInputLog("focus_lost");
