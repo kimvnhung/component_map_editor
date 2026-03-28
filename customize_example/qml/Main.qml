@@ -72,8 +72,7 @@ ApplicationWindow {
                 onClicked: {
                     if (canvas)
                         canvas.resetAllState();
-                    propertyPanel.component = null;
-                    propertyPanel.connection = null;
+                    propertyPanel.item = null;
                     graph.clear();
                     undoStack.clear();
                 }
@@ -118,6 +117,16 @@ ApplicationWindow {
             Layout.fillHeight: true
             graph: graph
             componentTypeRegistry: customizeComponentTypeRegistry
+
+            onComponentSelected: component => {
+                propertyPanel.item = component;
+            }
+            onConnectionSelected: connection => {
+                propertyPanel.item = connection;
+            }
+            onBackgroundClicked: {
+                propertyPanel.item = null;
+            }
         }
 
         // Thin separator
@@ -259,8 +268,7 @@ ApplicationWindow {
 
             if (canvas)
                 canvas.resetAllState();
-            propertyPanel.component = null;
-            propertyPanel.connection = null;
+            propertyPanel.item = null;
             statusLabel.text = "✓ Graph imported";
             statusLabel.color = "#2e7d32";
             canvas.connectionRenderer.repaint();

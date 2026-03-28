@@ -10,6 +10,25 @@ Rectangle {
     property ComponentModel component: null
     property ConnectionModel connection: null
     property UndoStack undoStack: null
+
+    // Unified entry point. Callers can set this to either a ComponentModel,
+    // a ConnectionModel, or null. The handler dispatches to component/connection
+    // using duck-typing: ConnectionModel is identified by having a sourceId
+    // property while ComponentModel does not.
+    property var item: null
+
+    onItemChanged: {
+        if (!item) {
+            root.component = null
+            root.connection = null
+        } else if (item.sourceId !== undefined) {
+            root.connection = item
+            root.component = null
+        } else {
+            root.component = item
+            root.connection = null
+        }
+    }
     property PropertySchemaRegistry propertySchemaRegistry: null
     readonly property PropertySchemaRegistry effectiveSchemaRegistry:
         root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
@@ -89,42 +108,27 @@ Rectangle {
         }
 
         Loader {
-            active: root.component !== null
+            active: root.component !== null || root.connection !== null
             Layout.fillWidth: true
-            sourceComponent: componentInspector
+            sourceComponent: unifiedInspector
         }
 
         Component {
-            id: componentInspector
+            id: unifiedInspector
 
             SchemaFormRenderer {
                 width: parent ? parent.width : 0
-                schemaSections: root.sectionsForTarget(root.componentTarget)
-                modelObject: root.component
-                readOnly: root.undoStack === null
-                onPropertyEditRequested: function(propertyName, value) {
-                    root.updateComponentProperty(propertyName, value)
-                }
-            }
-        }
-
-        Loader {
-            active: root.connection !== null
-            Layout.fillWidth: true
-            sourceComponent: connectionInspector
-        }
-
-        Component {
-            id: connectionInspector
-
-            SchemaFormRenderer {
-                width: parent ? parent.width : 0
-                schemaSections: root.sectionsForTarget(root.connectionTarget)
-                modelObject: root.connection
+                schemaSections: root.component !== null
+                    ? root.sectionsForTarget(root.componentTarget)
+                    : root.sectionsForTarget(root.connectionTarget)
+                modelObject: root.component !== null ? root.component : root.connection
                 readOnly: root.undoStack === null
                 sideModel: root.connectionSideModel
                 onPropertyEditRequested: function(propertyName, value) {
-                    root.updateConnectionProperty(propertyName, value)
+                    if (root.component !== null)
+                        root.updateComponentProperty(propertyName, value)
+                    else
+                        root.updateConnectionProperty(propertyName, value)
                 }
             }
         }
