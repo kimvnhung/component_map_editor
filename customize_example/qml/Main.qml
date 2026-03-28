@@ -21,13 +21,13 @@ ApplicationWindow {
         id: exporter
     }
 
-    UndoStack {
-        id: undoStack
-    }
     // -----------------------------------------------------------------------
     // Toolbar
     // -----------------------------------------------------------------------
     header: ToolBar {
+        id: toolBar
+        property UndoStack undoStack: canvas ? canvas.undoStack : {}
+
         RowLayout {
             anchors {
                 fill: parent
@@ -35,6 +35,21 @@ ApplicationWindow {
                 rightMargin: 6
             }
             spacing: 4
+
+            ToolButton {
+                text: "⟵ Undo"
+                enabled: toolBar.undoStack.canUndo
+                ToolTip.visible: hovered
+                ToolTip.text: toolBar.undoStack.undoText
+                onClicked: toolBar.undoStack.undo()
+            }
+            ToolButton {
+                text: "Redo ⟶"
+                enabled: toolBar.undoStack.canRedo
+                ToolTip.visible: hovered
+                ToolTip.text: toolBar.undoStack.redoText
+                onClicked: toolBar.undoStack.redo()
+            }
 
             ToolSeparator {}
 
@@ -143,7 +158,7 @@ ApplicationWindow {
             id: propertyPanel
             Layout.preferredWidth: 320
             Layout.fillHeight: true
-            undoStack: undoStack
+            undoStack: canvas ? canvas.undoStack : null
             propertySchemaRegistry: customizePropertySchemaRegistry
         }
     }
