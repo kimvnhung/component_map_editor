@@ -348,3 +348,28 @@ add_test(
     COMMAND tst_QaMatrixRunner
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 0: Baseline and Freeze ──────────────────────────────────────────────
+# This test suite locks in all pre-migration contracts (command names, schema
+# keys, extension IIDs, performance budgets, behavioral guarantees).
+# Run this at the start of every migration phase to prove no regression.
+qt_add_executable(tst_Phase0Baseline
+    tst_Phase0Baseline.cpp
+)
+
+target_link_libraries(tst_Phase0Baseline
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase0Baseline
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_Phase0Baseline
+    COMMAND tst_Phase0Baseline
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
