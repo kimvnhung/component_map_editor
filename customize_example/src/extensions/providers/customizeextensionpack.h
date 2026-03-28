@@ -9,6 +9,7 @@
 
 #include "customizecomponenttypeprovider.h"
 #include "customizeconnectionpolicyprovider.h"
+#include "customizepropertyschemaprovider.h"
 
 // CustomizeExtensionPack aggregates sample providers and exposes a
 // single registerAll() entry point.  This is the canonical usage pattern
@@ -44,7 +45,7 @@ private:
     ExtensionManifest         m_manifest;
     CustomizeComponentTypeProvider m_componentTypeProvider;
     CustomizeConnectionPolicyProvider m_connectionPolicyProvider;
-    // SamplePropertySchemaProvider   m_propertySchemaProvider;
+    CustomizePropertySchemaProvider   m_propertySchemaProvider;
     // WorkflowValidationProvider m_workflowValidationProvider;
     // SampleActionProvider      m_actionProvider;
     // SampleExecutionSemanticsProvider m_executionSemanticsProvider;

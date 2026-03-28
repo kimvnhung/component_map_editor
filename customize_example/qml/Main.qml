@@ -21,6 +21,9 @@ ApplicationWindow {
         id: exporter
     }
 
+    UndoStack {
+        id: undoStack
+    }
     // -----------------------------------------------------------------------
     // Toolbar
     // -----------------------------------------------------------------------
@@ -140,6 +143,8 @@ ApplicationWindow {
             id: propertyPanel
             Layout.preferredWidth: 320
             Layout.fillHeight: true
+            undoStack: undoStack
+            propertySchemaRegistry: customizePropertySchemaRegistry
         }
     }
 

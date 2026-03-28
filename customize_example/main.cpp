@@ -47,11 +47,13 @@ int main(int argc, char *argv[])
 
     TypeRegistry typeRegistry;
     typeRegistry.rebuildFromRegistry(extensionContracts);
-
     engine.rootContext()->setContextProperty(QStringLiteral("customizeComponentTypeRegistry"),
                                              &typeRegistry);
 
-
+    PropertySchemaRegistry propertySchemas;
+    propertySchemas.rebuildFromRegistry(extensionContracts);
+    engine.rootContext()->setContextProperty(QStringLiteral("customizePropertySchemaRegistry"),
+                                             &propertySchemas);
 
     QObject::connect(
         &engine,

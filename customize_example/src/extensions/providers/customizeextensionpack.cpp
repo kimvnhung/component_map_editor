@@ -35,8 +35,8 @@ bool CustomizeExtensionPack::registerProviders(ExtensionContractRegistry &regist
         return false;
     if (!registry.registerConnectionPolicyProvider(&m_connectionPolicyProvider, error))
         return false;
-    // if (!registry.registerPropertySchemaProvider(&m_propertySchemaProvider, error))
-    //     return false;
+    if (!registry.registerPropertySchemaProvider(&m_propertySchemaProvider, error))
+        return false;
     // if (!registry.registerValidationProvider(&m_workflowValidationProvider, error))
     //     return false;
     // if (!registry.registerActionProvider(&m_actionProvider, error))
