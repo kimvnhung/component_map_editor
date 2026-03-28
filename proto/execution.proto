@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package cme;
+
+// ── Timeline event types (mirrors the string keys frozen in Phase 0) ───────
+enum TimelineEventType {
+  TIMELINE_EVENT_TYPE_UNSPECIFIED          = 0;
+  TIMELINE_EVENT_TYPE_SIMULATION_STARTED   = 1;
+  TIMELINE_EVENT_TYPE_SIMULATION_COMPLETED = 2;
+  TIMELINE_EVENT_TYPE_SIMULATION_BLOCKED   = 3;
+  TIMELINE_EVENT_TYPE_BREAKPOINT_HIT       = 4;
+  TIMELINE_EVENT_TYPE_ERROR                = 5;
+}
+
+// ── Per-component execution snapshot ──────────────────────────────────────
+message ComponentExecutionState {
+  string              component_id = 1;
+  map<string, string> input_state  = 2;
+  map<string, string> output_state = 3;
+  string              trace        = 4;
+}
+
+// ── Single timeline event ──────────────────────────────────────────────────
+message TimelineEvent {
+  TimelineEventType type         = 1;
+  string            component_id = 2; // empty for graph-level events
+  int64             timestamp_ms = 3;
+  string            message      = 4;
+}
+
+// ── Full execution snapshot emitted by GraphExecutionSandbox ──────────────
+message ExecutionSnapshot {
+  repeated TimelineEvent          events           = 1;
+  repeated ComponentExecutionState component_states = 2;
+  string                          session_id       = 3;
+}

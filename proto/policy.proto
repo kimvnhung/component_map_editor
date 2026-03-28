@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package cme;
+
+// ── Context passed to IConnectionPolicyProvider::canConnect ───────────────
+message ConnectionPolicyContext {
+  string              source_type_id = 1;
+  string              target_type_id = 2;
+  string              source_port    = 3;
+  string              target_port    = 4;
+  map<string, string> extra          = 5; // extension-defined extra keys
+}
+
+// ── Default values extracted from IComponentTypeProvider ──────────────────
+message ComponentTypeDefaults {
+  string              type_id             = 1;
+  map<string, string> default_properties  = 2;
+  double              default_x           = 3;
+  double              default_y           = 4;
+}
+
+// ── Normalized connection properties from IConnectionPolicyProvider ────────
+message ConnectionProperties {
+  string              connection_id = 1;
+  map<string, string> properties    = 2;
+}

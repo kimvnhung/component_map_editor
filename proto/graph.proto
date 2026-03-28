@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package cme;
+
+// ── Individual node and edge snapshots ────────────────────────────────────
+message ComponentData {
+  string              id         = 1;
+  string              type_id    = 2;
+  double              x          = 3;
+  double              y          = 4;
+  map<string, string> properties = 5;
+}
+
+message ConnectionData {
+  string              id         = 1;
+  string              source_id  = 2;
+  string              target_id  = 3;
+  map<string, string> properties = 4;
+}
+
+// ── Full graph snapshot (used by ValidationService and persistence) ────────
+message GraphSnapshot {
+  repeated ComponentData  components  = 1;
+  repeated ConnectionData connections = 2;
+  string                  graph_id    = 3;
+}

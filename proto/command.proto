@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package cme;
+
+// ── Error codes returned in GraphCommandResult ─────────────────────────────
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED        = 0;
+  ERROR_CODE_UNKNOWN_COMMAND    = 1;
+  ERROR_CODE_MISSING_FIELD      = 2;
+  ERROR_CODE_CAPABILITY_DENIED  = 3;
+  ERROR_CODE_POST_INVARIANT_VIOLATED = 4;
+  ERROR_CODE_POLICY_REJECTED    = 5;
+}
+
+// ── Per-command payload messages ───────────────────────────────────────────
+
+message AddComponentRequest {
+  string type_id      = 1;
+  double x            = 2;
+  double y            = 3;
+  string component_id = 4; // optional; server assigns if empty
+}
+
+message RemoveComponentRequest {
+  string component_id = 1;
+}
+
+message MoveComponentRequest {
+  string component_id = 1;
+  double old_x        = 2;
+  double old_y        = 3;
+  double new_x        = 4;
+  double new_y        = 5;
+}
+
+message AddConnectionRequest {
+  string source_id    = 1;
+  string target_id    = 2;
+  string connection_id = 3; // optional; server assigns if empty
+}
+
+message RemoveConnectionRequest {
+  string connection_id = 1;
+}
+
+message SetComponentPropertyRequest {
+  string component_id = 1;
+  string key          = 2;
+  string value        = 3;
+}
+
+message SetConnectionPropertyRequest {
+  string connection_id = 1;
+  string key           = 2;
+  string value         = 3;
+}
+
+// ── Typed command envelope ─────────────────────────────────────────────────
+message GraphCommandRequest {
+  oneof payload {
+    AddComponentRequest         add_component          = 1;
+    RemoveComponentRequest      remove_component       = 2;
+    MoveComponentRequest        move_component         = 3;
+    AddConnectionRequest        add_connection         = 4;
+    RemoveConnectionRequest     remove_connection      = 5;
+    SetComponentPropertyRequest set_component_property = 6;
+    SetConnectionPropertyRequest set_connection_property = 7;
+  }
+}
+
+// ── Unified result ─────────────────────────────────────────────────────────
+message GraphCommandResult {
+  bool      success       = 1;
+  ErrorCode error_code    = 2;
+  string    error_message = 3;
+}

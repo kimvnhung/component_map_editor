@@ -373,3 +373,23 @@ add_test(
     COMMAND tst_Phase0Baseline
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 1: Protobuf Contract Foundation ─────────────────────────────────
+# Encode/decode roundtrip tests for every proto message type defined in proto/.
+# Links only cme_proto (no libComponentMapEditor dependency) — these are pure
+# protobuf contract tests, independent of Qt runtime.
+qt_add_executable(tst_Phase1ProtoContracts
+    tst_Phase1ProtoContracts.cpp
+)
+
+target_link_libraries(tst_Phase1ProtoContracts
+    PRIVATE
+        Qt6::Test
+        cme_proto
+)
+
+add_test(
+    NAME tst_Phase1ProtoContracts
+    COMMAND tst_Phase1ProtoContracts
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
