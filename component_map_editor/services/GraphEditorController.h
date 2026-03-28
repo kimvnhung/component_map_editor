@@ -176,6 +176,8 @@ private:
         QString shape  = QStringLiteral("rounded");
     };
     ComponentDefaults resolveComponentDefaults(const QString &typeId) const;
+    QVariantMap buildConnectionPolicyContext(const QString &sourceId,
+                                             const QString &targetId) const;
 
     GraphModel   *m_graph        = nullptr;
     UndoStack    *m_undoStack    = nullptr;

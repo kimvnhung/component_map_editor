@@ -8,10 +8,15 @@ QString CustomizeConnectionPolicyProvider::providerId() const
 }
 
 bool CustomizeConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
-                                                const QString &targetTypeId,
-                                                const QVariantMap & /*context*/,
-                                                QString *reason) const
+                                                   const QString &targetTypeId,
+                                                   const QVariantMap &context,
+                                                   QString *reason) const
 {
+    const int targetIncomingCount =
+        context.value(QStringLiteral("targetIncomingCount")).toInt();
+    const int sourceOutgoingCount =
+        context.value(QStringLiteral("sourceOutgoingCount")).toInt();
+
     // Nothing can connect TO start.
     if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeStart)) {
         if (reason)
@@ -26,23 +31,35 @@ bool CustomizeConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
         return false;
     }
 
-    // start -> process only.
-    if (sourceTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeStart)) {
-        if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess))
-            return true;
-        if (reason)
-            *reason = QStringLiteral("Start component can only connect to process components.");
-        return false;
+    // Accept only one connection to condition
+    if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeCondition)) {
+        if (targetIncomingCount >= 1) {
+            if (reason)
+                *reason = QStringLiteral("Condition component accepts only one incoming connection.");
+            return false;
+        }
+
+        return true;
     }
 
-    // process -> process or stop.
+    // Process only accept one outgoing connection and one incoming connection.
     if (sourceTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess)) {
-        if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess) ||
-            targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeStop))
-            return true;
-        if (reason)
-            *reason = QStringLiteral("Process component can connect to process or stop components only.");
-        return false;
+        if (sourceOutgoingCount >= 1) {
+            if (reason)
+                *reason = QStringLiteral("Process component accepts only one outgoing connection.");
+            return false;
+        }
+
+        return true;
+    }
+    if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess)) {
+        if (targetIncomingCount >= 1) {
+            if (reason)
+                *reason = QStringLiteral("Process component accepts only one incoming connection.");
+            return false;
+        }
+
+        return true;
     }
 
     if (reason)

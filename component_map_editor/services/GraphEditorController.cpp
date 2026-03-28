@@ -133,6 +133,46 @@ GraphEditorController::resolveComponentDefaults(const QString &typeId) const
     return d;
 }
 
+QVariantMap GraphEditorController::buildConnectionPolicyContext(const QString &sourceId,
+                                                                const QString &targetId) const
+{
+    int sourceOutgoingCount = 0;
+    int sourceIncomingCount = 0;
+    int targetOutgoingCount = 0;
+    int targetIncomingCount = 0;
+
+    if (m_graph) {
+        const QList<ConnectionModel *> connections = m_graph->connectionList();
+        for (const ConnectionModel *connection : connections) {
+            if (!connection)
+                continue;
+
+            const QString existingSourceId = connection->sourceId();
+            const QString existingTargetId = connection->targetId();
+
+            if (existingSourceId == sourceId)
+                ++sourceOutgoingCount;
+            if (existingTargetId == sourceId)
+                ++sourceIncomingCount;
+            if (existingSourceId == targetId)
+                ++targetOutgoingCount;
+            if (existingTargetId == targetId)
+                ++targetIncomingCount;
+        }
+    }
+
+    QVariantMap context;
+    context.insert(QStringLiteral("sourceComponentId"), sourceId);
+    context.insert(QStringLiteral("targetComponentId"), targetId);
+    context.insert(QStringLiteral("sourceOutgoingCount"), sourceOutgoingCount);
+    context.insert(QStringLiteral("sourceIncomingCount"), sourceIncomingCount);
+    context.insert(QStringLiteral("targetOutgoingCount"), targetOutgoingCount);
+    context.insert(QStringLiteral("targetIncomingCount"), targetIncomingCount);
+    context.insert(QStringLiteral("graphConnectionCount"),
+                   m_graph ? m_graph->connectionCount() : 0);
+    return context;
+}
+
 // ---------------------------------------------------------------------------
 // createComponent
 // ---------------------------------------------------------------------------
@@ -298,11 +338,12 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
 
     const QString srcType = src->type();
     const QString tgtType = tgt->type();
+    const QVariantMap policyContext = buildConnectionPolicyContext(sourceId, targetId);
 
     // Connection-policy gate
     if (m_typeRegistry) {
         QString reason;
-        if (!m_typeRegistry->canConnect(srcType, tgtType, {}, &reason)) {
+        if (!m_typeRegistry->canConnect(srcType, tgtType, policyContext, &reason)) {
             m_lastRejectionReason = reason;
             emit connectionRejected(sourceId, targetId, reason);
             return {};
@@ -314,7 +355,7 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
     // Normalize properties through policy providers
     QVariantMap props;
     if (m_typeRegistry)
-        props = m_typeRegistry->normalizeConnectionProperties(srcType, tgtType, {});
+        props = m_typeRegistry->normalizeConnectionProperties(srcType, tgtType, policyContext);
 
     const QString connId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QString label  = props.value(QStringLiteral("label")).toString();
@@ -351,9 +392,10 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
 
     const QString srcType = src->type();
     const QString tgtType = tgt->type();
+    const QVariantMap policyContext = buildConnectionPolicyContext(sourceId, targetId);
     if (m_typeRegistry) {
         QString reason;
-        if (!m_typeRegistry->canConnect(srcType, tgtType, {}, &reason)) {
+        if (!m_typeRegistry->canConnect(srcType, tgtType, policyContext, &reason)) {
             m_lastRejectionReason = reason;
             emit connectionRejected(sourceId, targetId, reason);
             return {};
@@ -371,7 +413,7 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
 
     QVariantMap props;
     if (m_typeRegistry)
-        props = m_typeRegistry->normalizeConnectionProperties(srcType, tgtType, {});
+        props = m_typeRegistry->normalizeConnectionProperties(srcType, tgtType, policyContext);
 
     const QString label = props.value(QStringLiteral("label")).toString().isEmpty()
         ? fallbackLabel
