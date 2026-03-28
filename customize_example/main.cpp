@@ -50,6 +50,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("customizeComponentTypeRegistry"),
                                              &typeRegistry);
 
+
+
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

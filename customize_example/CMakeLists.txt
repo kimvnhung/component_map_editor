@@ -47,7 +47,6 @@ qt_add_qml_module(customize_example_app
         ${QML_FILES}
     SOURCES
         ${SOURCE_FILES}
-        SOURCES src/extensions/providers/customizecomponenttypeprovider.h src/extensions/providers/customizecomponenttypeprovider.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

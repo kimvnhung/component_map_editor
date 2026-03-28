@@ -1,11 +1,14 @@
 #ifndef CUSTOMIZEEXTENSIONPACK_H
 #define CUSTOMIZEEXTENSIONPACK_H
 
-#include "customizecomponenttypeprovider.h"
+
 #include <QObject>
 
 #include <extensions/contracts/ExtensionManifest.h>
 #include <extensions/contracts/IExtensionPack.h>
+
+#include "customizecomponenttypeprovider.h"
+#include "customizeconnectionpolicyprovider.h"
 
 // CustomizeExtensionPack aggregates sample providers and exposes a
 // single registerAll() entry point.  This is the canonical usage pattern
@@ -40,7 +43,7 @@ public:
 private:
     ExtensionManifest         m_manifest;
     CustomizeComponentTypeProvider m_componentTypeProvider;
-    // SampleConnectionPolicyProvider m_connectionPolicyProvider;
+    CustomizeConnectionPolicyProvider m_connectionPolicyProvider;
     // SamplePropertySchemaProvider   m_propertySchemaProvider;
     // WorkflowValidationProvider m_workflowValidationProvider;
     // SampleActionProvider      m_actionProvider;

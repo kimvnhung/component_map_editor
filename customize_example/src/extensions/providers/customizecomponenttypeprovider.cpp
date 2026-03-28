@@ -9,6 +9,7 @@ QStringList CustomizeComponentTypeProvider::componentTypeIds() const
 {
     return {
         QString::fromLatin1(TypeStart),
+        QString::fromLatin1(TypeCondition),
         QString::fromLatin1(TypeProcess),
         QString::fromLatin1(TypeStop)
     };
@@ -29,6 +30,7 @@ QVariantMap CustomizeComponentTypeProvider::componentTypeDescriptor(const QStrin
 
     static const Descriptor descriptors[] = {
         { TypeStart,   "Start",   "control", 92.0,  92.0,  "#66bb6a", false, true  },
+        { TypeCondition, "Condition", "control", 164.0, 100.0, "#ffca28", true,  true  },
         { TypeProcess, "Process", "work",    164.0, 100.0, "#4fc3f7", true,  true  },
         { TypeStop,    "Stop",    "control", 92.0,  92.0,  "#ef5350", true,  false }
     };
@@ -62,6 +64,12 @@ QVariantMap CustomizeComponentTypeProvider::defaultComponentProperties(const QSt
         return {
             { QStringLiteral("addValue"),    9 },
             { QStringLiteral("description"), QString() }
+        };
+    }
+
+    if (componentTypeId == QLatin1String(TypeCondition)) {
+        return {
+            { QStringLiteral("condition"), QString() }
         };
     }
 

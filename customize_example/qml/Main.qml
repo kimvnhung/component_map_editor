@@ -5,8 +5,8 @@ import QtQuick.Layouts
 import ComponentMapEditor           // ← the library's QML module
 
 ApplicationWindow {
-    width: 800
-    height: 600
+    width: 1280
+    height: 720
     visible: true
     title: "My Graph Editor"
 

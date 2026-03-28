@@ -10,6 +10,7 @@ class CustomizeComponentTypeProvider : public IComponentTypeProvider
 {
 public:
     static constexpr const char *TypeStart    = "start";
+    static constexpr const char *TypeCondition = "condition";
     static constexpr const char *TypeProcess  = "process";
     static constexpr const char *TypeStop     = "stop";
 
