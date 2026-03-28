@@ -107,12 +107,20 @@ Rectangle {
     }
 
     function _setPaletteDragLifecycle(active) {
-        if (!root.canvas || !root.canvas.beginPaletteDrag || !root.canvas.endPaletteDrag)
+        if (!root.canvas)
             return;
-        if (active)
-            root.canvas.beginPaletteDrag();
-        else
+        if (active) {
+            if (root.canvas.beginPaletteDrag)
+                root.canvas.beginPaletteDrag();
+            else if (root.canvas.paletteDragInProgress !== undefined)
+                root.canvas.paletteDragInProgress = true;
+            return;
+        }
+
+        if (root.canvas.endPaletteDrag)
             root.canvas.endPaletteDrag();
+        else if (root.canvas.paletteDragInProgress !== undefined)
+            root.canvas.paletteDragInProgress = false;
     }
 
     function _setPaletteStrictMode(enabled) {
@@ -179,8 +187,9 @@ Rectangle {
                 return;
         }
 
-        if (root.legacyDropFallbackEnabled)
-            root._addComponent(descriptor);
+        // Fallback: if drop cannot be mapped into canvas, keep previous behavior.
+        // This ensures a component is always created, even if drop placement fails.
+        root._addComponent(descriptor);
     }
 
     onPaletteDropRequested: function (title, icon, color, type, scenePos) {
@@ -314,7 +323,10 @@ Rectangle {
                             parent.commitActionOnce(root.gestureActionTapCreate, Qt.point(0, 0), Qt.point(0, 0));
                     }
                     onCanceled: {
-                        parent.cancelGestureCycle();
+                        // DragHandler activation can cancel TapHandler; ignore that
+                        // path while actively dragging to avoid suppressing drop commit.
+                        if (parent.gestureState === root.gesturePressed)
+                            parent.cancelGestureCycle();
                     }
                 }
             }

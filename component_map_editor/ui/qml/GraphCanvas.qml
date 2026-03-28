@@ -338,9 +338,8 @@ Item {
         // Fallback when a drag source provides an invalid/stale scene point
         // (e.g., release-time grab reset). mouseViewPos is continuously
         // tracked on this canvas and is a safer last-known cursor location.
-        if ((scenePos.x === 0 && scenePos.y === 0) || viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height) {
+        if ((scenePos.x === 0 && scenePos.y === 0) || viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height)
             viewPos = Qt.point(root.mouseViewPos.x, root.mouseViewPos.y);
-        }
 
         if (viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height)
             return false;
@@ -777,10 +776,10 @@ Item {
         tempStart: Qt.point(root.tempStart.x, root.tempStart.y)
         tempEnd: Qt.point(root.tempEnd.x, root.tempEnd.y)
 
-            Component.onCompleted: {
-                if (root.interactionTelemetryEnabled && connectionViewport.clearInteractionTelemetry)
-                    connectionViewport.clearInteractionTelemetry();
-            }
+        Component.onCompleted: {
+            if (root.interactionTelemetryEnabled && connectionViewport.clearInteractionTelemetry)
+                connectionViewport.clearInteractionTelemetry();
+        }
     }
 
     GraphViewportItem {
@@ -1085,12 +1084,7 @@ Item {
                             if (root.graphEditorController) {
                                 var preferredId = "conn_" + sourceComponent.id + "_" + component.id;
                                 root._runAction(function () {
-                                    return root.graphEditorController.connectComponentsFromDrag(sourceComponent.id,
-                                                                                                component.id,
-                                                                                                sourceSide,
-                                                                                                -1,
-                                                                                                preferredId,
-                                                                                                "path A");
+                                    return root.graphEditorController.connectComponentsFromDrag(sourceComponent.id, component.id, sourceSide, -1, preferredId, "path A");
                                 });
                             }
                             connectionCanvas.repaint();
