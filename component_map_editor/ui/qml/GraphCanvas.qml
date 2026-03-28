@@ -32,6 +32,7 @@ Item {
     readonly property real panStartThreshold: 3
 
     property GraphModel graph: null
+    property var componentTypeRegistry: null
     // Selection and interaction mode are owned by interactionState below.
     // These aliases keep GraphCanvas's public API intact for external callers.
     property alias selectedComponent: interactionState.primaryComponent
@@ -42,9 +43,17 @@ Item {
     property GraphEditorController graphEditorController: GraphEditorController {
         graph: root.graph
         undoStack: root.undoStack
+        typeRegistry: root.componentTypeRegistry
     }
     property bool mutationStrictMode: true
     property var mutationInvariantChecker: null
+    property bool builtInGraphIssueValidationEnabled: true
+    property var builtInGraphIssues: []
+    property var errorOverlayMessages: []
+    property var runtimeErrorMessages: []
+    property var mergedErrorOverlayMessages: []
+    property bool errorOverlayExpanded: false
+    property url errorOverlaySource: Qt.resolvedUrl("components/GraphIssueOverlay.qml")
     property ComponentModel menuTargetComponent: null
     property ConnectionModel menuTargetConnection: null
     property point menuTargetWorldPos: Qt.point(0, 0)
@@ -98,6 +107,144 @@ Item {
     onMutationStrictModeChanged: {
         if (root.graphEditorController && root.graphEditorController.strictMode !== undefined)
             root.graphEditorController.strictMode = root.mutationStrictMode;
+    }
+
+    onErrorOverlayMessagesChanged: {
+        root.refreshMergedErrorOverlayMessages();
+    }
+
+    onBuiltInGraphIssuesChanged: {
+        root.refreshMergedErrorOverlayMessages();
+    }
+
+    onRuntimeErrorMessagesChanged: {
+        root.refreshMergedErrorOverlayMessages();
+    }
+
+    onBuiltInGraphIssueValidationEnabledChanged: {
+        root.refreshBuiltInGraphIssues();
+    }
+
+    onGraphChanged: {
+        root.refreshBuiltInGraphIssues();
+        connectionCanvas.repaint();
+    }
+
+    onErrorOverlayExpandedChanged: {
+        root.syncErrorOverlayWidget();
+    }
+
+    function refreshMergedErrorOverlayMessages() {
+        var merged = [];
+        var seen = {};
+
+        function appendUnique(messages) {
+            if (!messages)
+                return;
+            for (var i = 0; i < messages.length; ++i) {
+                var msg = ("" + messages[i]).trim();
+                if (msg.length === 0 || seen[msg])
+                    continue;
+                seen[msg] = true;
+                merged.push(msg);
+            }
+        }
+
+        appendUnique(root.runtimeErrorMessages);
+        appendUnique(root.builtInGraphIssues);
+        appendUnique(root.errorOverlayMessages);
+        root.mergedErrorOverlayMessages = merged;
+        root.syncErrorOverlayWidget();
+    }
+
+    function refreshBuiltInGraphIssues() {
+        if (!root.builtInGraphIssueValidationEnabled || !root.graph) {
+            root.builtInGraphIssues = [];
+            return;
+        }
+
+        var issues = [];
+        var componentIds = {};
+        var components = root.graph.components ? root.graph.components : [];
+        var connections = root.graph.connections ? root.graph.connections : [];
+
+        for (var i = 0; i < components.length; ++i) {
+            var component = components[i];
+            if (!component)
+                continue;
+
+            var componentId = ("" + (component.id !== undefined ? component.id : "")).trim();
+            if (componentId.length === 0) {
+                issues.push("Component with empty id detected.");
+                continue;
+            }
+
+            if (componentIds[componentId]) {
+                issues.push("Duplicate component id '" + componentId + "'.");
+                continue;
+            }
+
+            componentIds[componentId] = true;
+        }
+
+        var connectionIds = {};
+        for (var j = 0; j < connections.length; ++j) {
+            var connection = connections[j];
+            if (!connection)
+                continue;
+
+            var connectionId = ("" + (connection.id !== undefined ? connection.id : "")).trim();
+            if (connectionId.length === 0)
+                issues.push("Connection with empty id detected.");
+            else if (connectionIds[connectionId])
+                issues.push("Duplicate connection id '" + connectionId + "'.");
+            else
+                connectionIds[connectionId] = true;
+
+            var sourceId = ("" + (connection.sourceId !== undefined ? connection.sourceId : "")).trim();
+            var targetId = ("" + (connection.targetId !== undefined ? connection.targetId : "")).trim();
+
+            if (sourceId.length === 0 || targetId.length === 0) {
+                issues.push("Connection '" + (connectionId.length > 0 ? connectionId : "<unnamed>") + "' has empty endpoint id.");
+                continue;
+            }
+
+            if (!componentIds[sourceId])
+                issues.push("Connection '" + connectionId + "' source component '" + sourceId + "' not found.");
+            if (!componentIds[targetId])
+                issues.push("Connection '" + connectionId + "' target component '" + targetId + "' not found.");
+        }
+
+        root.builtInGraphIssues = issues;
+    }
+
+    function syncErrorOverlayWidget() {
+        if (!errorOverlayLoader.item)
+            return;
+
+        if (errorOverlayLoader.item.messages !== undefined)
+            errorOverlayLoader.item.messages = root.mergedErrorOverlayMessages;
+        if (errorOverlayLoader.item.expanded !== undefined)
+            errorOverlayLoader.item.expanded = root.errorOverlayExpanded;
+        if (errorOverlayLoader.item.canClearRuntime !== undefined)
+            errorOverlayLoader.item.canClearRuntime = root.runtimeErrorMessages.length > 0;
+    }
+
+    function appendRuntimeErrorMessage(message) {
+        var text = ("" + message).trim();
+        if (text.length === 0)
+            return;
+
+        var next = root.runtimeErrorMessages.slice(0);
+        next.push(text);
+        // Keep a bounded runtime error history for readability.
+        if (next.length > 32)
+            next = next.slice(next.length - 32);
+        root.runtimeErrorMessages = next;
+    }
+
+    function clearRuntimeErrorMessages() {
+        root.runtimeErrorMessages = [];
     }
     onMutationInvariantCheckerChanged: {
         if (root.graphEditorController && root.graphEditorController.invariantChecker !== undefined)
@@ -1252,6 +1399,52 @@ Item {
         actionLatencyP95Ms: connectionViewport.actionLatencyP95Ms
     }
 
+    Loader {
+        id: errorOverlayLoader
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 12
+        anchors.rightMargin: 12
+        z: 210
+        active: root.mergedErrorOverlayMessages.length > 0
+        source: root.errorOverlaySource
+        onLoaded: {
+            root.syncErrorOverlayWidget();
+        }
+    }
+
+    Connections {
+        target: errorOverlayLoader.item
+        enabled: errorOverlayLoader.item !== null
+        ignoreUnknownSignals: true
+
+        function onClearRequested() {
+            root.clearRuntimeErrorMessages();
+        }
+
+        function onExpandedChanged() {
+            if (errorOverlayLoader.item.expanded === root.errorOverlayExpanded)
+                return;
+            root.errorOverlayExpanded = errorOverlayLoader.item.expanded;
+        }
+    }
+
+    Connections {
+        target: root.graphEditorController
+
+        function onConnectionRejected(sourceId, targetId, reason) {
+            root.appendRuntimeErrorMessage("Connection blocked: " + reason);
+        }
+
+        function onMutationBlocked(operationType, reason) {
+            root.appendRuntimeErrorMessage("Mutation blocked (" + operationType + "): " + reason);
+        }
+
+        function onInvariantViolationRolledBack(operationType, violation) {
+            root.appendRuntimeErrorMessage("Rollback (" + operationType + "): " + violation);
+        }
+    }
+
     // React to graph-level changes
     Connections {
         target: root.graph
@@ -1263,10 +1456,12 @@ Item {
             root.endGroupMove();
             interactionState.resetInteraction();
             interactionState.pruneStaleComponents(root.graph);
+            root.refreshBuiltInGraphIssues();
             connectionCanvas.repaint();
         }
         function onConnectionsChanged() {
             interactionState.pruneStaleConnection(root.graph);
+            root.refreshBuiltInGraphIssues();
             connectionCanvas.repaint();
         }
     }
@@ -1346,7 +1541,6 @@ Item {
     }
 
     onSelectedConnectionChanged: connectionCanvas.repaint()
-    onGraphChanged: connectionCanvas.repaint()
     onPanXChanged: {
         if (telemetry)
             telemetry.notifyCameraChanged();
@@ -1415,6 +1609,8 @@ Item {
             root.graphEditorController.strictMode = root.mutationStrictMode;
         if (root.graphEditorController && root.graphEditorController.invariantChecker !== undefined)
             root.graphEditorController.invariantChecker = root.mutationInvariantChecker;
+        root.refreshBuiltInGraphIssues();
+        root.refreshMergedErrorOverlayMessages();
         root.updateMouseWorldPos();
     }
 }

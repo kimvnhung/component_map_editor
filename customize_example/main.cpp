@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 
     TypeRegistry typeRegistry;
     typeRegistry.rebuildFromRegistry(extensionContracts);
+
     engine.rootContext()->setContextProperty(QStringLiteral("customizeComponentTypeRegistry"),
                                              &typeRegistry);
 

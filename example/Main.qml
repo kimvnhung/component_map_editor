@@ -258,6 +258,7 @@ ApplicationWindow {
             graph: graph
             undoStack: undoStack
             telemetry: perfTelemetry
+            componentTypeRegistry: startupComponentTypeRegistry
 
             interactionTelemetryEnabled: window.enableInteractionTelemetry
             mutationStrictMode: window.enableStrictMutationGuards

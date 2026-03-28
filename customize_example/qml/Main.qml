@@ -5,37 +5,57 @@ import QtQuick.Layouts
 import ComponentMapEditor           // ← the library's QML module
 
 ApplicationWindow {
+    id: window
     width: 1280
     height: 720
     visible: true
+    // Always maximize
+    visibility: Window.Maximized
     title: "My Graph Editor"
 
     GraphModel {
         id: graph
     }
 
-    GraphCanvas {
-        id: graphCanvas
+    RowLayout {
         anchors.fill: parent
-        graph: graph
-    }
+        spacing: 0
 
-    Palette {
-        id: palette
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 200
-        graph: graph
-        canvas: graphCanvas
-        componentTypeRegistry: customizeComponentTypeRegistry
-    }
+        Palette {
+            id: palettePanel
+            Layout.preferredWidth: 150
+            Layout.fillHeight: true
+            graph: graph
+            canvas: canvas
+            componentTypeRegistry: customizeComponentTypeRegistry
+        }
 
-    PropertyPanel {
-        id: propertyPanel
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 200
+        // Thin separator
+        Rectangle {
+            width: 1
+            Layout.fillHeight: true
+            color: "#e0e0e0"
+        }
+
+        GraphCanvas {
+            id: canvas
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            graph: graph
+            componentTypeRegistry: customizeComponentTypeRegistry
+        }
+
+        // Thin separator
+        Rectangle {
+            width: 1
+            Layout.fillHeight: true
+            color: "#e0e0e0"
+        }
+
+        PropertyPanel {
+            id: propertyPanel
+            Layout.preferredWidth: 320
+            Layout.fillHeight: true
+        }
     }
 }
