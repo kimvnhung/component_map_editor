@@ -648,6 +648,30 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# ── Phase 6: Cutover Readiness and Compatibility Window ───────────────────
+# Verifies default-on token transport, canary enablement in example/customize
+# entrypoints, and retention of v1 compatibility adapter during release window.
+qt_add_executable(tst_Phase6CutoverReadiness
+    tst_Phase6CutoverReadiness.cpp
+)
+
+target_link_libraries(tst_Phase6CutoverReadiness
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase6CutoverReadiness
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_Phase6CutoverReadiness
+    COMMAND tst_Phase6CutoverReadiness
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ── Phase 7: Extension Contract V2 Parallel Support ─────────────────────────
 # Mixed-mode registry/session support for V1 and V2 providers with typed core path.
 qt_add_executable(tst_Phase7ExtensionContractV2Parallel

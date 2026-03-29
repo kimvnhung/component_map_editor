@@ -11,6 +11,7 @@
 #include "extensions/runtime/rules/RuleHotReloadService.h"
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
+#include "services/ExecutionMigrationFlags.h"
 #include "services/GraphExecutionSandbox.h"
 #include "services/ValidationService.h"
 
@@ -25,6 +26,9 @@
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    // Phase 6 canary: keep Design B explicitly enabled in sample app startup.
+    cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
     ExtensionContractRegistry extensionContracts({1, 0, 0});
 

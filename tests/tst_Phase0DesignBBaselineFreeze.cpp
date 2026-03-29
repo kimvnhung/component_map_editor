@@ -103,7 +103,7 @@ private slots:
     void init();
     void cleanup();
 
-    void tokenTransportFlag_defaultOff();
+    void tokenTransportFlag_defaultOn();
     void baselineExecutionDeterminism_flagOff();
     void baselineTraversalCorrectness_flagOff();
     void baselineNoLiveGraphMutation_flagOff();
@@ -119,9 +119,9 @@ void tst_Phase0DesignBBaselineFreeze::cleanup()
     cme::execution::MigrationFlags::resetDefaults();
 }
 
-void tst_Phase0DesignBBaselineFreeze::tokenTransportFlag_defaultOff()
+void tst_Phase0DesignBBaselineFreeze::tokenTransportFlag_defaultOn()
 {
-    QCOMPARE(cme::execution::MigrationFlags::tokenTransportEnabled(), false);
+    QCOMPARE(cme::execution::MigrationFlags::tokenTransportEnabled(), true);
 }
 
 void tst_Phase0DesignBBaselineFreeze::baselineExecutionDeterminism_flagOff()
@@ -153,7 +153,7 @@ void tst_Phase0DesignBBaselineFreeze::baselineExecutionDeterminism_flagOff()
     QCOMPARE(secondSummary.value(QStringLiteral("componentCount")).toInt(), 4);
     QCOMPARE(secondSummary.value(QStringLiteral("executedCount")).toInt(), 4);
     QCOMPARE(secondSummary.value(QStringLiteral("pendingCount")).toInt(), 0);
-    QCOMPARE(secondSummary.value(QStringLiteral("tokenTransportEnabled")).toBool(), false);
+    QCOMPARE(secondSummary.value(QStringLiteral("tokenTransportEnabled")).toBool(), true);
 }
 
 void tst_Phase0DesignBBaselineFreeze::baselineTraversalCorrectness_flagOff()

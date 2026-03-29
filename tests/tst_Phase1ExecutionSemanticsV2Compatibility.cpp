@@ -177,7 +177,7 @@ void tst_Phase1ExecutionSemanticsV2Compatibility::sandboxDeterminism_unchangedFo
     QCOMPARE(secondState, firstState);
 
     const QVariantMap firstStartEvent = firstTimeline.first().toMap();
-    QCOMPARE(firstStartEvent.value(QStringLiteral("tokenTransportEnabled")).toBool(), false);
+    QCOMPARE(firstStartEvent.value(QStringLiteral("tokenTransportEnabled")).toBool(), true);
     QCOMPARE(firstTimeline.first().toMap().value(QStringLiteral("event")).toString(), QStringLiteral("simulationStarted"));
     QCOMPARE(firstTimeline.last().toMap().value(QStringLiteral("event")).toString(), QStringLiteral("simulationCompleted"));
 }

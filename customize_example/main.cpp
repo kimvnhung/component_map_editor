@@ -12,10 +12,14 @@
 #include <extensions/runtime/ExtensionStartupLoader.h>
 #include <extensions/runtime/PropertySchemaRegistry.h>
 #include <extensions/runtime/TypeRegistry.h>
+#include <services/ExecutionMigrationFlags.h>
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    // Phase 6 canary: keep Design B explicitly enabled in customize startup.
+    cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
     // 1. Create the contract registry with the current core API version.
     ExtensionContractRegistry extensionContracts({1, 0, 0});

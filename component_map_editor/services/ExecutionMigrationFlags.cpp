@@ -4,7 +4,10 @@
 
 namespace {
 
-std::atomic_bool g_tokenTransportEnabled{false};
+constexpr bool kDefaultTokenTransportEnabled = true;
+constexpr bool kCompatibilityWindowOpen = true;
+
+std::atomic_bool g_tokenTransportEnabled{kDefaultTokenTransportEnabled};
 
 } // namespace
 
@@ -22,7 +25,12 @@ void MigrationFlags::setTokenTransportEnabled(bool enabled)
 
 void MigrationFlags::resetDefaults()
 {
-    setTokenTransportEnabled(false);
+    setTokenTransportEnabled(kDefaultTokenTransportEnabled);
+}
+
+bool MigrationFlags::compatibilityWindowOpen()
+{
+    return kCompatibilityWindowOpen;
 }
 
 } // namespace cme::execution

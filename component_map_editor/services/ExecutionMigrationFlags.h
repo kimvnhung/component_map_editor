@@ -4,13 +4,15 @@
 namespace cme::execution {
 
 // Phase 0 migration toggle for Design B rollout.
-// Default remains false to preserve legacy global-state semantics.
+// Phase 6 cutover: default is now ON while retaining explicit override for
+// one release-window compatibility rollback.
 class MigrationFlags
 {
 public:
     static bool tokenTransportEnabled();
     static void setTokenTransportEnabled(bool enabled);
     static void resetDefaults();
+    static bool compatibilityWindowOpen();
 };
 
 } // namespace cme::execution
