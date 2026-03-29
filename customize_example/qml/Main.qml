@@ -17,6 +17,10 @@ ApplicationWindow {
         id: graph
     }
 
+    Validator {
+        id: validator
+    }
+
     ExportService {
         id: exporter
     }
