@@ -17,7 +17,7 @@ ApplicationWindow {
         id: graph
     }
 
-    Validator {
+    ValidationService {
         id: validator
     }
 
