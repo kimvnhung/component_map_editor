@@ -7,13 +7,8 @@
 #include <qqml.h>
 
 #include "extensions/contracts/IValidationProvider.h"
-#include "extensions/contracts/IValidationProviderV2.h"
-#include "extensions/contracts/ValidationProviderV1ToV2Adapter.h"
 #include "models/GraphModel.h"
 #include "graph.pb.h"
-
-#include <memory>
-#include <vector>
 
 class ExtensionContractRegistry;
 
@@ -25,11 +20,7 @@ class ValidationService : public QObject
 public:
     explicit ValidationService(QObject *parent = nullptr);
 
-#if defined(__cplusplus) && __cplusplus >= 201402L
-    [[deprecated("setValidationProviders(V1) is deprecated. Use setValidationProvidersV2 for typed-first validation path.")]]
-#endif
     void setValidationProviders(const QList<const IValidationProvider *> &providers);
-    void setValidationProvidersV2(const QList<const IValidationProviderV2 *> &providers);
     void rebuildValidationFromRegistry(const ExtensionContractRegistry &registry);
 
     // Returns true if the graph has no structural errors.
@@ -51,8 +42,7 @@ private:
     
     static bool issueIsError(const QVariantMap &issue);
 
-    QList<const IValidationProviderV2 *> m_validationProviders;
-    std::vector<std::unique_ptr<ValidationProviderV1ToV2Adapter>> m_validationV1Adapters;
+    QList<const IValidationProvider *> m_validationProviders;
 };
 
 #endif // VALIDATIONSERVICE_H

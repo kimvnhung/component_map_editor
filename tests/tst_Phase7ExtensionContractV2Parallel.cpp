@@ -6,7 +6,6 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/contracts/ExtensionApiVersion.h"
 #include "extensions/contracts/IValidationProvider.h"
-#include "extensions/contracts/IValidationProviderV2.h"
 #include "services/ValidationService.h"
 #include "models/GraphModel.h"
 #include "models/ComponentModel.h"
@@ -61,7 +60,7 @@ public:
     }
 };
 
-class ValidationProviderV2ConnectionRule : public IValidationProviderV2
+class ValidationProviderV2ConnectionRule : public IValidationProvider
 {
 public:
     QString providerId() const override { return QStringLiteral("phase7.v2.conn"); }
@@ -141,8 +140,7 @@ void tst_Phase7ExtensionContractV2Parallel::mixedMode_registryAcceptsV1AndV2Toge
     QVERIFY2(registry.registerValidationProvider(&v1Count, &error), qPrintable(error));
     QVERIFY2(registry.registerValidationProvider(&v2Conn, &error), qPrintable(error));
 
-    QCOMPARE(registry.validationProviders().size(), 1);    // legacy view only V1
-    QCOMPARE(registry.validationProvidersV2().size(), 2);  // typed view includes V1-adapted + V2
+    QCOMPARE(registry.validationProviders().size(), 2);
 }
 
 void tst_Phase7ExtensionContractV2Parallel::mixedMode_outputsMatchLegacyBehavior()

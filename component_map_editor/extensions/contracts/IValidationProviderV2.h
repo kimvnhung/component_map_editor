@@ -1,28 +1,12 @@
 #ifndef IVALIDATIONPROVIDERV2_H
 #define IVALIDATIONPROVIDERV2_H
 
-#include <QString>
-#include <QtPlugin>
+#include "IValidationProvider.h"
 
-#include "graph.pb.h"
-#include "validation.pb.h"
+// Compatibility alias.
+// Canonical interface name is now IValidationProvider with typed-first contract.
+using IValidationProviderV2 = IValidationProvider;
 
-class IValidationProviderV2
-{
-public:
-    virtual ~IValidationProviderV2() = default;
-
-    virtual QString providerId() const = 0;
-
-    // Typed validation contract for Phase 7.
-    // Returns true on successful provider execution. Logical validation failures
-    // should be expressed via issues in outResult, not by returning false.
-    virtual bool validateGraph(const cme::GraphSnapshot &graphSnapshot,
-                               cme::GraphValidationResult *outResult,
-                               QString *error) const = 0;
-};
-
-#define COMPONENT_MAP_EDITOR_IID_VALIDATION_PROVIDER_V2 "ComponentMapEditor.Extensions.IValidationProviderV2/2.0"
-Q_DECLARE_INTERFACE(IValidationProviderV2, COMPONENT_MAP_EDITOR_IID_VALIDATION_PROVIDER_V2)
+#define COMPONENT_MAP_EDITOR_IID_VALIDATION_PROVIDER_V2 COMPONENT_MAP_EDITOR_IID_VALIDATION_PROVIDER
 
 #endif // IVALIDATIONPROVIDERV2_H

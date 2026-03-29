@@ -26,11 +26,21 @@ QString WorkflowValidationProvider::providerId() const
     return QStringLiteral("customize.workflow.validation.structure");
 }
 
-QVariantList WorkflowValidationProvider::validateGraph(const QVariantMap &graphSnapshot) const
+bool WorkflowValidationProvider::validateGraph(const cme::GraphSnapshot &graphSnapshot,
+                                               cme::GraphValidationResult *outResult,
+                                               QString *error) const
 {
-    QVariantList issues;
+    if (!outResult) {
+        if (error)
+            *error = QStringLiteral("outResult pointer is null");
+        return false;
+    }
 
-    const QVariantList components = graphSnapshot.value(QStringLiteral("components")).toList();
+    outResult->Clear();
+
+    const QVariantMap snapshotMap = cme::adapter::graphSnapshotForValidationToVariantMap(graphSnapshot);
+    const QVariantList components = snapshotMap.value(QStringLiteral("components")).toList();
+    QVariantList issues;
 
     QSet<QString> componentIds;
     int startCount = 0;
@@ -38,7 +48,7 @@ QVariantList WorkflowValidationProvider::validateGraph(const QVariantMap &graphS
 
     for (const QVariant &v : components) {
         const QVariantMap component = v.toMap();
-        const QString id   = component.value(QStringLiteral("id")).toString();
+        const QString id = component.value(QStringLiteral("id")).toString();
         const QString type = component.value(QStringLiteral("type")).toString();
         if (id.isEmpty()) {
             issues.append(makeIssue(QStringLiteral("W005"),
@@ -96,5 +106,31 @@ QVariantList WorkflowValidationProvider::validateGraph(const QVariantMap &graphS
                                 QString()));
     }
 
-    return issues;
+    bool hasErrorSeverity = false;
+    for (const QVariant &issueValue : issues) {
+        const QVariantMap issueMap = issueValue.toMap();
+        if (issueMap.isEmpty())
+            continue;
+
+        cme::ValidationIssue issueProto;
+        const cme::adapter::ConversionError conversionErr =
+            cme::adapter::variantMapToValidationIssue(issueMap, issueProto);
+        if (conversionErr.has_error) {
+            if (error) {
+                *error = QStringLiteral("Failed to convert validation issue from provider '%1': %2")
+                             .arg(providerId(), conversionErr.error_message);
+            }
+            return false;
+        }
+
+        if (issueProto.severity() == cme::VALIDATION_SEVERITY_ERROR
+            || issueProto.severity() == cme::VALIDATION_SEVERITY_UNSPECIFIED) {
+            hasErrorSeverity = true;
+        }
+
+        *outResult->add_issues() = issueProto;
+    }
+
+    outResult->set_is_valid(!hasErrorSeverity);
+    return true;
 }

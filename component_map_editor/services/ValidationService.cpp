@@ -3,40 +3,15 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "adapters/ValidationAdapter.h"
 
-#include <QDebug>
-
 ValidationService::ValidationService(QObject *parent)
     : QObject(parent)
 {}
 
 void ValidationService::setValidationProviders(const QList<const IValidationProvider *> &providers)
 {
-    static bool warnedOnce = false;
-    if (!warnedOnce) {
-        warnedOnce = true;
-        qWarning().noquote()
-            << "[Phase10] ValidationService::setValidationProviders(V1) is deprecated;"
-            << "switch to setValidationProvidersV2() for typed-first path.";
-    }
-
-    m_validationV1Adapters.clear();
+    m_validationProviders.clear();
     m_validationProviders.clear();
     for (const IValidationProvider *provider : providers) {
-        if (provider)
-            m_validationV1Adapters.emplace_back(new ValidationProviderV1ToV2Adapter(provider));
-    }
-
-    for (const std::unique_ptr<ValidationProviderV1ToV2Adapter> &adapter : m_validationV1Adapters) {
-        if (adapter)
-            m_validationProviders.append(adapter.get());
-    }
-}
-
-void ValidationService::setValidationProvidersV2(const QList<const IValidationProviderV2 *> &providers)
-{
-    m_validationV1Adapters.clear();
-    m_validationProviders.clear();
-    for (const IValidationProviderV2 *provider : providers) {
         if (provider)
             m_validationProviders.append(provider);
     }
@@ -44,7 +19,7 @@ void ValidationService::setValidationProvidersV2(const QList<const IValidationPr
 
 void ValidationService::rebuildValidationFromRegistry(const ExtensionContractRegistry &registry)
 {
-    setValidationProvidersV2(registry.validationProvidersV2());
+    setValidationProviders(registry.validationProviders());
 }
 
 QStringList ValidationService::validationErrors(GraphModel *graph)
@@ -84,7 +59,7 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
     // Phase 5: Build typed snapshot internally
     const cme::GraphSnapshot typedSnapshot = buildTypedGraphSnapshot(graph);
 
-    for (const IValidationProviderV2 *provider : std::as_const(m_validationProviders)) {
+    for (const IValidationProvider *provider : std::as_const(m_validationProviders)) {
         if (!provider)
             continue;
 

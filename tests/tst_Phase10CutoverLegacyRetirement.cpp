@@ -3,7 +3,6 @@
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/contracts/IValidationProvider.h"
-#include "extensions/contracts/IValidationProviderV2.h"
 #include "extensions/contracts/ExtensionApiVersion.h"
 
 #include "graph.pb.h"
@@ -11,7 +10,7 @@
 
 namespace {
 
-class V1LegacyValidationProviderForPhase10 : public IValidationProvider
+class MapBackedValidationProviderForPhase10 : public IValidationProvider
 {
 public:
     QString providerId() const override
@@ -25,7 +24,7 @@ public:
     }
 };
 
-class V2TypedValidationProviderForPhase10 : public IValidationProviderV2
+class TypedValidationProviderForPhase10 : public IValidationProvider
 {
 public:
     QString providerId() const override
@@ -61,24 +60,22 @@ class tst_Phase10CutoverLegacyRetirement : public QObject
     Q_OBJECT
 
 private slots:
-    void registry_monitorsLegacyV1Registration_duringCompatibilityWindow();
+    void registry_acceptsMapBackedAndTypedProvidersUnderOneCanonicalName();
     void typedFirst_validationService_noLegacySnapshotMapBridgeInsideCoreLoop();
-    void contracts_markV1AsDeprecated();
+    void contracts_useCanonicalNameWithoutDeprecatedMarkers();
 };
 
-void tst_Phase10CutoverLegacyRetirement::registry_monitorsLegacyV1Registration_duringCompatibilityWindow()
+void tst_Phase10CutoverLegacyRetirement::registry_acceptsMapBackedAndTypedProvidersUnderOneCanonicalName()
 {
     ExtensionContractRegistry registry(ExtensionApiVersion{1, 0, 0});
 
-    V1LegacyValidationProviderForPhase10 v1;
-    V2TypedValidationProviderForPhase10 v2;
+    MapBackedValidationProviderForPhase10 mapBacked;
+    TypedValidationProviderForPhase10 typed;
 
-    QVERIFY(registry.registerValidationProvider(&v1));
-    QVERIFY(registry.registerValidationProvider(&v2));
+    QVERIFY(registry.registerValidationProvider(&mapBacked));
+    QVERIFY(registry.registerValidationProvider(&typed));
 
-    QCOMPARE(registry.legacyValidationProviderRegistrations(), 1);
-    QCOMPARE(registry.validationProvidersV2().size(), 2);
-    QCOMPARE(registry.validationProviders().size(), 1);
+    QCOMPARE(registry.validationProviders().size(), 2);
 }
 
 void tst_Phase10CutoverLegacyRetirement::typedFirst_validationService_noLegacySnapshotMapBridgeInsideCoreLoop()
@@ -97,7 +94,7 @@ void tst_Phase10CutoverLegacyRetirement::typedFirst_validationService_noLegacySn
              "Unexpected legacy snapshot variable found in ValidationService.cpp");
 }
 
-void tst_Phase10CutoverLegacyRetirement::contracts_markV1AsDeprecated()
+void tst_Phase10CutoverLegacyRetirement::contracts_useCanonicalNameWithoutDeprecatedMarkers()
 {
     const QString iValidationProviderPath =
         QStringLiteral("/home/hungkv/projects/component_map_editor/component_map_editor/extensions/contracts/IValidationProvider.h");
@@ -110,14 +107,17 @@ void tst_Phase10CutoverLegacyRetirement::contracts_markV1AsDeprecated()
     QVERIFY2(!v1Contract.isEmpty(), "Could not read IValidationProvider.h");
     QVERIFY2(!registryHeader.isEmpty(), "Could not read ExtensionContractRegistry.h");
 
-    QVERIFY2(v1Contract.contains(QStringLiteral("deprecated")),
-             "IValidationProvider.h should mark V1 interface/method as deprecated");
+    QVERIFY2(v1Contract.contains(QStringLiteral("validateGraph(const cme::GraphSnapshot")),
+             "IValidationProvider.h should expose typed canonical contract");
 
-    QVERIFY2(registryHeader.contains(QStringLiteral("registerValidationProvider(IValidationProvider*) is deprecated")),
-             "Registry should mark V1 registration API as deprecated");
+    QVERIFY2(!v1Contract.contains(QStringLiteral("deprecated")),
+             "IValidationProvider.h should not contain deprecated markers after cutover");
 
-    QVERIFY2(registryHeader.contains(QStringLiteral("legacyValidationProviderRegistrations")),
-             "Registry should expose legacy registration monitoring accessor");
+    QVERIFY2(!registryHeader.contains(QStringLiteral("validationProvidersV2")),
+             "Registry should not expose V2-suffixed API names after canonical-name cutover");
+
+    QVERIFY2(!registryHeader.contains(QStringLiteral("deprecated")),
+             "ExtensionContractRegistry.h should not contain deprecated markers after cutover");
 }
 
 QTEST_MAIN(tst_Phase10CutoverLegacyRetirement)

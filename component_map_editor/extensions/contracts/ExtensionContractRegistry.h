@@ -17,8 +17,6 @@
 #include "IExecutionSemanticsProviderV0.h"
 #include "IPropertySchemaProvider.h"
 #include "IValidationProvider.h"
-#include "IValidationProviderV2.h"
-#include "ValidationProviderV1ToV2Adapter.h"
 
 // Holds providers in insertion order while also providing O(1) duplicate-ID checks.
 template <typename T>
@@ -38,11 +36,7 @@ public:
     bool registerComponentTypeProvider(const IComponentTypeProvider *provider, QString *error = nullptr);
     bool registerConnectionPolicyProvider(const IConnectionPolicyProvider *provider, QString *error = nullptr);
     bool registerPropertySchemaProvider(const IPropertySchemaProvider *provider, QString *error = nullptr);
-#if defined(__cplusplus) && __cplusplus >= 201402L
-    [[deprecated("registerValidationProvider(IValidationProvider*) is deprecated. Register IValidationProviderV2 for typed-first path.")]]
-#endif
     bool registerValidationProvider(const IValidationProvider *provider, QString *error = nullptr);
-    bool registerValidationProvider(const IValidationProviderV2 *provider, QString *error = nullptr);
     bool registerActionProvider(const IActionProvider *provider, QString *error = nullptr);
     bool registerExecutionSemanticsProvider(const IExecutionSemanticsProvider *provider,
                                             QString *error = nullptr);
@@ -57,15 +51,8 @@ public:
     QList<const IComponentTypeProvider *> componentTypeProviders() const;
     QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
     QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
-#if defined(__cplusplus) && __cplusplus >= 201402L
-    [[deprecated("validationProviders() returns V1 providers only. Use validationProvidersV2() for typed-first path.")]]
-#endif
     QList<const IValidationProvider *> validationProviders() const;
-    QList<const IValidationProviderV2 *> validationProvidersV2() const;
     QList<const IExecutionSemanticsProvider *> executionSemanticsProviders() const;
-
-    // Phase 10: monitor legacy V1 usage during compatibility window.
-    int legacyValidationProviderRegistrations() const;
 
 private:
     // Registers a provider into both a hash index (for O(1) duplicate detection) and
@@ -109,12 +96,9 @@ private:
     ProviderRegistry<IConnectionPolicyProvider>  m_connectionPolicyProviders;
     ProviderRegistry<IPropertySchemaProvider>    m_propertySchemaProviders;
     ProviderRegistry<IValidationProvider>        m_validationProviders;
-    ProviderRegistry<IValidationProviderV2>      m_validationProvidersV2;
     ProviderRegistry<IActionProvider>            m_actionProviders;
     ProviderRegistry<IExecutionSemanticsProvider> m_executionSemanticsProviders;
-    std::vector<std::unique_ptr<ValidationProviderV1ToV2Adapter>> m_validationV1ToV2Adapters;
     std::vector<std::unique_ptr<ExecutionSemanticsV0Adapter>> m_executionSemanticsV0Adapters;
-    int m_legacyValidationProviderRegistrations = 0;
 };
 
 #endif // EXTENSIONCONTRACTREGISTRY_H

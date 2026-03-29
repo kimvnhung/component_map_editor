@@ -1,7 +1,5 @@
 #include "ExtensionContractRegistry.h"
 
-#include <QDebug>
-
 ExtensionContractRegistry::ExtensionContractRegistry(const ExtensionApiVersion &coreApiVersion)
     : m_coreApiVersion(coreApiVersion)
 {
@@ -62,37 +60,11 @@ bool ExtensionContractRegistry::registerPropertySchemaProvider(const IPropertySc
 
 bool ExtensionContractRegistry::registerValidationProvider(const IValidationProvider *provider, QString *error)
 {
-    ++m_legacyValidationProviderRegistrations;
-    static bool warnedOnce = false;
-    if (!warnedOnce) {
-        warnedOnce = true;
-        qWarning().noquote()
-            << "[Phase10] Legacy validation interface (IValidationProvider V1) is deprecated;"
-            << "please migrate to IValidationProviderV2 before compatibility window retirement.";
-    }
-
     if (!registerProviderInternal(provider, &m_validationProviders,
                                   QStringLiteral("validation"), error)) {
         return false;
     }
-
-    std::unique_ptr<ValidationProviderV1ToV2Adapter> adapter(
-        new ValidationProviderV1ToV2Adapter(provider));
-    if (!registerProviderInternal(static_cast<const IValidationProviderV2 *>(adapter.get()),
-                                  &m_validationProvidersV2,
-                                  QStringLiteral("validation"),
-                                  error)) {
-        return false;
-    }
-
-    m_validationV1ToV2Adapters.push_back(std::move(adapter));
     return true;
-}
-
-bool ExtensionContractRegistry::registerValidationProvider(const IValidationProviderV2 *provider, QString *error)
-{
-    return registerProviderInternal(provider, &m_validationProvidersV2,
-                                    QStringLiteral("validation"), error);
 }
 
 bool ExtensionContractRegistry::registerActionProvider(const IActionProvider *provider, QString *error)
@@ -169,17 +141,7 @@ QList<const IValidationProvider *> ExtensionContractRegistry::validationProvider
     return m_validationProviders.order;
 }
 
-QList<const IValidationProviderV2 *> ExtensionContractRegistry::validationProvidersV2() const
-{
-    return m_validationProvidersV2.order;
-}
-
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const
 {
     return m_executionSemanticsProviders.order;
-}
-
-int ExtensionContractRegistry::legacyValidationProviderRegistrations() const
-{
-    return m_legacyValidationProviderRegistrations;
 }
