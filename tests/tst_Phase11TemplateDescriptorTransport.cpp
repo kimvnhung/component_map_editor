@@ -1,8 +1,6 @@
 #include <QTest>
 #include <QThread>
 
-#include <atomic>
-
 #include "transport/GrpcTemplateDescriptorTransport.h"
 
 namespace {
