@@ -803,3 +803,26 @@ add_test(
     COMMAND tst_Phase11TemplateDescriptorTransport
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+qt_add_executable(tst_CustomizeExampleMathWorkflows
+    tst_CustomizeExampleMathWorkflows.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizeexecutionsanticsprovider.cpp
+)
+
+target_link_libraries(tst_CustomizeExampleMathWorkflows
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_CustomizeExampleMathWorkflows
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers
+)
+
+add_test(
+    NAME tst_CustomizeExampleMathWorkflows
+    COMMAND tst_CustomizeExampleMathWorkflows
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

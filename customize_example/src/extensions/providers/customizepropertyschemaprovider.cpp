@@ -126,6 +126,89 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                   makeField("color", "string", "Color", true, QStringLiteral("#ef5350"), "textfield", "Appearance", 31)
               });
 
+    addTarget(&bundle,
+              "component/math/add",
+              {
+                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
+                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
+                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("sum"), "textfield", "Context", 3),
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
+                  makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
+              });
+
+    addTarget(&bundle,
+              "component/math/subtract",
+              {
+                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
+                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
+                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("difference"), "textfield", "Context", 3),
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
+                  makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
+              });
+
+    addTarget(&bundle,
+              "component/math/multiply",
+              {
+                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
+                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
+                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("product"), "textfield", "Context", 3),
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
+                  makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
+              });
+
+    addTarget(&bundle,
+              "component/math/divide",
+              {
+                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
+                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
+                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("quotient"), "textfield", "Context", 3),
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
+                  makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
+              });
+
+    addTarget(&bundle,
+              "component/workflow/sqrt_newton",
+              {
+                  makeField("sKey", "string", "S Key", true, QStringLiteral("S"), "textfield", "Context", 1),
+                  makeField("epsilonKey", "string", "Epsilon Key", true, QStringLiteral("epsilon"), "textfield", "Context", 2),
+                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("sqrt"), "textfield", "Context", 3),
+                  makeField("initialGuessKey", "string", "Initial Guess Key", true, QStringLiteral("initialGuess"), "textfield", "Context", 4),
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 5),
+                  makeField("maxIterations", "number", "Max Iterations", true, 50, "spinbox", "Loop", 20),
+                  makeField("S", "number", "Fallback S", false, 0, "spinbox", "Fallback", 30),
+                  makeField("epsilon", "number", "Fallback Epsilon", false, 0.000001, "spinbox", "Fallback", 31),
+                  makeField("initialGuess", "number", "Fallback Initial Guess", false, 1, "spinbox", "Fallback", 32)
+              });
+
+    addTarget(&bundle,
+              "component/workflow/quadratic",
+              {
+                  makeField("aKey", "string", "A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
+                  makeField("bKey", "string", "B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
+                  makeField("cKey", "string", "C Key", true, QStringLiteral("c"), "textfield", "Context", 3),
+                  makeField("deltaKey", "string", "Delta Key", true, QStringLiteral("delta"), "textfield", "Context", 4),
+                  makeField("x1Key", "string", "X1 Key", true, QStringLiteral("x1"), "textfield", "Context", 5),
+                  makeField("x2Key", "string", "X2 Key", true, QStringLiteral("x2"), "textfield", "Context", 6),
+                  makeField("statusKey", "string", "Status Key", true, QStringLiteral("quadratic.status"), "textfield", "Context", 7),
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 8),
+                  makeField("epsilonKey", "string", "Epsilon Key", true, QStringLiteral("epsilon"), "textfield", "Context", 9),
+                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
+                  makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21),
+                  makeField("c", "number", "Fallback C", false, 0, "spinbox", "Fallback", 22),
+                  makeField("epsilon", "number", "Fallback Epsilon", false, 0.000001, "spinbox", "Fallback", 23)
+              });
+
+    addTarget(&bundle,
+              "component/system/error_handler",
+              {
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 1),
+                  makeField("message", "string", "Fallback Message", true, QStringLiteral("Unhandled workflow error."), "textarea", "Behavior", 2)
+              });
+
     const QVariantList sideOptions{
         QVariantMap{{QStringLiteral("text"), QStringLiteral("Auto")},   {QStringLiteral("value"), -1}},
         QVariantMap{{QStringLiteral("text"), QStringLiteral("Top")},    {QStringLiteral("value"),  0}},

@@ -41,7 +41,7 @@ bool CustomizeExtensionPack::registerProviders(ExtensionContractRegistry &regist
         return false;
     // if (!registry.registerActionProvider(&m_actionProvider, error))
     //     return false;
-    // if (!registry.registerExecutionSemanticsProvider(&m_executionSemanticsProvider, error))
-        // return false;
+    if (!registry.registerExecutionSemanticsProvider(&m_executionSemanticsProvider, error))
+        return false;
     return true;
 }

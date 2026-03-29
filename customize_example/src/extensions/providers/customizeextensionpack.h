@@ -9,6 +9,7 @@
 
 #include "customizecomponenttypeprovider.h"
 #include "customizeconnectionpolicyprovider.h"
+#include "customizeexecutionsanticsprovider.h"
 #include "customizepropertyschemaprovider.h"
 #include "customizevalidationprovider.h"
 
@@ -48,8 +49,8 @@ private:
     CustomizeConnectionPolicyProvider m_connectionPolicyProvider;
     CustomizePropertySchemaProvider   m_propertySchemaProvider;
     CustomizeValidationProvider m_workflowValidationProvider;
+    CustomizeExecutionSemanticsProvider m_executionSemanticsProvider;
     // SampleActionProvider      m_actionProvider;
-    // SampleExecutionSemanticsProvider m_executionSemanticsProvider;
 };
 
 #endif // CUSTOMIZEEXTENSIONPACK_H

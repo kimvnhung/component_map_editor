@@ -13,6 +13,13 @@ public:
     static constexpr const char *TypeCondition = "condition";
     static constexpr const char *TypeProcess  = "process";
     static constexpr const char *TypeStop     = "stop";
+    static constexpr const char *TypeAdd = "math/add";
+    static constexpr const char *TypeSubtract = "math/subtract";
+    static constexpr const char *TypeMultiply = "math/multiply";
+    static constexpr const char *TypeDivide = "math/divide";
+    static constexpr const char *TypeSqrtNewton = "workflow/sqrt_newton";
+    static constexpr const char *TypeQuadratic = "workflow/quadratic";
+    static constexpr const char *TypeErrorHandler = "system/error_handler";
 
     QString      providerId() const override;
     QStringList  componentTypeIds() const override;

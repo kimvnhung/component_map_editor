@@ -1,4 +1,8 @@
 # Customize Example
+
+Step-by-step workflow guideline:
+- [WORKFLOW_GUIDELINE_NEWTON_QUARTIC.md](WORKFLOW_GUIDELINE_NEWTON_QUARTIC.md)
+
 ## Intergrating Step
 ### Load custom component types
 ```plantuml
