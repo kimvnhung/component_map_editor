@@ -4,6 +4,8 @@
 #include <extensions/contracts/IPropertySchemaProvider.h>
 
 // Customize implementation of IPropertySchemaProvider for the workflow domain.
+// Schema definitions are authored via protobuf template messages and converted
+// to QVariant rows through the runtime template adapter.
 // Targets:
 //   component/start, component/process, component/stop
 //   connection/flow

@@ -605,3 +605,29 @@ add_test(
     COMMAND tst_Phase10CutoverLegacyRetirement
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 11: Optional gRPC Template Descriptor Transport ──────────────────
+# Verifies latency/error SLO handling and graceful fallback to local templates
+# when gRPC descriptor transport is unavailable.
+qt_add_executable(tst_Phase11TemplateDescriptorTransport
+    tst_Phase11TemplateDescriptorTransport.cpp
+)
+
+target_link_libraries(tst_Phase11TemplateDescriptorTransport
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase11TemplateDescriptorTransport
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase11TemplateDescriptorTransport
+    COMMAND tst_Phase11TemplateDescriptorTransport
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

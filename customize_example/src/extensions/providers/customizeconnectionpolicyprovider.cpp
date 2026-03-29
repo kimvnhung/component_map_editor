@@ -1,77 +1,113 @@
 #include "customizeconnectionpolicyprovider.h"
 
+#include "extensions/runtime/templates/ConnectionPolicyTemplateAdapter.h"
+#include "extensions/runtime/templates/TemplateProtoHelpers.h"
 #include "customizecomponenttypeprovider.h"
+#include "provider_templates.pb.h"
 
-QString CustomizeConnectionPolicyProvider::providerId() const
+namespace {
+
+cme::templates::v1::ConnectionPolicyTemplateBundle buildTemplateBundle()
 {
-    return QStringLiteral("customize.workflow.connectionPolicy");
+    cme::templates::v1::ConnectionPolicyTemplateBundle bundle;
+    bundle.set_provider_id("customize.workflow.connectionPolicy");
+    bundle.set_schema_version("1.0.0");
+    bundle.set_default_allowed(true);
+    bundle.set_default_reason("Unknown connection between types '%1' and '%2'.");
+    bundle.set_normalized_type_key("type");
+    bundle.set_normalized_type_value("flow");
+
+    *bundle.add_rules() = cme::runtime::templates::makeConnectionPolicyRuleTemplate(
+        QString(),
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeStart),
+        false,
+        QStringLiteral("Start component does not accept incoming connections."));
+    *bundle.add_rules() = cme::runtime::templates::makeConnectionPolicyRuleTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeStop),
+        QString(),
+        false,
+        QStringLiteral("Stop component does not have outgoing connections."));
+
+    return bundle;
 }
 
-bool CustomizeConnectionPolicyProvider::canConnect(const cme::ConnectionPolicyContext &context,
-                                                   QString *reason) const
+const cme::templates::v1::ConnectionPolicyTemplateBundle &templateBundle()
+{
+    static const cme::templates::v1::ConnectionPolicyTemplateBundle kBundle = buildTemplateBundle();
+    return kBundle;
+}
+
+std::optional<cme::runtime::templates::ConnectionPolicyDecision> customizePolicyStrategy(
+    const cme::ConnectionPolicyContext &context,
+    const cme::runtime::templates::ConnectionPolicyDecision &baseDecision)
 {
     const QString sourceTypeId = QString::fromStdString(context.source_type_id());
     const QString targetTypeId = QString::fromStdString(context.target_type_id());
     const int targetIncomingCount = context.target_incoming_count();
     const int sourceOutgoingCount = context.source_outgoing_count();
 
-    // Nothing can connect TO start.
-    if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeStart)) {
-        if (reason)
-            *reason = QStringLiteral("Start component does not accept incoming connections.");
-        return false;
-    }
-
-    // Stop node has no outgoing connections.
-    if (sourceTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeStop)) {
-        if (reason)
-            *reason = QStringLiteral("Stop component does not have outgoing connections.");
-        return false;
-    }
-
-    // Accept only one connection to condition.
     if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeCondition)) {
         if (targetIncomingCount >= 1) {
-            if (reason)
-                *reason = QStringLiteral("Condition component accepts only one incoming connection.");
-            return false;
+            return cme::runtime::templates::ConnectionPolicyDecision{
+                false,
+                QStringLiteral("Condition component accepts only one incoming connection.")
+            };
         }
 
-        return true;
+        return cme::runtime::templates::ConnectionPolicyDecision{ true, QString() };
     }
 
-    // Process accepts one outgoing and one incoming connection.
     if (sourceTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess)) {
         if (sourceOutgoingCount >= 1) {
-            if (reason)
-                *reason = QStringLiteral("Process component accepts only one outgoing connection.");
-            return false;
+            return cme::runtime::templates::ConnectionPolicyDecision{
+                false,
+                QStringLiteral("Process component accepts only one outgoing connection.")
+            };
         }
 
-        return true;
+        return cme::runtime::templates::ConnectionPolicyDecision{ true, QString() };
     }
+
     if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess)) {
         if (targetIncomingCount >= 1) {
-            if (reason)
-                *reason = QStringLiteral("Process component accepts only one incoming connection.");
-            return false;
+            return cme::runtime::templates::ConnectionPolicyDecision{
+                false,
+                QStringLiteral("Process component accepts only one incoming connection.")
+            };
         }
 
-        return true;
+        return cme::runtime::templates::ConnectionPolicyDecision{ true, QString() };
     }
 
+    return std::nullopt;
+}
+
+} // namespace
+
+QString CustomizeConnectionPolicyProvider::providerId() const
+{
+    return cme::runtime::templates::ConnectionPolicyTemplateAdapter::providerId(templateBundle());
+}
+
+bool CustomizeConnectionPolicyProvider::canConnect(const cme::ConnectionPolicyContext &context,
+                                                   QString *reason) const
+{
+    cme::runtime::templates::ConnectionPolicyDecision decision =
+        cme::runtime::templates::ConnectionPolicyTemplateAdapter::evaluate(
+            templateBundle(), context, customizePolicyStrategy);
+
+    if (!decision.allowed && decision.reason.contains(QStringLiteral("%1")))
+        decision.reason = cme::runtime::templates::formatUnknownConnectionReason(context, decision.reason);
+
     if (reason)
-        *reason = QStringLiteral("Unknown connection between types '%1' and '%2'.")
-                      .arg(sourceTypeId, targetTypeId);
-    return false;
+        *reason = decision.reason;
+    return decision.allowed;
 }
 
 QVariantMap CustomizeConnectionPolicyProvider::normalizeConnectionProperties(
-    const cme::ConnectionPolicyContext & /*context*/,
+    const cme::ConnectionPolicyContext &context,
     const QVariantMap &rawProperties) const
 {
-    QVariantMap result = rawProperties;
-    if (!result.contains(QStringLiteral("type")))
-        result.insert(QStringLiteral("type"), QStringLiteral("flow"));
-    return result;
+    return cme::runtime::templates::ConnectionPolicyTemplateAdapter::normalizeConnectionProperties(
+        templateBundle(), rawProperties, context);
 }

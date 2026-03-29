@@ -16,6 +16,7 @@
 #include "graph.pb.h"
 #include "policy.pb.h"
 #include "public_api.pb.h"
+#include "provider_templates.pb.h"
 #include "validation.pb.h"
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -100,6 +101,12 @@ private Q_SLOTS:
     void validateGraphRequest_roundtrip();
     void validateGraphResponse_roundtrip();
     void executionSnapshotEnvelope_roundtrip();
+
+    // ── provider_templates.proto ───────────────────────────────────────
+    void propertySchemaFieldTemplate_roundtrip();
+    void propertySchemaTemplateBundle_roundtrip();
+    void componentTypeTemplateBundle_roundtrip();
+    void connectionPolicyTemplateBundle_roundtrip();
 };
 
 // ============================================================================
@@ -798,6 +805,119 @@ void tst_Phase1ProtoContracts::executionSnapshotEnvelope_roundtrip()
     const auto decoded = roundtrip(env);
     QVERIFY(decoded.status().success());
     QCOMPARE(decoded.snapshot().session_id(), std::string("session-001"));
+}
+
+// ============================================================================
+// provider_templates.proto
+// ============================================================================
+
+void tst_Phase1ProtoContracts::propertySchemaFieldTemplate_roundtrip()
+{
+    cme::templates::v1::PropertySchemaFieldTemplate field;
+    field.set_key("addValue");
+    field.set_type("number");
+    field.set_title("Add Value");
+    field.set_required(true);
+    field.mutable_default_value()->set_number_value(9);
+    field.set_editor("spinbox");
+    field.set_section("Behavior");
+    field.set_order(21);
+    field.set_hint("Number added to running total");
+    field.add_options()->set_string_value("9");
+    (*field.mutable_validation())["min"].set_number_value(-1000000);
+    (*field.mutable_visible_when())["enabled"].set_bool_value(true);
+
+    const auto decoded = roundtrip(field);
+    QCOMPARE(decoded.key(), std::string("addValue"));
+    QCOMPARE(decoded.type(), std::string("number"));
+    QCOMPARE(decoded.required(), true);
+    QCOMPARE(decoded.default_value().number_value(), 9.0);
+    QCOMPARE(decoded.validation().at("min").number_value(), -1000000.0);
+    QCOMPARE(decoded.visible_when().at("enabled").bool_value(), true);
+}
+
+void tst_Phase1ProtoContracts::propertySchemaTemplateBundle_roundtrip()
+{
+    cme::templates::v1::PropertySchemaTemplateBundle bundle;
+    bundle.set_provider_id("customize.workflow.propertySchema");
+    bundle.set_schema_version("1.0.0");
+
+    auto *target = bundle.add_targets();
+    target->set_target_id("component/process");
+    auto *field = target->add_entries();
+    field->set_key("title");
+    field->set_type("string");
+    field->set_title("Title");
+    field->set_required(true);
+    field->set_editor("textfield");
+
+    const auto decoded = roundtrip(bundle);
+    QCOMPARE(decoded.provider_id(), std::string("customize.workflow.propertySchema"));
+    QCOMPARE(decoded.schema_version(), std::string("1.0.0"));
+    QCOMPARE(decoded.targets_size(), 1);
+    QCOMPARE(decoded.targets(0).target_id(), std::string("component/process"));
+    QCOMPARE(decoded.targets(0).entries_size(), 1);
+    QCOMPARE(decoded.targets(0).entries(0).key(), std::string("title"));
+}
+
+void tst_Phase1ProtoContracts::componentTypeTemplateBundle_roundtrip()
+{
+    cme::templates::v1::ComponentTypeTemplateBundle bundle;
+    bundle.set_provider_id("sample.workflow.componentTypes");
+    bundle.set_schema_version("1.0.0");
+
+    auto *type = bundle.add_component_types();
+    type->set_id("start");
+    type->set_title("Start");
+    type->set_category("control");
+    type->set_default_width(92.0);
+    type->set_default_height(92.0);
+    type->set_default_color("#66bb6a");
+    type->set_allow_incoming(false);
+    type->set_allow_outgoing(true);
+
+    auto *defaults = bundle.add_defaults();
+    defaults->set_component_type_id("start");
+    (*defaults->mutable_properties())["inputNumber"].set_number_value(0);
+
+    const auto decoded = roundtrip(bundle);
+    QCOMPARE(decoded.provider_id(), std::string("sample.workflow.componentTypes"));
+    QCOMPARE(decoded.component_types_size(), 1);
+    QCOMPARE(decoded.component_types(0).id(), std::string("start"));
+    QCOMPARE(decoded.component_types(0).allow_outgoing(), true);
+    QCOMPARE(decoded.defaults_size(), 1);
+    QCOMPARE(decoded.defaults(0).properties().at("inputNumber").number_value(), 0.0);
+}
+
+void tst_Phase1ProtoContracts::connectionPolicyTemplateBundle_roundtrip()
+{
+    cme::templates::v1::ConnectionPolicyTemplateBundle bundle;
+    bundle.set_provider_id("sample.workflow.connectionPolicy");
+    bundle.set_schema_version("1.0.0");
+    bundle.set_default_allowed(false);
+    bundle.set_default_reason("Unknown");
+    bundle.set_normalized_type_key("type");
+    bundle.set_normalized_type_value("flow");
+
+    auto *rule = bundle.add_rules();
+    rule->set_source_type_id("start");
+    rule->set_target_type_id("process");
+    rule->set_allowed(true);
+    rule->set_reason("");
+
+    auto *denyRule = bundle.add_rules();
+    denyRule->set_target_type_id("condition");
+    denyRule->set_allowed(false);
+    denyRule->set_reason("Condition component accepts only one incoming connection.");
+    denyRule->set_min_target_incoming(1);
+
+    const auto decoded = roundtrip(bundle);
+    QCOMPARE(decoded.provider_id(), std::string("sample.workflow.connectionPolicy"));
+    QCOMPARE(decoded.rules_size(), 2);
+    QCOMPARE(decoded.rules(0).source_type_id(), std::string("start"));
+    QCOMPARE(decoded.rules(1).has_min_target_incoming(), true);
+    QCOMPARE(decoded.rules(1).min_target_incoming(), 1);
+    QCOMPARE(decoded.normalized_type_value(), std::string("flow"));
 }
 
 QTEST_MAIN(tst_Phase1ProtoContracts)

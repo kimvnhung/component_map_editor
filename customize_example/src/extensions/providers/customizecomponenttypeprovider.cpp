@@ -1,77 +1,93 @@
 #include "customizecomponenttypeprovider.h"
 
+#include "extensions/runtime/templates/ComponentTypeTemplateAdapter.h"
+#include "extensions/runtime/templates/TemplateProtoHelpers.h"
+#include "provider_templates.pb.h"
+
+namespace {
+
+cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
+{
+    cme::templates::v1::ComponentTypeTemplateBundle bundle;
+    bundle.set_provider_id("sample.workflow.componentTypes");
+    bundle.set_schema_version("1.0.0");
+
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeStart),
+        QStringLiteral("Start"),
+        QStringLiteral("control"),
+        92.0,
+        92.0,
+        QStringLiteral("#66bb6a"),
+        false,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeCondition),
+        QStringLiteral("Condition"),
+        QStringLiteral("control"),
+        164.0,
+        100.0,
+        QStringLiteral("#ffca28"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeProcess),
+        QStringLiteral("Process"),
+        QStringLiteral("work"),
+        164.0,
+        100.0,
+        QStringLiteral("#4fc3f7"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeStop),
+        QStringLiteral("Stop"),
+        QStringLiteral("control"),
+        92.0,
+        92.0,
+        QStringLiteral("#ef5350"),
+        true,
+        false);
+
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeStart),
+        QVariantMap{{QStringLiteral("inputNumber"), 0}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeProcess,
+        QVariantMap{{QStringLiteral("addValue"), 9}, {QStringLiteral("description"), QString()}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeCondition,
+        QVariantMap{{QStringLiteral("condition"), QString()}});
+
+    return bundle;
+}
+
+const cme::templates::v1::ComponentTypeTemplateBundle &templateBundle()
+{
+    static const cme::templates::v1::ComponentTypeTemplateBundle kBundle = buildTemplateBundle();
+    return kBundle;
+}
+
+} // namespace
+
 QString CustomizeComponentTypeProvider::providerId() const
 {
-    return QStringLiteral("sample.workflow.componentTypes");
+    return cme::runtime::templates::ComponentTypeTemplateAdapter::providerId(templateBundle());
 }
 
 QStringList CustomizeComponentTypeProvider::componentTypeIds() const
 {
-    return {
-        QString::fromLatin1(TypeStart),
-        QString::fromLatin1(TypeCondition),
-        QString::fromLatin1(TypeProcess),
-        QString::fromLatin1(TypeStop)
-    };
+    return cme::runtime::templates::ComponentTypeTemplateAdapter::componentTypeIds(templateBundle());
 }
 
 QVariantMap CustomizeComponentTypeProvider::componentTypeDescriptor(const QString &componentTypeId) const
 {
-    struct Descriptor {
-        const char *id;
-        const char *title;
-        const char *category;
-        double      defaultWidth;
-        double      defaultHeight;
-        const char *defaultColor;
-        bool        allowIncoming;
-        bool        allowOutgoing;
-    };
-
-    static const Descriptor descriptors[] = {
-        { TypeStart,   "Start",   "control", 92.0,  92.0,  "#66bb6a", false, true  },
-        { TypeCondition, "Condition", "control", 164.0, 100.0, "#ffca28", true,  true  },
-        { TypeProcess, "Process", "work",    164.0, 100.0, "#4fc3f7", true,  true  },
-        { TypeStop,    "Stop",    "control", 92.0,  92.0,  "#ef5350", true,  false }
-    };
-
-    for (const auto &d : descriptors) {
-        if (componentTypeId == QLatin1String(d.id)) {
-            return QVariantMap{
-                { QStringLiteral("id"),              QString::fromLatin1(d.id) },
-                { QStringLiteral("title"),           QString::fromLatin1(d.title) },
-                { QStringLiteral("category"),        QString::fromLatin1(d.category) },
-                { QStringLiteral("defaultWidth"),    d.defaultWidth },
-                { QStringLiteral("defaultHeight"),   d.defaultHeight },
-                { QStringLiteral("defaultColor"),    QString::fromLatin1(d.defaultColor) },
-                { QStringLiteral("allowIncoming"),   d.allowIncoming },
-                { QStringLiteral("allowOutgoing"),   d.allowOutgoing }
-            };
-        }
-    }
-    return {};
+    return cme::runtime::templates::ComponentTypeTemplateAdapter::componentTypeDescriptor(
+        templateBundle(), componentTypeId);
 }
 
 QVariantMap CustomizeComponentTypeProvider::defaultComponentProperties(const QString &componentTypeId) const
 {
-    if (componentTypeId == QLatin1String(TypeStart)) {
-        return {
-            { QStringLiteral("inputNumber"), 0 }
-        };
-    }
-
-    if (componentTypeId == QLatin1String(TypeProcess)) {
-        return {
-            { QStringLiteral("addValue"),    9 },
-            { QStringLiteral("description"), QString() }
-        };
-    }
-
-    if (componentTypeId == QLatin1String(TypeCondition)) {
-        return {
-            { QStringLiteral("condition"), QString() }
-        };
-    }
-
-    return {};
+    return cme::runtime::templates::ComponentTypeTemplateAdapter::defaultComponentProperties(
+        templateBundle(), componentTypeId);
 }

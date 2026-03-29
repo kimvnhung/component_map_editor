@@ -1,80 +1,10 @@
 #include "PublicApiContractAdapter.h"
 
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonValue>
 #include <QSet>
 
+#include "extensions/runtime/templates/TemplateProtoHelpers.h"
+
 namespace {
-
-google::protobuf::Value qJsonToProtoValue(const QJsonValue &value)
-{
-    google::protobuf::Value out;
-
-    if (value.isNull() || value.isUndefined()) {
-        out.set_null_value(google::protobuf::NULL_VALUE);
-        return out;
-    }
-
-    if (value.isBool()) {
-        out.set_bool_value(value.toBool());
-        return out;
-    }
-
-    if (value.isDouble()) {
-        out.set_number_value(value.toDouble());
-        return out;
-    }
-
-    if (value.isString()) {
-        out.set_string_value(value.toString().toStdString());
-        return out;
-    }
-
-    if (value.isArray()) {
-        google::protobuf::ListValue *list = out.mutable_list_value();
-        const QJsonArray array = value.toArray();
-        for (const QJsonValue &item : array)
-            *list->add_values() = qJsonToProtoValue(item);
-        return out;
-    }
-
-    const QJsonObject object = value.toObject();
-    google::protobuf::Struct *st = out.mutable_struct_value();
-    for (auto it = object.begin(); it != object.end(); ++it)
-        (*st->mutable_fields())[it.key().toStdString()] = qJsonToProtoValue(it.value());
-    return out;
-}
-
-QJsonValue protoToQJsonValue(const google::protobuf::Value &value)
-{
-    switch (value.kind_case()) {
-    case google::protobuf::Value::kNullValue:
-        return QJsonValue();
-    case google::protobuf::Value::kBoolValue:
-        return QJsonValue(value.bool_value());
-    case google::protobuf::Value::kNumberValue:
-        return QJsonValue(value.number_value());
-    case google::protobuf::Value::kStringValue:
-        return QJsonValue(QString::fromStdString(value.string_value()));
-    case google::protobuf::Value::kStructValue: {
-        QJsonObject object;
-        for (const auto &kv : value.struct_value().fields())
-            object.insert(QString::fromStdString(kv.first), protoToQJsonValue(kv.second));
-        return object;
-    }
-    case google::protobuf::Value::kListValue: {
-        QJsonArray array;
-        for (const google::protobuf::Value &item : value.list_value().values())
-            array.append(protoToQJsonValue(item));
-        return array;
-    }
-    case google::protobuf::Value::KIND_NOT_SET:
-    default:
-        return QJsonValue();
-    }
-}
 
 bool setError(QString *error, const QString &message)
 {
@@ -104,14 +34,14 @@ void PublicApiContractAdapter::variantMapToProtoStruct(const QVariantMap &in,
         return;
     out->Clear();
     for (auto it = in.constBegin(); it != in.constEnd(); ++it)
-        (*out->mutable_fields())[it.key().toStdString()] = qJsonToProtoValue(QJsonValue::fromVariant(it.value()));
+        (*out->mutable_fields())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
 }
 
 QVariantMap PublicApiContractAdapter::protoStructToVariantMap(const google::protobuf::Struct &in)
 {
     QVariantMap out;
     for (const auto &kv : in.fields())
-        out.insert(QString::fromStdString(kv.first), protoToQJsonValue(kv.second).toVariant());
+        out.insert(QString::fromStdString(kv.first), cme::runtime::templates::protoValueToVariant(kv.second));
     return out;
 }
 
@@ -150,7 +80,7 @@ bool PublicApiContractAdapter::toActionDescriptor(const QString &providerId,
     for (auto it = descriptor.constBegin(); it != descriptor.constEnd(); ++it) {
         if (kKnownKeys.contains(it.key()))
             continue;
-        (*out->mutable_extra())[it.key().toStdString()] = qJsonToProtoValue(QJsonValue::fromVariant(it.value()));
+        (*out->mutable_extra())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
     }
 
     return true;
@@ -179,19 +109,19 @@ bool PublicApiContractAdapter::toPropertySchemaEntry(const QVariantMap &entry,
     out->set_hint(entry.value(QStringLiteral("hint")).toString().toStdString());
 
     if (entry.contains(QStringLiteral("defaultValue")))
-        *out->mutable_default_value() = qJsonToProtoValue(QJsonValue::fromVariant(entry.value(QStringLiteral("defaultValue"))));
+        *out->mutable_default_value() = cme::runtime::templates::variantToProtoValue(entry.value(QStringLiteral("defaultValue")));
 
     const QVariantList options = entry.value(QStringLiteral("options")).toList();
     for (const QVariant &option : options)
-        *out->add_options() = qJsonToProtoValue(QJsonValue::fromVariant(option));
+        *out->add_options() = cme::runtime::templates::variantToProtoValue(option);
 
     const QVariantMap validation = entry.value(QStringLiteral("validation")).toMap();
     for (auto it = validation.constBegin(); it != validation.constEnd(); ++it)
-        (*out->mutable_validation())[it.key().toStdString()] = qJsonToProtoValue(QJsonValue::fromVariant(it.value()));
+        (*out->mutable_validation())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
 
     const QVariantMap visibleWhen = entry.value(QStringLiteral("visibleWhen")).toMap();
     for (auto it = visibleWhen.constBegin(); it != visibleWhen.constEnd(); ++it)
-        (*out->mutable_visible_when())[it.key().toStdString()] = qJsonToProtoValue(QJsonValue::fromVariant(it.value()));
+        (*out->mutable_visible_when())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
 
     static const QSet<QString> kKnownKeys = {
         QStringLiteral("key"),
@@ -211,7 +141,7 @@ bool PublicApiContractAdapter::toPropertySchemaEntry(const QVariantMap &entry,
     for (auto it = entry.constBegin(); it != entry.constEnd(); ++it) {
         if (kKnownKeys.contains(it.key()))
             continue;
-        (*out->mutable_extra())[it.key().toStdString()] = qJsonToProtoValue(QJsonValue::fromVariant(it.value()));
+        (*out->mutable_extra())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
     }
 
     return true;
