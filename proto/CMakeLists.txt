@@ -10,6 +10,7 @@ set(PROTO_FILES
     validation.proto
     execution.proto
     policy.proto
+    public_api.proto
 )
 
 # generate *.pb.cc / *.pb.h pairs into CMAKE_CURRENT_BINARY_DIR

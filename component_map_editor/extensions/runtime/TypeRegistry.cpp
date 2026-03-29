@@ -1,5 +1,7 @@
 #include "TypeRegistry.h"
 
+#include "adapters/PolicyAdapter.h"
+
 TypeRegistry::TypeRegistry(QObject *parent)
     : QObject(parent)
 {}
@@ -11,7 +13,7 @@ void TypeRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry
     m_descriptors.clear();
     m_defaults.clear();
     m_orderedTypeIds.clear();
-    m_connectionPolicies.clear();
+    m_connectionPoliciesV2.clear();
 
     // --- Component-type cache ----------------------------------------------
     const QList<const IComponentTypeProvider *> componentProviders = registry.componentTypeProviders();
@@ -29,7 +31,7 @@ void TypeRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry
     }
 
     // --- Connection-policy list --------------------------------------------
-    m_connectionPolicies = registry.connectionPolicyProviders();
+    m_connectionPoliciesV2 = registry.connectionPolicyProvidersV2();
 
     if (m_orderedTypeIds != prevIds)
         emit componentTypesChanged();
@@ -77,11 +79,31 @@ bool TypeRegistry::canConnect(const QString &srcTypeId,
                               const QVariantMap &context,
                               QString *reason) const
 {
-    for (const IConnectionPolicyProvider *provider : m_connectionPolicies) {
+    cme::ConnectionPolicyContext typedContext;
+    const cme::adapter::ConversionError conversionErr =
+        cme::adapter::variantMapToConnectionPolicyContext(context, typedContext);
+    if (conversionErr.has_error) {
+        if (reason)
+            *reason = conversionErr.error_message;
+        return false;
+    }
+
+    if (typedContext.source_type_id().empty())
+        typedContext.set_source_type_id(srcTypeId.toStdString());
+    if (typedContext.target_type_id().empty())
+        typedContext.set_target_type_id(tgtTypeId.toStdString());
+
+    return canConnect(typedContext, reason);
+}
+
+bool TypeRegistry::canConnect(const cme::ConnectionPolicyContext &context,
+                              QString *reason) const
+{
+    for (const IConnectionPolicyProviderV2 *provider : m_connectionPoliciesV2) {
         if (!provider)
             continue;
         QString providerReason;
-        if (!provider->canConnect(srcTypeId, tgtTypeId, context, &providerReason)) {
+        if (!provider->canConnect(context, &providerReason)) {
             if (reason)
                 *reason = providerReason;
             return false;
@@ -94,12 +116,20 @@ QVariantMap TypeRegistry::normalizeConnectionProperties(const QString &srcTypeId
                                                         const QString &tgtTypeId,
                                                         const QVariantMap &rawProps) const
 {
+    cme::ConnectionPolicyContext context;
+    context.set_source_type_id(srcTypeId.toStdString());
+    context.set_target_type_id(tgtTypeId.toStdString());
+    return normalizeConnectionProperties(context, rawProps);
+}
+
+QVariantMap TypeRegistry::normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
+                                                        const QVariantMap &rawProps) const
+{
     QVariantMap result = rawProps;
-    for (const IConnectionPolicyProvider *provider : m_connectionPolicies) {
+    for (const IConnectionPolicyProviderV2 *provider : m_connectionPoliciesV2) {
         if (!provider)
             continue;
-        const QVariantMap normalized =
-            provider->normalizeConnectionProperties(srcTypeId, tgtTypeId, result);
+        const QVariantMap normalized = provider->normalizeConnectionProperties(context, result);
         // Merge: later providers overwrite keys from earlier providers.
         for (auto it = normalized.constBegin(); it != normalized.constEnd(); ++it)
             result.insert(it.key(), it.value());

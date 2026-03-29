@@ -48,8 +48,69 @@ bool ExtensionContractRegistry::registerComponentTypeProvider(const IComponentTy
 
 bool ExtensionContractRegistry::registerConnectionPolicyProvider(const IConnectionPolicyProvider *provider, QString *error)
 {
-    return registerProviderInternal(provider, &m_connectionPolicyProviders,
-                                    QStringLiteral("connection policy"), error);
+    if (!provider) {
+        if (error) {
+            *error = QStringLiteral("connection policy provider pointer is null.");
+        }
+        return false;
+    }
+
+    const QString id = provider->providerId().trimmed();
+    if (id.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("connection policy provider id is empty.");
+        }
+        return false;
+    }
+
+    if (m_connectionPolicyProviders.index.contains(id)
+        || m_connectionPolicyProvidersV2.index.contains(id)) {
+        if (error) {
+            *error = QStringLiteral("Duplicate connection policy provider id: %1").arg(id);
+        }
+        return false;
+    }
+
+    m_connectionPolicyProviders.index.insert(id, provider);
+    m_connectionPolicyProviders.order.append(provider);
+
+    std::unique_ptr<ConnectionPolicyProviderV1ToV2Adapter> adapter(
+        new ConnectionPolicyProviderV1ToV2Adapter(provider));
+    m_connectionPolicyProvidersV2.index.insert(id, adapter.get());
+    m_connectionPolicyProvidersV2.order.append(adapter.get());
+    m_connectionPolicyV1Adapters.push_back(std::move(adapter));
+
+    return true;
+}
+
+bool ExtensionContractRegistry::registerConnectionPolicyProvider(const IConnectionPolicyProviderV2 *provider, QString *error)
+{
+    if (!provider) {
+        if (error) {
+            *error = QStringLiteral("connection policy provider pointer is null.");
+        }
+        return false;
+    }
+
+    const QString id = provider->providerId().trimmed();
+    if (id.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("connection policy provider id is empty.");
+        }
+        return false;
+    }
+
+    if (m_connectionPolicyProviders.index.contains(id)
+        || m_connectionPolicyProvidersV2.index.contains(id)) {
+        if (error) {
+            *error = QStringLiteral("Duplicate connection policy provider id: %1").arg(id);
+        }
+        return false;
+    }
+
+    m_connectionPolicyProvidersV2.index.insert(id, provider);
+    m_connectionPolicyProvidersV2.order.append(provider);
+    return true;
 }
 
 bool ExtensionContractRegistry::registerPropertySchemaProvider(const IPropertySchemaProvider *provider, QString *error)
@@ -129,6 +190,11 @@ QList<const IComponentTypeProvider *> ExtensionContractRegistry::componentTypePr
 QList<const IConnectionPolicyProvider *> ExtensionContractRegistry::connectionPolicyProviders() const
 {
     return m_connectionPolicyProviders.order;
+}
+
+QList<const IConnectionPolicyProviderV2 *> ExtensionContractRegistry::connectionPolicyProvidersV2() const
+{
+    return m_connectionPolicyProvidersV2.order;
 }
 
 QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchemaProviders() const

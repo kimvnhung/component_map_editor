@@ -399,16 +399,14 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
     const QString srcType = src->type();
     const QString tgtType = tgt->type();
 
-    // ── Phase 4: Build typed context and bridge to legacy interface ───────
+    // ── Build typed context for connection policy providers ───────────────
     cme::ConnectionPolicyContext typedContext = buildTypedConnectionPolicyContext(
         sourceId, targetId, srcType, tgtType);
-    const QVariantMap policyContext =
-        cme::adapter::connectionPolicyContextToVariantMap(typedContext);
 
     // Connection-policy gate
     if (m_typeRegistry) {
         QString reason;
-        if (!m_typeRegistry->canConnect(srcType, tgtType, policyContext, &reason)) {
+        if (!m_typeRegistry->canConnect(typedContext, &reason)) {
             m_lastRejectionReason = reason;
             emit connectionRejected(sourceId, targetId, reason);
             return {};
@@ -420,7 +418,7 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
     // Normalize properties through policy providers
     QVariantMap props;
     if (m_typeRegistry)
-        props = m_typeRegistry->normalizeConnectionProperties(srcType, tgtType, policyContext);
+        props = m_typeRegistry->normalizeConnectionProperties(typedContext);
 
     const QString connId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QString label  = props.value(QStringLiteral("label")).toString();
@@ -463,12 +461,10 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
     const QString tgtPort = targetSide >= 0 ? QString::number(targetSide) : QString();
     cme::ConnectionPolicyContext typedContext = buildTypedConnectionPolicyContext(
         sourceId, targetId, srcType, tgtType, srcPort, tgtPort);
-    const QVariantMap policyContext =
-        cme::adapter::connectionPolicyContextToVariantMap(typedContext);
 
     if (m_typeRegistry) {
         QString reason;
-        if (!m_typeRegistry->canConnect(srcType, tgtType, policyContext, &reason)) {
+        if (!m_typeRegistry->canConnect(typedContext, &reason)) {
             m_lastRejectionReason = reason;
             emit connectionRejected(sourceId, targetId, reason);
             return {};
@@ -486,7 +482,7 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
 
     QVariantMap props;
     if (m_typeRegistry)
-        props = m_typeRegistry->normalizeConnectionProperties(srcType, tgtType, policyContext);
+        props = m_typeRegistry->normalizeConnectionProperties(typedContext);
 
     const QString label = props.value(QStringLiteral("label")).toString().isEmpty()
         ? fallbackLabel

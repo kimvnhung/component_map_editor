@@ -1,10 +1,10 @@
 #ifndef CUSTOMIZECONNECTIONPOLICYPROVIDER_H
 #define CUSTOMIZECONNECTIONPOLICYPROVIDER_H
 
-#include <extensions/contracts/IConnectionPolicyProvider.h>
+#include <extensions/contracts/IConnectionPolicyProviderV2.h>
 
 
-// Customize implementation of IConnectionPolicyProvider for the workflow domain.
+// Customize implementation of IConnectionPolicyProviderV2 for the workflow domain.
 // Allowed connections between component types:
 //   start    -> process
 //   process  -> process, stop
@@ -13,13 +13,15 @@
 //   stop -> *       (stop has no outgoing connections)
 //   start -> stop, process -> start
 // normalizeConnectionProperties always adds type="flow" to the returned map.
-class CustomizeConnectionPolicyProvider : public IConnectionPolicyProvider
+class CustomizeConnectionPolicyProvider : public IConnectionPolicyProviderV2
 {
-    // IConnectionPolicyProvider interface
+    // IConnectionPolicyProviderV2 interface
 public:
-    QString providerId() const;
-    bool canConnect(const QString &sourceTypeId, const QString &targetTypeId, const QVariantMap &context, QString *reason) const;
-    QVariantMap normalizeConnectionProperties(const QString &sourceTypeId, const QString &targetTypeId, const QVariantMap &rawProperties) const;
+    QString providerId() const override;
+    bool canConnect(const cme::ConnectionPolicyContext &context,
+                    QString *reason) const override;
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
+                                              const QVariantMap &rawProperties) const override;
 };
 
 #endif // CUSTOMIZECONNECTIONPOLICYPROVIDER_H

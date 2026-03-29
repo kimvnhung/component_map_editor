@@ -7,15 +7,13 @@ QString CustomizeConnectionPolicyProvider::providerId() const
     return QStringLiteral("customize.workflow.connectionPolicy");
 }
 
-bool CustomizeConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
-                                                   const QString &targetTypeId,
-                                                   const QVariantMap &context,
+bool CustomizeConnectionPolicyProvider::canConnect(const cme::ConnectionPolicyContext &context,
                                                    QString *reason) const
 {
-    const int targetIncomingCount =
-        context.value(QStringLiteral("targetIncomingCount")).toInt();
-    const int sourceOutgoingCount =
-        context.value(QStringLiteral("sourceOutgoingCount")).toInt();
+    const QString sourceTypeId = QString::fromStdString(context.source_type_id());
+    const QString targetTypeId = QString::fromStdString(context.target_type_id());
+    const int targetIncomingCount = context.target_incoming_count();
+    const int sourceOutgoingCount = context.source_outgoing_count();
 
     // Nothing can connect TO start.
     if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeStart)) {
@@ -31,7 +29,7 @@ bool CustomizeConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
         return false;
     }
 
-    // Accept only one connection to condition
+    // Accept only one connection to condition.
     if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeCondition)) {
         if (targetIncomingCount >= 1) {
             if (reason)
@@ -42,7 +40,7 @@ bool CustomizeConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
         return true;
     }
 
-    // Process only accept one outgoing connection and one incoming connection.
+    // Process accepts one outgoing and one incoming connection.
     if (sourceTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess)) {
         if (sourceOutgoingCount >= 1) {
             if (reason)
@@ -69,8 +67,7 @@ bool CustomizeConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
 }
 
 QVariantMap CustomizeConnectionPolicyProvider::normalizeConnectionProperties(
-    const QString & /*sourceTypeId*/,
-    const QString & /*targetTypeId*/,
+    const cme::ConnectionPolicyContext & /*context*/,
     const QVariantMap &rawProperties) const
 {
     QVariantMap result = rawProperties;

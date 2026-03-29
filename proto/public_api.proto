@@ -1,0 +1,260 @@
+syntax = "proto3";
+
+package cme.publicapi.v1;
+
+import "google/protobuf/struct.proto";
+
+import "command.proto";
+import "execution.proto";
+import "graph.proto";
+import "policy.proto";
+import "validation.proto";
+
+// Public reusable contracts for extension provider interfaces.
+//
+// This schema is intentionally request/response shaped per interface method so
+// transport boundaries (in-process, IPC, gRPC) can expose explicit contracts.
+
+message ProviderIdentity {
+  // Stable provider instance ID from the extension implementation.
+  string provider_id = 1;
+
+  // Optional interface IID/version string used for compatibility checks.
+  string interface_iid = 2;
+}
+
+message ApiStatus {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+}
+
+// ---------------------------------------------------------------------------
+// IActionProvider
+// ---------------------------------------------------------------------------
+
+message ActionSummary {
+  string action_id = 1;
+  string title = 2;
+  string category = 3;
+  string icon = 4;
+  bool enabled = 5;
+  map<string, google.protobuf.Value> extra = 6;
+}
+
+message ActionDescriptor {
+  string action_id = 1;
+  string title = 2;
+  string category = 3;
+  string icon = 4;
+  bool enabled = 5;
+  string hint = 6;
+  map<string, google.protobuf.Value> extra = 7;
+}
+
+message ActionListRequest {
+  ProviderIdentity provider = 1;
+}
+
+message ActionListResponse {
+  ApiStatus status = 1;
+  repeated ActionSummary actions = 2;
+}
+
+message ActionDescriptorRequest {
+  ProviderIdentity provider = 1;
+  string action_id = 2;
+}
+
+message ActionDescriptorResponse {
+  ApiStatus status = 1;
+  ActionDescriptor action_descriptor = 2;
+}
+
+message ActionInvocationContext {
+  map<string, google.protobuf.Value> values = 1;
+}
+
+message ActionInvokeRequest {
+  ProviderIdentity provider = 1;
+  string action_id = 2;
+  ActionInvocationContext context = 3;
+}
+
+message ActionInvokeResponse {
+  ApiStatus status = 1;
+  cme.GraphCommandRequest command_request = 2;
+}
+
+// ---------------------------------------------------------------------------
+// IComponentTypeProvider
+// ---------------------------------------------------------------------------
+
+message PortDescriptor {
+  string id = 1;
+  string title = 2;
+  string direction = 3;
+  int32 max_connections = 4;
+  map<string, google.protobuf.Value> extra = 5;
+}
+
+message ComponentTypeDescriptor {
+  string id = 1;
+  string title = 2;
+  string category = 3;
+  string icon = 4;
+  double default_width = 5;
+  double default_height = 6;
+  string default_color = 7;
+  string default_shape = 8;
+  repeated PortDescriptor ports = 9;
+  map<string, google.protobuf.Value> constraints = 10;
+  map<string, google.protobuf.Value> extra = 11;
+}
+
+message ComponentTypeIdsRequest {
+  ProviderIdentity provider = 1;
+}
+
+message ComponentTypeIdsResponse {
+  ApiStatus status = 1;
+  repeated string component_type_ids = 2;
+}
+
+message ComponentTypeDescriptorRequest {
+  ProviderIdentity provider = 1;
+  string component_type_id = 2;
+}
+
+message ComponentTypeDescriptorResponse {
+  ApiStatus status = 1;
+  ComponentTypeDescriptor component_type_descriptor = 2;
+}
+
+message DefaultComponentPropertiesRequest {
+  ProviderIdentity provider = 1;
+  string component_type_id = 2;
+}
+
+message DefaultComponentPropertiesResponse {
+  ApiStatus status = 1;
+  map<string, google.protobuf.Value> properties = 2;
+}
+
+// ---------------------------------------------------------------------------
+// IConnectionPolicyProvider
+// ---------------------------------------------------------------------------
+
+message CanConnectRequest {
+  ProviderIdentity provider = 1;
+  string source_type_id = 2;
+  string target_type_id = 3;
+  cme.ConnectionPolicyContext context = 4;
+}
+
+message CanConnectResponse {
+  ApiStatus status = 1;
+  bool allowed = 2;
+  string reason = 3;
+}
+
+message NormalizeConnectionPropertiesRequest {
+  ProviderIdentity provider = 1;
+  string source_type_id = 2;
+  string target_type_id = 3;
+  map<string, google.protobuf.Value> raw_properties = 4;
+}
+
+message NormalizeConnectionPropertiesResponse {
+  ApiStatus status = 1;
+  map<string, google.protobuf.Value> normalized_properties = 2;
+}
+
+// ---------------------------------------------------------------------------
+// IExecutionSemanticsProvider
+// ---------------------------------------------------------------------------
+
+message SupportedComponentTypesRequest {
+  ProviderIdentity provider = 1;
+}
+
+message SupportedComponentTypesResponse {
+  ApiStatus status = 1;
+  repeated string component_types = 2;
+}
+
+message ExecuteComponentRequest {
+  ProviderIdentity provider = 1;
+  string component_type = 2;
+  string component_id = 3;
+  cme.ComponentData component_snapshot = 4;
+  map<string, google.protobuf.Value> input_state = 5;
+}
+
+message ExecuteComponentResponse {
+  ApiStatus status = 1;
+  map<string, google.protobuf.Value> output_state = 2;
+  map<string, google.protobuf.Value> trace = 3;
+}
+
+// ---------------------------------------------------------------------------
+// IPropertySchemaProvider
+// ---------------------------------------------------------------------------
+
+message PropertySchemaEntry {
+  string key = 1;
+  string type = 2;
+  string title = 3;
+  bool required = 4;
+  google.protobuf.Value default_value = 5;
+  string editor_widget = 6;
+  string section = 7;
+  int32 order = 8;
+  string hint = 9;
+  repeated google.protobuf.Value options = 10;
+  map<string, google.protobuf.Value> validation = 11;
+  map<string, google.protobuf.Value> visible_when = 12;
+  map<string, google.protobuf.Value> extra = 13;
+}
+
+message SchemaTargetsRequest {
+  ProviderIdentity provider = 1;
+}
+
+message SchemaTargetsResponse {
+  ApiStatus status = 1;
+  repeated string target_ids = 2;
+}
+
+message PropertySchemaRequest {
+  ProviderIdentity provider = 1;
+  string target_id = 2;
+}
+
+message PropertySchemaResponse {
+  ApiStatus status = 1;
+  repeated PropertySchemaEntry entries = 2;
+}
+
+// ---------------------------------------------------------------------------
+// IValidationProvider
+// ---------------------------------------------------------------------------
+
+message ValidateGraphRequest {
+  ProviderIdentity provider = 1;
+  cme.GraphSnapshot graph_snapshot = 2;
+}
+
+message ValidateGraphResponse {
+  ApiStatus status = 1;
+  cme.GraphValidationResult result = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Optional reusable sandbox snapshot envelope
+// ---------------------------------------------------------------------------
+
+message ExecutionSnapshotEnvelope {
+  ApiStatus status = 1;
+  cme.ExecutionSnapshot snapshot = 2;
+}
