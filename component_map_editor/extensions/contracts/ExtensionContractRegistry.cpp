@@ -60,7 +60,27 @@ bool ExtensionContractRegistry::registerPropertySchemaProvider(const IPropertySc
 
 bool ExtensionContractRegistry::registerValidationProvider(const IValidationProvider *provider, QString *error)
 {
-    return registerProviderInternal(provider, &m_validationProviders,
+    if (!registerProviderInternal(provider, &m_validationProviders,
+                                  QStringLiteral("validation"), error)) {
+        return false;
+    }
+
+    std::unique_ptr<ValidationProviderV1ToV2Adapter> adapter(
+        new ValidationProviderV1ToV2Adapter(provider));
+    if (!registerProviderInternal(static_cast<const IValidationProviderV2 *>(adapter.get()),
+                                  &m_validationProvidersV2,
+                                  QStringLiteral("validation"),
+                                  error)) {
+        return false;
+    }
+
+    m_validationV1ToV2Adapters.push_back(std::move(adapter));
+    return true;
+}
+
+bool ExtensionContractRegistry::registerValidationProvider(const IValidationProviderV2 *provider, QString *error)
+{
+    return registerProviderInternal(provider, &m_validationProvidersV2,
                                     QStringLiteral("validation"), error);
 }
 
@@ -136,6 +156,11 @@ QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchema
 QList<const IValidationProvider *> ExtensionContractRegistry::validationProviders() const
 {
     return m_validationProviders.order;
+}
+
+QList<const IValidationProviderV2 *> ExtensionContractRegistry::validationProvidersV2() const
+{
+    return m_validationProvidersV2.order;
 }
 
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const

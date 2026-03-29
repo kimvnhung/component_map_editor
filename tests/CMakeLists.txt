@@ -499,3 +499,28 @@ add_test(
     COMMAND tst_Phase6TypedExecutionEvents
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 7: Extension Contract V2 Parallel Support ─────────────────────────
+# Mixed-mode registry/session support for V1 and V2 providers with typed core path.
+qt_add_executable(tst_Phase7ExtensionContractV2Parallel
+    tst_Phase7ExtensionContractV2Parallel.cpp
+)
+
+target_link_libraries(tst_Phase7ExtensionContractV2Parallel
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase7ExtensionContractV2Parallel
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase7ExtensionContractV2Parallel
+    COMMAND tst_Phase7ExtensionContractV2Parallel
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

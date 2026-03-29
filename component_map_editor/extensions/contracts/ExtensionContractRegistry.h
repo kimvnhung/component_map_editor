@@ -17,6 +17,8 @@
 #include "IExecutionSemanticsProviderV0.h"
 #include "IPropertySchemaProvider.h"
 #include "IValidationProvider.h"
+#include "IValidationProviderV2.h"
+#include "ValidationProviderV1ToV2Adapter.h"
 
 // Holds providers in insertion order while also providing O(1) duplicate-ID checks.
 template <typename T>
@@ -37,6 +39,7 @@ public:
     bool registerConnectionPolicyProvider(const IConnectionPolicyProvider *provider, QString *error = nullptr);
     bool registerPropertySchemaProvider(const IPropertySchemaProvider *provider, QString *error = nullptr);
     bool registerValidationProvider(const IValidationProvider *provider, QString *error = nullptr);
+    bool registerValidationProvider(const IValidationProviderV2 *provider, QString *error = nullptr);
     bool registerActionProvider(const IActionProvider *provider, QString *error = nullptr);
     bool registerExecutionSemanticsProvider(const IExecutionSemanticsProvider *provider,
                                             QString *error = nullptr);
@@ -52,6 +55,7 @@ public:
     QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
     QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
     QList<const IValidationProvider *> validationProviders() const;
+    QList<const IValidationProviderV2 *> validationProvidersV2() const;
     QList<const IExecutionSemanticsProvider *> executionSemanticsProviders() const;
 
 private:
@@ -96,8 +100,10 @@ private:
     ProviderRegistry<IConnectionPolicyProvider>  m_connectionPolicyProviders;
     ProviderRegistry<IPropertySchemaProvider>    m_propertySchemaProviders;
     ProviderRegistry<IValidationProvider>        m_validationProviders;
+    ProviderRegistry<IValidationProviderV2>      m_validationProvidersV2;
     ProviderRegistry<IActionProvider>            m_actionProviders;
     ProviderRegistry<IExecutionSemanticsProvider> m_executionSemanticsProviders;
+    std::vector<std::unique_ptr<ValidationProviderV1ToV2Adapter>> m_validationV1ToV2Adapters;
     std::vector<std::unique_ptr<ExecutionSemanticsV0Adapter>> m_executionSemanticsV0Adapters;
 };
 

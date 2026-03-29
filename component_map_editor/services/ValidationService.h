@@ -7,8 +7,13 @@
 #include <qqml.h>
 
 #include "extensions/contracts/IValidationProvider.h"
+#include "extensions/contracts/IValidationProviderV2.h"
+#include "extensions/contracts/ValidationProviderV1ToV2Adapter.h"
 #include "models/GraphModel.h"
 #include "graph.pb.h"
+
+#include <memory>
+#include <vector>
 
 class ExtensionContractRegistry;
 
@@ -21,6 +26,7 @@ public:
     explicit ValidationService(QObject *parent = nullptr);
 
     void setValidationProviders(const QList<const IValidationProvider *> &providers);
+    void setValidationProvidersV2(const QList<const IValidationProviderV2 *> &providers);
     void rebuildValidationFromRegistry(const ExtensionContractRegistry &registry);
 
     // Returns true if the graph has no structural errors.
@@ -42,7 +48,8 @@ private:
     
     static bool issueIsError(const QVariantMap &issue);
 
-    QList<const IValidationProvider *> m_validationProviders;
+    QList<const IValidationProviderV2 *> m_validationProviders;
+    std::vector<std::unique_ptr<ValidationProviderV1ToV2Adapter>> m_validationV1Adapters;
 };
 
 #endif // VALIDATIONSERVICE_H

@@ -9,8 +9,24 @@ ValidationService::ValidationService(QObject *parent)
 
 void ValidationService::setValidationProviders(const QList<const IValidationProvider *> &providers)
 {
+    m_validationV1Adapters.clear();
     m_validationProviders.clear();
     for (const IValidationProvider *provider : providers) {
+        if (provider)
+            m_validationV1Adapters.emplace_back(new ValidationProviderV1ToV2Adapter(provider));
+    }
+
+    for (const std::unique_ptr<ValidationProviderV1ToV2Adapter> &adapter : m_validationV1Adapters) {
+        if (adapter)
+            m_validationProviders.append(adapter.get());
+    }
+}
+
+void ValidationService::setValidationProvidersV2(const QList<const IValidationProviderV2 *> &providers)
+{
+    m_validationV1Adapters.clear();
+    m_validationProviders.clear();
+    for (const IValidationProviderV2 *provider : providers) {
         if (provider)
             m_validationProviders.append(provider);
     }
@@ -18,7 +34,7 @@ void ValidationService::setValidationProviders(const QList<const IValidationProv
 
 void ValidationService::rebuildValidationFromRegistry(const ExtensionContractRegistry &registry)
 {
-    setValidationProviders(registry.validationProviders());
+    setValidationProvidersV2(registry.validationProvidersV2());
 }
 
 QStringList ValidationService::validationErrors(GraphModel *graph)
@@ -61,13 +77,26 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
     // Convert typed snapshot back to legacy format for providers
     const QVariantMap snapshot = cme::adapter::graphSnapshotForValidationToVariantMap(typedSnapshot);
     
-    for (const IValidationProvider *provider : std::as_const(m_validationProviders)) {
+    for (const IValidationProviderV2 *provider : std::as_const(m_validationProviders)) {
         if (!provider)
             continue;
 
-        const QVariantList providerIssues = provider->validateGraph(snapshot);
-        for (const QVariant &issueValue : providerIssues) {
-            const QVariantMap issue = issueValue.toMap();
+        cme::GraphValidationResult providerResult;
+        QString providerError;
+        if (!provider->validateGraph(typedSnapshot, &providerResult, &providerError)) {
+            issues.append(QVariantMap{
+                { QStringLiteral("code"), QStringLiteral("CORE_VALIDATION_PROVIDER_ERROR") },
+                { QStringLiteral("severity"), QStringLiteral("error") },
+                { QStringLiteral("message"), providerError.isEmpty() ? QStringLiteral("Validation provider failed")
+                                                                      : providerError },
+                { QStringLiteral("entityType"), QStringLiteral("graph") },
+                { QStringLiteral("entityId"), QString() }
+            });
+            continue;
+        }
+
+        for (int i = 0; i < providerResult.issues_size(); ++i) {
+            const QVariantMap issue = cme::adapter::validationIssueToVariantMap(providerResult.issues(i));
             if (issue.isEmpty())
                 continue;
             issues.append(issue);
