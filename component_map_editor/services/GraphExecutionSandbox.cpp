@@ -5,6 +5,7 @@
 #include "adapters/ExecutionAdapter.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/PublicApiContractAdapter.h"
+#include "services/ExecutionMigrationFlags.h"
 
 namespace {
 
@@ -91,7 +92,9 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
     appendTimelineEvent(TimelineEventKind::SimulationStarted,
                         QVariantMap{
                             { QStringLiteral("componentCount"), m_componentsById.size() },
-                            { QStringLiteral("inputKeys"), inputSnapshot.keys() }
+                                                        { QStringLiteral("inputKeys"), inputSnapshot.keys() },
+                                                        { QStringLiteral("tokenTransportEnabled"),
+                                                            cme::execution::MigrationFlags::tokenTransportEnabled() }
                         });
 
     setStatus(RunStatus::Paused);
@@ -237,7 +240,9 @@ QVariantMap GraphExecutionSandbox::snapshotSummary() const
         { QStringLiteral("executedCount"), m_executed.size() },
         { QStringLiteral("pendingCount"), m_componentsById.size() - m_executed.size() },
         { QStringLiteral("readyQueue"), m_readyQueue },
-        { QStringLiteral("breakpoints"), breakpoints() }
+        { QStringLiteral("breakpoints"), breakpoints() },
+        { QStringLiteral("tokenTransportEnabled"),
+          cme::execution::MigrationFlags::tokenTransportEnabled() }
     };
 }
 
@@ -496,17 +501,19 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     const ComponentSnapshot component = m_componentsById.value(componentId);
     QVariantMap trace;
     QVariantMap outputState = m_executionState;
+    cme::execution::IncomingTokens incomingTokens;
+    incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
 
     const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(component.type, nullptr);
     if (provider) {
         QString error;
-        if (!provider->executeComponent(component.type,
-                                        component.id,
-                                        toComponentSnapshotMap(component),
-                                        m_executionState,
-                                        &outputState,
-                                        &trace,
-                                        &error)) {
+        if (!provider->executeComponentV2(component.type,
+                                          component.id,
+                                          toComponentSnapshotMap(component),
+                                          incomingTokens,
+                                          &outputState,
+                                          &trace,
+                                          &error)) {
             markError(error.isEmpty() ? QStringLiteral("Execution semantics provider returned failure.")
                                       : error);
             return false;

@@ -374,6 +374,30 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# ── Phase 0: Design B Baseline Freeze ───────────────────────────────────────
+# Captures baseline metrics and invariants with token transport migration flag
+# disabled (default-off compatibility path).
+qt_add_executable(tst_Phase0DesignBBaselineFreeze
+    tst_Phase0DesignBBaselineFreeze.cpp
+)
+
+target_link_libraries(tst_Phase0DesignBBaselineFreeze
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase0DesignBBaselineFreeze
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_Phase0DesignBBaselineFreeze
+    COMMAND tst_Phase0DesignBBaselineFreeze
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ── Phase 1: Protobuf Contract Foundation ─────────────────────────────────
 # Encode/decode roundtrip tests for every proto message type defined in proto/.
 # Links only cme_proto (no libComponentMapEditor dependency) — these are pure
@@ -391,6 +415,30 @@ target_link_libraries(tst_Phase1ProtoContracts
 add_test(
     NAME tst_Phase1ProtoContracts
     COMMAND tst_Phase1ProtoContracts
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# ── Phase 1: Execution Semantics v2 Compatibility ──────────────────────────
+# Ensures v1 providers still work unchanged through the v2 fallback adapter and
+# that simple linear graph timeline ordering remains deterministic.
+qt_add_executable(tst_Phase1ExecutionSemanticsV2Compatibility
+    tst_Phase1ExecutionSemanticsV2Compatibility.cpp
+)
+
+target_link_libraries(tst_Phase1ExecutionSemanticsV2Compatibility
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase1ExecutionSemanticsV2Compatibility
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_Phase1ExecutionSemanticsV2Compatibility
+    COMMAND tst_Phase1ExecutionSemanticsV2Compatibility
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
