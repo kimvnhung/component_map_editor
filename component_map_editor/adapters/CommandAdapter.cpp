@@ -293,4 +293,34 @@ QVariantMap setConnectionPropertyRequestToVariantMap(
     return result;
 }
 
+// ── Command type string ↔ enum conversion (Phase 8) ──────────────────────────
+// All string literals for command dispatch are confined to this adapter.
+// Core modules (CommandGateway) must use cme::CommandType enum for branching.
+
+cme::CommandType commandTypeFromString(const QString &commandType)
+{
+    if (commandType == QLatin1String("addComponent"))          return cme::COMMAND_TYPE_ADD_COMPONENT;
+    if (commandType == QLatin1String("removeComponent"))       return cme::COMMAND_TYPE_REMOVE_COMPONENT;
+    if (commandType == QLatin1String("moveComponent"))         return cme::COMMAND_TYPE_MOVE_COMPONENT;
+    if (commandType == QLatin1String("addConnection"))         return cme::COMMAND_TYPE_ADD_CONNECTION;
+    if (commandType == QLatin1String("removeConnection"))      return cme::COMMAND_TYPE_REMOVE_CONNECTION;
+    if (commandType == QLatin1String("setComponentProperty"))  return cme::COMMAND_TYPE_SET_COMPONENT_PROPERTY;
+    if (commandType == QLatin1String("setConnectionProperty")) return cme::COMMAND_TYPE_SET_CONNECTION_PROPERTY;
+    return cme::COMMAND_TYPE_UNSPECIFIED;
+}
+
+QString commandTypeToString(cme::CommandType commandType)
+{
+    switch (commandType) {
+    case cme::COMMAND_TYPE_ADD_COMPONENT:           return QStringLiteral("addComponent");
+    case cme::COMMAND_TYPE_REMOVE_COMPONENT:        return QStringLiteral("removeComponent");
+    case cme::COMMAND_TYPE_MOVE_COMPONENT:          return QStringLiteral("moveComponent");
+    case cme::COMMAND_TYPE_ADD_CONNECTION:          return QStringLiteral("addConnection");
+    case cme::COMMAND_TYPE_REMOVE_CONNECTION:       return QStringLiteral("removeConnection");
+    case cme::COMMAND_TYPE_SET_COMPONENT_PROPERTY:  return QStringLiteral("setComponentProperty");
+    case cme::COMMAND_TYPE_SET_CONNECTION_PROPERTY: return QStringLiteral("setConnectionProperty");
+    default:                                        return {};
+    }
+}
+
 } // namespace cme::adapter

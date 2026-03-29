@@ -8,6 +8,16 @@
 
 namespace {
 
+// Phase 8: Converts the JSON "kind" string to a typed RuleKind enum.
+// String literals for rule kinds are confined to this one function.
+RuleKind ruleKindFromString(const QString &s)
+{
+    if (s == QLatin1String("exactlyOneType")) return RuleKind::ExactlyOneType;
+    if (s == QLatin1String("endpointExists")) return RuleKind::EndpointExists;
+    if (s == QLatin1String("noIsolated"))     return RuleKind::NoIsolated;
+    return RuleKind::Unknown;
+}
+
 void appendMissingFieldErrorLocal(QVector<RuleDiagnostic> *diagnostics,
                                   const QString &sourcePath,
                                   const QString &jsonPath,
@@ -248,11 +258,12 @@ RuleCompileResult RuleCompiler::compileFromJsonText(const QString &jsonText,
 
         const QJsonObject object = entry.toObject();
         CompiledValidationRule rule;
-        rule.kind = expectString(object,
+        const QString kindStr = expectString(object,
                                  QStringLiteral("kind"),
                                  sourcePath,
                                  basePath,
                                  &result.diagnostics);
+        rule.kind = ruleKindFromString(kindStr);
         rule.code = expectString(object,
                                  QStringLiteral("code"),
                                  sourcePath,
@@ -269,25 +280,27 @@ RuleCompileResult RuleCompiler::compileFromJsonText(const QString &jsonText,
                                     basePath,
                                     &result.diagnostics);
 
-        if (rule.kind == QStringLiteral("exactlyOneType")) {
+        if (rule.kind == RuleKind::ExactlyOneType) {
             rule.type = expectString(object,
                                      QStringLiteral("type"),
                                      sourcePath,
                                      basePath,
                                      &result.diagnostics);
-        } else if (rule.kind == QStringLiteral("endpointExists") ||
-                   rule.kind == QStringLiteral("noIsolated")) {
+        } else if (rule.kind == RuleKind::EndpointExists || rule.kind == RuleKind::NoIsolated) {
             // No additional fields.
-        } else if (!rule.kind.isEmpty()) {
-            result.diagnostics.append(makeError(sourcePath,
-                                                basePath + QStringLiteral(".kind"),
-                                                0,
-                                                0,
-                                                QStringLiteral("Unsupported validation rule kind '%1'.")
-                                                    .arg(rule.kind)));
+        } else {
+            // Unknown kind — emit diagnostic using the original string for clear error message
+            if (!kindStr.isEmpty()) {
+                result.diagnostics.append(makeError(sourcePath,
+                                                    basePath + QStringLiteral(".kind"),
+                                                    0,
+                                                    0,
+                                                    QStringLiteral("Unsupported validation rule kind '%1'.")
+                                                        .arg(kindStr)));
+            }
         }
 
-        if (rule.kind.isEmpty() || rule.code.isEmpty() || rule.severity.isEmpty() || rule.message.isEmpty())
+        if (rule.kind == RuleKind::Unknown || rule.code.isEmpty() || rule.severity.isEmpty() || rule.message.isEmpty())
             continue;
 
         result.descriptor.validationRules.append(rule);

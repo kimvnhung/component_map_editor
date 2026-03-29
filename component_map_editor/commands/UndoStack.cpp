@@ -1,6 +1,7 @@
 #include "UndoStack.h"
 
 #include "GraphCommands.h"
+#include "services/GraphSchema.h"
 
 #include <QSet>
 
@@ -22,13 +23,14 @@ ConnectionModel::Side sideFromInt(int sideValue)
 
 bool isConnectionPropertyUndoable(const QString &name)
 {
+    // Use GraphSchema::Keys constants — no raw string literals in core logic.
     static const QSet<QString> kAllowed {
-        QStringLiteral("id"),
-        QStringLiteral("sourceId"),
-        QStringLiteral("targetId"),
-        QStringLiteral("label"),
-        QStringLiteral("sourceSide"),
-        QStringLiteral("targetSide")
+        GraphSchema::Keys::connectionId(),
+        GraphSchema::Keys::connectionSourceId(),
+        GraphSchema::Keys::connectionTargetId(),
+        GraphSchema::Keys::connectionLabel(),
+        GraphSchema::Keys::connectionSourceSide(),
+        GraphSchema::Keys::connectionTargetSide()
     };
     return kAllowed.contains(name);
 }

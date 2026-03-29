@@ -60,7 +60,7 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
     if (!graph) {
         issues.append(QVariantMap{
             { QStringLiteral("code"), QStringLiteral("CORE_NULL_GRAPH") },
-            { QStringLiteral("severity"), QStringLiteral("error") },
+            { QStringLiteral("severity"), cme::adapter::validationSeverityToString(cme::VALIDATION_SEVERITY_ERROR) },
             { QStringLiteral("message"), QStringLiteral("Graph is null") },
             { QStringLiteral("entityType"), QStringLiteral("graph") },
             { QStringLiteral("entityId"), QString() }
@@ -86,7 +86,7 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
         if (!provider->validateGraph(typedSnapshot, &providerResult, &providerError)) {
             issues.append(QVariantMap{
                 { QStringLiteral("code"), QStringLiteral("CORE_VALIDATION_PROVIDER_ERROR") },
-                { QStringLiteral("severity"), QStringLiteral("error") },
+                { QStringLiteral("severity"), cme::adapter::validationSeverityToString(cme::VALIDATION_SEVERITY_ERROR) },
                 { QStringLiteral("message"), providerError.isEmpty() ? QStringLiteral("Validation provider failed")
                                                                       : providerError },
                 { QStringLiteral("entityType"), QStringLiteral("graph") },
@@ -245,5 +245,7 @@ cme::GraphSnapshot ValidationService::buildTypedGraphSnapshot(GraphModel *graph)
 bool ValidationService::issueIsError(const QVariantMap &issue)
 {
     const QString severity = issue.value(QStringLiteral("severity")).toString().trimmed().toLower();
-    return severity.isEmpty() || severity == QStringLiteral("error");
+    // Compare against the adapter-defined constant; no raw "error" string in core logic.
+    return severity.isEmpty()
+           || severity == cme::adapter::validationSeverityToString(cme::VALIDATION_SEVERITY_ERROR);
 }

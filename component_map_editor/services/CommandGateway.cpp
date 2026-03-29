@@ -144,15 +144,22 @@ void CommandGateway::resetCommandLatencyStats()
 
 QStringList CommandGateway::supportedCommands()
 {
-    return {
-        QStringLiteral("addComponent"),
-        QStringLiteral("removeComponent"),
-        QStringLiteral("moveComponent"),
-        QStringLiteral("addConnection"),
-        QStringLiteral("removeConnection"),
-        QStringLiteral("setComponentProperty"),
-        QStringLiteral("setConnectionProperty"),
-    };
+    // String names are derived from the CommandType enum via the adapter.
+    // Core logic must not hard-code these strings.
+    static QStringList s_list;
+    if (s_list.isEmpty()) {
+        using CT = cme::CommandType;
+        for (CT t : { CT::COMMAND_TYPE_ADD_COMPONENT,
+                      CT::COMMAND_TYPE_REMOVE_COMPONENT,
+                      CT::COMMAND_TYPE_MOVE_COMPONENT,
+                      CT::COMMAND_TYPE_ADD_CONNECTION,
+                      CT::COMMAND_TYPE_REMOVE_CONNECTION,
+                      CT::COMMAND_TYPE_SET_COMPONENT_PROPERTY,
+                      CT::COMMAND_TYPE_SET_CONNECTION_PROPERTY }) {
+            s_list.append(cme::adapter::commandTypeToString(t));
+        }
+    }
+    return s_list;
 }
 
 // ── Private implementation ────────────────────────────────────────────────────
@@ -194,6 +201,10 @@ bool CommandGateway::dispatchCommand(const QString &actor,
     if (commandType.isEmpty())
         return reject(QStringLiteral("CommandGateway: commandRequest missing 'command' key"));
 
+    // Convert the legacy string discriminator to a typed enum exactly once at the boundary.
+    // All dispatch below uses the enum; string literals remain confined to CommandAdapter.
+    const cme::CommandType cmdEnum = cme::adapter::commandTypeFromString(commandType);
+
     // ── Capability gate ───────────────────────────────────────────────────
     if (requireCapability && m_capabilityRegistry) {
         if (!m_capabilityRegistry->checkAndAudit(
@@ -220,7 +231,8 @@ bool CommandGateway::dispatchCommand(const QString &actor,
     // Each branch validates its own required fields and returns reject() on
     // missing data.  On success it pushes exactly one command to the undo stack.
 
-    if (commandType == QStringLiteral("addComponent")) {
+    switch (cmdEnum) {
+    case cme::COMMAND_TYPE_ADD_COMPONENT: {
         const QString id     = commandRequest.value(QStringLiteral("id")).toString();
         const QString typeId = commandRequest.value(QStringLiteral("typeId")).toString();
         const qreal   x      = commandRequest.value(QStringLiteral("x"), 0.0).toDouble();
@@ -238,8 +250,9 @@ bool CommandGateway::dispatchCommand(const QString &actor,
         component->setX(x);
         component->setY(y);
         m_undoStack->pushAddComponent(m_graph, component);
-
-    } else if (commandType == QStringLiteral("removeComponent")) {
+        break;
+    }
+    case cme::COMMAND_TYPE_REMOVE_COMPONENT: {
         const QString id = commandRequest.value(QStringLiteral("id")).toString();
         if (id.isEmpty())
             return reject(QStringLiteral("removeComponent: 'id' is required"));
@@ -247,8 +260,9 @@ bool CommandGateway::dispatchCommand(const QString &actor,
             return reject(
                 QStringLiteral("removeComponent: component '%1' not found").arg(id));
         m_undoStack->pushRemoveComponent(m_graph, id);
-
-    } else if (commandType == QStringLiteral("moveComponent")) {
+        break;
+    }
+    case cme::COMMAND_TYPE_MOVE_COMPONENT: {
         const QString id = commandRequest.value(QStringLiteral("id")).toString();
         const qreal   nx = commandRequest.value(QStringLiteral("x"), 0.0).toDouble();
         const qreal   ny = commandRequest.value(QStringLiteral("y"), 0.0).toDouble();
@@ -258,8 +272,9 @@ bool CommandGateway::dispatchCommand(const QString &actor,
         if (!comp)
             return reject(QStringLiteral("moveComponent: component '%1' not found").arg(id));
         m_undoStack->pushMoveComponent(m_graph, id, comp->x(), comp->y(), nx, ny);
-
-    } else if (commandType == QStringLiteral("addConnection")) {
+        break;
+    }
+    case cme::COMMAND_TYPE_ADD_CONNECTION: {
         const QString id    = commandRequest.value(QStringLiteral("id")).toString();
         const QString src   = commandRequest.value(QStringLiteral("sourceId")).toString();
         const QString tgt   = commandRequest.value(QStringLiteral("targetId")).toString();
@@ -282,14 +297,16 @@ bool CommandGateway::dispatchCommand(const QString &actor,
         connection->setTargetId(tgt);
         connection->setLabel(label);
         m_undoStack->pushAddConnection(m_graph, connection);
-
-    } else if (commandType == QStringLiteral("removeConnection")) {
+        break;
+    }
+    case cme::COMMAND_TYPE_REMOVE_CONNECTION: {
         const QString id = commandRequest.value(QStringLiteral("id")).toString();
         if (id.isEmpty())
             return reject(QStringLiteral("removeConnection: 'id' is required"));
         m_undoStack->pushRemoveConnection(m_graph, id);
-
-    } else if (commandType == QStringLiteral("setComponentProperty")) {
+        break;
+    }
+    case cme::COMMAND_TYPE_SET_COMPONENT_PROPERTY: {
         const QString  id       = commandRequest.value(QStringLiteral("id")).toString();
         const QString  property = commandRequest.value(QStringLiteral("property")).toString();
         const QVariant value    = commandRequest.value(QStringLiteral("value"));
@@ -301,8 +318,9 @@ bool CommandGateway::dispatchCommand(const QString &actor,
             return reject(
                 QStringLiteral("setComponentProperty: component '%1' not found").arg(id));
         m_undoStack->pushSetComponentProperty(comp, property, value);
-
-    } else if (commandType == QStringLiteral("setConnectionProperty")) {
+        break;
+    }
+    case cme::COMMAND_TYPE_SET_CONNECTION_PROPERTY: {
         const QString  id       = commandRequest.value(QStringLiteral("id")).toString();
         const QString  property = commandRequest.value(QStringLiteral("property")).toString();
         const QVariant value    = commandRequest.value(QStringLiteral("value"));
@@ -314,8 +332,9 @@ bool CommandGateway::dispatchCommand(const QString &actor,
             return reject(
                 QStringLiteral("setConnectionProperty: connection '%1' not found").arg(id));
         m_undoStack->pushSetConnectionProperty(conn, property, value);
-
-    } else {
+        break;
+    }
+    default:
         return reject(QStringLiteral("CommandGateway: unknown command '%1'").arg(commandType));
     }
 

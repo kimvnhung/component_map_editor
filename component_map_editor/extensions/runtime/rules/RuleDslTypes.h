@@ -36,10 +36,19 @@ struct CompiledConnectionRule
     QString reason;
 };
 
+// Typed enum for validation rule kinds (Phase 8: replaces raw string dispatch).
+// String literals for rule kinds are confined to RuleCompiler (JSON parsing only).
+enum class RuleKind {
+    Unknown,         // unrecognized kind — compile error
+    ExactlyOneType,  // "exactlyOneType" in JSON
+    EndpointExists,  // "endpointExists" in JSON
+    NoIsolated       // "noIsolated" in JSON
+};
+
 struct CompiledValidationRule
 {
-    // Supported kinds: exactlyOneType, endpointExists, noIsolated
-    QString kind;
+    // Supported kinds encoded as typed enum (was: raw QString).
+    RuleKind kind = RuleKind::Unknown;
     QString type;
     QString code;
     QString severity;

@@ -117,6 +117,17 @@ QVariantMap setConnectionPropertyRequestToVariantMap(
     const cme::SetConnectionPropertyRequest &proto
 );
 
+// ── Command type string ↔ enum conversion (Phase 8) ──────────────────────────
+
+/// Convert a legacy command-type string discriminator to a typed CommandType enum.
+/// Unknown strings return COMMAND_TYPE_UNSPECIFIED.
+/// String literals are confined to this adapter; core logic must use the enum.
+cme::CommandType commandTypeFromString(const QString &commandType);
+
+/// Convert a CommandType enum to its legacy string representation.
+/// Only for use inside compatibility adapters and the boundary layer.
+QString commandTypeToString(cme::CommandType commandType);
+
 // ── CommandAdapter base class (for Phase 3 extension pattern) ─────────────────
 
 /// Abstract base class for command adapters.

@@ -51,4 +51,10 @@ QVariantMap graphSnapshotForValidationToVariantMap(
     const cme::GraphSnapshot &proto
 );
 
+// ── Severity helpers (Phase 8) ────────────────────────────────────────────
+
+/// Convert a ValidationSeverity enum to its legacy string ("error"/"warning"/"info").
+/// Use this constant in core code instead of hardcoding the raw string literal.
+QString validationSeverityToString(cme::ValidationSeverity severity);
+
 } // namespace cme::adapter

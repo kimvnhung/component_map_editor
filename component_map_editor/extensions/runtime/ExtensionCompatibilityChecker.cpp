@@ -7,12 +7,23 @@
 
 namespace {
 
+// Phase 8: Converts ApiChangeSeverity enum to its QML-facing legacy string.
+// String literals for severity are confined to this adapter helper.
+QString apiChangeSeverityToString(ApiChangeSeverity severity)
+{
+    switch (severity) {
+    case ApiChangeSeverity::Breaking:   return QStringLiteral("breaking");
+    case ApiChangeSeverity::Deprecated: return QStringLiteral("deprecated");
+    }
+    return {};
+}
+
 QVariantMap changeToVariant(const ApiChangeItem &item)
 {
     QVariantMap v;
     v.insert(QStringLiteral("id"), item.id);
     v.insert(QStringLiteral("contract"), item.contract);
-    v.insert(QStringLiteral("severity"), item.severity);
+    v.insert(QStringLiteral("severity"), apiChangeSeverityToString(item.severity));
     v.insert(QStringLiteral("minContractVersion"), item.minContractVersion);
     v.insert(QStringLiteral("description"), item.description);
     v.insert(QStringLiteral("migration"), item.migration);
@@ -31,7 +42,7 @@ QList<ApiChangeItem> ExtensionCompatibilityChecker::catalog()
         {
             QStringLiteral("EXT-EXEC-001"),
             QStringLiteral("executionSemantics"),
-            QStringLiteral("breaking"),
+            ApiChangeSeverity::Breaking,
             1,
             QStringLiteral("Execution semantics contract v1 introduces trace output requirements."),
             QStringLiteral("Migrate provider to v1 signature or rely on core v0 adapter; ensure trace fields are emitted.")
@@ -39,7 +50,7 @@ QList<ApiChangeItem> ExtensionCompatibilityChecker::catalog()
         {
             QStringLiteral("EXT-ACTION-DEP-001"),
             QStringLiteral("actions"),
-            QStringLiteral("deprecated"),
+            ApiChangeSeverity::Deprecated,
             1,
             QStringLiteral("Action descriptor key 'iconName' is deprecated; use 'icon'."),
             QStringLiteral("Update action descriptors to provide 'icon' and keep 'iconName' only during transition.")
@@ -47,7 +58,7 @@ QList<ApiChangeItem> ExtensionCompatibilityChecker::catalog()
         {
             QStringLiteral("EXT-SCHEMA-DEP-001"),
             QStringLiteral("propertySchema"),
-            QStringLiteral("deprecated"),
+            ApiChangeSeverity::Deprecated,
             1,
             QStringLiteral("Property schema key 'widget' is deprecated; use 'editor'."),
             QStringLiteral("Rename schema field 'widget' to 'editor' across schemas.")
@@ -59,7 +70,7 @@ QStringList ExtensionCompatibilityChecker::intentionalBreakingChangeIds()
 {
     QStringList ids;
     for (const ApiChangeItem &item : catalog()) {
-        if (item.severity == QStringLiteral("breaking"))
+        if (item.severity == ApiChangeSeverity::Breaking)
             ids.append(item.id);
     }
     return ids;
@@ -96,7 +107,7 @@ QVariantMap ExtensionCompatibilityChecker::analyzeManifest(const ExtensionManife
 
         const int version = contractVersionFromManifest(manifest, item.contract, 1);
         if (version < item.minContractVersion) {
-            if (item.severity == QStringLiteral("breaking"))
+            if (item.severity == ApiChangeSeverity::Breaking)
                 breakings.append(changeToVariant(item));
             else
                 deprecations.append(changeToVariant(item));

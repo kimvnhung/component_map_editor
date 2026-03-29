@@ -524,3 +524,32 @@ add_test(
     COMMAND tst_Phase7ExtensionContractV2Parallel
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 8: Hardcoded String Cleanup ────────────────────────────────────────
+# Static-check tests: verify forbidden raw literals are absent from core modules.
+qt_add_executable(tst_Phase8HardcodedStringCleanup
+    tst_Phase8HardcodedStringCleanup.cpp
+)
+
+target_compile_definitions(tst_Phase8HardcodedStringCleanup PRIVATE
+    CME_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(tst_Phase8HardcodedStringCleanup
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase8HardcodedStringCleanup
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase8HardcodedStringCleanup
+    COMMAND tst_Phase8HardcodedStringCleanup
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

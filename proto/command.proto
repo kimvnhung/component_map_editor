@@ -2,6 +2,20 @@ syntax = "proto3";
 
 package cme;
 
+// ── Command type discriminator enum ───────────────────────────────────────
+// Mirrors the oneof payload branches of GraphCommandRequest and replaces
+// raw string discriminators in core dispatch logic.
+enum CommandType {
+  COMMAND_TYPE_UNSPECIFIED             = 0;
+  COMMAND_TYPE_ADD_COMPONENT           = 1;
+  COMMAND_TYPE_REMOVE_COMPONENT        = 2;
+  COMMAND_TYPE_MOVE_COMPONENT          = 3;
+  COMMAND_TYPE_ADD_CONNECTION          = 4;
+  COMMAND_TYPE_REMOVE_CONNECTION       = 5;
+  COMMAND_TYPE_SET_COMPONENT_PROPERTY  = 6;
+  COMMAND_TYPE_SET_CONNECTION_PROPERTY = 7;
+}
+
 // ── Error codes returned in GraphCommandResult ─────────────────────────────
 enum ErrorCode {
   ERROR_CODE_UNSPECIFIED        = 0;

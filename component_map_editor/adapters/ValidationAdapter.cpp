@@ -5,41 +5,50 @@
 
 namespace cme::adapter {
 
-// ── Helper: Restore sourceSide/targetSide from properties to top-level ──────
-// When building typed snapshot, these are stored in proto properties map as strings.
-// Legacy format expects them as top-level int fields, so we restore them here.
-static void restoreConnectionSideFields(QVariantMap &connectionMap)
+// ── Helpers: Restore legacy snapshot shape from proto properties ─────────────
+// The typed GraphSnapshot stores component/connection attributes in the proto
+// properties map. V1 validation providers still expect the legacy flattened
+// QVariantMap shape with top-level fields like type/title/label/sourceSide.
+
+static void restoreComponentFields(QVariantMap &componentMap)
 {
-    if (connectionMap.contains("properties")) {
-        auto props = connectionMap["properties"].toMap();
-        
-        // Extract and restore sourceSide as top-level int field
-        if (props.contains("sourceSide")) {
-            bool ok = false;
-            int sideValue = props["sourceSide"].toInt(&ok);
-            if (ok) {
-                connectionMap["sourceSide"] = sideValue;
-            }
-            props.remove("sourceSide");
-        }
-        
-        // Extract and restore targetSide as top-level int field
-        if (props.contains("targetSide")) {
-            bool ok = false;
-            int sideValue = props["targetSide"].toInt(&ok);
-            if (ok) {
-                connectionMap["targetSide"] = sideValue;
-            }
-            props.remove("targetSide");
-        }
-        
-        // Update properties map if modified
-        if (props.isEmpty()) {
-            connectionMap.remove("properties");
-        } else {
-            connectionMap["properties"] = props;
-        }
+    if (!componentMap.contains("properties"))
+        return;
+
+    QVariantMap props = componentMap["properties"].toMap();
+    for (auto it = props.constBegin(); it != props.constEnd(); ++it)
+        componentMap.insert(it.key(), it.value());
+
+    if (componentMap.contains("typeId") && !componentMap.contains("type"))
+        componentMap.insert("type", componentMap.value("typeId"));
+
+    componentMap.remove("properties");
+}
+
+static void restoreConnectionFields(QVariantMap &connectionMap)
+{
+    if (!connectionMap.contains("properties"))
+        return;
+
+    QVariantMap props = connectionMap["properties"].toMap();
+    for (auto it = props.constBegin(); it != props.constEnd(); ++it)
+        connectionMap.insert(it.key(), it.value());
+
+    if (connectionMap.contains("sourceSide")) {
+        bool ok = false;
+        const int sideValue = connectionMap.value("sourceSide").toInt(&ok);
+        if (ok)
+            connectionMap.insert("sourceSide", sideValue);
     }
+
+    if (connectionMap.contains("targetSide")) {
+        bool ok = false;
+        const int sideValue = connectionMap.value("targetSide").toInt(&ok);
+        if (ok)
+            connectionMap.insert("targetSide", sideValue);
+    }
+
+    connectionMap.remove("properties");
 }
 
 // ── QVariantMap -> Protobuf ────────────────────────────────────────────────
@@ -156,19 +165,39 @@ QVariantMap graphSnapshotForValidationToVariantMap(
 {
     // First: delegate to GraphAdapter for base conversion
     QVariantMap result = graphSnapshotToVariantMap(proto);
-    
-    // Second: restore sourceSide/targetSide as top-level int fields in connections
-    // (they were stored in properties map when building from proto, but legacy format expects them as top-level ints)
+
+    if (result.contains("components")) {
+        QVariantList components = result["components"].toList();
+        for (QVariant &componentVar : components) {
+            QVariantMap componentMap = componentVar.toMap();
+            restoreComponentFields(componentMap);
+            componentVar = componentMap;
+        }
+        result["components"] = components;
+    }
+
     if (result.contains("connections")) {
         QVariantList connections = result["connections"].toList();
-        for (auto &connVar : connections) {
-            auto connMap = connVar.toMap();
-            restoreConnectionSideFields(connMap);
+        for (QVariant &connVar : connections) {
+            QVariantMap connMap = connVar.toMap();
+            restoreConnectionFields(connMap);
             connVar = connMap;
         }
         result["connections"] = connections;
     }
-    
+
     return result;
 }
+
+// ── Severity helpers (Phase 8) ────────────────────────────────────────────
+
+QString validationSeverityToString(cme::ValidationSeverity severity)
+{
+    switch (severity) {
+    case cme::VALIDATION_SEVERITY_WARNING: return QStringLiteral("warning");
+    case cme::VALIDATION_SEVERITY_INFO:    return QStringLiteral("info");
+    default:                               return QStringLiteral("error");
+    }
+}
+
 } // namespace cme::adapter
