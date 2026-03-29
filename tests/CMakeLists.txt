@@ -472,3 +472,30 @@ add_test(
     COMMAND tst_Phase5ValidationMigration
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 6: GraphExecutionSandbox Typed Events ─────────────────────────────
+# Internal typed event enums/messages with legacy QVariantMap timeline exposure.
+# Tests: determinism, event ordering, and payload fields for start/step/pause/
+#        complete/error/breakpoint paths.
+qt_add_executable(tst_Phase6TypedExecutionEvents
+    tst_Phase6TypedExecutionEvents.cpp
+)
+
+target_link_libraries(tst_Phase6TypedExecutionEvents
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase6TypedExecutionEvents
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase6TypedExecutionEvents
+    COMMAND tst_Phase6TypedExecutionEvents
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

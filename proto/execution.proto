@@ -10,6 +10,8 @@ enum TimelineEventType {
   TIMELINE_EVENT_TYPE_SIMULATION_BLOCKED   = 3;
   TIMELINE_EVENT_TYPE_BREAKPOINT_HIT       = 4;
   TIMELINE_EVENT_TYPE_ERROR                = 5;
+  TIMELINE_EVENT_TYPE_STEP_EXECUTED        = 6;
+  TIMELINE_EVENT_TYPE_SIMULATION_PAUSED    = 7;
 }
 
 // ── Per-component execution snapshot ──────────────────────────────────────

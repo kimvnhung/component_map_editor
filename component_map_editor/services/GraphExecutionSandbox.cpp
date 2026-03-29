@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "adapters/ExecutionAdapter.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
 
 namespace {
@@ -86,7 +87,7 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
     m_executionState = inputSnapshot;
     emit executionStateChanged();
 
-    appendTimelineEvent(QStringLiteral("simulationStarted"),
+    appendTimelineEvent(TimelineEventKind::SimulationStarted,
                         QVariantMap{
                             { QStringLiteral("componentCount"), m_componentsById.size() },
                             { QStringLiteral("inputKeys"), inputSnapshot.keys() }
@@ -133,10 +134,15 @@ int GraphExecutionSandbox::run(int maxSteps)
 
         const QString nextId = m_readyQueue.first();
         if (m_breakpoints.contains(nextId)) {
-            appendTimelineEvent(QStringLiteral("breakpointHit"),
+            appendTimelineEvent(TimelineEventKind::BreakpointHit,
                                 QVariantMap{
                                     { QStringLiteral("componentId"), nextId },
                                     { QStringLiteral("tick"), m_tick }
+                                });
+            appendTimelineEvent(TimelineEventKind::SimulationPaused,
+                                QVariantMap{
+                                    { QStringLiteral("reason"), QStringLiteral("breakpoint") },
+                                    { QStringLiteral("componentId"), nextId }
                                 });
             setStatus(RunStatus::Paused);
             break;
@@ -158,8 +164,13 @@ int GraphExecutionSandbox::run(int maxSteps)
 
 void GraphExecutionSandbox::pause()
 {
-    if (m_status == RunStatus::Running)
+    if (m_status == RunStatus::Running) {
+        appendTimelineEvent(TimelineEventKind::SimulationPaused,
+                            QVariantMap{
+                                { QStringLiteral("reason"), QStringLiteral("manual") }
+                            });
         setStatus(RunStatus::Paused);
+    }
 }
 
 void GraphExecutionSandbox::reset()
@@ -223,6 +234,27 @@ QString GraphExecutionSandbox::statusToString(RunStatus status)
     return QStringLiteral("error");
 }
 
+cme::TimelineEventType GraphExecutionSandbox::timelineKindToProtoType(TimelineEventKind kind)
+{
+    switch (kind) {
+    case TimelineEventKind::SimulationStarted:
+        return cme::TIMELINE_EVENT_TYPE_SIMULATION_STARTED;
+    case TimelineEventKind::StepExecuted:
+        return cme::TIMELINE_EVENT_TYPE_STEP_EXECUTED;
+    case TimelineEventKind::SimulationPaused:
+        return cme::TIMELINE_EVENT_TYPE_SIMULATION_PAUSED;
+    case TimelineEventKind::SimulationCompleted:
+        return cme::TIMELINE_EVENT_TYPE_SIMULATION_COMPLETED;
+    case TimelineEventKind::SimulationBlocked:
+        return cme::TIMELINE_EVENT_TYPE_SIMULATION_BLOCKED;
+    case TimelineEventKind::BreakpointHit:
+        return cme::TIMELINE_EVENT_TYPE_BREAKPOINT_HIT;
+    case TimelineEventKind::Error:
+        return cme::TIMELINE_EVENT_TYPE_ERROR;
+    }
+    return cme::TIMELINE_EVENT_TYPE_UNSPECIFIED;
+}
+
 void GraphExecutionSandbox::setStatus(RunStatus status)
 {
     if (m_status == status)
@@ -231,10 +263,24 @@ void GraphExecutionSandbox::setStatus(RunStatus status)
     emit statusChanged();
 }
 
-void GraphExecutionSandbox::appendTimelineEvent(const QString &event, const QVariantMap &payload)
+void GraphExecutionSandbox::appendTimelineEvent(TimelineEventKind kind, const QVariantMap &payload)
 {
-    QVariantMap entry = payload;
-    entry.insert(QStringLiteral("event"), event);
+    cme::TimelineEvent typedEvent;
+    typedEvent.set_type(timelineKindToProtoType(kind));
+
+    const QString componentId = payload.value(QStringLiteral("componentId")).toString();
+    if (!componentId.isEmpty())
+        typedEvent.set_component_id(componentId.toStdString());
+
+    const QString message = payload.value(QStringLiteral("message")).toString();
+    if (!message.isEmpty())
+        typedEvent.set_message(message.toStdString());
+
+    m_typedTimeline.append(typedEvent);
+
+    QVariantMap entry = cme::adapter::timelineEventToVariantMap(typedEvent);
+    entry.insert(payload);
+    entry.insert(QStringLiteral("event"), entry.value(QStringLiteral("type")).toString());
     entry.insert(QStringLiteral("tick"), m_tick);
     m_timeline.append(entry);
     m_timelineDirty = true;
@@ -255,7 +301,7 @@ void GraphExecutionSandbox::markError(const QString &message)
 {
     m_lastError = message;
     emit lastErrorChanged();
-    appendTimelineEvent(QStringLiteral("error"),
+    appendTimelineEvent(TimelineEventKind::Error,
                         QVariantMap{
                             { QStringLiteral("message"), message }
                         });
@@ -271,6 +317,7 @@ void GraphExecutionSandbox::clearSimulationData()
     m_executionState.clear();
     m_componentStates.clear();
     m_timeline.clear();
+    m_typedTimeline.clear();
     m_lastError.clear();
     emit executionStateChanged();
     m_timelineDirty = true;
@@ -379,10 +426,15 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
     const QString componentId = m_readyQueue.first();
     if (!bypassBreakpoint && m_breakpoints.contains(componentId)) {
-        appendTimelineEvent(QStringLiteral("breakpointHit"),
+        appendTimelineEvent(TimelineEventKind::BreakpointHit,
                             QVariantMap{
                                 { QStringLiteral("componentId"), componentId },
                                 { QStringLiteral("tick"), m_tick }
+                            });
+        appendTimelineEvent(TimelineEventKind::SimulationPaused,
+                            QVariantMap{
+                                { QStringLiteral("reason"), QStringLiteral("breakpoint") },
+                                { QStringLiteral("componentId"), componentId }
                             });
         setStatus(RunStatus::Paused);
         return true;
@@ -427,7 +479,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
     m_executed.insert(component.id);
 
-    appendTimelineEvent(QStringLiteral("stepExecuted"),
+    appendTimelineEvent(TimelineEventKind::StepExecuted,
                         QVariantMap{
                             { QStringLiteral("componentId"), component.id },
                             { QStringLiteral("componentType"), component.type },
@@ -455,7 +507,7 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
         return;
 
     if (m_executed.size() == m_componentsById.size()) {
-        appendTimelineEvent(QStringLiteral("simulationCompleted"),
+        appendTimelineEvent(TimelineEventKind::SimulationCompleted,
                             QVariantMap{
                                 { QStringLiteral("executedCount"), m_executed.size() }
                             });
@@ -464,7 +516,7 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
     }
 
     if (m_status == RunStatus::Running || m_status == RunStatus::Paused) {
-        appendTimelineEvent(QStringLiteral("simulationBlocked"),
+        appendTimelineEvent(TimelineEventKind::SimulationBlocked,
                             QVariantMap{
                                 { QStringLiteral("executedCount"), m_executed.size() },
                                 { QStringLiteral("remainingCount"), m_componentsById.size() - m_executed.size() }

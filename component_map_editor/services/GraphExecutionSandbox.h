@@ -12,6 +12,7 @@
 
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "models/GraphModel.h"
+#include "execution.pb.h"
 
 class ExtensionContractRegistry;
 
@@ -86,10 +87,21 @@ private:
         Error
     };
 
+    enum class TimelineEventKind {
+        SimulationStarted,
+        StepExecuted,
+        SimulationPaused,
+        SimulationCompleted,
+        SimulationBlocked,
+        BreakpointHit,
+        Error
+    };
+
     static QString statusToString(RunStatus status);
+    static cme::TimelineEventType timelineKindToProtoType(TimelineEventKind kind);
 
     void setStatus(RunStatus status);
-    void appendTimelineEvent(const QString &event, const QVariantMap &payload = {});
+    void appendTimelineEvent(TimelineEventKind kind, const QVariantMap &payload = {});
     void markError(const QString &message);
 
     void clearSimulationData();
@@ -109,6 +121,7 @@ private:
     QVariantMap m_executionState;
     QVariantMap m_componentStates;
     QVariantList m_timeline;
+    QList<cme::TimelineEvent> m_typedTimeline;
     QString m_lastError;
 
     QHash<QString, ComponentSnapshot> m_componentsById;

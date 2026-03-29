@@ -22,6 +22,10 @@ ConversionError variantMapToTimelineEvent(
         proto_out.set_type(cme::TIMELINE_EVENT_TYPE_BREAKPOINT_HIT);
     } else if (type_str == "error") {
         proto_out.set_type(cme::TIMELINE_EVENT_TYPE_ERROR);
+    } else if (type_str == "stepexecuted") {
+        proto_out.set_type(cme::TIMELINE_EVENT_TYPE_STEP_EXECUTED);
+    } else if (type_str == "simulationpaused") {
+        proto_out.set_type(cme::TIMELINE_EVENT_TYPE_SIMULATION_PAUSED);
     } else {
         return ConversionError("Invalid timeline event type: " + type_str);
     }
@@ -125,6 +129,12 @@ QVariantMap timelineEventToVariantMap(
         break;
     case cme::TIMELINE_EVENT_TYPE_ERROR:
         type_str = "error";
+        break;
+    case cme::TIMELINE_EVENT_TYPE_STEP_EXECUTED:
+        type_str = "stepExecuted";
+        break;
+    case cme::TIMELINE_EVENT_TYPE_SIMULATION_PAUSED:
+        type_str = "simulationPaused";
         break;
     default:
         break;
