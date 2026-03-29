@@ -14,6 +14,16 @@ bool idComparator(const QString &a, const QString &b)
     return a < b;
 }
 
+QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &incomingTokens)
+{
+    QVariantMap merged;
+    QStringList tokenKeys = incomingTokens.keys();
+    std::sort(tokenKeys.begin(), tokenKeys.end());
+    for (const QString &tokenKey : tokenKeys)
+        merged.insert(incomingTokens.value(tokenKey));
+    return merged;
+}
+
 } // namespace
 
 GraphExecutionSandbox::GraphExecutionSandbox(QObject *parent)
@@ -519,6 +529,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     QVariantMap trace;
     QVariantMap outputState = m_executionState;
     cme::execution::IncomingTokens incomingTokens;
+    QVariantMap inputStateForState;
 
     if (tokenRoutingEnabled) {
         for (const ConnectionSnapshot &edge : incoming)
@@ -526,8 +537,11 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
         if (incomingTokens.isEmpty() && !m_inputSnapshot.isEmpty())
             incomingTokens.insert(QStringLiteral("__graph_input__"), m_inputSnapshot);
+
+        inputStateForState = mergeIncomingTokens(incomingTokens);
     } else {
         incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
+        inputStateForState = m_executionState;
     }
 
     const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(component.type, nullptr);
@@ -565,6 +579,8 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     state.insert(QStringLiteral("status"), QStringLiteral("executed"));
     state.insert(QStringLiteral("tick"), m_tick);
     state.insert(QStringLiteral("type"), component.type);
+    state.insert(QStringLiteral("inputState"), inputStateForState);
+    state.insert(QStringLiteral("outputState"), outputState);
     if (!trace.isEmpty())
         state.insert(QStringLiteral("trace"), trace);
     m_componentStates.insert(component.id, state);

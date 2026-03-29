@@ -544,6 +544,32 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# ── Phase 4: Composite Graph as Reusable Component ─────────────────────────
+# Verifies composite execution as a reusable subgraph, nested composite support,
+# recursion guard diagnostics, and performance tolerance against a baseline graph.
+qt_add_executable(tst_Phase4CompositeExecutionProvider
+    tst_Phase4CompositeExecutionProvider.cpp
+)
+
+target_link_libraries(tst_Phase4CompositeExecutionProvider
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase4CompositeExecutionProvider
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase4CompositeExecutionProvider
+    COMMAND tst_Phase4CompositeExecutionProvider
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ── Phase 5: ValidationService Typed Snapshot Migration ──────────────────────
 # Typed graph snapshot building with validation equivalence and legacy bridging.
 # Tests: typed snapshot building, severity/code enum mapping, snapshot roundtrips,
