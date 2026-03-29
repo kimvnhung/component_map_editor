@@ -41,9 +41,6 @@ std::optional<cme::runtime::templates::ConnectionPolicyDecision> customizePolicy
     const cme::ConnectionPolicyContext &context,
     const cme::runtime::templates::ConnectionPolicyDecision &baseDecision)
 {
-    if (!baseDecision.allowed)
-        return std::nullopt;
-
     const QString sourceTypeId = QString::fromStdString(context.source_type_id());
     const QString targetTypeId = QString::fromStdString(context.target_type_id());
     const int targetIncomingCount = context.target_incoming_count();
