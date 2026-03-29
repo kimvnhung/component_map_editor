@@ -8,6 +8,7 @@
 
 #include "extensions/contracts/IValidationProvider.h"
 #include "models/GraphModel.h"
+#include "graph.pb.h"
 
 class ExtensionContractRegistry;
 
@@ -33,7 +34,12 @@ public:
     Q_INVOKABLE QStringList validationErrors(GraphModel *graph);
 
 private:
+    // Legacy: Returns QVariantMap snapshot for backward compatibility
     QVariantMap buildGraphSnapshot(GraphModel *graph) const;
+    
+    // Phase 5: Returns typed GraphSnapshot proto internally
+    cme::GraphSnapshot buildTypedGraphSnapshot(GraphModel *graph) const;
+    
     static bool issueIsError(const QVariantMap &issue);
 
     QList<const IValidationProvider *> m_validationProviders;

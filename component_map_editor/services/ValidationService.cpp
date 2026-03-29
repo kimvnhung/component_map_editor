@@ -1,6 +1,7 @@
 #include "ValidationService.h"
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
+#include "adapters/ValidationAdapter.h"
 
 ValidationService::ValidationService(QObject *parent)
     : QObject(parent)
@@ -54,7 +55,12 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
     if (m_validationProviders.isEmpty())
         return issues;
 
-    const QVariantMap snapshot = buildGraphSnapshot(graph);
+    // Phase 5: Build typed snapshot internally
+    const cme::GraphSnapshot typedSnapshot = buildTypedGraphSnapshot(graph);
+    
+    // Convert typed snapshot back to legacy format for providers
+    const QVariantMap snapshot = cme::adapter::graphSnapshotForValidationToVariantMap(typedSnapshot);
+    
     for (const IValidationProvider *provider : std::as_const(m_validationProviders)) {
         if (!provider)
             continue;
@@ -146,6 +152,67 @@ QVariantMap ValidationService::buildGraphSnapshot(GraphModel *graph) const
     };
 }
 
+// Phase 5: Build typed GraphSnapshot proto from graph model
+cme::GraphSnapshot ValidationService::buildTypedGraphSnapshot(GraphModel *graph) const
+{
+    cme::GraphSnapshot snapshot;
+
+    if (!graph)
+        return snapshot;
+
+    // Convert components
+    const QList<ComponentModel *> componentList = graph->componentList();
+    for (ComponentModel *component : componentList) {
+        if (!component)
+            continue;
+
+        auto *componentData = snapshot.add_components();
+        componentData->set_id(component->id().toStdString());
+        componentData->set_type_id(component->type().toStdString());
+        componentData->set_x(component->x());
+        componentData->set_y(component->y());
+
+        // Add static properties
+        auto *props = componentData->mutable_properties();
+        props->insert({"title", component->title().toStdString()});
+        props->insert({"width", QString::number(component->width()).toStdString()});
+        props->insert({"height", QString::number(component->height()).toStdString()});
+        props->insert({"color", component->color().toStdString()});
+        props->insert({"shape", component->shape().toStdString()});
+        props->insert({"content", component->content().toStdString()});
+        props->insert({"icon", component->icon().toStdString()});
+
+        // Add dynamic properties
+        const QList<QByteArray> dynamicProps = component->dynamicPropertyNames();
+        for (const QByteArray &propName : dynamicProps) {
+            const QString key = QString::fromUtf8(propName);
+            if (!key.isEmpty()) {
+                const QVariant value = component->property(propName.constData());
+                props->insert({key.toStdString(), value.toString().toStdString()});
+            }
+        }
+    }
+
+    // Convert connections
+    const QList<ConnectionModel *> connectionList = graph->connectionList();
+    for (ConnectionModel *connection : connectionList) {
+        if (!connection)
+            continue;
+
+        auto *connectionData = snapshot.add_connections();
+        connectionData->set_id(connection->id().toStdString());
+        connectionData->set_source_id(connection->sourceId().toStdString());
+        connectionData->set_target_id(connection->targetId().toStdString());
+
+        // Add properties
+        auto *props = connectionData->mutable_properties();
+        props->insert({"label", connection->label().toStdString()});
+        props->insert({"sourceSide", QString::number(static_cast<int>(connection->sourceSide())).toStdString()});
+        props->insert({"targetSide", QString::number(static_cast<int>(connection->targetSide())).toStdString()});
+    }
+
+    return snapshot;
+}
 bool ValidationService::issueIsError(const QVariantMap &issue)
 {
     const QString severity = issue.value(QStringLiteral("severity")).toString().trimmed().toLower();

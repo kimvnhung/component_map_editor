@@ -445,3 +445,30 @@ add_test(
     COMMAND tst_Phase4PolicyMigration
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 5: ValidationService Typed Snapshot Migration ──────────────────────
+# Typed graph snapshot building with validation equivalence and legacy bridging.
+# Tests: typed snapshot building, severity/code enum mapping, snapshot roundtrips,
+#        null graph handling, validation equivalence (typed vs legacy).
+qt_add_executable(tst_Phase5ValidationMigration
+    tst_Phase5ValidationMigration.cpp
+)
+
+target_link_libraries(tst_Phase5ValidationMigration
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase5ValidationMigration
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase5ValidationMigration
+    COMMAND tst_Phase5ValidationMigration
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
