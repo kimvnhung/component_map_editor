@@ -20,6 +20,9 @@ add_library(cme_proto STATIC
     ${PROTO_HDRS}
 )
 
+# Enable Position Independent Code for linking into shared libraries
+set_target_properties(cme_proto PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # Suppress common warnings in Google-generated code
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(cme_proto PRIVATE -w)

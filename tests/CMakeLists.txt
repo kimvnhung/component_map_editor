@@ -393,3 +393,29 @@ add_test(
     COMMAND tst_Phase1ProtoContracts
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 2: Compatibility Adapter Layer ──────────────────────────────────
+# Roundtrip conversion tests: QVariantMap <-> protobuf for all contract types.
+# Tests required-field validation, type mismatch handling, and error handling.
+qt_add_executable(tst_Phase2AdapterLayer
+    tst_Phase2AdapterLayer.cpp
+)
+
+target_link_libraries(tst_Phase2AdapterLayer
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase2AdapterLayer
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase2AdapterLayer
+    COMMAND tst_Phase2AdapterLayer
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
