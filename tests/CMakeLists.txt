@@ -419,3 +419,29 @@ add_test(
     COMMAND tst_Phase2AdapterLayer
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 4: GraphEditorController Policy Migration ────────────────────────
+# Typed connection policy context implementation with backward-compatible adapters.
+# Tests: typed context building, proto↔map conversions, policy decisions unchanged.
+qt_add_executable(tst_Phase4PolicyMigration
+    tst_Phase4PolicyMigration.cpp
+)
+
+target_link_libraries(tst_Phase4PolicyMigration
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase4PolicyMigration
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase4PolicyMigration
+    COMMAND tst_Phase4PolicyMigration
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

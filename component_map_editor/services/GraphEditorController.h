@@ -10,6 +10,7 @@
 #include "commands/UndoStack.h"
 #include "extensions/runtime/TypeRegistry.h"
 #include "services/InvariantChecker.h"
+#include "policy.pb.h"
 
 /**
  * GraphEditorController orchestrates type-aware graph mutations.
@@ -178,6 +179,16 @@ private:
     ComponentDefaults resolveComponentDefaults(const QString &typeId) const;
     QVariantMap buildConnectionPolicyContext(const QString &sourceId,
                                              const QString &targetId) const;
+
+    // ── Phase 4: Typed context building for policy providers ─────────────
+    // Builds a typed ConnectionPolicyContext proto message.
+    cme::ConnectionPolicyContext buildTypedConnectionPolicyContext(
+        const QString &sourceId,
+        const QString &targetId,
+        const QString &sourceTypeId = QString(),
+        const QString &targetTypeId = QString(),
+        const QString &sourcePort = QString(),
+        const QString &targetPort = QString()) const;
 
     GraphModel   *m_graph        = nullptr;
     UndoStack    *m_undoStack    = nullptr;

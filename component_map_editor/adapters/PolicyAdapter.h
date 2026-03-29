@@ -2,8 +2,12 @@
 //
 // Bidirectional adapter between QVariantMap (legacy) policy contracts and protobuf.
 //
+// Phase 4: Updated to handle typed connection policy context fields.
+//
 // Key legacy string keys:
-//   - Policy context: "sourceTypeId", "targetTypeId", "sourcePort", "targetPort", "extra"
+//   - Component IDs: "sourceComponentId", "targetComponentId"
+//   - Policy context: "sourceTypeId", "targetTypeId", "sourcePort", "targetPort"
+//   - Connection counts: "sourceOutgoingCount", "sourceIncomingCount", etc. (Phase 4)
 //   - Type defaults: "typeId", "defaultProperties", "defaultX", "defaultY"
 //   - Connection properties: "connectionId", "properties"
 

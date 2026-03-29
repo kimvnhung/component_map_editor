@@ -2,6 +2,7 @@
 
 #include <QUuid>
 
+#include "adapters/PolicyAdapter.h"
 #include "commands/GraphCommands.h"
 #include "InvariantChecker.h"
 
@@ -173,6 +174,65 @@ QVariantMap GraphEditorController::buildConnectionPolicyContext(const QString &s
     return context;
 }
 
+// ── Phase 4: Typed connection policy context building ────────────────────
+// Builds a typed ConnectionPolicyContext proto message with component IDs,
+// type IDs, port information, and connection statistics.
+cme::ConnectionPolicyContext GraphEditorController::buildTypedConnectionPolicyContext(
+    const QString &sourceId,
+    const QString &targetId,
+    const QString &sourceTypeId,
+    const QString &targetTypeId,
+    const QString &sourcePort,
+    const QString &targetPort) const
+{
+    cme::ConnectionPolicyContext context;
+
+    // Set component identifiers
+    context.set_source_component_id(sourceId.toStdString());
+    context.set_target_component_id(targetId.toStdString());
+    context.set_source_type_id(sourceTypeId.toStdString());
+    context.set_target_type_id(targetTypeId.toStdString());
+
+    // Set port/side information
+    context.set_source_port(sourcePort.toStdString());
+    context.set_target_port(targetPort.toStdString());
+
+    // Count connections for cardinality checks
+    int sourceOutgoingCount = 0;
+    int sourceIncomingCount = 0;
+    int targetOutgoingCount = 0;
+    int targetIncomingCount = 0;
+
+    if (m_graph) {
+        const QList<ConnectionModel *> connections = m_graph->connectionList();
+        for (const ConnectionModel *connection : connections) {
+            if (!connection)
+                continue;
+
+            const QString existingSourceId = connection->sourceId();
+            const QString existingTargetId = connection->targetId();
+
+            if (existingSourceId == sourceId)
+                ++sourceOutgoingCount;
+            if (existingTargetId == sourceId)
+                ++sourceIncomingCount;
+            if (existingSourceId == targetId)
+                ++targetOutgoingCount;
+            if (existingTargetId == targetId)
+                ++targetIncomingCount;
+        }
+    }
+
+    // Set connection statistics
+    context.set_source_outgoing_count(sourceOutgoingCount);
+    context.set_source_incoming_count(sourceIncomingCount);
+    context.set_target_outgoing_count(targetOutgoingCount);
+    context.set_target_incoming_count(targetIncomingCount);
+    context.set_graph_connection_count(m_graph ? m_graph->connectionCount() : 0);
+
+    return context;
+}
+
 // ---------------------------------------------------------------------------
 // createComponent
 // ---------------------------------------------------------------------------
@@ -338,7 +398,12 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
 
     const QString srcType = src->type();
     const QString tgtType = tgt->type();
-    const QVariantMap policyContext = buildConnectionPolicyContext(sourceId, targetId);
+
+    // ── Phase 4: Build typed context and bridge to legacy interface ───────
+    cme::ConnectionPolicyContext typedContext = buildTypedConnectionPolicyContext(
+        sourceId, targetId, srcType, tgtType);
+    const QVariantMap policyContext =
+        cme::adapter::connectionPolicyContextToVariantMap(typedContext);
 
     // Connection-policy gate
     if (m_typeRegistry) {
@@ -392,7 +457,15 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
 
     const QString srcType = src->type();
     const QString tgtType = tgt->type();
-    const QVariantMap policyContext = buildConnectionPolicyContext(sourceId, targetId);
+
+    // ── Phase 4: Build typed context with port information ────────────────
+    const QString srcPort = sourceSide >= 0 ? QString::number(sourceSide) : QString();
+    const QString tgtPort = targetSide >= 0 ? QString::number(targetSide) : QString();
+    cme::ConnectionPolicyContext typedContext = buildTypedConnectionPolicyContext(
+        sourceId, targetId, srcType, tgtType, srcPort, tgtPort);
+    const QVariantMap policyContext =
+        cme::adapter::connectionPolicyContextToVariantMap(typedContext);
+
     if (m_typeRegistry) {
         QString reason;
         if (!m_typeRegistry->canConnect(srcType, tgtType, policyContext, &reason)) {
