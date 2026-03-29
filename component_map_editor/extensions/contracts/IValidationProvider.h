@@ -11,10 +11,16 @@ class IValidationProvider
 public:
     virtual ~IValidationProvider() = default;
 
+#if defined(__cplusplus) && __cplusplus >= 201402L
+    [[deprecated("IValidationProvider (V1) is deprecated. Use IValidationProviderV2 with GraphSnapshot/GraphValidationResult.")]]
+#endif
     virtual QString providerId() const = 0;
 
     // Returns validation issues. Expected keys per issue:
     // code, severity, message, entityType, entityId.
+#if defined(__cplusplus) && __cplusplus >= 201402L
+    [[deprecated("validateGraph(QVariantMap) is deprecated. Use IValidationProviderV2::validateGraph with typed proto contracts.")]]
+#endif
     virtual QVariantList validateGraph(const QVariantMap &graphSnapshot) const = 0;
 };
 

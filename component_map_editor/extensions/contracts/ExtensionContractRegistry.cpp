@@ -1,5 +1,7 @@
 #include "ExtensionContractRegistry.h"
 
+#include <QDebug>
+
 ExtensionContractRegistry::ExtensionContractRegistry(const ExtensionApiVersion &coreApiVersion)
     : m_coreApiVersion(coreApiVersion)
 {
@@ -60,6 +62,15 @@ bool ExtensionContractRegistry::registerPropertySchemaProvider(const IPropertySc
 
 bool ExtensionContractRegistry::registerValidationProvider(const IValidationProvider *provider, QString *error)
 {
+    ++m_legacyValidationProviderRegistrations;
+    static bool warnedOnce = false;
+    if (!warnedOnce) {
+        warnedOnce = true;
+        qWarning().noquote()
+            << "[Phase10] Legacy validation interface (IValidationProvider V1) is deprecated;"
+            << "please migrate to IValidationProviderV2 before compatibility window retirement.";
+    }
+
     if (!registerProviderInternal(provider, &m_validationProviders,
                                   QStringLiteral("validation"), error)) {
         return false;
@@ -166,4 +177,9 @@ QList<const IValidationProviderV2 *> ExtensionContractRegistry::validationProvid
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const
 {
     return m_executionSemanticsProviders.order;
+}
+
+int ExtensionContractRegistry::legacyValidationProviderRegistrations() const
+{
+    return m_legacyValidationProviderRegistrations;
 }

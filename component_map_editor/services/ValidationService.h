@@ -25,6 +25,9 @@ class ValidationService : public QObject
 public:
     explicit ValidationService(QObject *parent = nullptr);
 
+#if defined(__cplusplus) && __cplusplus >= 201402L
+    [[deprecated("setValidationProviders(V1) is deprecated. Use setValidationProvidersV2 for typed-first validation path.")]]
+#endif
     void setValidationProviders(const QList<const IValidationProvider *> &providers);
     void setValidationProvidersV2(const QList<const IValidationProviderV2 *> &providers);
     void rebuildValidationFromRegistry(const ExtensionContractRegistry &registry);

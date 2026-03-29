@@ -3,12 +3,22 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "adapters/ValidationAdapter.h"
 
+#include <QDebug>
+
 ValidationService::ValidationService(QObject *parent)
     : QObject(parent)
 {}
 
 void ValidationService::setValidationProviders(const QList<const IValidationProvider *> &providers)
 {
+    static bool warnedOnce = false;
+    if (!warnedOnce) {
+        warnedOnce = true;
+        qWarning().noquote()
+            << "[Phase10] ValidationService::setValidationProviders(V1) is deprecated;"
+            << "switch to setValidationProvidersV2() for typed-first path.";
+    }
+
     m_validationV1Adapters.clear();
     m_validationProviders.clear();
     for (const IValidationProvider *provider : providers) {
@@ -73,10 +83,7 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
 
     // Phase 5: Build typed snapshot internally
     const cme::GraphSnapshot typedSnapshot = buildTypedGraphSnapshot(graph);
-    
-    // Convert typed snapshot back to legacy format for providers
-    const QVariantMap snapshot = cme::adapter::graphSnapshotForValidationToVariantMap(typedSnapshot);
-    
+
     for (const IValidationProviderV2 *provider : std::as_const(m_validationProviders)) {
         if (!provider)
             continue;

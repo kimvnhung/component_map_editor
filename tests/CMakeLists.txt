@@ -579,3 +579,29 @@ add_test(
     COMMAND tst_Phase9GrpcTransportEnablement
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 10: Cutover and Legacy Retirement ────────────────────────────────
+# Deprecation + cutover checks to keep typed-first core path and monitor
+# compatibility-window legacy registrations.
+qt_add_executable(tst_Phase10CutoverLegacyRetirement
+    tst_Phase10CutoverLegacyRetirement.cpp
+)
+
+target_link_libraries(tst_Phase10CutoverLegacyRetirement
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase10CutoverLegacyRetirement
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase10CutoverLegacyRetirement
+    COMMAND tst_Phase10CutoverLegacyRetirement
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
