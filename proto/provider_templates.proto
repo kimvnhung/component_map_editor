@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package cme.templates.v1;
+
+import "google/protobuf/struct.proto";
+
+// Template schema intended for authoring extension provider payloads with
+// explicit typed contracts, while runtime interfaces can still expose
+// QVariant/QVariantMap for compatibility.
+
+message PropertySchemaFieldTemplate {
+  string key = 1;
+  string type = 2;
+  string title = 3;
+  bool required = 4;
+  google.protobuf.Value default_value = 5;
+  string editor = 6;
+  string section = 7;
+  int32 order = 8;
+  string hint = 9;
+  repeated google.protobuf.Value options = 10;
+  map<string, google.protobuf.Value> validation = 11;
+  map<string, google.protobuf.Value> visible_when = 12;
+  map<string, google.protobuf.Value> extra = 13;
+}
+
+message PropertySchemaTargetTemplate {
+  string target_id = 1;
+  repeated PropertySchemaFieldTemplate entries = 2;
+}
+
+message PropertySchemaTemplateBundle {
+  string provider_id = 1;
+  string schema_version = 2;
+  repeated PropertySchemaTargetTemplate targets = 3;
+}
+
+message ComponentTypeTemplate {
+  string id = 1;
+  string title = 2;
+  string category = 3;
+  double default_width = 4;
+  double default_height = 5;
+  string default_color = 6;
+  bool allow_incoming = 7;
+  bool allow_outgoing = 8;
+  map<string, google.protobuf.Value> extra = 9;
+}
+
+message ComponentTypeDefaultPropertiesTemplate {
+  string component_type_id = 1;
+  map<string, google.protobuf.Value> properties = 2;
+}
+
+message ComponentTypeTemplateBundle {
+  string provider_id = 1;
+  string schema_version = 2;
+  repeated ComponentTypeTemplate component_types = 3;
+  repeated ComponentTypeDefaultPropertiesTemplate defaults = 4;
+}
+
+message ConnectionPolicyRuleTemplate {
+  // Empty source_type_id/target_type_id means wildcard match.
+  string source_type_id = 1;
+  string target_type_id = 2;
+
+  bool allowed = 3;
+  string reason = 4;
+
+  optional int32 min_target_incoming = 5;
+  optional int32 max_target_incoming = 6;
+  optional int32 min_source_outgoing = 7;
+  optional int32 max_source_outgoing = 8;
+}
+
+message ConnectionPolicyTemplateBundle {
+  string provider_id = 1;
+  string schema_version = 2;
+  repeated ConnectionPolicyRuleTemplate rules = 3;
+
+  bool default_allowed = 4;
+  string default_reason = 5;
+
+  string normalized_type_key = 6;
+  string normalized_type_value = 7;
+}
