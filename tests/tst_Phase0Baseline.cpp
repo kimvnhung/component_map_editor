@@ -291,7 +291,7 @@ void tst_Phase0Baseline::extensionIIDsAreUnchanged()
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_ACTION_PROVIDER),
              QStringLiteral("ComponentMapEditor.Extensions.IActionProvider/1.0"));
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_VALIDATION_PROVIDER),
-             QStringLiteral("ComponentMapEditor.Extensions.IValidationProvider/1.0"));
+             QStringLiteral("ComponentMapEditor.Extensions.IValidationProvider/2.0"));
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_EXECUTION_SEMANTICS_PROVIDER),
              QStringLiteral("ComponentMapEditor.Extensions.IExecutionSemanticsProvider/1.0"));
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_PROPERTY_SCHEMA_PROVIDER),

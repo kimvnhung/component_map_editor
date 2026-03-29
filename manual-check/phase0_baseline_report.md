@@ -113,7 +113,7 @@ setConnectionProperty
 | IComponentTypeProvider | `ComponentMapEditor.Extensions.IComponentTypeProvider/1.0` |
 | IConnectionPolicyProvider | `ComponentMapEditor.Extensions.IConnectionPolicyProvider/1.0` |
 | IActionProvider | `ComponentMapEditor.Extensions.IActionProvider/1.0` |
-| IValidationProvider | `ComponentMapEditor.Extensions.IValidationProvider/1.0` |
+| IValidationProvider | `ComponentMapEditor.Extensions.IValidationProvider/2.0` |
 | IExecutionSemanticsProvider | `ComponentMapEditor.Extensions.IExecutionSemanticsProvider/1.0` |
 | IPropertySchemaProvider | `ComponentMapEditor.Extensions.IPropertySchemaProvider/1.0` |
 
@@ -171,6 +171,14 @@ ctest --output-on-failure --timeout 120
 
 The suite `tst_Phase0Baseline` must be run at the start of every subsequent phase
 before any new code is merged. A failure means a regression was introduced.
+
+---
+
+## Recheck Update (2026-03-29)
+
+- Re-ran `tests/tst_Phase0Baseline` after canonical validation API cutover.
+- Updated Phase 0 IID expectation for `IValidationProvider` to `/2.0` in test and report.
+- Recheck result target: `tst_Phase0Baseline` passes with this updated contract.
 
 ---
 
