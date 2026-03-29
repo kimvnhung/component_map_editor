@@ -2,6 +2,8 @@
 
 #include "CapabilityRegistry.h"
 #include "InvariantChecker.h"
+#include "adapters/CommandAdapter.h"
+#include "adapters/CommandAdapterRegistry.h"
 #include "commands/UndoStack.h"
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
@@ -32,7 +34,8 @@ QVariantMap makeLogEntry(const QString &actor,
 // ── Construction ──────────────────────────────────────────────────────────────
 
 CommandGateway::CommandGateway(QObject *parent)
-    : QObject(parent)
+    : QObject(parent),
+      m_adapterRegistry(std::make_unique<CommandAdapterRegistry>())
 {}
 
 // ── Properties ────────────────────────────────────────────────────────────────

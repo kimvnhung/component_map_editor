@@ -8,6 +8,10 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <memory>
+
+#include "command.pb.h"
+#include "adapters/CommandAdapterRegistry.h"
 
 class GraphModel;
 class UndoStack;
@@ -117,6 +121,16 @@ private:
                          bool requireCapability,
                          QString *error);
 
+    // ── Phase 3: Typed command execution using protobuf oneof/enum dispatch ──
+    // Executes a typed GraphCommandRequest (already converted from legacy map).
+    // Returns true on success, false on failure. Sets *error on failure.
+    // Responsibility: command validation (missing fields, not found, duplicate)
+    //                 and delegation to UndoStack. Pre/post checks and logging
+    //                 are handled by dispatchCommand().
+    bool executeTypedCommand(const QString &actor,
+                             const cme::GraphCommandRequest &protoCmd,
+                             QString *error);
+
     bool runPreChecks(const QString &commandType, QString *error) const;
     bool runPostChecks(const QString &commandType, QString *error);
 
@@ -134,6 +148,9 @@ private:
     QVector<double>               m_latencySamplesMs;
     int                           m_maxLatencySamples = 4096;
     double                        m_lastCommandLatencyMs = 0.0;
+
+    // ── Adapter pattern for extensible command handling ──────────────────
+    std::unique_ptr<CommandAdapterRegistry> m_adapterRegistry;
 };
 
 #endif // COMMANDGATEWAY_H

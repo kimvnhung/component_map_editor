@@ -117,4 +117,20 @@ QVariantMap setConnectionPropertyRequestToVariantMap(
     const cme::SetConnectionPropertyRequest &proto
 );
 
+// ── CommandAdapter base class (for Phase 3 extension pattern) ─────────────────
+
+/// Abstract base class for command adapters.
+/// Adapters convert between legacy QVariantMap and protobuf command representations.
+/// Used in conjunction with CommandAdapterRegistry to enable extensible command handling.
+class CommandAdapter
+{
+public:
+    explicit CommandAdapter() = default;
+    virtual ~CommandAdapter() = default;
+
+    /// Execute the adapted command.
+    /// Subclasses override this to implement command-specific logic.
+    virtual bool execute(const QVariantMap &commandRequest, QString *error) = 0;
+};
+
 } // namespace cme::adapter
