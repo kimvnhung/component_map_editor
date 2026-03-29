@@ -25,9 +25,10 @@ QVariantList PropertySchemaTemplateAdapter::schemaForTarget(
     const cme::templates::v1::PropertySchemaTemplateBundle &bundle,
     const QString &targetId)
 {
-    const std::string targetIdStd = targetId.toStdString();
+    const QString targetIdTrimmed = targetId.trimmed();
     for (const cme::templates::v1::PropertySchemaTargetTemplate &target : bundle.targets()) {
-        if (target.target_id() != targetIdStd)
+        const QString bundleTargetId = QString::fromStdString(target.target_id()).trimmed();
+        if (bundleTargetId != targetIdTrimmed)
             continue;
 
         QVariantList rows;
