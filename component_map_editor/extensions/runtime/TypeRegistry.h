@@ -77,6 +77,7 @@ public:
                     const QVariantMap &context = {},
                     QString *reason = nullptr) const;
 
+    // Typed external entrypoint. Preferred for integrations outside the library.
     bool canConnect(const cme::ConnectionPolicyContext &context,
                     QString *reason = nullptr) const;
 
@@ -90,6 +91,7 @@ public:
                                               const QString &tgtTypeId,
                                               const QVariantMap &rawProps = {}) const;
 
+    // Typed external entrypoint. Preferred for integrations outside the library.
     QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
                                               const QVariantMap &rawProps = {}) const;
 

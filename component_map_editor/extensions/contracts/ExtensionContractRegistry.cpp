@@ -207,6 +207,11 @@ QList<const IValidationProvider *> ExtensionContractRegistry::validationProvider
     return m_validationProviders.order;
 }
 
+QList<const IActionProvider *> ExtensionContractRegistry::actionProviders() const
+{
+    return m_actionProviders.order;
+}
+
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const
 {
     return m_executionSemanticsProviders.order;

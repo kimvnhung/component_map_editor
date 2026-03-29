@@ -10,6 +10,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <google/protobuf/struct.pb.h>
+
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "models/GraphModel.h"
 #include "execution.pb.h"
@@ -43,7 +45,10 @@ public:
     void setExecutionSemanticsProviders(const QList<const IExecutionSemanticsProvider *> &providers);
     void rebuildSemanticsFromRegistry(const ExtensionContractRegistry &registry);
 
+    // Legacy wrapper for QML/internal map-based start.
     Q_INVOKABLE bool start(const QVariantMap &inputSnapshot = {});
+    // Typed external entrypoint. Preferred for integrations outside the library.
+    bool startTyped(const google::protobuf::Struct &inputSnapshot);
     Q_INVOKABLE bool step();
     Q_INVOKABLE int run(int maxSteps = -1);
     Q_INVOKABLE void pause();
@@ -53,8 +58,14 @@ public:
     Q_INVOKABLE void clearBreakpoints();
     Q_INVOKABLE QStringList breakpoints() const;
 
+    // Legacy wrapper for QML/internal map-based state access.
     Q_INVOKABLE QVariantMap componentState(const QString &componentId) const;
+    bool componentStateTyped(const QString &componentId,
+                             google::protobuf::Struct *outState,
+                             QString *error = nullptr) const;
     Q_INVOKABLE QVariantMap snapshotSummary() const;
+
+    cme::ExecutionSnapshot executionSnapshotTyped() const;
 
 signals:
     void graphChanged();

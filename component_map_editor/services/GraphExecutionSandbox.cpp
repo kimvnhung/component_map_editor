@@ -4,6 +4,7 @@
 
 #include "adapters/ExecutionAdapter.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
+#include "extensions/runtime/PublicApiContractAdapter.h"
 
 namespace {
 
@@ -96,6 +97,13 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
     setStatus(RunStatus::Paused);
     finalizeIfNoReadyComponents();
     return m_status != RunStatus::Error;
+}
+
+bool GraphExecutionSandbox::startTyped(const google::protobuf::Struct &inputSnapshot)
+{
+    const QVariantMap legacySnapshot =
+        cme::runtime::PublicApiContractAdapter::protoStructToVariantMap(inputSnapshot);
+    return start(legacySnapshot);
 }
 
 bool GraphExecutionSandbox::step()
@@ -206,6 +214,22 @@ QVariantMap GraphExecutionSandbox::componentState(const QString &componentId) co
     return m_componentStates.value(componentId).toMap();
 }
 
+bool GraphExecutionSandbox::componentStateTyped(const QString &componentId,
+                                                google::protobuf::Struct *outState,
+                                                QString *error) const
+{
+    if (!outState) {
+        if (error)
+            *error = QStringLiteral("componentState output pointer is null");
+        return false;
+    }
+
+    const QVariantMap state = componentState(componentId);
+    outState->Clear();
+    cme::runtime::PublicApiContractAdapter::variantMapToProtoStruct(state, outState);
+    return true;
+}
+
 QVariantMap GraphExecutionSandbox::snapshotSummary() const
 {
     return QVariantMap{
@@ -215,6 +239,33 @@ QVariantMap GraphExecutionSandbox::snapshotSummary() const
         { QStringLiteral("readyQueue"), m_readyQueue },
         { QStringLiteral("breakpoints"), breakpoints() }
     };
+}
+
+cme::ExecutionSnapshot GraphExecutionSandbox::executionSnapshotTyped() const
+{
+    cme::ExecutionSnapshot snapshot;
+    for (const cme::TimelineEvent &event : m_typedTimeline)
+        *snapshot.add_events() = event;
+
+    for (auto it = m_componentStates.constBegin(); it != m_componentStates.constEnd(); ++it) {
+        cme::ComponentExecutionState *state = snapshot.add_component_states();
+        state->set_component_id(it.key().toStdString());
+
+        const QVariantMap asMap = it.value().toMap();
+        const QVariantMap inputMap = asMap.value(QStringLiteral("inputState")).toMap();
+        const QVariantMap outputMap = asMap.value(QStringLiteral("outputState")).toMap();
+        const QString trace = asMap.value(QStringLiteral("trace")).toString();
+
+        for (auto m = inputMap.constBegin(); m != inputMap.constEnd(); ++m)
+            (*state->mutable_input_state())[m.key().toStdString()] = m.value().toString().toStdString();
+        for (auto m = outputMap.constBegin(); m != outputMap.constEnd(); ++m)
+            (*state->mutable_output_state())[m.key().toStdString()] = m.value().toString().toStdString();
+
+        if (!trace.isEmpty())
+            state->set_trace(trace.toStdString());
+    }
+
+    return snapshot;
 }
 
 QString GraphExecutionSandbox::statusToString(RunStatus status)

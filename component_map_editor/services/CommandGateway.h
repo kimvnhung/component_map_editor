@@ -22,8 +22,9 @@ class InvariantChecker;
 // Single authoritative entry point for all plugin-initiated graph mutations.
 //
 // The enforcement contract:
-//   1. Extensions submit mutations as data (QVariantMap commandRequest) through
-//      executeRequest().  They never receive a writable GraphModel pointer.
+//   1. Preferred external boundary is executeTypedRequest() with
+//      cme::GraphCommandRequest.
+//   2. Legacy executeRequest() (QVariantMap) remains as a compatibility wrapper.
 //   2. executeRequest() verifies the caller holds Capability::kGraphMutate
 //      before doing anything else.
 //   3. An optional InvariantChecker runs pre-command and post-command:
@@ -57,7 +58,7 @@ public:
     InvariantChecker *invariantChecker() const;
     void setInvariantChecker(InvariantChecker *checker);
 
-    // ── Plugin/extension entry point ──────────────────────────────────────
+    // ── Plugin/extension entry point (legacy wrapper) ─────────────────────
     // extensionId must hold Capability::kGraphMutate in the CapabilityRegistry.
     //
     // commandRequest keys (all commands):
@@ -78,10 +79,19 @@ public:
                                     const QVariantMap &commandRequest,
                                     QString *error = nullptr);
 
-    // ── System/internal entry point ───────────────────────────────────────
+    // Typed external entrypoint. Preferred for integrations outside the library.
+    bool executeTypedRequest(const QString &extensionId,
+                             const cme::GraphCommandRequest &commandRequest,
+                             QString *error = nullptr);
+
+    // ── System/internal entry point (legacy wrapper) ──────────────────────
     // Same command format but capability check is skipped.
     // InvariantChecker still runs.
     bool executeSystemCommand(const QVariantMap &commandRequest, QString *error = nullptr);
+
+    // Typed system/internal entrypoint.
+    bool executeTypedSystemCommand(const cme::GraphCommandRequest &commandRequest,
+                                   QString *error = nullptr);
 
     // ── Audit ─────────────────────────────────────────────────────────────
     QVariantList requestLog() const;

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "PublicApiContractAdapter.h"
+
 namespace {
 
 QVariantMap makeFallbackField(const QString &title,
@@ -71,6 +73,41 @@ QVariantList PropertySchemaRegistry::schemaForTarget(const QString &targetId) co
     return resolvedSchemaRows(targetId);
 }
 
+bool PropertySchemaRegistry::schemaForTargetTyped(
+    const QString &targetId,
+    cme::publicapi::v1::PropertySchemaResponse *out,
+    QString *error) const
+{
+    if (!out) {
+        if (error)
+            *error = QStringLiteral("PropertySchemaResponse output pointer is null");
+        return false;
+    }
+
+    out->Clear();
+    out->mutable_status()->set_success(true);
+
+    const QVariantList rows = resolvedSchemaRows(targetId);
+    for (const QVariant &value : rows) {
+        const QVariantMap row = value.toMap();
+        if (row.isEmpty())
+            continue;
+
+        cme::publicapi::v1::PropertySchemaEntry *entry = out->add_entries();
+        QString conversionError;
+        if (!cme::runtime::PublicApiContractAdapter::toPropertySchemaEntry(row, entry, &conversionError)) {
+            out->mutable_status()->set_success(false);
+            out->mutable_status()->set_error_code("SCHEMA_CONVERSION_FAILED");
+            out->mutable_status()->set_error_message(conversionError.toStdString());
+            if (error)
+                *error = conversionError;
+            return false;
+        }
+    }
+
+    return true;
+}
+
 QVariantList PropertySchemaRegistry::sectionedSchemaForTarget(const QString &targetId) const
 {
     return sectionizeRows(resolvedSchemaRows(targetId));
@@ -84,6 +121,22 @@ QVariantList PropertySchemaRegistry::componentSchema(const QString &componentTyp
 QVariantList PropertySchemaRegistry::connectionSchema(const QString &connectionTypeId) const
 {
     return resolvedSchemaRows(QStringLiteral("connection/%1").arg(connectionTypeId));
+}
+
+bool PropertySchemaRegistry::componentSchemaTyped(
+    const QString &componentTypeId,
+    cme::publicapi::v1::PropertySchemaResponse *out,
+    QString *error) const
+{
+    return schemaForTargetTyped(QStringLiteral("component/%1").arg(componentTypeId), out, error);
+}
+
+bool PropertySchemaRegistry::connectionSchemaTyped(
+    const QString &connectionTypeId,
+    cme::publicapi::v1::PropertySchemaResponse *out,
+    QString *error) const
+{
+    return schemaForTargetTyped(QStringLiteral("connection/%1").arg(connectionTypeId), out, error);
 }
 
 QVariantMap PropertySchemaRegistry::normalizeFieldRow(const QVariantMap &raw, const QString &targetId)

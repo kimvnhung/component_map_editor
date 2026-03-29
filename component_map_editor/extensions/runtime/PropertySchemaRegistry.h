@@ -9,6 +9,7 @@
 #include <QQmlEngine>
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
+#include "public_api.pb.h"
 
 class PropertySchemaRegistry : public QObject
 {
@@ -23,15 +24,27 @@ public:
 
     Q_INVOKABLE bool hasTarget(const QString &targetId) const;
 
-    // Returns normalized field rows for a target.
+    // Legacy wrapper returning QVariant rows.
     Q_INVOKABLE QVariantList schemaForTarget(const QString &targetId) const;
+    // Typed external entrypoint. Preferred for integrations outside the library.
+    bool schemaForTargetTyped(const QString &targetId,
+                              cme::publicapi::v1::PropertySchemaResponse *out,
+                              QString *error = nullptr) const;
 
     // Returns normalized section list:
     // [ { id, title, fields:[...normalized rows...] }, ... ]
     Q_INVOKABLE QVariantList sectionedSchemaForTarget(const QString &targetId) const;
 
+    // Legacy wrappers returning QVariant rows.
     Q_INVOKABLE QVariantList componentSchema(const QString &componentTypeId) const;
     Q_INVOKABLE QVariantList connectionSchema(const QString &connectionTypeId) const;
+
+    bool componentSchemaTyped(const QString &componentTypeId,
+                              cme::publicapi::v1::PropertySchemaResponse *out,
+                              QString *error = nullptr) const;
+    bool connectionSchemaTyped(const QString &connectionTypeId,
+                               cme::publicapi::v1::PropertySchemaResponse *out,
+                               QString *error = nullptr) const;
 
 signals:
     void schemasChanged();

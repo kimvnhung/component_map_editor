@@ -56,6 +56,7 @@ public:
     QList<const IConnectionPolicyProviderV2 *> connectionPolicyProvidersV2() const;
     QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
     QList<const IValidationProvider *> validationProviders() const;
+    QList<const IActionProvider *> actionProviders() const;
     QList<const IExecutionSemanticsProvider *> executionSemanticsProviders() const;
 
 private:

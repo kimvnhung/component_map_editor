@@ -807,16 +807,19 @@ public:
 Enforces which source→target pairs are valid connections.
 
 ```cpp
-#include "extensions/contracts/IConnectionPolicyProvider.h"
+#include "extensions/contracts/IConnectionPolicyProviderV2.h"
 
-class MyConnectionPolicyProvider : public IConnectionPolicyProvider
+class MyConnectionPolicyProvider : public IConnectionPolicyProviderV2
 {
 public:
     QString providerId() const override { return "my.domain.connections"; }
 
-    bool canConnect(const QString &srcType, const QString &dstType,
-                    const QVariantMap & /*context*/, QString *reason) const override
+    bool canConnect(const cme::ConnectionPolicyContext &context,
+                    QString *reason) const override
     {
+        const QString srcType = QString::fromStdString(context.source_type_id());
+        const QString dstType = QString::fromStdString(context.target_type_id());
+
         // start has output-only behavior; stop has input-only behavior.
         if (dstType == "start") return false;
         if (srcType == "stop")  return false;
@@ -831,7 +834,7 @@ public:
         return false;
     }
 
-    QVariantMap normalizeConnectionProperties(const QString &, const QString &,
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &,
                                               const QVariantMap &raw) const override {
         return raw;   // pass through; transform if needed
     }
@@ -960,6 +963,46 @@ public:
         return false;
     }
 };
+```
+
+---
+
+### Typed Service Boundaries (External Integrations)
+
+For external integrations, call typed service entrypoints and treat QVariant
+entrypoints as legacy wrappers.
+
+```cpp
+// Command boundary
+cme::GraphCommandRequest cmd;
+auto *add = cmd.mutable_add_component();
+add->set_component_id("node_1");
+add->set_type_id("process");
+add->set_x(120.0);
+add->set_y(80.0);
+gateway.executeTypedRequest("my.extension", cmd, &error);
+
+// Policy boundary
+cme::ConnectionPolicyContext policyCtx;
+policyCtx.set_source_type_id("process");
+policyCtx.set_target_type_id("stop");
+policyCtx.set_target_incoming_count(0);
+typeRegistry.canConnect(policyCtx, &reason);
+
+// Execution boundary
+google::protobuf::Struct input;
+sandbox.startTyped(input);
+cme::ExecutionSnapshot snap = sandbox.executionSnapshotTyped();
+
+// Schema boundary
+cme::publicapi::v1::PropertySchemaResponse schema;
+schemaRegistry.schemaForTargetTyped("component/process", &schema, &error);
+
+// Action invocation boundary
+cme::publicapi::v1::ActionInvokeRequest actionReq;
+actionReq.set_action_id("setTaskPriority");
+cme::publicapi::v1::ActionInvokeResponse actionResp;
+actionService.invokeActionTyped(actionReq, &actionResp, &error);
 ```
 
 ---

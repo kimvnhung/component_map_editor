@@ -279,6 +279,22 @@ ValidationService API:
 
 Use validationIssues(graph) when UI needs to distinguish warnings from errors.
 
+## External API Contract (Typed First)
+
+For reuse outside this library, prefer typed protobuf entrypoints.
+
+- Command: `CommandGateway::executeTypedRequest(...)`, `executeTypedSystemCommand(...)`
+- Policy: `TypeRegistry::canConnect(const cme::ConnectionPolicyContext&, ...)`
+  and `normalizeConnectionProperties(const cme::ConnectionPolicyContext&, ...)`
+- Execution: `GraphExecutionSandbox::startTyped(...)`,
+  `componentStateTyped(...)`, `executionSnapshotTyped()`
+- Schema: `PropertySchemaRegistry::schemaForTargetTyped(...)`,
+  `componentSchemaTyped(...)`, `connectionSchemaTyped(...)`
+- Action invocation: `ActionInvocationService::invokeActionTyped(...)`
+
+The QVariant/QVariantMap entrypoints remain as compatibility wrappers for
+existing integrations and internal glue code.
+
 ## Naming note
 
 - The project intentionally avoids creating a QML type named Component because QtQuick already provides a built-in Component type.

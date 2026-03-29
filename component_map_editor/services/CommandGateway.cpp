@@ -89,10 +89,25 @@ bool CommandGateway::executeRequest(const QString &extensionId,
     return dispatchCommand(extensionId, commandRequest, /*requireCapability=*/true, error);
 }
 
+bool CommandGateway::executeTypedRequest(const QString &extensionId,
+                                         const cme::GraphCommandRequest &commandRequest,
+                                         QString *error)
+{
+    const QVariantMap legacyRequest = cme::adapter::graphCommandRequestToVariantMap(commandRequest);
+    return executeRequest(extensionId, legacyRequest, error);
+}
+
 bool CommandGateway::executeSystemCommand(const QVariantMap &commandRequest, QString *error)
 {
     return dispatchCommand(QStringLiteral("__system__"), commandRequest,
                            /*requireCapability=*/false, error);
+}
+
+bool CommandGateway::executeTypedSystemCommand(const cme::GraphCommandRequest &commandRequest,
+                                               QString *error)
+{
+    const QVariantMap legacyRequest = cme::adapter::graphCommandRequestToVariantMap(commandRequest);
+    return executeSystemCommand(legacyRequest, error);
 }
 
 // ── Audit log ─────────────────────────────────────────────────────────────────
