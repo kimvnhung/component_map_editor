@@ -13,7 +13,7 @@ void TypeRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry
     m_descriptors.clear();
     m_defaults.clear();
     m_orderedTypeIds.clear();
-    m_connectionPoliciesV2.clear();
+    m_connectionPolicies.clear();
 
     // --- Component-type cache ----------------------------------------------
     const QList<const IComponentTypeProvider *> componentProviders = registry.componentTypeProviders();
@@ -31,7 +31,7 @@ void TypeRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry
     }
 
     // --- Connection-policy list --------------------------------------------
-    m_connectionPoliciesV2 = registry.connectionPolicyProvidersV2();
+    m_connectionPolicies = registry.connectionPolicyProviders();
 
     if (m_orderedTypeIds != prevIds)
         emit componentTypesChanged();
@@ -99,7 +99,7 @@ bool TypeRegistry::canConnect(const QString &srcTypeId,
 bool TypeRegistry::canConnect(const cme::ConnectionPolicyContext &context,
                               QString *reason) const
 {
-    for (const IConnectionPolicyProviderV2 *provider : m_connectionPoliciesV2) {
+    for (const IConnectionPolicyProvider *provider : m_connectionPolicies) {
         if (!provider)
             continue;
         QString providerReason;
@@ -126,7 +126,7 @@ QVariantMap TypeRegistry::normalizeConnectionProperties(const cme::ConnectionPol
                                                         const QVariantMap &rawProps) const
 {
     QVariantMap result = rawProps;
-    for (const IConnectionPolicyProviderV2 *provider : m_connectionPoliciesV2) {
+    for (const IConnectionPolicyProvider *provider : m_connectionPolicies) {
         if (!provider)
             continue;
         const QVariantMap normalized = provider->normalizeConnectionProperties(context, result);

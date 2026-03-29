@@ -96,9 +96,9 @@ class AllowAllConnectionPolicy : public IConnectionPolicyProvider
 public:
     QString providerId() const override { return QStringLiteral("baseline.policy.allow"); }
 
-    bool canConnect(const QString &, const QString &, const QVariantMap &, QString *) const override { return true; }
+    bool canConnect(const cme::ConnectionPolicyContext &, QString *) const override { return true; }
 
-    QVariantMap normalizeConnectionProperties(const QString &, const QString &, const QVariantMap &raw) const override { return raw; }
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &, const QVariantMap &raw) const override { return raw; }
 };
 
 // Minimal IValidationProvider — records call without any issues.
@@ -287,7 +287,7 @@ void tst_Phase0Baseline::extensionIIDsAreUnchanged()
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_COMPONENT_TYPE_PROVIDER),
              QStringLiteral("ComponentMapEditor.Extensions.IComponentTypeProvider/1.0"));
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_CONNECTION_POLICY_PROVIDER),
-             QStringLiteral("ComponentMapEditor.Extensions.IConnectionPolicyProvider/1.0"));
+             QStringLiteral("ComponentMapEditor.Extensions.IConnectionPolicyProvider/2.0"));
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_ACTION_PROVIDER),
              QStringLiteral("ComponentMapEditor.Extensions.IActionProvider/1.0"));
     QCOMPARE(QString::fromLatin1(COMPONENT_MAP_EDITOR_IID_VALIDATION_PROVIDER),

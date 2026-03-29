@@ -1,12 +1,12 @@
 #ifndef RULEBACKEDPROVIDERS_H
 #define RULEBACKEDPROVIDERS_H
 
-#include "extensions/contracts/IConnectionPolicyProviderV2.h"
+#include "extensions/contracts/IConnectionPolicyProvider.h"
 #include "extensions/contracts/IValidationProvider.h"
 #include "RuleRuntimeEngine.h"
 #include "RuleRuntimeRegistry.h"
 
-class RuleBackedConnectionPolicyProvider : public IConnectionPolicyProviderV2
+class RuleBackedConnectionPolicyProvider : public IConnectionPolicyProvider
 {
 public:
     explicit RuleBackedConnectionPolicyProvider(RuleRuntimeRegistry *registry)

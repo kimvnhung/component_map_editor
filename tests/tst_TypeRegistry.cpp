@@ -2,7 +2,6 @@
 
 #include "extensions/contracts/ExtensionApiVersion.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
-#include "extensions/contracts/IConnectionPolicyProviderV2.h"
 #include "extensions/runtime/TypeRegistry.h"
 #include "extensions/sample_pack/SampleComponentTypeProvider.h"
 #include "extensions/sample_pack/SampleConnectionPolicyProvider.h"
@@ -45,20 +44,20 @@ class DenyAllConnectionPolicyProvider : public IConnectionPolicyProvider
 public:
     QString providerId() const override { return QStringLiteral("deny.all"); }
 
-    bool canConnect(const QString &, const QString &, const QVariantMap &, QString *reason) const override
+    bool canConnect(const cme::ConnectionPolicyContext &, QString *reason) const override
     {
         if (reason)
             *reason = QStringLiteral("DenyAll: connection refused.");
         return false;
     }
 
-    QVariantMap normalizeConnectionProperties(const QString &, const QString &, const QVariantMap &raw) const override
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &, const QVariantMap &raw) const override
     {
         return raw;
     }
 };
 
-class CardinalityConnectionPolicyProviderV2 : public IConnectionPolicyProviderV2
+class CardinalityConnectionPolicyProvider : public IConnectionPolicyProvider
 {
 public:
     QString providerId() const override { return QStringLiteral("cardinality.v2"); }
@@ -288,9 +287,9 @@ private slots:
         QCOMPARE(out, input);
     }
 
-    void typedV2ProviderCanUseContextAccessors()
+    void typedProviderCanUseContextAccessors()
     {
-        CardinalityConnectionPolicyProviderV2 v2Provider;
+        CardinalityConnectionPolicyProvider v2Provider;
         ExtensionContractRegistry reg(coreV1());
         QVERIFY(reg.registerConnectionPolicyProvider(&v2Provider));
 
@@ -311,11 +310,11 @@ private slots:
         QVERIFY(tr.canConnect(context, &reason));
     }
 
-    void legacyV1ProviderStillWorksViaV2Adapter()
+    void typedProviderRejectsViaContextRules()
     {
-        DenyAllConnectionPolicyProvider v1Provider;
+        DenyAllConnectionPolicyProvider provider;
         ExtensionContractRegistry reg(coreV1());
-        QVERIFY(reg.registerConnectionPolicyProvider(&v1Provider));
+        QVERIFY(reg.registerConnectionPolicyProvider(&provider));
 
         TypeRegistry tr;
         tr.rebuildFromRegistry(reg);

@@ -13,7 +13,6 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/contracts/IComponentTypeProvider.h"
 #include "extensions/contracts/IConnectionPolicyProvider.h"
-#include "extensions/contracts/IConnectionPolicyProviderV2.h"
 #include "policy.pb.h"
 
 /**
@@ -105,7 +104,7 @@ private:
     QStringList                 m_orderedTypeIds;
 
     // Connection-policy provider list (ordered; non-owning, typed canonical path)
-    QList<const IConnectionPolicyProviderV2 *> m_connectionPoliciesV2;
+    QList<const IConnectionPolicyProvider *> m_connectionPolicies;
 };
 
 #endif // TYPEREGISTRY_H

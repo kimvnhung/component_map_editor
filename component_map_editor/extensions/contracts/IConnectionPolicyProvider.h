@@ -5,6 +5,8 @@
 #include <QtPlugin>
 #include <QVariantMap>
 
+#include "policy.pb.h"
+
 class IConnectionPolicyProvider
 {
 public:
@@ -12,19 +14,21 @@ public:
 
     virtual QString providerId() const = 0;
 
-    // Returns true when source->target is allowed by business rules.
-    virtual bool canConnect(const QString &sourceTypeId,
-                            const QString &targetTypeId,
-                            const QVariantMap &context,
+    // Typed contract for policy decisioning.
+    virtual bool canConnect(const cme::ConnectionPolicyContext &context,
                             QString *reason) const = 0;
 
-    // Allows providers to normalize connection attributes before command creation.
-    virtual QVariantMap normalizeConnectionProperties(const QString &sourceTypeId,
-                                                      const QString &targetTypeId,
-                                                      const QVariantMap &rawProperties) const = 0;
+    // Property normalization still accepts QVariantMap for compatibility while
+    // public contract migration is rolled out across call sites.
+    virtual QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
+                                                      const QVariantMap &rawProperties) const
+    {
+        Q_UNUSED(context)
+        return rawProperties;
+    }
 };
 
-#define COMPONENT_MAP_EDITOR_IID_CONNECTION_POLICY_PROVIDER "ComponentMapEditor.Extensions.IConnectionPolicyProvider/1.0"
+#define COMPONENT_MAP_EDITOR_IID_CONNECTION_POLICY_PROVIDER "ComponentMapEditor.Extensions.IConnectionPolicyProvider/2.0"
 Q_DECLARE_INTERFACE(IConnectionPolicyProvider, COMPONENT_MAP_EDITOR_IID_CONNECTION_POLICY_PROVIDER)
 
 #endif // ICONNECTIONPOLICYPROVIDER_H

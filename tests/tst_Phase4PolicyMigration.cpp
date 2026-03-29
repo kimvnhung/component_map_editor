@@ -28,13 +28,15 @@ class MockConnectionPolicyProviderPhase4 : public IConnectionPolicyProvider
 public:
     QString providerId() const override { return QStringLiteral("mockPhase4"); }
 
-    bool canConnect(const QString &srcType,
-                    const QString &tgtType,
-                    const QVariantMap &context,
+    bool canConnect(const cme::ConnectionPolicyContext &context,
                     QString *reason) const override
     {
+        const QString srcType = QString::fromStdString(context.source_type_id());
+        const QString tgtType = QString::fromStdString(context.target_type_id());
+        const QVariantMap contextMap = cme::adapter::connectionPolicyContextToVariantMap(context);
+
         // Reject if source and target are the same type and connection count > 2
-        if (srcType == tgtType && context.value("graphConnectionCount").toInt() > 2) {
+        if (srcType == tgtType && contextMap.value("graphConnectionCount").toInt() > 2) {
             if (reason)
                 *reason = QStringLiteral("Max connections reached");
             return false;
@@ -42,8 +44,7 @@ public:
         return true;
     }
 
-    QVariantMap normalizeConnectionProperties(const QString &,
-                                              const QString &,
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &,
                                               const QVariantMap &rawProps) const override
     {
         QVariantMap props = rawProps;

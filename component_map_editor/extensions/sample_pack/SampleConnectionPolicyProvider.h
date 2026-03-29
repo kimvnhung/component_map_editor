@@ -1,9 +1,9 @@
 #ifndef SAMPLECONNECTIONPOLICYPROVIDER_H
 #define SAMPLECONNECTIONPOLICYPROVIDER_H
 
-#include "extensions/contracts/IConnectionPolicyProviderV2.h"
+#include "extensions/contracts/IConnectionPolicyProvider.h"
 
-// Sample implementation of IConnectionPolicyProviderV2 for the workflow domain.
+// Sample implementation of IConnectionPolicyProvider for the workflow domain.
 // Allowed connections between component types:
 //   start    -> process
 //   process  -> process, stop
@@ -12,7 +12,7 @@
 //   stop -> *       (stop has no outgoing connections)
 //   start -> stop, process -> start
 // normalizeConnectionProperties always adds type="flow" to the returned map.
-class SampleConnectionPolicyProvider : public IConnectionPolicyProviderV2
+class SampleConnectionPolicyProvider : public IConnectionPolicyProvider
 {
 public:
     QString     providerId() const override;

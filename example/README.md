@@ -807,9 +807,9 @@ public:
 Enforces which source→target pairs are valid connections.
 
 ```cpp
-#include "extensions/contracts/IConnectionPolicyProviderV2.h"
+#include "extensions/contracts/IConnectionPolicyProvider.h"
 
-class MyConnectionPolicyProvider : public IConnectionPolicyProviderV2
+class MyConnectionPolicyProvider : public IConnectionPolicyProvider
 {
 public:
     QString providerId() const override { return "my.domain.connections"; }

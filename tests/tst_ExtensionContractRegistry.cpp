@@ -25,8 +25,8 @@ struct StubConnectionPolicyProviderById : public IConnectionPolicyProvider
 {
     explicit StubConnectionPolicyProviderById(const QString &id) : m_id(id) {}
     QString providerId() const override { return m_id; }
-    bool canConnect(const QString &, const QString &, const QVariantMap &, QString *) const override { return true; }
-    QVariantMap normalizeConnectionProperties(const QString &, const QString &, const QVariantMap &raw) const override { return raw; }
+    bool canConnect(const cme::ConnectionPolicyContext &, QString *) const override { return true; }
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &, const QVariantMap &raw) const override { return raw; }
     QString m_id;
 };
 

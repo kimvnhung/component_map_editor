@@ -8,13 +8,11 @@
 #include <vector>
 
 #include "ExtensionApiVersion.h"
-#include "ConnectionPolicyProviderV1ToV2Adapter.h"
 #include "ExecutionSemanticsV0Adapter.h"
 #include "ExtensionManifest.h"
 #include "IActionProvider.h"
 #include "IComponentTypeProvider.h"
 #include "IConnectionPolicyProvider.h"
-#include "IConnectionPolicyProviderV2.h"
 #include "IExecutionSemanticsProvider.h"
 #include "IExecutionSemanticsProviderV0.h"
 #include "IPropertySchemaProvider.h"
@@ -37,7 +35,6 @@ public:
     bool registerManifest(const ExtensionManifest &manifest, QString *error = nullptr);
     bool registerComponentTypeProvider(const IComponentTypeProvider *provider, QString *error = nullptr);
     bool registerConnectionPolicyProvider(const IConnectionPolicyProvider *provider, QString *error = nullptr);
-    bool registerConnectionPolicyProvider(const IConnectionPolicyProviderV2 *provider, QString *error = nullptr);
     bool registerPropertySchemaProvider(const IPropertySchemaProvider *provider, QString *error = nullptr);
     bool registerValidationProvider(const IValidationProvider *provider, QString *error = nullptr);
     bool registerActionProvider(const IActionProvider *provider, QString *error = nullptr);
@@ -53,7 +50,6 @@ public:
     // Providers are returned in registration order.
     QList<const IComponentTypeProvider *> componentTypeProviders() const;
     QList<const IConnectionPolicyProvider *> connectionPolicyProviders() const;
-    QList<const IConnectionPolicyProviderV2 *> connectionPolicyProvidersV2() const;
     QList<const IPropertySchemaProvider *> propertySchemaProviders() const;
     QList<const IValidationProvider *> validationProviders() const;
     QList<const IActionProvider *> actionProviders() const;
@@ -99,12 +95,10 @@ private:
     QHash<QString, ExtensionManifest> m_manifests;
     ProviderRegistry<IComponentTypeProvider>     m_componentTypeProviders;
     ProviderRegistry<IConnectionPolicyProvider>  m_connectionPolicyProviders;
-    ProviderRegistry<IConnectionPolicyProviderV2> m_connectionPolicyProvidersV2;
     ProviderRegistry<IPropertySchemaProvider>    m_propertySchemaProviders;
     ProviderRegistry<IValidationProvider>        m_validationProviders;
     ProviderRegistry<IActionProvider>            m_actionProviders;
     ProviderRegistry<IExecutionSemanticsProvider> m_executionSemanticsProviders;
-    std::vector<std::unique_ptr<ConnectionPolicyProviderV1ToV2Adapter>> m_connectionPolicyV1Adapters;
     std::vector<std::unique_ptr<ExecutionSemanticsV0Adapter>> m_executionSemanticsV0Adapters;
 };
 
