@@ -1,12 +1,12 @@
 #ifndef RULEBACKEDPROVIDERS_H
 #define RULEBACKEDPROVIDERS_H
 
-#include "extensions/contracts/IConnectionPolicyProvider.h"
+#include "extensions/contracts/IConnectionPolicyProviderV2.h"
 #include "extensions/contracts/IValidationProvider.h"
 #include "RuleRuntimeEngine.h"
 #include "RuleRuntimeRegistry.h"
 
-class RuleBackedConnectionPolicyProvider : public IConnectionPolicyProvider
+class RuleBackedConnectionPolicyProvider : public IConnectionPolicyProviderV2
 {
 public:
     explicit RuleBackedConnectionPolicyProvider(RuleRuntimeRegistry *registry)
@@ -18,25 +18,24 @@ public:
         return QStringLiteral("compiled.rules.connectionPolicy");
     }
 
-    bool canConnect(const QString &sourceTypeId,
-                    const QString &targetTypeId,
-                    const QVariantMap & /*context*/,
+    bool canConnect(const cme::ConnectionPolicyContext &context,
                     QString *reason) const override
     {
         if (!m_registry)
             return true;
+
+        const QString sourceTypeId = QString::fromStdString(context.source_type_id());
+        const QString targetTypeId = QString::fromStdString(context.target_type_id());
 
         RuleRuntimeEngine engine;
         engine.setDescriptor(&m_registry->descriptor());
         return engine.canConnect(sourceTypeId, targetTypeId, reason);
     }
 
-    QVariantMap normalizeConnectionProperties(const QString &sourceTypeId,
-                                              const QString &targetTypeId,
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
                                               const QVariantMap &rawProperties) const override
     {
-        Q_UNUSED(sourceTypeId)
-        Q_UNUSED(targetTypeId)
+        Q_UNUSED(context)
 
         if (!m_registry)
             return rawProperties;

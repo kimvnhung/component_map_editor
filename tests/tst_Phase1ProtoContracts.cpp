@@ -15,6 +15,7 @@
 #include "execution.pb.h"
 #include "graph.pb.h"
 #include "policy.pb.h"
+#include "public_api.pb.h"
 #include "validation.pb.h"
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -70,6 +71,35 @@ private Q_SLOTS:
     void connectionPolicyContext_roundtrip();
     void componentTypeDefaults_roundtrip();
     void connectionProperties_roundtrip();
+
+    // ── public_api.proto ────────────────────────────────────────────────
+    void actionListRequest_roundtrip();
+    void actionListResponse_roundtrip();
+    void actionDescriptorRequest_roundtrip();
+    void actionDescriptorResponse_roundtrip();
+    void actionInvokeRequest_roundtrip();
+    void actionInvokeResponse_roundtrip();
+    void componentTypeIdsRequest_roundtrip();
+    void componentTypeIdsResponse_roundtrip();
+    void componentTypeDescriptorRequest_roundtrip();
+    void componentTypeDescriptorResponse_roundtrip();
+    void defaultComponentPropertiesRequest_roundtrip();
+    void defaultComponentPropertiesResponse_roundtrip();
+    void canConnectRequest_roundtrip();
+    void canConnectResponse_roundtrip();
+    void normalizeConnectionPropertiesRequest_roundtrip();
+    void normalizeConnectionPropertiesResponse_roundtrip();
+    void supportedComponentTypesRequest_roundtrip();
+    void supportedComponentTypesResponse_roundtrip();
+    void executeComponentRequest_roundtrip();
+    void executeComponentResponse_roundtrip();
+    void schemaTargetsRequest_roundtrip();
+    void schemaTargetsResponse_roundtrip();
+    void propertySchemaRequest_roundtrip();
+    void propertySchemaResponse_roundtrip();
+    void validateGraphRequest_roundtrip();
+    void validateGraphResponse_roundtrip();
+    void executionSnapshotEnvelope_roundtrip();
 };
 
 // ============================================================================
@@ -443,6 +473,331 @@ void tst_Phase1ProtoContracts::connectionProperties_roundtrip()
     QCOMPARE(decoded.connection_id(), std::string("conn-001"));
     QCOMPARE(decoded.properties().at("capacity"), std::string("10"));
     QCOMPARE(decoded.properties().at("latency"),  std::string("5ms"));
+}
+
+// ============================================================================
+// public_api.proto
+// ============================================================================
+
+void tst_Phase1ProtoContracts::actionListRequest_roundtrip()
+{
+    cme::publicapi::v1::ActionListRequest req;
+    req.mutable_provider()->set_provider_id("provider.actions");
+    req.mutable_provider()->set_interface_iid("org.cme.IActionProvider/2.0");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.provider().provider_id(), std::string("provider.actions"));
+    QCOMPARE(decoded.provider().interface_iid(), std::string("org.cme.IActionProvider/2.0"));
+}
+
+void tst_Phase1ProtoContracts::actionListResponse_roundtrip()
+{
+    cme::publicapi::v1::ActionListResponse resp;
+    resp.mutable_status()->set_success(true);
+    auto *action = resp.add_actions();
+    action->set_action_id("action.add");
+    action->set_title("Add Component");
+    action->set_enabled(true);
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.actions_size(), 1);
+    QCOMPARE(decoded.actions(0).action_id(), std::string("action.add"));
+}
+
+void tst_Phase1ProtoContracts::actionDescriptorRequest_roundtrip()
+{
+    cme::publicapi::v1::ActionDescriptorRequest req;
+    req.mutable_provider()->set_provider_id("provider.actions");
+    req.set_action_id("action.run");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.provider().provider_id(), std::string("provider.actions"));
+    QCOMPARE(decoded.action_id(), std::string("action.run"));
+}
+
+void tst_Phase1ProtoContracts::actionDescriptorResponse_roundtrip()
+{
+    cme::publicapi::v1::ActionDescriptorResponse resp;
+    resp.mutable_status()->set_success(true);
+    auto *descriptor = resp.mutable_action_descriptor();
+    descriptor->set_action_id("action.run");
+    descriptor->set_title("Run");
+    descriptor->set_hint("Runs current graph");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.action_descriptor().action_id(), std::string("action.run"));
+    QCOMPARE(decoded.action_descriptor().hint(), std::string("Runs current graph"));
+}
+
+void tst_Phase1ProtoContracts::actionInvokeRequest_roundtrip()
+{
+    cme::publicapi::v1::ActionInvokeRequest req;
+    req.mutable_provider()->set_provider_id("provider.actions");
+    req.set_action_id("action.run");
+    (*req.mutable_context()->mutable_values())["mode"].set_string_value("fast");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.action_id(), std::string("action.run"));
+    QCOMPARE(decoded.context().values().at("mode").string_value(), std::string("fast"));
+}
+
+void tst_Phase1ProtoContracts::actionInvokeResponse_roundtrip()
+{
+    cme::publicapi::v1::ActionInvokeResponse resp;
+    resp.mutable_status()->set_success(true);
+    resp.mutable_command_request()->mutable_add_component()->set_type_id("logic/AndGate");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QVERIFY(decoded.command_request().has_add_component());
+    QCOMPARE(decoded.command_request().add_component().type_id(), std::string("logic/AndGate"));
+}
+
+void tst_Phase1ProtoContracts::componentTypeIdsRequest_roundtrip()
+{
+    cme::publicapi::v1::ComponentTypeIdsRequest req;
+    req.mutable_provider()->set_provider_id("provider.types");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.provider().provider_id(), std::string("provider.types"));
+}
+
+void tst_Phase1ProtoContracts::componentTypeIdsResponse_roundtrip()
+{
+    cme::publicapi::v1::ComponentTypeIdsResponse resp;
+    resp.mutable_status()->set_success(true);
+    resp.add_component_type_ids("logic/AndGate");
+    resp.add_component_type_ids("logic/OrGate");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.component_type_ids_size(), 2);
+    QCOMPARE(decoded.component_type_ids(1), std::string("logic/OrGate"));
+}
+
+void tst_Phase1ProtoContracts::componentTypeDescriptorRequest_roundtrip()
+{
+    cme::publicapi::v1::ComponentTypeDescriptorRequest req;
+    req.mutable_provider()->set_provider_id("provider.types");
+    req.set_component_type_id("logic/AndGate");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.component_type_id(), std::string("logic/AndGate"));
+}
+
+void tst_Phase1ProtoContracts::componentTypeDescriptorResponse_roundtrip()
+{
+    cme::publicapi::v1::ComponentTypeDescriptorResponse resp;
+    resp.mutable_status()->set_success(true);
+    auto *descriptor = resp.mutable_component_type_descriptor();
+    descriptor->set_id("logic/AndGate");
+    descriptor->set_title("AND");
+    descriptor->set_default_width(120.0);
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.component_type_descriptor().id(), std::string("logic/AndGate"));
+    QCOMPARE(decoded.component_type_descriptor().default_width(), 120.0);
+}
+
+void tst_Phase1ProtoContracts::defaultComponentPropertiesRequest_roundtrip()
+{
+    cme::publicapi::v1::DefaultComponentPropertiesRequest req;
+    req.mutable_provider()->set_provider_id("provider.types");
+    req.set_component_type_id("logic/AndGate");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.component_type_id(), std::string("logic/AndGate"));
+}
+
+void tst_Phase1ProtoContracts::defaultComponentPropertiesResponse_roundtrip()
+{
+    cme::publicapi::v1::DefaultComponentPropertiesResponse resp;
+    resp.mutable_status()->set_success(true);
+    (*resp.mutable_properties())["label"].set_string_value("A");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.properties().at("label").string_value(), std::string("A"));
+}
+
+void tst_Phase1ProtoContracts::canConnectRequest_roundtrip()
+{
+    cme::publicapi::v1::CanConnectRequest req;
+    req.mutable_provider()->set_provider_id("provider.policy");
+    req.set_source_type_id("start");
+    req.set_target_type_id("process");
+    req.mutable_context()->set_source_type_id("start");
+    req.mutable_context()->set_target_type_id("process");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.source_type_id(), std::string("start"));
+    QCOMPARE(decoded.context().target_type_id(), std::string("process"));
+}
+
+void tst_Phase1ProtoContracts::canConnectResponse_roundtrip()
+{
+    cme::publicapi::v1::CanConnectResponse resp;
+    resp.mutable_status()->set_success(true);
+    resp.set_allowed(true);
+    resp.set_reason("");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QVERIFY(decoded.allowed());
+    QVERIFY(decoded.reason().empty());
+}
+
+void tst_Phase1ProtoContracts::normalizeConnectionPropertiesRequest_roundtrip()
+{
+    cme::publicapi::v1::NormalizeConnectionPropertiesRequest req;
+    req.mutable_provider()->set_provider_id("provider.policy");
+    req.set_source_type_id("process");
+    req.set_target_type_id("stop");
+    (*req.mutable_raw_properties())["type"].set_string_value("flow");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.source_type_id(), std::string("process"));
+    QCOMPARE(decoded.raw_properties().at("type").string_value(), std::string("flow"));
+}
+
+void tst_Phase1ProtoContracts::normalizeConnectionPropertiesResponse_roundtrip()
+{
+    cme::publicapi::v1::NormalizeConnectionPropertiesResponse resp;
+    resp.mutable_status()->set_success(true);
+    (*resp.mutable_normalized_properties())["type"].set_string_value("flow");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.normalized_properties().at("type").string_value(), std::string("flow"));
+}
+
+void tst_Phase1ProtoContracts::supportedComponentTypesRequest_roundtrip()
+{
+    cme::publicapi::v1::SupportedComponentTypesRequest req;
+    req.mutable_provider()->set_provider_id("provider.exec");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.provider().provider_id(), std::string("provider.exec"));
+}
+
+void tst_Phase1ProtoContracts::supportedComponentTypesResponse_roundtrip()
+{
+    cme::publicapi::v1::SupportedComponentTypesResponse resp;
+    resp.mutable_status()->set_success(true);
+    resp.add_component_types("logic/AndGate");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.component_types(0), std::string("logic/AndGate"));
+}
+
+void tst_Phase1ProtoContracts::executeComponentRequest_roundtrip()
+{
+    cme::publicapi::v1::ExecuteComponentRequest req;
+    req.mutable_provider()->set_provider_id("provider.exec");
+    req.set_component_type("logic/AndGate");
+    req.set_component_id("comp-001");
+    req.mutable_component_snapshot()->set_id("comp-001");
+    (*req.mutable_input_state())["in0"].set_string_value("1");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.component_type(), std::string("logic/AndGate"));
+    QCOMPARE(decoded.component_snapshot().id(), std::string("comp-001"));
+    QCOMPARE(decoded.input_state().at("in0").string_value(), std::string("1"));
+}
+
+void tst_Phase1ProtoContracts::executeComponentResponse_roundtrip()
+{
+    cme::publicapi::v1::ExecuteComponentResponse resp;
+    resp.mutable_status()->set_success(true);
+    (*resp.mutable_output_state())["out0"].set_string_value("1");
+    (*resp.mutable_trace())["step"].set_string_value("done");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.output_state().at("out0").string_value(), std::string("1"));
+    QCOMPARE(decoded.trace().at("step").string_value(), std::string("done"));
+}
+
+void tst_Phase1ProtoContracts::schemaTargetsRequest_roundtrip()
+{
+    cme::publicapi::v1::SchemaTargetsRequest req;
+    req.mutable_provider()->set_provider_id("provider.schema");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.provider().provider_id(), std::string("provider.schema"));
+}
+
+void tst_Phase1ProtoContracts::schemaTargetsResponse_roundtrip()
+{
+    cme::publicapi::v1::SchemaTargetsResponse resp;
+    resp.mutable_status()->set_success(true);
+    resp.add_target_ids("logic/AndGate");
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.target_ids(0), std::string("logic/AndGate"));
+}
+
+void tst_Phase1ProtoContracts::propertySchemaRequest_roundtrip()
+{
+    cme::publicapi::v1::PropertySchemaRequest req;
+    req.mutable_provider()->set_provider_id("provider.schema");
+    req.set_target_id("logic/AndGate");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.target_id(), std::string("logic/AndGate"));
+}
+
+void tst_Phase1ProtoContracts::propertySchemaResponse_roundtrip()
+{
+    cme::publicapi::v1::PropertySchemaResponse resp;
+    resp.mutable_status()->set_success(true);
+    auto *entry = resp.add_entries();
+    entry->set_key("inputs");
+    entry->set_type("int");
+    entry->set_required(true);
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.entries_size(), 1);
+    QCOMPARE(decoded.entries(0).key(), std::string("inputs"));
+}
+
+void tst_Phase1ProtoContracts::validateGraphRequest_roundtrip()
+{
+    cme::publicapi::v1::ValidateGraphRequest req;
+    req.mutable_provider()->set_provider_id("provider.validation");
+    req.mutable_graph_snapshot()->set_graph_id("graph-42");
+
+    const auto decoded = roundtrip(req);
+    QCOMPARE(decoded.provider().provider_id(), std::string("provider.validation"));
+    QCOMPARE(decoded.graph_snapshot().graph_id(), std::string("graph-42"));
+}
+
+void tst_Phase1ProtoContracts::validateGraphResponse_roundtrip()
+{
+    cme::publicapi::v1::ValidateGraphResponse resp;
+    resp.mutable_status()->set_success(true);
+    resp.mutable_result()->set_is_valid(true);
+
+    const auto decoded = roundtrip(resp);
+    QVERIFY(decoded.status().success());
+    QVERIFY(decoded.result().is_valid());
+}
+
+void tst_Phase1ProtoContracts::executionSnapshotEnvelope_roundtrip()
+{
+    cme::publicapi::v1::ExecutionSnapshotEnvelope env;
+    env.mutable_status()->set_success(true);
+    env.mutable_snapshot()->set_session_id("session-001");
+
+    const auto decoded = roundtrip(env);
+    QVERIFY(decoded.status().success());
+    QCOMPARE(decoded.snapshot().session_id(), std::string("session-001"));
 }
 
 QTEST_MAIN(tst_Phase1ProtoContracts)

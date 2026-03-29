@@ -64,6 +64,15 @@ QString writeTextFile(const QString &path, const QString &text)
     return path;
 }
 
+  cme::ConnectionPolicyContext makePolicyContext(const QString &sourceType,
+                           const QString &targetType)
+  {
+    cme::ConnectionPolicyContext context;
+    context.set_source_type_id(sourceType.toStdString());
+    context.set_target_type_id(targetType.toStdString());
+    return context;
+  }
+
 } // namespace
 
 class tst_RuleCompilerRuntime : public QObject
@@ -170,30 +179,27 @@ void tst_RuleCompilerRuntime::hotReloadAppliesValidUpdatesAndRejectsInvalidWitho
 
     RuleBackedConnectionPolicyProvider connectionProvider(&registry);
     QString reason;
-    QVERIFY(connectionProvider.canConnect(QStringLiteral("start"),
-                                          QStringLiteral("process"),
-                                          QVariantMap{},
-                                          &reason));
+    QVERIFY(connectionProvider.canConnect(
+      makePolicyContext(QStringLiteral("start"), QStringLiteral("process")),
+      &reason));
 
     QVERIFY(!writeTextFile(filePath, QStringLiteral("{ invalid json")).isEmpty());
     QVERIFY(!hotReload.reloadNow());
     QCOMPARE(registry.revision(), revisionAfterFirstLoad);
 
     reason.clear();
-    QVERIFY(connectionProvider.canConnect(QStringLiteral("start"),
-                                          QStringLiteral("process"),
-                                          QVariantMap{},
-                                          &reason));
+    QVERIFY(connectionProvider.canConnect(
+      makePolicyContext(QStringLiteral("start"), QStringLiteral("process")),
+      &reason));
 
     QVERIFY(!writeTextFile(filePath, validRuleJson(false)).isEmpty());
     QVERIFY(hotReload.reloadNow());
     QVERIFY(registry.revision() > revisionAfterFirstLoad);
 
     reason.clear();
-    QVERIFY(!connectionProvider.canConnect(QStringLiteral("start"),
-                                           QStringLiteral("process"),
-                                           QVariantMap{},
-                                           &reason));
+    QVERIFY(!connectionProvider.canConnect(
+      makePolicyContext(QStringLiteral("start"), QStringLiteral("process")),
+      &reason));
 }
 
 QTEST_MAIN(tst_RuleCompilerRuntime)

@@ -7,11 +7,12 @@ QString SampleConnectionPolicyProvider::providerId() const
     return QStringLiteral("sample.workflow.connectionPolicy");
 }
 
-bool SampleConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
-                                                const QString &targetTypeId,
-                                                const QVariantMap & /*context*/,
+bool SampleConnectionPolicyProvider::canConnect(const cme::ConnectionPolicyContext &context,
                                                 QString *reason) const
 {
+    const QString sourceTypeId = QString::fromStdString(context.source_type_id());
+    const QString targetTypeId = QString::fromStdString(context.target_type_id());
+
     // Nothing can connect TO start.
     if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeStart)) {
         if (reason)
@@ -37,9 +38,10 @@ bool SampleConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
 
     // process -> process or stop.
     if (sourceTypeId == QLatin1String(SampleComponentTypeProvider::TypeProcess)) {
-        if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeProcess) ||
-            targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeStop))
+        if (targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeProcess)
+            || targetTypeId == QLatin1String(SampleComponentTypeProvider::TypeStop)) {
             return true;
+        }
         if (reason)
             *reason = QStringLiteral("Process component can connect to process or stop components only.");
         return false;
@@ -52,8 +54,7 @@ bool SampleConnectionPolicyProvider::canConnect(const QString &sourceTypeId,
 }
 
 QVariantMap SampleConnectionPolicyProvider::normalizeConnectionProperties(
-    const QString & /*sourceTypeId*/,
-    const QString & /*targetTypeId*/,
+    const cme::ConnectionPolicyContext & /*context*/,
     const QVariantMap &rawProperties) const
 {
     QVariantMap result = rawProperties;
