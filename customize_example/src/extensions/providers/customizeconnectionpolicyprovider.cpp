@@ -12,7 +12,7 @@ cme::templates::v1::ConnectionPolicyTemplateBundle buildTemplateBundle()
     cme::templates::v1::ConnectionPolicyTemplateBundle bundle;
     bundle.set_provider_id("customize.workflow.connectionPolicy");
     bundle.set_schema_version("1.0.0");
-    bundle.set_default_allowed(false);
+    bundle.set_default_allowed(true);
     bundle.set_default_reason("Unknown connection between types '%1' and '%2'.");
     bundle.set_normalized_type_key("type");
     bundle.set_normalized_type_value("flow");
