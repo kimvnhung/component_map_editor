@@ -23,9 +23,6 @@ public:
     static QVariantMap defaultComponentProperties(
         const cme::templates::v1::ComponentTypeTemplateBundle &bundle,
         const QString &componentTypeId);
-
-private:
-    static QVariant valueToVariant(const google::protobuf::Value &value);
 };
 
 } // namespace cme::runtime::templates

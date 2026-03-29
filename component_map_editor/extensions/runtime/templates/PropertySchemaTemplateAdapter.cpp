@@ -1,41 +1,6 @@
 #include "PropertySchemaTemplateAdapter.h"
 
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonValue>
-
-namespace {
-
-QJsonValue protoToQJsonValue(const google::protobuf::Value &value)
-{
-    switch (value.kind_case()) {
-    case google::protobuf::Value::kNullValue:
-        return QJsonValue();
-    case google::protobuf::Value::kBoolValue:
-        return QJsonValue(value.bool_value());
-    case google::protobuf::Value::kNumberValue:
-        return QJsonValue(value.number_value());
-    case google::protobuf::Value::kStringValue:
-        return QJsonValue(QString::fromStdString(value.string_value()));
-    case google::protobuf::Value::kStructValue: {
-        QJsonObject object;
-        for (const auto &kv : value.struct_value().fields())
-            object.insert(QString::fromStdString(kv.first), protoToQJsonValue(kv.second));
-        return object;
-    }
-    case google::protobuf::Value::kListValue: {
-        QJsonArray array;
-        for (const google::protobuf::Value &item : value.list_value().values())
-            array.append(protoToQJsonValue(item));
-        return array;
-    }
-    case google::protobuf::Value::KIND_NOT_SET:
-    default:
-        return QJsonValue();
-    }
-}
-
-} // namespace
+#include "TemplateProtoHelpers.h"
 
 namespace cme::runtime::templates {
 
@@ -75,11 +40,6 @@ QVariantList PropertySchemaTemplateAdapter::schemaForTarget(
     return {};
 }
 
-QVariant PropertySchemaTemplateAdapter::valueToVariant(const google::protobuf::Value &value)
-{
-    return protoToQJsonValue(value).toVariant();
-}
-
 QVariantMap PropertySchemaTemplateAdapter::fieldToVariantMap(
     const cme::templates::v1::PropertySchemaFieldTemplate &field)
 {
@@ -94,31 +54,31 @@ QVariantMap PropertySchemaTemplateAdapter::fieldToVariantMap(
     row.insert(QStringLiteral("hint"), QString::fromStdString(field.hint()));
 
     if (field.default_value().kind_case() != google::protobuf::Value::KIND_NOT_SET)
-        row.insert(QStringLiteral("defaultValue"), valueToVariant(field.default_value()));
+        row.insert(QStringLiteral("defaultValue"), protoValueToVariant(field.default_value()));
 
     QVariantList options;
     options.reserve(field.options_size());
     for (const google::protobuf::Value &option : field.options())
-        options.append(valueToVariant(option));
+        options.append(protoValueToVariant(option));
     if (!options.isEmpty())
         row.insert(QStringLiteral("options"), options);
 
     QVariantMap validation;
     for (const auto &kv : field.validation())
-        validation.insert(QString::fromStdString(kv.first), valueToVariant(kv.second));
+        validation.insert(QString::fromStdString(kv.first), protoValueToVariant(kv.second));
     if (!validation.isEmpty())
         row.insert(QStringLiteral("validation"), validation);
 
     QVariantMap visibleWhen;
     for (const auto &kv : field.visible_when())
-        visibleWhen.insert(QString::fromStdString(kv.first), valueToVariant(kv.second));
+        visibleWhen.insert(QString::fromStdString(kv.first), protoValueToVariant(kv.second));
     if (!visibleWhen.isEmpty())
         row.insert(QStringLiteral("visibleWhen"), visibleWhen);
 
     for (const auto &kv : field.extra()) {
         const QString key = QString::fromStdString(kv.first);
         if (!row.contains(key))
-            row.insert(key, valueToVariant(kv.second));
+            row.insert(key, protoValueToVariant(kv.second));
     }
 
     return row;

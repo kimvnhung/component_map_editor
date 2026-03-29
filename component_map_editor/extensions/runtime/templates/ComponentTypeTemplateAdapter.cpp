@@ -1,41 +1,6 @@
 #include "ComponentTypeTemplateAdapter.h"
 
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonValue>
-
-namespace {
-
-QJsonValue protoToQJsonValue(const google::protobuf::Value &value)
-{
-    switch (value.kind_case()) {
-    case google::protobuf::Value::kNullValue:
-        return QJsonValue();
-    case google::protobuf::Value::kBoolValue:
-        return QJsonValue(value.bool_value());
-    case google::protobuf::Value::kNumberValue:
-        return QJsonValue(value.number_value());
-    case google::protobuf::Value::kStringValue:
-        return QJsonValue(QString::fromStdString(value.string_value()));
-    case google::protobuf::Value::kStructValue: {
-        QJsonObject object;
-        for (const auto &kv : value.struct_value().fields())
-            object.insert(QString::fromStdString(kv.first), protoToQJsonValue(kv.second));
-        return object;
-    }
-    case google::protobuf::Value::kListValue: {
-        QJsonArray array;
-        for (const google::protobuf::Value &item : value.list_value().values())
-            array.append(protoToQJsonValue(item));
-        return array;
-    }
-    case google::protobuf::Value::KIND_NOT_SET:
-    default:
-        return QJsonValue();
-    }
-}
-
-} // namespace
+#include "TemplateProtoHelpers.h"
 
 namespace cme::runtime::templates {
 
@@ -79,7 +44,7 @@ QVariantMap ComponentTypeTemplateAdapter::componentTypeDescriptor(
         for (const auto &kv : type.extra()) {
             const QString key = QString::fromStdString(kv.first);
             if (!descriptor.contains(key))
-                descriptor.insert(key, valueToVariant(kv.second));
+                descriptor.insert(key, protoValueToVariant(kv.second));
         }
         return descriptor;
     }
@@ -98,16 +63,11 @@ QVariantMap ComponentTypeTemplateAdapter::defaultComponentProperties(
 
         QVariantMap properties;
         for (const auto &kv : defaults.properties())
-            properties.insert(QString::fromStdString(kv.first), valueToVariant(kv.second));
+            properties.insert(QString::fromStdString(kv.first), protoValueToVariant(kv.second));
         return properties;
     }
 
     return {};
-}
-
-QVariant ComponentTypeTemplateAdapter::valueToVariant(const google::protobuf::Value &value)
-{
-    return protoToQJsonValue(value).toVariant();
 }
 
 } // namespace cme::runtime::templates

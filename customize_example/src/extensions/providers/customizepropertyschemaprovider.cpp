@@ -2,58 +2,11 @@
 
 #include <initializer_list>
 
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonValue>
-
 #include "extensions/runtime/templates/PropertySchemaTemplateAdapter.h"
+#include "extensions/runtime/templates/TemplateProtoHelpers.h"
 #include "provider_templates.pb.h"
 
 namespace {
-
-google::protobuf::Value toProtoValue(const QJsonValue &value)
-{
-    google::protobuf::Value out;
-
-    if (value.isNull() || value.isUndefined()) {
-        out.set_null_value(google::protobuf::NULL_VALUE);
-        return out;
-    }
-
-    if (value.isBool()) {
-        out.set_bool_value(value.toBool());
-        return out;
-    }
-
-    if (value.isDouble()) {
-        out.set_number_value(value.toDouble());
-        return out;
-    }
-
-    if (value.isString()) {
-        out.set_string_value(value.toString().toStdString());
-        return out;
-    }
-
-    if (value.isArray()) {
-        google::protobuf::ListValue *list = out.mutable_list_value();
-        const QJsonArray array = value.toArray();
-        for (const QJsonValue &item : array)
-            *list->add_values() = toProtoValue(item);
-        return out;
-    }
-
-    const QJsonObject object = value.toObject();
-    google::protobuf::Struct *st = out.mutable_struct_value();
-    for (auto it = object.begin(); it != object.end(); ++it)
-        (*st->mutable_fields())[it.key().toStdString()] = toProtoValue(it.value());
-    return out;
-}
-
-google::protobuf::Value toProtoValue(const QVariant &value)
-{
-    return toProtoValue(QJsonValue::fromVariant(value));
-}
 
 cme::templates::v1::PropertySchemaFieldTemplate makeField(
     const char *key,
@@ -80,16 +33,16 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
     if (!hint.isEmpty())
         field.set_hint(hint.toStdString());
 
-    *field.mutable_default_value() = toProtoValue(defaultValue);
+    *field.mutable_default_value() = cme::runtime::templates::variantToProtoValue(defaultValue);
 
     for (const QVariant &option : options)
-        *field.add_options() = toProtoValue(option);
+        *field.add_options() = cme::runtime::templates::variantToProtoValue(option);
 
     for (auto it = validation.constBegin(); it != validation.constEnd(); ++it)
-        (*field.mutable_validation())[it.key().toStdString()] = toProtoValue(it.value());
+        (*field.mutable_validation())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
 
     for (auto it = visibleWhen.constBegin(); it != visibleWhen.constEnd(); ++it)
-        (*field.mutable_visible_when())[it.key().toStdString()] = toProtoValue(it.value());
+        (*field.mutable_visible_when())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
 
     return field;
 }

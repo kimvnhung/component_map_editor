@@ -1,23 +1,11 @@
 #include "customizeconnectionpolicyprovider.h"
 
 #include "extensions/runtime/templates/ConnectionPolicyTemplateAdapter.h"
+#include "extensions/runtime/templates/TemplateProtoHelpers.h"
 #include "customizecomponenttypeprovider.h"
 #include "provider_templates.pb.h"
 
 namespace {
-
-cme::templates::v1::ConnectionPolicyRuleTemplate makeRule(const char *sourceTypeId,
-                                                          const char *targetTypeId,
-                                                          bool allowed,
-                                                          const char *reason)
-{
-    cme::templates::v1::ConnectionPolicyRuleTemplate rule;
-    rule.set_source_type_id(sourceTypeId);
-    rule.set_target_type_id(targetTypeId);
-    rule.set_allowed(allowed);
-    rule.set_reason(reason);
-    return rule;
-}
 
 cme::templates::v1::ConnectionPolicyTemplateBundle buildTemplateBundle()
 {
@@ -29,10 +17,16 @@ cme::templates::v1::ConnectionPolicyTemplateBundle buildTemplateBundle()
     bundle.set_normalized_type_key("type");
     bundle.set_normalized_type_value("flow");
 
-    *bundle.add_rules() = makeRule("", CustomizeComponentTypeProvider::TypeStart, false,
-                                   "Start component does not accept incoming connections.");
-    *bundle.add_rules() = makeRule(CustomizeComponentTypeProvider::TypeStop, "", false,
-                                   "Stop component does not have outgoing connections.");
+    *bundle.add_rules() = cme::runtime::templates::makeConnectionPolicyRuleTemplate(
+        QString(),
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeStart),
+        false,
+        QStringLiteral("Start component does not accept incoming connections."));
+    *bundle.add_rules() = cme::runtime::templates::makeConnectionPolicyRuleTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeStop),
+        QString(),
+        false,
+        QStringLiteral("Stop component does not have outgoing connections."));
 
     return bundle;
 }
@@ -41,14 +35,6 @@ const cme::templates::v1::ConnectionPolicyTemplateBundle &templateBundle()
 {
     static const cme::templates::v1::ConnectionPolicyTemplateBundle kBundle = buildTemplateBundle();
     return kBundle;
-}
-
-QString formatUnknownReason(const cme::ConnectionPolicyContext &context,
-                            const QString &pattern)
-{
-    const QString sourceTypeId = QString::fromStdString(context.source_type_id());
-    const QString targetTypeId = QString::fromStdString(context.target_type_id());
-    return pattern.arg(sourceTypeId, targetTypeId);
 }
 
 std::optional<cme::runtime::templates::ConnectionPolicyDecision> customizePolicyStrategy(
@@ -114,7 +100,7 @@ bool CustomizeConnectionPolicyProvider::canConnect(const cme::ConnectionPolicyCo
             templateBundle(), context, customizePolicyStrategy);
 
     if (!decision.allowed && decision.reason.contains(QStringLiteral("%1")))
-        decision.reason = formatUnknownReason(context, decision.reason);
+        decision.reason = cme::runtime::templates::formatUnknownConnectionReason(context, decision.reason);
 
     if (reason)
         *reason = decision.reason;
