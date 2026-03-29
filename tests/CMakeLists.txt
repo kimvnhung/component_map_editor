@@ -553,3 +553,29 @@ add_test(
     COMMAND tst_Phase8HardcodedStringCleanup
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 9: Optional gRPC Transport Enablement ─────────────────────────────
+# Transport facade smoke tests (success/failure/cancel/timeout) while keeping
+# in-process mode as default path.
+qt_add_executable(tst_Phase9GrpcTransportEnablement
+    tst_Phase9GrpcTransportEnablement.cpp
+)
+
+target_link_libraries(tst_Phase9GrpcTransportEnablement
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase9GrpcTransportEnablement
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase9GrpcTransportEnablement
+    COMMAND tst_Phase9GrpcTransportEnablement
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
