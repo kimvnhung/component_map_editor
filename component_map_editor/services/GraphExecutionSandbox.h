@@ -64,6 +64,10 @@ public:
                              google::protobuf::Struct *outState,
                              QString *error = nullptr) const;
     Q_INVOKABLE QVariantMap snapshotSummary() const;
+    Q_INVOKABLE QVariantMap debugSnapshot() const;
+    Q_INVOKABLE QVariantMap executionTelemetry() const;
+    Q_INVOKABLE QStringList sensitiveDebugKeys() const;
+    Q_INVOKABLE void setSensitiveDebugKeys(const QStringList &keys);
 
     cme::ExecutionSnapshot executionSnapshotTyped() const;
 
@@ -147,7 +151,15 @@ private:
     bool m_deferTimelineSignal = false;
     bool m_timelineDirty = false;
 
+    qint64 m_payloadBytesRead = 0;
+    qint64 m_payloadBytesWritten = 0;
+    qint64 m_maxPayloadBytes = 0;
+    int m_tokenReadCount = 0;
+    int m_tokenWriteCount = 0;
+    int m_redactedFieldCount = 0;
+
     QSet<QString> m_breakpoints;
+    QSet<QString> m_sensitiveDebugKeys;
     QHash<QString, const IExecutionSemanticsProvider *> m_providerByComponentType;
 };
 

@@ -570,6 +570,30 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# ── Phase 5: Execution Observability ───────────────────────────────────────
+# Verifies stable debug snapshot structure, token telemetry counters, and
+# payload redaction in timeline/debug snapshot outputs.
+qt_add_executable(tst_Phase5ExecutionObservability
+    tst_Phase5ExecutionObservability.cpp
+)
+
+target_link_libraries(tst_Phase5ExecutionObservability
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase5ExecutionObservability
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_Phase5ExecutionObservability
+    COMMAND tst_Phase5ExecutionObservability
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ── Phase 5: ValidationService Typed Snapshot Migration ──────────────────────
 # Typed graph snapshot building with validation equivalence and legacy bridging.
 # Tests: typed snapshot building, severity/code enum mapping, snapshot roundtrips,

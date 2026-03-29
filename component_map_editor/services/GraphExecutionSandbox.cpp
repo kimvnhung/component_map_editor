@@ -2,6 +2,11 @@
 
 #include <algorithm>
 
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+
 #include "adapters/ExecutionAdapter.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/PublicApiContractAdapter.h"
@@ -22,6 +27,44 @@ QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &incomingTo
     for (const QString &tokenKey : tokenKeys)
         merged.insert(incomingTokens.value(tokenKey));
     return merged;
+}
+
+QVariant redactVariant(const QVariant &value,
+                      const QSet<QString> &sensitiveKeys,
+                      int *redactedCount)
+{
+    if (value.metaType().id() == QMetaType::QVariantMap) {
+        const QVariantMap map = value.toMap();
+        QVariantMap redacted;
+        QStringList keys = map.keys();
+        std::sort(keys.begin(), keys.end());
+        for (const QString &key : keys) {
+            if (sensitiveKeys.contains(key)) {
+                redacted.insert(key, QStringLiteral("<redacted>"));
+                if (redactedCount)
+                    ++(*redactedCount);
+            } else {
+                redacted.insert(key, redactVariant(map.value(key), sensitiveKeys, redactedCount));
+            }
+        }
+        return redacted;
+    }
+
+    if (value.metaType().id() == QMetaType::QVariantList) {
+        const QVariantList list = value.toList();
+        QVariantList redacted;
+        redacted.reserve(list.size());
+        for (const QVariant &item : list)
+            redacted.append(redactVariant(item, sensitiveKeys, redactedCount));
+        return redacted;
+    }
+
+    return value;
+}
+
+qint64 estimatePayloadBytes(const QVariantMap &payload)
+{
+    return QJsonDocument::fromVariant(payload).toJson(QJsonDocument::Compact).size();
 }
 
 } // namespace
@@ -67,6 +110,30 @@ QVariantMap GraphExecutionSandbox::executionState() const
 QString GraphExecutionSandbox::lastError() const
 {
     return m_lastError;
+}
+
+QVariantMap GraphExecutionSandbox::executionTelemetry() const
+{
+    return QVariantMap{
+        { QStringLiteral("tokenReadCount"), m_tokenReadCount },
+        { QStringLiteral("tokenWriteCount"), m_tokenWriteCount },
+        { QStringLiteral("payloadBytesRead"), m_payloadBytesRead },
+        { QStringLiteral("payloadBytesWritten"), m_payloadBytesWritten },
+        { QStringLiteral("maxPayloadBytes"), m_maxPayloadBytes },
+        { QStringLiteral("redactedFieldCount"), m_redactedFieldCount }
+    };
+}
+
+QStringList GraphExecutionSandbox::sensitiveDebugKeys() const
+{
+    QStringList keys = m_sensitiveDebugKeys.values();
+    std::sort(keys.begin(), keys.end());
+    return keys;
+}
+
+void GraphExecutionSandbox::setSensitiveDebugKeys(const QStringList &keys)
+{
+    m_sensitiveDebugKeys = QSet<QString>(keys.begin(), keys.end());
 }
 
 void GraphExecutionSandbox::setExecutionSemanticsProviders(const QList<const IExecutionSemanticsProvider *> &providers)
@@ -252,8 +319,65 @@ QVariantMap GraphExecutionSandbox::snapshotSummary() const
         { QStringLiteral("readyQueue"), m_readyQueue },
         { QStringLiteral("breakpoints"), breakpoints() },
         { QStringLiteral("tokenTransportEnabled"),
-          cme::execution::MigrationFlags::tokenTransportEnabled() }
+                    cme::execution::MigrationFlags::tokenTransportEnabled() },
+                { QStringLiteral("telemetry"), executionTelemetry() }
     };
+}
+
+QVariantMap GraphExecutionSandbox::debugSnapshot() const
+{
+        int redactedCount = 0;
+
+        QVariantList components;
+        QStringList componentIds = m_componentsById.keys();
+        std::sort(componentIds.begin(), componentIds.end());
+        for (const QString &componentId : componentIds) {
+                const QVariantMap state = m_componentStates.value(componentId).toMap();
+                QVariantMap entry{
+                        { QStringLiteral("componentId"), componentId },
+                        { QStringLiteral("type"), m_componentsById.value(componentId).type },
+                        { QStringLiteral("consumedIncomingTokenIds"), state.value(QStringLiteral("consumedIncomingTokenIds")) },
+                        { QStringLiteral("producedOutgoingConnectionIds"), state.value(QStringLiteral("producedOutgoingConnectionIds")) },
+                        { QStringLiteral("lastOutputSummary"),
+                            redactVariant(state.value(QStringLiteral("outputState")), m_sensitiveDebugKeys, &redactedCount) }
+                };
+                components.append(entry);
+        }
+
+            QList<ConnectionSnapshot> allEdges;
+            for (auto it = m_outgoingBySource.constBegin(); it != m_outgoingBySource.constEnd(); ++it) {
+                for (const ConnectionSnapshot &edge : it.value())
+                    allEdges.append(edge);
+            }
+            std::sort(allEdges.begin(), allEdges.end(), [](const ConnectionSnapshot &a, const ConnectionSnapshot &b) {
+                return a.id < b.id;
+            });
+
+            QVariantList connections;
+            for (const ConnectionSnapshot &edge : allEdges) {
+                const QVariantMap payload = m_connectionTokens.value(edge.id);
+                const QVariantMap redactedPayload = redactVariant(payload, m_sensitiveDebugKeys, &redactedCount).toMap();
+                connections.append(QVariantMap{
+                    { QStringLiteral("connectionId"), edge.id },
+                    { QStringLiteral("sourceId"), edge.sourceId },
+                    { QStringLiteral("targetId"), edge.targetId },
+                    { QStringLiteral("label"), edge.label },
+                    { QStringLiteral("payloadBytes"), estimatePayloadBytes(payload) },
+                    { QStringLiteral("payloadSummary"), redactedPayload }
+                });
+            }
+
+        QVariantMap snapshot{
+                { QStringLiteral("status"), status() },
+                { QStringLiteral("currentTick"), currentTick() },
+                { QStringLiteral("tokenTransportEnabled"), cme::execution::MigrationFlags::tokenTransportEnabled() },
+                { QStringLiteral("sensitiveDebugKeys"), sensitiveDebugKeys() },
+                { QStringLiteral("components"), components },
+                { QStringLiteral("connections"), connections },
+                { QStringLiteral("telemetry"), executionTelemetry() }
+        };
+        snapshot.insert(QStringLiteral("redactedFieldCountPreview"), redactedCount);
+        return snapshot;
 }
 
 cme::ExecutionSnapshot GraphExecutionSandbox::executionSnapshotTyped() const
@@ -389,6 +513,13 @@ void GraphExecutionSandbox::clearSimulationData()
     m_timelineDirty = true;
     flushTimelineChanged();
     emit lastErrorChanged();
+
+    m_payloadBytesRead = 0;
+    m_payloadBytesWritten = 0;
+    m_maxPayloadBytes = 0;
+    m_tokenReadCount = 0;
+    m_tokenWriteCount = 0;
+    m_redactedFieldCount = 0;
 
     m_componentsById.clear();
     m_outgoingBySource.clear();
@@ -530,6 +661,12 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     QVariantMap outputState = m_executionState;
     cme::execution::IncomingTokens incomingTokens;
     QVariantMap inputStateForState;
+    QStringList incomingTokenIds;
+    QStringList outgoingConnectionIds;
+    outgoingConnectionIds.reserve(outgoing.size());
+    for (const ConnectionSnapshot &edge : outgoing)
+        outgoingConnectionIds.append(edge.id);
+    std::sort(outgoingConnectionIds.begin(), outgoingConnectionIds.end());
 
     if (tokenRoutingEnabled) {
         for (const ConnectionSnapshot &edge : incoming)
@@ -542,6 +679,16 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     } else {
         incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
         inputStateForState = m_executionState;
+    }
+
+    incomingTokenIds = incomingTokens.keys();
+    std::sort(incomingTokenIds.begin(), incomingTokenIds.end());
+
+    for (const QString &tokenId : incomingTokenIds) {
+        ++m_tokenReadCount;
+        const qint64 bytes = estimatePayloadBytes(incomingTokens.value(tokenId));
+        m_payloadBytesRead += bytes;
+        m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
     }
 
     const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(component.type, nullptr);
@@ -581,23 +728,38 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     state.insert(QStringLiteral("type"), component.type);
     state.insert(QStringLiteral("inputState"), inputStateForState);
     state.insert(QStringLiteral("outputState"), outputState);
+    state.insert(QStringLiteral("consumedIncomingTokenIds"), incomingTokenIds);
+    state.insert(QStringLiteral("producedOutgoingConnectionIds"), outgoingConnectionIds);
     if (!trace.isEmpty())
         state.insert(QStringLiteral("trace"), trace);
     m_componentStates.insert(component.id, state);
 
     m_executed.insert(component.id);
 
+    int stepRedactedCount = 0;
+    const QVariant redactedOutputSummary = redactVariant(outputState, m_sensitiveDebugKeys, &stepRedactedCount);
+    m_redactedFieldCount += stepRedactedCount;
+
     appendTimelineEvent(TimelineEventKind::StepExecuted,
                         QVariantMap{
                             { QStringLiteral("componentId"), component.id },
                             { QStringLiteral("componentType"), component.type },
                             { QStringLiteral("incomingTokenCount"), incomingTokens.size() },
+                            { QStringLiteral("incomingTokenIds"), incomingTokenIds },
+                            { QStringLiteral("outgoingConnectionIds"), outgoingConnectionIds },
+                            { QStringLiteral("outputPayloadBytes"), estimatePayloadBytes(outputState) },
+                            { QStringLiteral("outputPayloadSummary"), redactedOutputSummary },
                             { QStringLiteral("trace"), trace }
                         });
 
     if (tokenRoutingEnabled) {
-        for (const ConnectionSnapshot &edge : outgoing)
+        for (const ConnectionSnapshot &edge : outgoing) {
             m_connectionTokens.insert(edge.id, outputState);
+            ++m_tokenWriteCount;
+            const qint64 bytes = estimatePayloadBytes(outputState);
+            m_payloadBytesWritten += bytes;
+            m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
+        }
     }
 
     for (const ConnectionSnapshot &edge : outgoing) {
