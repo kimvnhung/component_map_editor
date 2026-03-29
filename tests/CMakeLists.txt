@@ -492,6 +492,32 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# ── Phase 3: Connection Transport Metadata ─────────────────────────────────
+# Verifies optional transport metadata contract roundtrip, normalization
+# defaults, and deterministic validation diagnostics for malformed descriptors.
+qt_add_executable(tst_Phase3ConnectionTransportMetadata
+    tst_Phase3ConnectionTransportMetadata.cpp
+)
+
+target_link_libraries(tst_Phase3ConnectionTransportMetadata
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase3ConnectionTransportMetadata
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_Phase3ConnectionTransportMetadata
+    COMMAND tst_Phase3ConnectionTransportMetadata
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ── Phase 4: GraphEditorController Policy Migration ────────────────────────
 # Typed connection policy context implementation with backward-compatible adapters.
 # Tests: typed context building, proto↔map conversions, policy decisions unchanged.

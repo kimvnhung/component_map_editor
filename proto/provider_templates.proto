@@ -73,6 +73,13 @@ message ConnectionPolicyRuleTemplate {
   optional int32 max_source_outgoing = 8;
 }
 
+message ConnectionTransportMetadataTemplate {
+  string payload_schema_id = 1;
+  string payload_type = 2;
+  string transport_mode = 3;
+  string merge_hint = 4;
+}
+
 message ConnectionPolicyTemplateBundle {
   string provider_id = 1;
   string schema_version = 2;
@@ -83,4 +90,5 @@ message ConnectionPolicyTemplateBundle {
 
   string normalized_type_key = 6;
   string normalized_type_value = 7;
+  ConnectionTransportMetadataTemplate transport = 8;
 }

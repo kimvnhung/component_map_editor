@@ -135,6 +135,20 @@ cme::templates::v1::ConnectionPolicyRuleTemplate makeConnectionPolicyRuleTemplat
     return rule;
 }
 
+cme::templates::v1::ConnectionTransportMetadataTemplate makeConnectionTransportMetadataTemplate(
+    const QString &payloadSchemaId,
+    const QString &payloadType,
+    const QString &transportMode,
+    const QString &mergeHint)
+{
+    cme::templates::v1::ConnectionTransportMetadataTemplate transport;
+    transport.set_payload_schema_id(payloadSchemaId.toStdString());
+    transport.set_payload_type(payloadType.toStdString());
+    transport.set_transport_mode(transportMode.toStdString());
+    transport.set_merge_hint(mergeHint.toStdString());
+    return transport;
+}
+
 QString formatUnknownConnectionReason(const cme::ConnectionPolicyContext &context,
                                      const QString &pattern)
 {

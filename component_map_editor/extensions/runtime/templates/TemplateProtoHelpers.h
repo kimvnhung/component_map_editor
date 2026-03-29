@@ -34,6 +34,12 @@ cme::templates::v1::ConnectionPolicyRuleTemplate makeConnectionPolicyRuleTemplat
     bool allowed,
     const QString &reason);
 
+cme::templates::v1::ConnectionTransportMetadataTemplate makeConnectionTransportMetadataTemplate(
+    const QString &payloadSchemaId,
+    const QString &payloadType,
+    const QString &transportMode,
+    const QString &mergeHint);
+
 QString formatUnknownConnectionReason(const cme::ConnectionPolicyContext &context,
                                      const QString &pattern);
 

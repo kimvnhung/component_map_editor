@@ -898,6 +898,10 @@ void tst_Phase1ProtoContracts::connectionPolicyTemplateBundle_roundtrip()
     bundle.set_default_reason("Unknown");
     bundle.set_normalized_type_key("type");
     bundle.set_normalized_type_value("flow");
+    bundle.mutable_transport()->set_payload_schema_id("workflow.connection.payload");
+    bundle.mutable_transport()->set_payload_type("workflow/flow");
+    bundle.mutable_transport()->set_transport_mode("broadcast");
+    bundle.mutable_transport()->set_merge_hint("preserve-per-edge");
 
     auto *rule = bundle.add_rules();
     rule->set_source_type_id("start");
@@ -918,6 +922,11 @@ void tst_Phase1ProtoContracts::connectionPolicyTemplateBundle_roundtrip()
     QCOMPARE(decoded.rules(1).has_min_target_incoming(), true);
     QCOMPARE(decoded.rules(1).min_target_incoming(), 1);
     QCOMPARE(decoded.normalized_type_value(), std::string("flow"));
+    QVERIFY(decoded.has_transport());
+    QCOMPARE(decoded.transport().payload_schema_id(), std::string("workflow.connection.payload"));
+    QCOMPARE(decoded.transport().payload_type(), std::string("workflow/flow"));
+    QCOMPARE(decoded.transport().transport_mode(), std::string("broadcast"));
+    QCOMPARE(decoded.transport().merge_hint(), std::string("preserve-per-edge"));
 }
 
 QTEST_MAIN(tst_Phase1ProtoContracts)

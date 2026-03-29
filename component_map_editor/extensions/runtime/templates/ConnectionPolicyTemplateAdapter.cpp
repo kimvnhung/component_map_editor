@@ -1,6 +1,19 @@
 #include "ConnectionPolicyTemplateAdapter.h"
 
+#include <QRegularExpression>
+
 namespace cme::runtime::templates {
+
+namespace {
+
+bool isValidTransportIdentifier(const QString &value)
+{
+    static const QRegularExpression kPattern(
+        QStringLiteral("^[A-Za-z_][A-Za-z0-9_.:/-]*$"));
+    return kPattern.match(value).hasMatch();
+}
+
+} // namespace
 
 QString ConnectionPolicyTemplateAdapter::providerId(const cme::templates::v1::ConnectionPolicyTemplateBundle &bundle)
 {
@@ -44,11 +57,99 @@ QVariantMap ConnectionPolicyTemplateAdapter::normalizeConnectionProperties(
     QVariantMap result = rawProperties;
     const QString normalizedTypeKey = QString::fromStdString(bundle.normalized_type_key());
     const QString normalizedTypeValue = QString::fromStdString(bundle.normalized_type_value());
+    const ConnectionTransportValidationResult validation = validateTransportMetadata(bundle);
+
+    QString transportMode = defaultTransportMode();
+    QString mergeHint = defaultMergeHint();
+
+    if (bundle.has_transport()) {
+        const cme::templates::v1::ConnectionTransportMetadataTemplate &transport = bundle.transport();
+        if (!QString::fromStdString(transport.transport_mode()).trimmed().isEmpty()
+            && validation.valid) {
+            transportMode = QString::fromStdString(transport.transport_mode());
+        }
+        if (!QString::fromStdString(transport.merge_hint()).trimmed().isEmpty()
+            && validation.valid) {
+            mergeHint = QString::fromStdString(transport.merge_hint());
+        }
+
+        const QString payloadSchemaId = QString::fromStdString(transport.payload_schema_id());
+        const QString payloadType = QString::fromStdString(transport.payload_type());
+
+        if (!payloadSchemaId.isEmpty() && validation.valid && !result.contains(QStringLiteral("payloadSchemaId")))
+            result.insert(QStringLiteral("payloadSchemaId"), payloadSchemaId);
+
+        if (!payloadType.isEmpty() && validation.valid && !result.contains(QStringLiteral("payloadType")))
+            result.insert(QStringLiteral("payloadType"), payloadType);
+    }
 
     if (!normalizedTypeKey.isEmpty() && !result.contains(normalizedTypeKey))
         result.insert(normalizedTypeKey, normalizedTypeValue);
 
+    if (!result.contains(QStringLiteral("transportMode")))
+        result.insert(QStringLiteral("transportMode"), transportMode);
+
+    if (!result.contains(QStringLiteral("mergeHint")))
+        result.insert(QStringLiteral("mergeHint"), mergeHint);
+
     return result;
+}
+
+ConnectionTransportValidationResult ConnectionPolicyTemplateAdapter::validateTransportMetadata(
+    const cme::templates::v1::ConnectionPolicyTemplateBundle &bundle)
+{
+    ConnectionTransportValidationResult result;
+
+    if (!bundle.has_transport())
+        return result;
+
+    const cme::templates::v1::ConnectionTransportMetadataTemplate &transport = bundle.transport();
+    const QString payloadSchemaId = QString::fromStdString(transport.payload_schema_id());
+    const QString payloadType = QString::fromStdString(transport.payload_type());
+    const QString transportMode = QString::fromStdString(transport.transport_mode());
+    const QString mergeHint = QString::fromStdString(transport.merge_hint());
+
+    auto addDiagnostic = [&result](const QString &message) {
+        result.valid = false;
+        result.diagnostics.append(message);
+    };
+
+    if (!payloadType.trimmed().isEmpty() && payloadSchemaId.trimmed().isEmpty()) {
+        addDiagnostic(QStringLiteral(
+            "transport.payload_schema_id is required when transport.payload_type is set."));
+    }
+
+    if (!payloadSchemaId.trimmed().isEmpty() && !isValidTransportIdentifier(payloadSchemaId.trimmed())) {
+        addDiagnostic(QStringLiteral(
+            "transport.payload_schema_id must match ^[A-Za-z_][A-Za-z0-9_.:/-]*$."));
+    }
+
+    if (!payloadType.trimmed().isEmpty() && !isValidTransportIdentifier(payloadType.trimmed())) {
+        addDiagnostic(QStringLiteral(
+            "transport.payload_type must match ^[A-Za-z_][A-Za-z0-9_.:/-]*$."));
+    }
+
+    if (!transportMode.trimmed().isEmpty() && transportMode != defaultTransportMode()) {
+        addDiagnostic(QStringLiteral(
+            "transport.transport_mode must be 'broadcast' when specified."));
+    }
+
+    if (!mergeHint.trimmed().isEmpty() && mergeHint != defaultMergeHint()) {
+        addDiagnostic(QStringLiteral(
+            "transport.merge_hint must be 'preserve-per-edge' when specified."));
+    }
+
+    return result;
+}
+
+QString ConnectionPolicyTemplateAdapter::defaultTransportMode()
+{
+    return QStringLiteral("broadcast");
+}
+
+QString ConnectionPolicyTemplateAdapter::defaultMergeHint()
+{
+    return QStringLiteral("preserve-per-edge");
 }
 
 bool ConnectionPolicyTemplateAdapter::ruleMatches(

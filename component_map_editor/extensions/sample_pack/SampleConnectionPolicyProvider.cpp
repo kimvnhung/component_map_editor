@@ -16,6 +16,8 @@ cme::templates::v1::ConnectionPolicyTemplateBundle buildTemplateBundle()
     bundle.set_default_reason("Unknown connection between types '%1' and '%2'.");
     bundle.set_normalized_type_key("type");
     bundle.set_normalized_type_value("flow");
+    *bundle.mutable_transport() = cme::runtime::templates::makeConnectionTransportMetadataTemplate(
+        QString(), QString(), QStringLiteral("broadcast"), QStringLiteral("preserve-per-edge"));
 
     *bundle.add_rules() = cme::runtime::templates::makeConnectionPolicyRuleTemplate(
         QString(),
