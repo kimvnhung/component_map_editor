@@ -32,6 +32,9 @@ bool GrpcTemplateDescriptorTransportFacade::fetch(const TemplateDescriptorFetchR
         return false;
     }
 
+    if (out)
+        *out = TemplateDescriptorFetchResponse{};
+
     if (!m_flags.grpcTransportEnabled || !m_grpcClient)
         return fetchLocal(request, out, error);
 
@@ -105,6 +108,9 @@ bool GrpcTemplateDescriptorTransportFacade::fetchLocal(const TemplateDescriptorF
             *error = QStringLiteral("Local template descriptor source is not configured");
         return false;
     }
+
+    if (out)
+        *out = TemplateDescriptorFetchResponse{};
 
     ++m_stats.localCalls;
     return m_localSource->fetch(request, out, error);
