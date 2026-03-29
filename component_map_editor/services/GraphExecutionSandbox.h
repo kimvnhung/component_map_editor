@@ -137,6 +137,8 @@ private:
 
     QHash<QString, ComponentSnapshot> m_componentsById;
     QHash<QString, QList<ConnectionSnapshot>> m_outgoingBySource;
+    QHash<QString, QList<ConnectionSnapshot>> m_incomingByTarget;
+    QHash<QString, cme::execution::ExecutionPayload> m_connectionTokens;
     QHash<QString, int> m_pendingInDegree;
     QSet<QString> m_executed;
     QStringList m_readyQueue;

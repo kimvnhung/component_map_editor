@@ -382,6 +382,8 @@ void GraphExecutionSandbox::clearSimulationData()
 
     m_componentsById.clear();
     m_outgoingBySource.clear();
+    m_incomingByTarget.clear();
+    m_connectionTokens.clear();
     m_pendingInDegree.clear();
     m_executed.clear();
     m_readyQueue.clear();
@@ -451,6 +453,8 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
 
         QList<ConnectionSnapshot> &out = m_outgoingBySource[conn.sourceId];
         out.append(conn);
+        QList<ConnectionSnapshot> &in = m_incomingByTarget[conn.targetId];
+        in.append(conn);
         m_pendingInDegree[conn.targetId] = m_pendingInDegree.value(conn.targetId, 0) + 1;
     }
 
@@ -459,6 +463,15 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
         std::sort(edges.begin(), edges.end(), [](const ConnectionSnapshot &a, const ConnectionSnapshot &b) {
             if (a.targetId != b.targetId)
                 return a.targetId < b.targetId;
+            return a.id < b.id;
+        });
+    }
+
+    for (auto it = m_incomingByTarget.begin(); it != m_incomingByTarget.end(); ++it) {
+        QList<ConnectionSnapshot> &edges = it.value();
+        std::sort(edges.begin(), edges.end(), [](const ConnectionSnapshot &a, const ConnectionSnapshot &b) {
+            if (a.sourceId != b.sourceId)
+                return a.sourceId < b.sourceId;
             return a.id < b.id;
         });
     }
@@ -499,10 +512,23 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     m_readyQueue.removeFirst();
     m_readyQueueSet.remove(componentId);
     const ComponentSnapshot component = m_componentsById.value(componentId);
+    const bool tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
+    const QList<ConnectionSnapshot> incoming = m_incomingByTarget.value(component.id);
+    const QList<ConnectionSnapshot> outgoing = m_outgoingBySource.value(component.id);
+
     QVariantMap trace;
     QVariantMap outputState = m_executionState;
     cme::execution::IncomingTokens incomingTokens;
-    incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
+
+    if (tokenRoutingEnabled) {
+        for (const ConnectionSnapshot &edge : incoming)
+            incomingTokens.insert(edge.id, m_connectionTokens.value(edge.id));
+
+        if (incomingTokens.isEmpty() && !m_inputSnapshot.isEmpty())
+            incomingTokens.insert(QStringLiteral("__graph_input__"), m_inputSnapshot);
+    } else {
+        incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
+    }
 
     const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(component.type, nullptr);
     if (provider) {
@@ -521,6 +547,14 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     } else {
         trace.insert(QStringLiteral("provider"), QStringLiteral("default"));
         trace.insert(QStringLiteral("note"), QStringLiteral("No execution semantics provider registered for component type."));
+
+        if (tokenRoutingEnabled) {
+            QVariantMap mergedIncoming;
+            for (const ConnectionSnapshot &edge : incoming)
+                mergedIncoming.insert(m_connectionTokens.value(edge.id));
+            outputState = mergedIncoming;
+        }
+
         outputState.insert(QStringLiteral("lastExecutedComponentId"), component.id);
     }
 
@@ -541,10 +575,15 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
                         QVariantMap{
                             { QStringLiteral("componentId"), component.id },
                             { QStringLiteral("componentType"), component.type },
+                            { QStringLiteral("incomingTokenCount"), incomingTokens.size() },
                             { QStringLiteral("trace"), trace }
                         });
 
-    const QList<ConnectionSnapshot> outgoing = m_outgoingBySource.value(component.id);
+    if (tokenRoutingEnabled) {
+        for (const ConnectionSnapshot &edge : outgoing)
+            m_connectionTokens.insert(edge.id, outputState);
+    }
+
     for (const ConnectionSnapshot &edge : outgoing) {
         const QString targetId = edge.targetId;
         const int updatedInDegree = m_pendingInDegree.value(targetId, 0) - 1;

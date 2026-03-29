@@ -468,6 +468,30 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# ── Phase 2: Runtime Token Routing ─────────────────────────────────────────
+# Verifies feature-flagged per-edge token routing behavior in GraphExecutionSandbox
+# while preserving deterministic timeline sequence.
+qt_add_executable(tst_Phase2TokenRouting
+    tst_Phase2TokenRouting.cpp
+)
+
+target_link_libraries(tst_Phase2TokenRouting
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_Phase2TokenRouting
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_Phase2TokenRouting
+    COMMAND tst_Phase2TokenRouting
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # ── Phase 4: GraphEditorController Policy Migration ────────────────────────
 # Typed connection policy context implementation with backward-compatible adapters.
 # Tests: typed context building, proto↔map conversions, policy decisions unchanged.
