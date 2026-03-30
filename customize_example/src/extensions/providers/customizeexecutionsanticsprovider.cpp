@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QJsonDocument>
+#include <QMetaType>
 
 #include <cmath>
 
@@ -13,12 +14,12 @@ QString CustomizeExecutionSemanticsProvider::providerId() const
 QStringList CustomizeExecutionSemanticsProvider::supportedComponentTypes() const
 {
     return {
+        QString::fromLatin1(TypeLoop),
+        QString::fromLatin1(TypeIfElse),
         QString::fromLatin1(TypeAdd),
         QString::fromLatin1(TypeSubtract),
         QString::fromLatin1(TypeMultiply),
         QString::fromLatin1(TypeDivide),
-        QString::fromLatin1(TypeSqrtNewton),
-        QString::fromLatin1(TypeQuadratic),
         QString::fromLatin1(TypeErrorHandler)
     };
 }
@@ -60,171 +61,93 @@ bool CustomizeExecutionSemanticsProvider::executeComponentV2(
         return executeBinary(componentType, componentId, componentSnapshot, context, outputPayload, trace, error);
     }
 
-    if (componentType == QLatin1String(TypeSqrtNewton)) {
+    if (componentType == QLatin1String(TypeIfElse)) {
         QVariantMap out = context;
-        const QString sKey = resolveText(componentSnapshot, QStringLiteral("sKey"), QStringLiteral("S"));
-        const QString epsilonKey = resolveText(componentSnapshot, QStringLiteral("epsilonKey"), QStringLiteral("epsilon"));
-        const QString outputKey = resolveText(componentSnapshot, QStringLiteral("outputKey"), QStringLiteral("sqrt"));
-        const QString errorKey = resolveText(componentSnapshot, QStringLiteral("errorKey"), QStringLiteral("error"));
-        const QString initialGuessKey = resolveText(componentSnapshot,
-                                                    QStringLiteral("initialGuessKey"),
-                                                    QStringLiteral("initialGuess"));
+        const QString conditionKey = resolveText(componentSnapshot,
+                                                 QStringLiteral("conditionKey"),
+                                                 QStringLiteral("condition"));
+        const QString trueRouteKey = resolveText(componentSnapshot,
+                                                 QStringLiteral("trueRouteKey"),
+                                                 QStringLiteral("routeTrue"));
+        const QString falseRouteKey = resolveText(componentSnapshot,
+                                                  QStringLiteral("falseRouteKey"),
+                                                  QStringLiteral("routeFalse"));
 
-        bool okS = false;
-        bool okEpsilon = false;
-        bool okGuess = false;
-        bool okMaxIterations = false;
-
-        const double s = resolveNumber(context, componentSnapshot, sKey, QStringLiteral("S"), 0.0, &okS);
-        const double epsilon = resolveNumber(context, componentSnapshot, epsilonKey, QStringLiteral("epsilon"), 1e-6, &okEpsilon);
-        const double initialGuess = resolveNumber(context,
-                                                  componentSnapshot,
-                                                  initialGuessKey,
-                                                  QStringLiteral("initialGuess"),
-                                                  s > 1.0 ? s / 2.0 : 1.0,
-                                                  &okGuess);
-        const int maxIterations = componentSnapshot.value(QStringLiteral("maxIterations"), 50).toInt(&okMaxIterations);
-
-        Q_UNUSED(okGuess)
-
-        if (!okS || !okEpsilon || !okMaxIterations || maxIterations <= 0 || epsilon <= 0.0) {
-            const QString msg = QStringLiteral("Invalid sqrt_newton inputs (S/epsilon/maxIterations).");
-            out.insert(errorKey, msg);
+        bool okCondition = false;
+        const bool condition = resolveBool(context,
+                                           componentSnapshot,
+                                           conditionKey,
+                                           QStringLiteral("condition"),
+                                           false,
+                                           &okCondition);
+        if (!okCondition) {
+            const QString msg = QStringLiteral("Invalid ifelse condition value.");
+            out.insert(QStringLiteral("error"), msg);
             if (outputPayload)
                 *outputPayload = out;
             if (trace)
                 *trace = makeTracePayload(componentType, componentId, context, out, msg);
             if (error)
                 *error = msg;
-            qWarning().noquote() << QStringLiteral("[Trace][%1] %2 error=%3")
-                                        .arg(componentType, componentId, msg);
             return false;
         }
 
-        const SqrtResult sqrtResult = computeSqrtNewton(s, epsilon, maxIterations, initialGuess);
-        if (!sqrtResult.ok) {
-            out.insert(errorKey, sqrtResult.error);
-            if (outputPayload)
-                *outputPayload = out;
-            if (trace)
-                *trace = makeTracePayload(componentType, componentId, context, out, sqrtResult.error);
-            if (error)
-                *error = sqrtResult.error;
-            qWarning().noquote() << QStringLiteral("[Trace][%1] %2 error=%3")
-                                        .arg(componentType, componentId, sqrtResult.error);
-            return false;
-        }
-
-        out.insert(outputKey, sqrtResult.value);
-        out.insert(QStringLiteral("sqrt.iterations"), sqrtResult.iterations);
-        out.insert(QStringLiteral("sqrt.lastDelta"), sqrtResult.lastDelta);
-        out.remove(errorKey);
+        out.insert(trueRouteKey, condition);
+        out.insert(falseRouteKey, !condition);
 
         if (outputPayload)
             *outputPayload = out;
         if (trace)
             *trace = makeTracePayload(componentType, componentId, context, out);
-
-        qInfo().noquote() << QStringLiteral("[Trace][%1] %2 input=%3 output=%4")
-                                 .arg(componentType, componentId,
-                                      QString::fromUtf8(QJsonDocument::fromVariant(context).toJson(QJsonDocument::Compact)),
-                                      QString::fromUtf8(QJsonDocument::fromVariant(out).toJson(QJsonDocument::Compact)));
         return true;
     }
 
-    if (componentType == QLatin1String(TypeQuadratic)) {
+    if (componentType == QLatin1String(TypeLoop)) {
         QVariantMap out = context;
-        const QString aKey = resolveText(componentSnapshot, QStringLiteral("aKey"), QStringLiteral("a"));
-        const QString bKey = resolveText(componentSnapshot, QStringLiteral("bKey"), QStringLiteral("b"));
-        const QString cKey = resolveText(componentSnapshot, QStringLiteral("cKey"), QStringLiteral("c"));
-        const QString x1Key = resolveText(componentSnapshot, QStringLiteral("x1Key"), QStringLiteral("x1"));
-        const QString x2Key = resolveText(componentSnapshot, QStringLiteral("x2Key"), QStringLiteral("x2"));
-        const QString deltaKey = resolveText(componentSnapshot, QStringLiteral("deltaKey"), QStringLiteral("delta"));
-        const QString statusKey = resolveText(componentSnapshot, QStringLiteral("statusKey"), QStringLiteral("quadratic.status"));
-        const QString errorKey = resolveText(componentSnapshot, QStringLiteral("errorKey"), QStringLiteral("error"));
-        const QString epsilonKey = resolveText(componentSnapshot, QStringLiteral("epsilonKey"), QStringLiteral("epsilon"));
+        const QString iterKey = resolveText(componentSnapshot, QStringLiteral("iterKey"), QStringLiteral("iter"));
+        const QString maxIterKey = resolveText(componentSnapshot, QStringLiteral("maxIterKey"), QStringLiteral("maxIter"));
+        const QString continueKey = resolveText(componentSnapshot,
+                                                QStringLiteral("continueKey"),
+                                                QStringLiteral("continueLoop"));
+        const QString conditionKey = resolveText(componentSnapshot,
+                                                 QStringLiteral("conditionKey"),
+                                                 QStringLiteral("condition"));
 
-        bool okA = false;
-        bool okB = false;
-        bool okC = false;
-        const double a = resolveNumber(context, componentSnapshot, aKey, QStringLiteral("a"), 0.0, &okA);
-        const double b = resolveNumber(context, componentSnapshot, bKey, QStringLiteral("b"), 0.0, &okB);
-        const double c = resolveNumber(context, componentSnapshot, cKey, QStringLiteral("c"), 0.0, &okC);
+        bool okIter = false;
+        bool okMaxIter = false;
+        bool okCondition = false;
+        const int iter = static_cast<int>(resolveNumber(
+            context, componentSnapshot, iterKey, QStringLiteral("iter"), 0.0, &okIter));
+        const int maxIter = static_cast<int>(resolveNumber(
+            context, componentSnapshot, maxIterKey, QStringLiteral("maxIter"), 10.0, &okMaxIter));
+        const bool condition = resolveBool(context,
+                                           componentSnapshot,
+                                           conditionKey,
+                                           QStringLiteral("condition"),
+                                           true,
+                                           &okCondition);
 
-        if (!okA || !okB || !okC || std::abs(a) < 1e-12) {
-            const QString msg = QStringLiteral("Invalid quadratic coefficients: 'a' must be non-zero.");
-            out.insert(errorKey, msg);
-            out.insert(statusKey, QStringLiteral("error"));
+        if (!okIter || !okMaxIter || !okCondition || maxIter <= 0) {
+            const QString msg = QStringLiteral("Invalid loop inputs (iter/maxIter/condition).");
+            out.insert(QStringLiteral("error"), msg);
             if (outputPayload)
                 *outputPayload = out;
             if (trace)
                 *trace = makeTracePayload(componentType, componentId, context, out, msg);
             if (error)
                 *error = msg;
-            qWarning().noquote() << QStringLiteral("[Trace][%1] %2 error=%3")
-                                        .arg(componentType, componentId, msg);
             return false;
         }
 
-        const double delta = b * b - 4.0 * a * c;
-        out.insert(deltaKey, delta);
-
-        const double epsilon = resolveNumber(context, componentSnapshot, epsilonKey, QStringLiteral("epsilon"), 1e-6);
-        if (delta < 0.0) {
-            const QString msg = QStringLiteral("No real roots: delta < 0.");
-            out.insert(statusKey, QStringLiteral("no_real_root"));
-            out.insert(errorKey, msg);
-            if (outputPayload)
-                *outputPayload = out;
-            if (trace)
-                *trace = makeTracePayload(componentType, componentId, context, out, msg);
-            if (error)
-                *error = msg;
-            qWarning().noquote() << QStringLiteral("[Trace][%1] %2 error=%3")
-                                        .arg(componentType, componentId, msg);
-            return false;
-        }
-
-        if (std::abs(delta) <= epsilon) {
-            const double x = (-b) / (2.0 * a);
-            out.insert(x1Key, x);
-            out.insert(x2Key, x);
-            out.insert(statusKey, QStringLiteral("one_root"));
-            out.remove(errorKey);
-        } else {
-            const SqrtResult sqrtResult = computeSqrtNewton(delta, epsilon, 64, delta > 1.0 ? delta / 2.0 : 1.0);
-            if (!sqrtResult.ok) {
-                out.insert(statusKey, QStringLiteral("error"));
-                out.insert(errorKey, sqrtResult.error);
-                if (outputPayload)
-                    *outputPayload = out;
-                if (trace)
-                    *trace = makeTracePayload(componentType, componentId, context, out, sqrtResult.error);
-                if (error)
-                    *error = sqrtResult.error;
-                qWarning().noquote() << QStringLiteral("[Trace][%1] %2 error=%3")
-                                            .arg(componentType, componentId, sqrtResult.error);
-                return false;
-            }
-
-            const double sqrtDelta = sqrtResult.value;
-            const double denom = 2.0 * a;
-            out.insert(x1Key, (-b + sqrtDelta) / denom);
-            out.insert(x2Key, (-b - sqrtDelta) / denom);
-            out.insert(QStringLiteral("sqrtDelta"), sqrtDelta);
-            out.insert(statusKey, QStringLiteral("two_roots"));
-            out.remove(errorKey);
-        }
+        const int nextIter = iter + 1;
+        const bool shouldContinue = condition && (nextIter < maxIter);
+        out.insert(iterKey, nextIter);
+        out.insert(continueKey, shouldContinue);
 
         if (outputPayload)
             *outputPayload = out;
         if (trace)
             *trace = makeTracePayload(componentType, componentId, context, out);
-
-        qInfo().noquote() << QStringLiteral("[Trace][%1] %2 input=%3 output=%4")
-                                 .arg(componentType, componentId,
-                                      QString::fromUtf8(QJsonDocument::fromVariant(context).toJson(QJsonDocument::Compact)),
-                                      QString::fromUtf8(QJsonDocument::fromVariant(out).toJson(QJsonDocument::Compact)));
         return true;
     }
 
@@ -287,6 +210,60 @@ QString CustomizeExecutionSemanticsProvider::resolveText(const QVariantMap &comp
 {
     const QString text = componentSnapshot.value(key).toString().trimmed();
     return text.isEmpty() ? fallback : text;
+}
+
+bool CustomizeExecutionSemanticsProvider::resolveBool(const QVariantMap &context,
+                                                      const QVariantMap &componentSnapshot,
+                                                      const QString &contextKey,
+                                                      const QString &fallbackSnapshotKey,
+                                                      bool fallbackValue,
+                                                      bool *ok)
+{
+    auto parseBool = [](const QVariant &value, bool *parsed) {
+        if (!value.isValid() || value.isNull()) {
+            if (parsed)
+                *parsed = false;
+            return false;
+        }
+
+        if (value.metaType().id() == QMetaType::Bool) {
+            if (parsed)
+                *parsed = true;
+            return value.toBool();
+        }
+
+        if (value.canConvert<bool>()) {
+            if (parsed)
+                *parsed = true;
+            return value.toBool();
+        }
+
+        const QString text = value.toString().trimmed().toLower();
+        if (text == QStringLiteral("true") || text == QStringLiteral("1")) {
+            if (parsed)
+                *parsed = true;
+            return true;
+        }
+        if (text == QStringLiteral("false") || text == QStringLiteral("0")) {
+            if (parsed)
+                *parsed = true;
+            return false;
+        }
+
+        if (parsed)
+            *parsed = false;
+        return false;
+    };
+
+    bool parsed = false;
+    bool value = parseBool(context.value(contextKey), &parsed);
+    if (!parsed)
+        value = parseBool(componentSnapshot.value(fallbackSnapshotKey), &parsed);
+    if (!parsed)
+        value = fallbackValue;
+    if (ok)
+        *ok = parsed;
+    return value;
 }
 
 QVariantMap CustomizeExecutionSemanticsProvider::makeTracePayload(const QString &componentType,

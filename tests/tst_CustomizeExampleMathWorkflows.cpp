@@ -1,5 +1,4 @@
 #include <QtTest>
-#include <cmath>
 
 #include "customizeexecutionsanticsprovider.h"
 
@@ -47,10 +46,9 @@ private slots:
     void cleanup();
 
     void basicComponents_computeAndWriteContext();
+    void controlIfElse_routesTrueAndFalse();
+    void controlLoop_stopsByMaxIterAndCondition();
     void divideByZero_reportsError();
-    void sqrtNewton_loopStatePersistenceAndConvergence();
-    void quadratic_branchesAndReusesSqrtLogic();
-    void sqrtNegative_reportsError();
     void executionTrace_containsInputsOutputsAndErrors();
 
 private:
@@ -98,6 +96,67 @@ void tst_CustomizeExampleMathWorkflows::basicComponents_computeAndWriteContext()
     QCOMPARE(sandbox.executionState().value(QStringLiteral("quotient")).toDouble(), 4.0);
 }
 
+void tst_CustomizeExampleMathWorkflows::controlIfElse_routesTrueAndFalse()
+{
+    GraphExecutionSandbox sandbox;
+    sandbox.setExecutionSemanticsProviders({ &m_provider });
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeIfElse),
+                  QVariantMap{{QStringLiteral("conditionKey"), QStringLiteral("cond")},
+                              {QStringLiteral("trueRouteKey"), QStringLiteral("goTrue")},
+                              {QStringLiteral("falseRouteKey"), QStringLiteral("goFalse")}},
+                  QVariantMap{{QStringLiteral("cond"), true}});
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("goTrue")).toBool(), true);
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("goFalse")).toBool(), false);
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeIfElse),
+                  QVariantMap{{QStringLiteral("conditionKey"), QStringLiteral("cond")},
+                              {QStringLiteral("trueRouteKey"), QStringLiteral("goTrue")},
+                              {QStringLiteral("falseRouteKey"), QStringLiteral("goFalse")}},
+                  QVariantMap{{QStringLiteral("cond"), false}});
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("goTrue")).toBool(), false);
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("goFalse")).toBool(), true);
+}
+
+void tst_CustomizeExampleMathWorkflows::controlLoop_stopsByMaxIterAndCondition()
+{
+    GraphExecutionSandbox sandbox;
+    sandbox.setExecutionSemanticsProviders({ &m_provider });
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeLoop),
+                  QVariantMap{},
+                  QVariantMap{{QStringLiteral("iter"), 0},
+                              {QStringLiteral("maxIter"), 3},
+                              {QStringLiteral("condition"), true}});
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("iter")).toInt(), 1);
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("continueLoop")).toBool(), true);
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeLoop),
+                  QVariantMap{},
+                  QVariantMap{{QStringLiteral("iter"), 2},
+                              {QStringLiteral("maxIter"), 3},
+                              {QStringLiteral("condition"), true}});
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("iter")).toInt(), 3);
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("continueLoop")).toBool(), false);
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeLoop),
+                  QVariantMap{},
+                  QVariantMap{{QStringLiteral("iter"), 0},
+                              {QStringLiteral("maxIter"), 5},
+                              {QStringLiteral("condition"), false}});
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("continueLoop")).toBool(), false);
+}
+
 void tst_CustomizeExampleMathWorkflows::divideByZero_reportsError()
 {
     GraphExecutionSandbox sandbox;
@@ -110,73 +169,6 @@ void tst_CustomizeExampleMathWorkflows::divideByZero_reportsError()
 
     QCOMPARE(sandbox.status(), QStringLiteral("error"));
     QVERIFY(sandbox.lastError().contains(QStringLiteral("Division by zero")));
-}
-
-void tst_CustomizeExampleMathWorkflows::sqrtNewton_loopStatePersistenceAndConvergence()
-{
-    GraphExecutionSandbox sandbox;
-    sandbox.setExecutionSemanticsProviders({ &m_provider });
-
-    runSingleNode(sandbox,
-                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSqrtNewton),
-                  QVariantMap{{QStringLiteral("sKey"), QStringLiteral("S")},
-                              {QStringLiteral("epsilonKey"), QStringLiteral("epsilon")},
-                              {QStringLiteral("outputKey"), QStringLiteral("sqrtS")},
-                              {QStringLiteral("maxIterations"), 64}},
-                  QVariantMap{{QStringLiteral("S"), 25.0}, {QStringLiteral("epsilon"), 1e-8}});
-
-    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
-    const QVariantMap state = sandbox.executionState();
-    const double sqrtS = state.value(QStringLiteral("sqrtS")).toDouble();
-    QVERIFY(std::abs(sqrtS - 5.0) < 1e-5);
-    QVERIFY(state.value(QStringLiteral("sqrt.iterations")).toInt() > 0);
-    QVERIFY(state.value(QStringLiteral("sqrt.lastDelta")).toDouble() < 1e-4);
-}
-
-void tst_CustomizeExampleMathWorkflows::quadratic_branchesAndReusesSqrtLogic()
-{
-    GraphExecutionSandbox sandbox;
-    sandbox.setExecutionSemanticsProviders({ &m_provider });
-
-    runSingleNode(sandbox,
-                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeQuadratic),
-                  QVariantMap{},
-                  QVariantMap{{QStringLiteral("a"), 1.0},
-                              {QStringLiteral("b"), -3.0},
-                              {QStringLiteral("c"), 2.0},
-                              {QStringLiteral("epsilon"), 1e-8}});
-
-    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
-    const QVariantMap state = sandbox.executionState();
-    QCOMPARE(state.value(QStringLiteral("quadratic.status")).toString(), QStringLiteral("two_roots"));
-    const double x1 = state.value(QStringLiteral("x1")).toDouble();
-    const double x2 = state.value(QStringLiteral("x2")).toDouble();
-    QVERIFY((std::abs(x1 - 2.0) < 1e-4 && std::abs(x2 - 1.0) < 1e-4)
-            || (std::abs(x1 - 1.0) < 1e-4 && std::abs(x2 - 2.0) < 1e-4));
-
-    runSingleNode(sandbox,
-                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeQuadratic),
-                  QVariantMap{},
-                  QVariantMap{{QStringLiteral("a"), 1.0},
-                              {QStringLiteral("b"), 2.0},
-                              {QStringLiteral("c"), 5.0}});
-
-    QCOMPARE(sandbox.status(), QStringLiteral("error"));
-    QVERIFY(sandbox.lastError().contains(QStringLiteral("No real roots")));
-}
-
-void tst_CustomizeExampleMathWorkflows::sqrtNegative_reportsError()
-{
-    GraphExecutionSandbox sandbox;
-    sandbox.setExecutionSemanticsProviders({ &m_provider });
-
-    runSingleNode(sandbox,
-                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSqrtNewton),
-                  QVariantMap{},
-                  QVariantMap{{QStringLiteral("S"), -4.0}, {QStringLiteral("epsilon"), 1e-6}});
-
-    QCOMPARE(sandbox.status(), QStringLiteral("error"));
-    QVERIFY(sandbox.lastError().contains(QStringLiteral("Square root of negative number")));
 }
 
 void tst_CustomizeExampleMathWorkflows::executionTrace_containsInputsOutputsAndErrors()

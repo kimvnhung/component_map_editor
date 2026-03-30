@@ -48,39 +48,6 @@ std::optional<cme::runtime::templates::ConnectionPolicyDecision> customizePolicy
     const int targetIncomingCount = context.target_incoming_count();
     const int sourceOutgoingCount = context.source_outgoing_count();
 
-    if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeCondition)) {
-        if (targetIncomingCount >= 1) {
-            return cme::runtime::templates::ConnectionPolicyDecision{
-                false,
-                QStringLiteral("Condition component accepts only one incoming connection.")
-            };
-        }
-
-        return cme::runtime::templates::ConnectionPolicyDecision{ true, QString() };
-    }
-
-    if (sourceTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess)) {
-        if (sourceOutgoingCount >= 1) {
-            return cme::runtime::templates::ConnectionPolicyDecision{
-                false,
-                QStringLiteral("Process component accepts only one outgoing connection.")
-            };
-        }
-
-        return cme::runtime::templates::ConnectionPolicyDecision{ true, QString() };
-    }
-
-    if (targetTypeId == QLatin1String(CustomizeComponentTypeProvider::TypeProcess)) {
-        if (targetIncomingCount >= 1) {
-            return cme::runtime::templates::ConnectionPolicyDecision{
-                false,
-                QStringLiteral("Process component accepts only one incoming connection.")
-            };
-        }
-
-        return cme::runtime::templates::ConnectionPolicyDecision{ true, QString() };
-    }
-
     return std::nullopt;
 }
 

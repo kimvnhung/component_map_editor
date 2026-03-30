@@ -80,42 +80,6 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
               });
 
     addTarget(&bundle,
-              "component/condition",
-              {
-                  makeField("title", "string", "Title", true, QString(), "textfield", "Identity", 1,
-                            QStringLiteral("Human-friendly label shown on the graph.")),
-                  makeField("description", "string", "Description", false, QString(), "textarea", "Behavior", 20,
-                            QStringLiteral("Optional implementation notes for this condition.")),
-                  makeField("icon", "string", "Icon", false, QString(), "textfield", "Appearance", 30,
-                            QStringLiteral("FontAwesome icon key, for example 'question' or 'exclamation'.")),
-                  makeField("color", "string", "Color", true, QStringLiteral("#ffca28"), "textfield", "Appearance", 31)
-              });
-
-    addTarget(&bundle,
-              "component/process",
-              {
-                  makeField("title", "string", "Title", true, QString(), "textfield", "Identity", 1,
-                            QStringLiteral("Display title used in the component body.")),
-                  makeField("description", "string", "Description", false, QString(), "textarea", "Behavior", 20,
-                            QStringLiteral("Optional implementation notes for this process.")),
-                  makeField("addValue", "number", "Add Value", true, 9, "spinbox", "Behavior", 21,
-                            QStringLiteral("Number added to the current simulation value (default +9)."),
-                            QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
-                  makeField("x", "number", "X", true, 0, "spinbox", "Layout", 40,
-                            QString(),
-                            QVariantMap{{QStringLiteral("min"), -50000}, {QStringLiteral("max"), 50000}}),
-                  makeField("y", "number", "Y", true, 0, "spinbox", "Layout", 41,
-                            QString(),
-                            QVariantMap{{QStringLiteral("min"), -50000}, {QStringLiteral("max"), 50000}}),
-                  makeField("width", "number", "Width", true, 160, "spinbox", "Layout", 42,
-                            QString(),
-                            QVariantMap{{QStringLiteral("min"), 40}, {QStringLiteral("max"), 1200}}),
-                  makeField("height", "number", "Height", true, 96, "spinbox", "Layout", 43,
-                            QString(),
-                            QVariantMap{{QStringLiteral("min"), 40}, {QStringLiteral("max"), 1200}})
-              });
-
-    addTarget(&bundle,
               "component/stop",
               {
                   makeField("title", "string", "Title", true, QString(), "textfield", "Identity", 1),
@@ -124,6 +88,27 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                   makeField("icon", "string", "Icon", false, QString(), "textfield", "Appearance", 30,
                             QStringLiteral("FontAwesome icon key, for example 'stop' or 'flag-checkered'.")),
                   makeField("color", "string", "Color", true, QStringLiteral("#ef5350"), "textfield", "Appearance", 31)
+              });
+
+    addTarget(&bundle,
+              "component/control/loop",
+              {
+                  makeField("iterKey", "string", "Iter Key", true, QStringLiteral("iter"), "textfield", "Context", 1),
+                  makeField("maxIterKey", "string", "Max Iter Key", true, QStringLiteral("maxIter"), "textfield", "Context", 2),
+                  makeField("continueKey", "string", "Continue Key", true, QStringLiteral("continueLoop"), "textfield", "Context", 3),
+                  makeField("conditionKey", "string", "Condition Key", true, QStringLiteral("condition"), "textfield", "Context", 4),
+                  makeField("iter", "number", "Fallback Iter", false, 0, "spinbox", "Fallback", 20),
+                  makeField("maxIter", "number", "Fallback Max Iter", false, 10, "spinbox", "Fallback", 21),
+                  makeField("condition", "bool", "Fallback Condition", false, true, "checkbox", "Fallback", 22)
+              });
+
+    addTarget(&bundle,
+              "component/control/ifelse",
+              {
+                  makeField("conditionKey", "string", "Condition Key", true, QStringLiteral("condition"), "textfield", "Context", 1),
+                  makeField("trueRouteKey", "string", "True Route Key", true, QStringLiteral("routeTrue"), "textfield", "Context", 2),
+                  makeField("falseRouteKey", "string", "False Route Key", true, QStringLiteral("routeFalse"), "textfield", "Context", 3),
+                  makeField("condition", "bool", "Fallback Condition", false, false, "checkbox", "Fallback", 20)
               });
 
     addTarget(&bundle,
@@ -168,38 +153,6 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                   makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
                   makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
                   makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
-              });
-
-    addTarget(&bundle,
-              "component/workflow/sqrt_newton",
-              {
-                  makeField("sKey", "string", "S Key", true, QStringLiteral("S"), "textfield", "Context", 1),
-                  makeField("epsilonKey", "string", "Epsilon Key", true, QStringLiteral("epsilon"), "textfield", "Context", 2),
-                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("sqrt"), "textfield", "Context", 3),
-                  makeField("initialGuessKey", "string", "Initial Guess Key", true, QStringLiteral("initialGuess"), "textfield", "Context", 4),
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 5),
-                  makeField("maxIterations", "number", "Max Iterations", true, 50, "spinbox", "Loop", 20),
-                  makeField("S", "number", "Fallback S", false, 0, "spinbox", "Fallback", 30),
-                  makeField("epsilon", "number", "Fallback Epsilon", false, 0.000001, "spinbox", "Fallback", 31),
-                  makeField("initialGuess", "number", "Fallback Initial Guess", false, 1, "spinbox", "Fallback", 32)
-              });
-
-    addTarget(&bundle,
-              "component/workflow/quadratic",
-              {
-                  makeField("aKey", "string", "A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
-                  makeField("bKey", "string", "B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
-                  makeField("cKey", "string", "C Key", true, QStringLiteral("c"), "textfield", "Context", 3),
-                  makeField("deltaKey", "string", "Delta Key", true, QStringLiteral("delta"), "textfield", "Context", 4),
-                  makeField("x1Key", "string", "X1 Key", true, QStringLiteral("x1"), "textfield", "Context", 5),
-                  makeField("x2Key", "string", "X2 Key", true, QStringLiteral("x2"), "textfield", "Context", 6),
-                  makeField("statusKey", "string", "Status Key", true, QStringLiteral("quadratic.status"), "textfield", "Context", 7),
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 8),
-                  makeField("epsilonKey", "string", "Epsilon Key", true, QStringLiteral("epsilon"), "textfield", "Context", 9),
-                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
-                  makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21),
-                  makeField("c", "number", "Fallback C", false, 0, "spinbox", "Fallback", 22),
-                  makeField("epsilon", "number", "Fallback Epsilon", false, 0.000001, "spinbox", "Fallback", 23)
               });
 
     addTarget(&bundle,

@@ -6,12 +6,12 @@
 class CustomizeExecutionSemanticsProvider : public IExecutionSemanticsProvider
 {
 public:
+    static constexpr const char *TypeLoop = "control/loop";
+    static constexpr const char *TypeIfElse = "control/ifelse";
     static constexpr const char *TypeAdd = "math/add";
     static constexpr const char *TypeSubtract = "math/subtract";
     static constexpr const char *TypeMultiply = "math/multiply";
     static constexpr const char *TypeDivide = "math/divide";
-    static constexpr const char *TypeSqrtNewton = "workflow/sqrt_newton";
-    static constexpr const char *TypeQuadratic = "workflow/quadratic";
     static constexpr const char *TypeErrorHandler = "system/error_handler";
 
     QString providerId() const override;
@@ -52,6 +52,12 @@ private:
     static QString resolveText(const QVariantMap &componentSnapshot,
                                const QString &key,
                                const QString &fallback);
+    static bool resolveBool(const QVariantMap &context,
+                            const QVariantMap &componentSnapshot,
+                            const QString &contextKey,
+                            const QString &fallbackSnapshotKey,
+                            bool fallbackValue,
+                            bool *ok = nullptr);
     static QVariantMap makeTracePayload(const QString &componentType,
                                         const QString &componentId,
                                         const QVariantMap &inputs,

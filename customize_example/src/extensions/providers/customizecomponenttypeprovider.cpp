@@ -22,24 +22,6 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
         false,
         true);
     *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
-        QString::fromLatin1(CustomizeComponentTypeProvider::TypeCondition),
-        QStringLiteral("Condition"),
-        QStringLiteral("control"),
-        164.0,
-        100.0,
-        QStringLiteral("#ffca28"),
-        true,
-        true);
-    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
-        QString::fromLatin1(CustomizeComponentTypeProvider::TypeProcess),
-        QStringLiteral("Process"),
-        QStringLiteral("work"),
-        164.0,
-        100.0,
-        QStringLiteral("#4fc3f7"),
-        true,
-        true);
-    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
         QString::fromLatin1(CustomizeComponentTypeProvider::TypeStop),
         QStringLiteral("Stop"),
         QStringLiteral("control"),
@@ -48,6 +30,24 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
         QStringLiteral("#ef5350"),
         true,
         false);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeLoop),
+        QStringLiteral("Loop Control"),
+        QStringLiteral("control"),
+        200.0,
+        108.0,
+        QStringLiteral("#ffa726"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeIfElse),
+        QStringLiteral("If/Else Control"),
+        QStringLiteral("control"),
+        200.0,
+        108.0,
+        QStringLiteral("#ffb300"),
+        true,
+        true);
     *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
         QString::fromLatin1(CustomizeComponentTypeProvider::TypeAdd),
         QStringLiteral("Add (a + b)"),
@@ -85,24 +85,6 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
         true,
         true);
     *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
-        QString::fromLatin1(CustomizeComponentTypeProvider::TypeSqrtNewton),
-        QStringLiteral("Square Root (Newton)"),
-        QStringLiteral("workflow"),
-        220.0,
-        120.0,
-        QStringLiteral("#ef6c00"),
-        true,
-        true);
-    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
-        QString::fromLatin1(CustomizeComponentTypeProvider::TypeQuadratic),
-        QStringLiteral("Quadratic Solver"),
-        QStringLiteral("workflow"),
-        220.0,
-        120.0,
-        QStringLiteral("#8d6e63"),
-        true,
-        true);
-    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
         QString::fromLatin1(CustomizeComponentTypeProvider::TypeErrorHandler),
         QStringLiteral("Error Handler"),
         QStringLiteral("system"),
@@ -116,11 +98,21 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
         QString::fromLatin1(CustomizeComponentTypeProvider::TypeStart),
         QVariantMap{{QStringLiteral("inputNumber"), 0}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
-        CustomizeComponentTypeProvider::TypeProcess,
-        QVariantMap{{QStringLiteral("addValue"), 9}, {QStringLiteral("description"), QString()}});
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeLoop),
+        QVariantMap{{QStringLiteral("iterKey"), QStringLiteral("iter")},
+                    {QStringLiteral("maxIterKey"), QStringLiteral("maxIter")},
+                    {QStringLiteral("continueKey"), QStringLiteral("continueLoop")},
+                    {QStringLiteral("conditionKey"), QStringLiteral("condition")},
+                    {QStringLiteral("iter"), 0},
+                    {QStringLiteral("maxIter"), 10},
+                    {QStringLiteral("condition"), true}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
-        CustomizeComponentTypeProvider::TypeCondition,
-        QVariantMap{{QStringLiteral("condition"), QString()}});
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeIfElse),
+        QVariantMap{{QStringLiteral("conditionKey"), QStringLiteral("condition")},
+                    {QStringLiteral("trueRouteKey"), QStringLiteral("routeTrue")},
+                    {QStringLiteral("falseRouteKey"), QStringLiteral("routeFalse")},
+                    {QStringLiteral("condition"), false}});
+
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeAdd,
         QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
@@ -145,25 +137,6 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
                     {QStringLiteral("inputBKey"), QStringLiteral("b")},
                     {QStringLiteral("outputKey"), QStringLiteral("quotient")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
-    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
-        CustomizeComponentTypeProvider::TypeSqrtNewton,
-        QVariantMap{{QStringLiteral("sKey"), QStringLiteral("S")},
-                    {QStringLiteral("epsilonKey"), QStringLiteral("epsilon")},
-                    {QStringLiteral("outputKey"), QStringLiteral("sqrt")},
-                    {QStringLiteral("initialGuessKey"), QStringLiteral("initialGuess")},
-                    {QStringLiteral("maxIterations"), 50},
-                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
-    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
-        CustomizeComponentTypeProvider::TypeQuadratic,
-        QVariantMap{{QStringLiteral("aKey"), QStringLiteral("a")},
-                    {QStringLiteral("bKey"), QStringLiteral("b")},
-                    {QStringLiteral("cKey"), QStringLiteral("c")},
-                    {QStringLiteral("deltaKey"), QStringLiteral("delta")},
-                    {QStringLiteral("x1Key"), QStringLiteral("x1")},
-                    {QStringLiteral("x2Key"), QStringLiteral("x2")},
-                    {QStringLiteral("statusKey"), QStringLiteral("quadratic.status")},
-                    {QStringLiteral("errorKey"), QStringLiteral("error")},
-                    {QStringLiteral("epsilonKey"), QStringLiteral("epsilon")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeErrorHandler,
         QVariantMap{{QStringLiteral("errorKey"), QStringLiteral("error")},
