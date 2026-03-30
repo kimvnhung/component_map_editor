@@ -13,6 +13,7 @@
 #include <extensions/runtime/PropertySchemaRegistry.h>
 #include <extensions/runtime/TypeRegistry.h>
 #include <services/ExecutionMigrationFlags.h>
+#include <services/GraphExecutionSandbox.h>
 
 int main(int argc, char *argv[])
 {
@@ -58,6 +59,11 @@ int main(int argc, char *argv[])
     propertySchemas.rebuildFromRegistry(extensionContracts);
     engine.rootContext()->setContextProperty(QStringLiteral("customizePropertySchemaRegistry"),
                                              &propertySchemas);
+
+    GraphExecutionSandbox executionSandbox;
+    executionSandbox.rebuildSemanticsFromRegistry(extensionContracts);
+    engine.rootContext()->setContextProperty(QStringLiteral("customizeExecutionSandbox"), &executionSandbox);
+
 
     QObject::connect(
         &engine,

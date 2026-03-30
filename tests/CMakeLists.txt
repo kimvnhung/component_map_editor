@@ -807,6 +807,15 @@ add_test(
 qt_add_executable(tst_CustomizeExampleMathWorkflows
     tst_CustomizeExampleMathWorkflows.cpp
     ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizeexecutionsanticsprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizestartexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizestopexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeaddexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizesubtractexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizemultiplyexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizedivideexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeifelseexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeloopexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeerrorhandlerexecutionprovider.cpp
 )
 
 target_link_libraries(tst_CustomizeExampleMathWorkflows
