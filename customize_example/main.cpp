@@ -14,6 +14,7 @@
 #include <extensions/runtime/TypeRegistry.h>
 #include <services/ExecutionMigrationFlags.h>
 #include <services/GraphExecutionSandbox.h>
+#include <services/TokenKeyFeatureFlags.h>
 
 int main(int argc, char *argv[])
 {
@@ -21,6 +22,11 @@ int main(int argc, char *argv[])
 
     // Phase 6 canary: keep Design B explicitly enabled in customize startup.
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
+
+    // Stage 7 rollout step 2: enable token-key assignment and inspector selector
+    // in customize app after example app validation.
+    cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
+    cme::tokenkey::FeatureFlags::setInspectorTokenKeySelectorEnabled(true);
 
     // 1. Create the contract registry with the current core API version.
     ExtensionContractRegistry extensionContracts({1, 0, 0});
