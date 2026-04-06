@@ -190,6 +190,10 @@ private:
         const QString &sourcePort = QString(),
         const QString &targetPort = QString()) const;
 
+    QString resolveConnectionTokenKey(const QString &sourceId,
+                                      const QString &targetId,
+                                      const QString &fallbackTokenKey) const;
+
     GraphModel   *m_graph        = nullptr;
     UndoStack    *m_undoStack    = nullptr;
     TypeRegistry *m_typeRegistry = nullptr;

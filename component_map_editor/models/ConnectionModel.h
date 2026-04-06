@@ -14,6 +14,7 @@ class ConnectionModel : public QObject
     Q_PROPERTY(QString sourceId READ sourceId WRITE setSourceId NOTIFY sourceIdChanged FINAL)
     Q_PROPERTY(QString targetId READ targetId WRITE setTargetId NOTIFY targetIdChanged FINAL)
     Q_PROPERTY(QString label READ label WRITE setLabel NOTIFY labelChanged FINAL)
+    Q_PROPERTY(QString tokenKey READ tokenKey WRITE setTokenKey NOTIFY tokenKeyChanged FINAL)
     Q_PROPERTY(Side sourceSide READ sourceSide WRITE setSourceSide NOTIFY sourceSideChanged FINAL)
     Q_PROPERTY(Side targetSide READ targetSide WRITE setTargetSide NOTIFY targetSideChanged FINAL)
 
@@ -44,6 +45,9 @@ public:
     QString label() const;
     void setLabel(const QString &label);
 
+    QString tokenKey() const;
+    void setTokenKey(const QString &tokenKey);
+
     Side sourceSide() const;
     void setSourceSide(Side sourceSide);
 
@@ -55,6 +59,7 @@ signals:
     void sourceIdChanged();
     void targetIdChanged();
     void labelChanged();
+    void tokenKeyChanged();
     void sourceSideChanged();
     void targetSideChanged();
 
@@ -63,6 +68,7 @@ private:
     QString m_sourceId;
     QString m_targetId;
     QString m_label;
+    QString m_tokenKey;
     Side m_sourceSide = SideAuto;
     Side m_targetSide = SideAuto;
 };

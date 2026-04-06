@@ -64,6 +64,7 @@ void PersistenceValidationTests::roundTripIsStable()
                                            QStringLiteral("A"),
                                            QStringLiteral("B"),
                                            QStringLiteral("main"));
+    connection->setTokenKey(QStringLiteral("tok.A.B"));
     connection->setSourceSide(ConnectionModel::SideRight);
     connection->setTargetSide(ConnectionModel::SideLeft);
     source.addConnection(connection);
@@ -73,6 +74,10 @@ void PersistenceValidationTests::roundTripIsStable()
 
     GraphModel imported;
     QVERIFY(persistence.importFromJson(&imported, jsonBefore));
+
+    ConnectionModel *importedConnection = imported.connectionById(QStringLiteral("E1"));
+    QVERIFY(importedConnection != nullptr);
+    QCOMPARE(importedConnection->tokenKey(), QStringLiteral("tok.A.B"));
 
     const QString jsonAfter = persistence.exportToJson(&imported);
     const QByteArray canonicalBefore = QJsonDocument::fromJson(jsonBefore.toUtf8())

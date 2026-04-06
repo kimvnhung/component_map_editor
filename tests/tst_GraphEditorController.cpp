@@ -8,6 +8,8 @@
 #include "extensions/sample_pack/SampleConnectionPolicyProvider.h"
 #include "models/GraphModel.h"
 #include "services/GraphEditorController.h"
+#include "services/GraphSchema.h"
+#include "services/TokenKeyFeatureFlags.h"
 
 struct TestContext {
     ExtensionContractRegistry reg{ExtensionApiVersion{1, 0, 0}};
@@ -580,6 +582,98 @@ private slots:
         stack.clear();
 
         QVERIFY(!controller.connectComponents(QStringLiteral("t"), QStringLiteral("e")).isEmpty());
+    }
+
+    void connectComponentsAssignsTokenKeyWhenFeatureEnabled()
+    {
+        cme::tokenkey::FeatureFlags::resetDefaults();
+        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
+
+        TestContext ctx;
+        ctx.controller.createComponentWithId(QStringLiteral("n1"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             0,
+                                             0);
+        ctx.controller.createComponentWithId(QStringLiteral("n2"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             200,
+                                             0);
+
+        const QString connId = ctx.controller.connectComponents(QStringLiteral("n1"), QStringLiteral("n2"));
+        QVERIFY(!connId.isEmpty());
+
+        ConnectionModel *connection = ctx.graph.connectionById(connId);
+        QVERIFY(connection != nullptr);
+        QVERIFY(!connection->tokenKey().isEmpty());
+        QCOMPARE(connection->tokenKey(), QStringLiteral("tok.n1.n2"));
+
+        cme::tokenkey::FeatureFlags::resetDefaults();
+    }
+
+    void connectComponentsAssignsSuffixOnTokenKeyCollision()
+    {
+        cme::tokenkey::FeatureFlags::resetDefaults();
+        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
+
+        TestContext ctx;
+        ctx.controller.createComponentWithId(QStringLiteral("n1"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             0,
+                                             0);
+        ctx.controller.createComponentWithId(QStringLiteral("n2"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             200,
+                                             0);
+
+        auto *existing = new ConnectionModel(QStringLiteral("existing"),
+                                             QStringLiteral("n1"),
+                                             QStringLiteral("n2"),
+                                             QStringLiteral("existing"));
+        existing->setTokenKey(QStringLiteral("tok.n1.n2"));
+        ctx.graph.addConnection(existing);
+
+        const QString connId = ctx.controller.connectComponents(QStringLiteral("n1"), QStringLiteral("n2"));
+        QVERIFY(!connId.isEmpty());
+
+        ConnectionModel *connection = ctx.graph.connectionById(connId);
+        QVERIFY(connection != nullptr);
+        QCOMPARE(connection->tokenKey(), QStringLiteral("tok.n1.n2_2"));
+
+        cme::tokenkey::FeatureFlags::resetDefaults();
+    }
+
+    void tokenKeyPropertyEditSupportsUndoRedoWhenFeatureEnabled()
+    {
+        cme::tokenkey::FeatureFlags::resetDefaults();
+        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
+
+        TestContext ctx;
+        ctx.controller.createComponentWithId(QStringLiteral("n1"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             0,
+                                             0);
+        ctx.controller.createComponentWithId(QStringLiteral("n2"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             200,
+                                             0);
+
+        const QString connId = ctx.controller.connectComponents(QStringLiteral("n1"), QStringLiteral("n2"));
+        ConnectionModel *connection = ctx.graph.connectionById(connId);
+        QVERIFY(connection != nullptr);
+        const QString previousTokenKey = connection->tokenKey();
+
+        ctx.undoStack.pushSetConnectionProperty(connection,
+                                                GraphSchema::Keys::connectionTokenKey(),
+                                                QStringLiteral("manual.token.key"));
+        QCOMPARE(connection->tokenKey(), QStringLiteral("manual.token.key"));
+
+        ctx.undoStack.undo();
+        QCOMPARE(connection->tokenKey(), previousTokenKey);
+
+        ctx.undoStack.redo();
+        QCOMPARE(connection->tokenKey(), QStringLiteral("manual.token.key"));
+
+        cme::tokenkey::FeatureFlags::resetDefaults();
     }
 };
 

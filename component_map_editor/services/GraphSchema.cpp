@@ -24,6 +24,7 @@ const QString &connectionId() { static const QString key = QStringLiteral("id");
 const QString &connectionSourceId() { static const QString key = QStringLiteral("sourceId"); return key; }
 const QString &connectionTargetId() { static const QString key = QStringLiteral("targetId"); return key; }
 const QString &connectionLabel() { static const QString key = QStringLiteral("label"); return key; }
+const QString &connectionTokenKey() { static const QString key = QStringLiteral("tokenKey"); return key; }
 const QString &connectionSourceSide() { static const QString key = QStringLiteral("sourceSide"); return key; }
 const QString &connectionTargetSide() { static const QString key = QStringLiteral("targetSide"); return key; }
 
@@ -69,6 +70,7 @@ QStringList connectionFieldOrder()
         Keys::connectionSourceId(),
         Keys::connectionTargetId(),
         Keys::connectionLabel(),
+        Keys::connectionTokenKey(),
         Keys::connectionSourceSide(),
         Keys::connectionTargetSide()
     };
@@ -118,6 +120,8 @@ QJsonObject connectionToJson(const ConnectionModel *connection)
     obj[Keys::connectionSourceId()] = connection->sourceId();
     obj[Keys::connectionTargetId()] = connection->targetId();
     obj[Keys::connectionLabel()] = connection->label();
+    if (!connection->tokenKey().isEmpty())
+        obj[Keys::connectionTokenKey()] = connection->tokenKey();
     obj[Keys::connectionSourceSide()] = static_cast<int>(connection->sourceSide());
     obj[Keys::connectionTargetSide()] = static_cast<int>(connection->targetSide());
     return obj;
@@ -154,6 +158,7 @@ ConnectionModel *connectionFromCanonicalJson(const QJsonObject &obj)
         obj[Keys::connectionTargetId()].toString(),
         obj[Keys::connectionLabel()].toString());
 
+    connection->setTokenKey(obj[Keys::connectionTokenKey()].toString());
     connection->setSourceSide(normalizeConnectionSide(
         obj[Keys::connectionSourceSide()].toInt(static_cast<int>(ConnectionModel::SideAuto))));
     connection->setTargetSide(normalizeConnectionSide(

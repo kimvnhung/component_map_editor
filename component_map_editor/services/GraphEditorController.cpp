@@ -1,10 +1,31 @@
 #include "GraphEditorController.h"
 
 #include <QUuid>
+#include <QSet>
 
 #include "adapters/PolicyAdapter.h"
 #include "commands/GraphCommands.h"
 #include "InvariantChecker.h"
+#include "services/TokenKeyFeatureFlags.h"
+
+namespace {
+
+QString sanitizeTokenKeySegment(const QString &segment)
+{
+    QString out;
+    out.reserve(segment.size());
+    for (const QChar ch : segment) {
+        if (ch.isLetterOrNumber() || ch == QLatin1Char('_')
+            || ch == QLatin1Char('-') || ch == QLatin1Char('.')) {
+            out.append(ch);
+        } else {
+            out.append(QLatin1Char('_'));
+        }
+    }
+    return out;
+}
+
+} // namespace
 
 GraphEditorController::GraphEditorController(QObject *parent)
     : QObject(parent)
@@ -233,6 +254,44 @@ cme::ConnectionPolicyContext GraphEditorController::buildTypedConnectionPolicyCo
     return context;
 }
 
+QString GraphEditorController::resolveConnectionTokenKey(const QString &sourceId,
+                                                         const QString &targetId,
+                                                         const QString &fallbackTokenKey) const
+{
+    const QString fallback = fallbackTokenKey.trimmed();
+    const QString sourceSegment = sanitizeTokenKeySegment(sourceId.trimmed());
+    const QString targetSegment = sanitizeTokenKeySegment(targetId.trimmed());
+
+    QString base = QStringLiteral("tok.%1.%2").arg(sourceSegment, targetSegment);
+    if (base.trimmed().isEmpty())
+        base = fallback;
+    if (base.trimmed().isEmpty())
+        return {};
+
+    QSet<QString> used;
+    if (m_graph) {
+        const QList<ConnectionModel *> connections = m_graph->connectionList();
+        for (const ConnectionModel *connection : connections) {
+            if (!connection)
+                continue;
+            const QString tokenKey = connection->tokenKey().trimmed();
+            if (!tokenKey.isEmpty())
+                used.insert(tokenKey);
+        }
+    }
+
+    if (!used.contains(base))
+        return base;
+
+    for (int suffix = 2; suffix < 1000000; ++suffix) {
+        const QString candidate = QStringLiteral("%1_%2").arg(base).arg(suffix);
+        if (!used.contains(candidate))
+            return candidate;
+    }
+
+    return fallback;
+}
+
 // ---------------------------------------------------------------------------
 // createComponent
 // ---------------------------------------------------------------------------
@@ -424,6 +483,12 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
     const QString label  = props.value(QStringLiteral("label")).toString();
 
     auto *connection = new ConnectionModel(connId, sourceId, targetId, label);
+    if (cme::tokenkey::FeatureFlags::connectionTokenKeyEnabled()) {
+        QString tokenKey = resolveConnectionTokenKey(sourceId, targetId, connId);
+        if (tokenKey.isEmpty())
+            tokenKey = connId;
+        connection->setTokenKey(tokenKey);
+    }
 
     m_undoStack->pushAddConnection(m_graph, connection);
     emit connectionCreated(connId, sourceId, targetId);
@@ -488,13 +553,30 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
         ? fallbackLabel
         : props.value(QStringLiteral("label")).toString();
 
-    m_undoStack->pushAddConnectionBySpec(m_graph,
-                                         connId,
-                                         sourceId,
-                                         targetId,
-                                         label,
-                                         sourceSide,
-                                         targetSide);
+    auto normalizeSide = [](int sideValue) {
+        switch (sideValue) {
+        case ConnectionModel::SideAuto:
+        case ConnectionModel::SideTop:
+        case ConnectionModel::SideRight:
+        case ConnectionModel::SideBottom:
+        case ConnectionModel::SideLeft:
+            return static_cast<ConnectionModel::Side>(sideValue);
+        default:
+            return ConnectionModel::SideAuto;
+        }
+    };
+
+    auto *connection = new ConnectionModel(connId, sourceId, targetId, label, m_graph);
+    connection->setSourceSide(normalizeSide(sourceSide));
+    connection->setTargetSide(normalizeSide(targetSide));
+    if (cme::tokenkey::FeatureFlags::connectionTokenKeyEnabled()) {
+        QString tokenKey = resolveConnectionTokenKey(sourceId, targetId, connId);
+        if (tokenKey.isEmpty())
+            tokenKey = connId;
+        connection->setTokenKey(tokenKey);
+    }
+
+    m_undoStack->pushAddConnection(m_graph, connection);
 
     {
         QString err;

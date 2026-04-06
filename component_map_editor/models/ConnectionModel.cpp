@@ -46,6 +46,14 @@ void ConnectionModel::setLabel(const QString &label)
     emit labelChanged();
 }
 
+QString ConnectionModel::tokenKey() const { return m_tokenKey; }
+void ConnectionModel::setTokenKey(const QString &tokenKey)
+{
+    if (m_tokenKey == tokenKey) return;
+    m_tokenKey = tokenKey;
+    emit tokenKeyChanged();
+}
+
 ConnectionModel::Side ConnectionModel::sourceSide() const { return m_sourceSide; }
 void ConnectionModel::setSourceSide(ConnectionModel::Side sourceSide)
 {
