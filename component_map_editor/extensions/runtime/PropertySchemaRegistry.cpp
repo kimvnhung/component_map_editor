@@ -167,6 +167,7 @@ QVariantMap PropertySchemaRegistry::normalizeFieldRow(const QVariantMap &raw, co
     out.insert(QStringLiteral("order"), raw.value(QStringLiteral("order")).toInt());
     out.insert(QStringLiteral("hint"), raw.value(QStringLiteral("hint")).toString());
     out.insert(QStringLiteral("placeholder"), raw.value(QStringLiteral("placeholder")).toString());
+    out.insert(QStringLiteral("optionsSource"), raw.value(QStringLiteral("optionsSource")).toString());
     out.insert(QStringLiteral("options"), raw.value(QStringLiteral("options")).toList());
     out.insert(QStringLiteral("visibleWhen"), raw.value(QStringLiteral("visibleWhen")).toMap());
     out.insert(QStringLiteral("validation"), raw.value(QStringLiteral("validation")).toMap());
