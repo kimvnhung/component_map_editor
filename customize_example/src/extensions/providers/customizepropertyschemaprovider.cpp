@@ -20,7 +20,8 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
     const QString &hint = QString(),
     const QVariantMap &validation = {},
     const QVariantMap &visibleWhen = {},
-    const QVariantList &options = {})
+    const QVariantList &options = {},
+    const QVariantMap &extra = {})
 {
     cme::templates::v1::PropertySchemaFieldTemplate field;
     field.set_key(key);
@@ -43,6 +44,9 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
 
     for (auto it = visibleWhen.constBegin(); it != visibleWhen.constEnd(); ++it)
         (*field.mutable_visible_when())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
+
+    for (auto it = extra.constBegin(); it != extra.constEnd(); ++it)
+        (*field.mutable_extra())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
 
     return field;
 }
@@ -192,7 +196,11 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                   makeField("sourceSide", "enum", "Source Side", true, -1, "dropdown", "Routing", 20,
                             QString(), {}, {}, sideOptions),
                   makeField("targetSide", "enum", "Target Side", true, -1, "dropdown", "Routing", 21,
-                            QString(), {}, {}, sideOptions)
+                            QString(), {}, {}, sideOptions),
+                  makeField("tokenKey", "string", "Token Key", false, QString(), "dropdown", "Routing", 22,
+                            QStringLiteral("Routing token key used for connection payload selection."),
+                            {}, {}, {},
+                            QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeys")}})
               });
 
     return bundle;

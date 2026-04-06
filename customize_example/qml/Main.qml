@@ -232,8 +232,10 @@ ApplicationWindow {
                         id: propertyPanel
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        graph: graph
                         undoStack: canvas ? canvas.undoStack : null
                         propertySchemaRegistry: customizePropertySchemaRegistry
+                        executionStateSnapshot: executionSandbox ? executionSandbox.executionState : ({})
                     }
 
                     ScrollView {

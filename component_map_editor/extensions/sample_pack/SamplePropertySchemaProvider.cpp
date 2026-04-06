@@ -37,6 +37,13 @@ QVariantMap withSection(QVariantMap row,
     return row;
 }
 
+QVariantMap withOptionsSource(QVariantMap row, const QString &optionsSource)
+{
+    if (!optionsSource.isEmpty())
+        row.insert(QStringLiteral("optionsSource"), optionsSource);
+    return row;
+}
+
 } // namespace
 
 QString SamplePropertySchemaProvider::providerId() const
@@ -145,7 +152,12 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
             withSection(entry("sourceSide", "enum", "Source Side", true, -1, "dropdown"),
                         "Routing", 20, QString(), {}, {}, sideOptions),
             withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
-                        "Routing", 21, QString(), {}, {}, sideOptions)
+                        "Routing", 21, QString(), {}, {}, sideOptions),
+            withOptionsSource(
+                withSection(entry("tokenKey", "string", "Token Key", false, QString(), "dropdown"),
+                            "Routing", 22,
+                            QStringLiteral("Routing token key used for connection payload selection.")),
+                QStringLiteral("tokenKeys"))
         };
     }
 

@@ -7,9 +7,12 @@ import ComponentMapEditor
 Rectangle {
     id: root
 
+    property GraphModel graph: null
     property ComponentModel component: null
     property ConnectionModel connection: null
     property UndoStack undoStack: null
+    property var executionStateSnapshot: ({})
+    property TokenKeyCatalog tokenKeyCatalog: null
 
     // Unified entry point. Callers can set this to either a ComponentModel,
     // a ConnectionModel, or null. The handler dispatches to component/connection
@@ -32,6 +35,8 @@ Rectangle {
     property PropertySchemaRegistry propertySchemaRegistry: null
     readonly property PropertySchemaRegistry effectiveSchemaRegistry:
         root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
+    readonly property TokenKeyCatalog effectiveTokenKeyCatalog:
+        root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
 
     readonly property var connectionSideModel: [
         { text: "Auto", value: ConnectionModel.SideAuto },
@@ -53,6 +58,14 @@ Rectangle {
             return ""
         return "connection/flow"
     }
+
+    readonly property var activeSchemaSections: root.component !== null
+        ? root.sectionsForTarget(root.componentTarget)
+        : root.sectionsForTarget(root.connectionTarget)
+
+    readonly property var dynamicFieldOptions: ({
+        "tokenKeys": root.effectiveTokenKeyCatalog ? root.effectiveTokenKeyCatalog.tokenKeys : []
+    })
 
     function updateComponentProperty(propertyName, value) {
         if (!root.component || !root.undoStack || !propertyName)
@@ -87,6 +100,13 @@ Rectangle {
         id: fallbackSchemaRegistry
     }
 
+    TokenKeyCatalog {
+        id: fallbackTokenKeyCatalog
+        graph: root.graph
+        executionStateSnapshot: root.executionStateSnapshot
+        schemaSections: root.activeSchemaSections
+    }
+
     color: "#ffffff"
     border.color: "#e0e0e0"
     border.width: 1
@@ -118,12 +138,11 @@ Rectangle {
 
             SchemaFormRenderer {
                 width: parent ? parent.width : 0
-                schemaSections: root.component !== null
-                    ? root.sectionsForTarget(root.componentTarget)
-                    : root.sectionsForTarget(root.connectionTarget)
+                schemaSections: root.activeSchemaSections
                 modelObject: root.component !== null ? root.component : root.connection
                 readOnly: root.undoStack === null
                 sideModel: root.connectionSideModel
+                dynamicOptions: root.dynamicFieldOptions
                 onPropertyEditRequested: function(propertyName, value) {
                     if (root.component !== null)
                         root.updateComponentProperty(propertyName, value)

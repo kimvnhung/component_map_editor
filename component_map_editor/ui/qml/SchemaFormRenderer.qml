@@ -9,6 +9,7 @@ Item {
     property var schemaSections: []
     property var modelObject: null
     property bool readOnly: false
+    property var dynamicOptions: ({})
 
     // Optional map for enum side values if a schema uses sourceSide/targetSide.
     // Values must match ConnectionModel::Side: SideAuto=-1, SideTop=0, SideRight=1, SideBottom=2, SideLeft=3
@@ -72,6 +73,13 @@ Item {
     }
 
     function enumModelForField(field) {
+        var optionsSource = field.optionsSource || ""
+        if (optionsSource.length > 0) {
+            var dynamicModel = root.dynamicOptions ? root.dynamicOptions[optionsSource] : undefined
+            if (dynamicModel && dynamicModel.length !== undefined)
+                return dynamicModel
+        }
+
         if (field.options && field.options.length)
             return field.options
         if (field.key === "shape")
@@ -79,6 +87,13 @@ Item {
         if (field.key === "sourceSide" || field.key === "targetSide")
             return root.sideModel
         return []
+    }
+
+    function shouldFallbackToTextField(field) {
+        var optionsSource = field.optionsSource || ""
+        if (!optionsSource.length)
+            return false
+        return root.enumModelForField(field).length === 0
     }
 
     function enumIndexForValue(options, value) {
@@ -156,7 +171,7 @@ Item {
                                 switch (widget) {
                                 case "textfield": return textFieldEditor
                                 case "textarea": return textAreaEditor
-                                case "dropdown": return comboBoxEditor
+                                case "dropdown": return root.shouldFallbackToTextField(fieldData) ? textFieldEditor : comboBoxEditor
                                 case "checkbox": return checkBoxEditor
                                 case "spinbox": return spinBoxEditor
                                 case "schema_error": return schemaErrorEditor
