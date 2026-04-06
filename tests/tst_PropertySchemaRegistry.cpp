@@ -106,6 +106,33 @@ private slots:
         QVERIFY(!row.value(QStringLiteral("valid")).toBool());
         QVERIFY(!row.value(QStringLiteral("schemaError")).toString().isEmpty());
     }
+
+    void samplePackConnectionSchemaIncludesTokenKeyOptionsSource()
+    {
+        ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+        SampleExtensionPack pack;
+        QVERIFY(pack.registerAll(contracts));
+
+        PropertySchemaRegistry schemas;
+        schemas.rebuildFromRegistry(contracts);
+
+        const QVariantList rows = schemas.schemaForTarget(QStringLiteral("connection/flow"));
+        QVERIFY(!rows.isEmpty());
+
+        bool foundTokenKey = false;
+        for (const QVariant &rowValue : rows) {
+            const QVariantMap row = rowValue.toMap();
+            if (row.value(QStringLiteral("key")).toString() != QStringLiteral("tokenKey"))
+                continue;
+
+            foundTokenKey = true;
+            QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("dropdown"));
+            QCOMPARE(row.value(QStringLiteral("optionsSource")).toString(), QStringLiteral("tokenKeys"));
+            break;
+        }
+
+        QVERIFY(foundTokenKey);
+    }
 };
 
 QTEST_MAIN(tst_PropertySchemaRegistry)

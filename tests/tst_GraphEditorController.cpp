@@ -610,6 +610,37 @@ private slots:
         cme::tokenkey::FeatureFlags::resetDefaults();
     }
 
+    void connectComponentsFromDragAssignsTokenKeyWhenFeatureEnabled()
+    {
+        cme::tokenkey::FeatureFlags::resetDefaults();
+        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
+
+        TestContext ctx;
+        ctx.controller.createComponentWithId(QStringLiteral("d1"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             0,
+                                             0);
+        ctx.controller.createComponentWithId(QStringLiteral("d2"),
+                                             QLatin1String(SampleComponentTypeProvider::TypeProcess),
+                                             220,
+                                             0);
+
+        const QString connId = ctx.controller.connectComponentsFromDrag(QStringLiteral("d1"),
+                                                                         QStringLiteral("d2"),
+                                                                         ConnectionModel::SideRight,
+                                                                         ConnectionModel::SideLeft,
+                                                                         QString(),
+                                                                         QStringLiteral("drag-token"));
+        QVERIFY(!connId.isEmpty());
+
+        ConnectionModel *connection = ctx.graph.connectionById(connId);
+        QVERIFY(connection != nullptr);
+        QVERIFY(!connection->tokenKey().isEmpty());
+        QCOMPARE(connection->tokenKey(), QStringLiteral("tok.d1.d2"));
+
+        cme::tokenkey::FeatureFlags::resetDefaults();
+    }
+
     void connectComponentsAssignsSuffixOnTokenKeyCollision()
     {
         cme::tokenkey::FeatureFlags::resetDefaults();
