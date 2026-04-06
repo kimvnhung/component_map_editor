@@ -61,6 +61,35 @@ void addTarget(cme::templates::v1::PropertySchemaTemplateBundle *bundle,
         *target->add_entries() = field;
 }
 
+cme::templates::v1::PropertySchemaFieldTemplate makeTokenKeyField(
+    const char *key,
+    const char *title,
+    bool required,
+    const QVariant &defaultValue,
+    const char *section,
+    int order,
+    const QString &hint = QString())
+{
+    QString resolvedHint = hint;
+    if (!resolvedHint.isEmpty())
+        resolvedHint.append(QStringLiteral(" "));
+    resolvedHint.append(QStringLiteral("Token options are sourced from connection token keys, execution-state keys, and schema key defaults."));
+
+    return makeField(key,
+                     "string",
+                     title,
+                     required,
+                     defaultValue,
+                     "dropdown",
+                     section,
+                     order,
+                     resolvedHint,
+                     {},
+                     {},
+                     {},
+                     QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeys")}});
+}
+
 cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
 {
     cme::templates::v1::PropertySchemaTemplateBundle bundle;
@@ -97,10 +126,10 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     addTarget(&bundle,
               "component/control/loop",
               {
-                  makeField("iterKey", "string", "Iter Key", true, QStringLiteral("iter"), "textfield", "Context", 1),
-                  makeField("maxIterKey", "string", "Max Iter Key", true, QStringLiteral("maxIter"), "textfield", "Context", 2),
-                  makeField("continueKey", "string", "Continue Key", true, QStringLiteral("continueLoop"), "textfield", "Context", 3),
-                  makeField("conditionKey", "string", "Condition Key", true, QStringLiteral("condition"), "textfield", "Context", 4),
+                  makeTokenKeyField("iterKey", "Iter Key", true, QStringLiteral("iter"), "Context", 1),
+                  makeTokenKeyField("maxIterKey", "Max Iter Key", true, QStringLiteral("maxIter"), "Context", 2),
+                  makeTokenKeyField("continueKey", "Continue Key", true, QStringLiteral("continueLoop"), "Context", 3),
+                  makeTokenKeyField("conditionKey", "Condition Key", true, QStringLiteral("condition"), "Context", 4),
                   makeField("iter", "number", "Fallback Iter", false, 0, "spinbox", "Fallback", 20),
                   makeField("maxIter", "number", "Fallback Max Iter", false, 10, "spinbox", "Fallback", 21),
                   makeField("condition", "bool", "Fallback Condition", false, true, "checkbox", "Fallback", 22)
@@ -109,19 +138,19 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     addTarget(&bundle,
               "component/control/ifelse",
               {
-                  makeField("conditionKey", "string", "Condition Key", true, QStringLiteral("condition"), "textfield", "Context", 1),
-                  makeField("trueRouteKey", "string", "True Route Key", true, QStringLiteral("routeTrue"), "textfield", "Context", 2),
-                  makeField("falseRouteKey", "string", "False Route Key", true, QStringLiteral("routeFalse"), "textfield", "Context", 3),
+                  makeTokenKeyField("conditionKey", "Condition Key", true, QStringLiteral("condition"), "Context", 1),
+                  makeTokenKeyField("trueRouteKey", "True Route Key", true, QStringLiteral("routeTrue"), "Context", 2),
+                  makeTokenKeyField("falseRouteKey", "False Route Key", true, QStringLiteral("routeFalse"), "Context", 3),
                   makeField("condition", "bool", "Fallback Condition", false, false, "checkbox", "Fallback", 20)
               });
 
     addTarget(&bundle,
               "component/math/add",
               {
-                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
-                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
-                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("sum"), "textfield", "Context", 3),
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
+                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
+                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("sum"), "Context", 3),
+                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
                   makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
                   makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
               });
@@ -129,10 +158,10 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     addTarget(&bundle,
               "component/math/subtract",
               {
-                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
-                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
-                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("difference"), "textfield", "Context", 3),
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
+                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
+                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("difference"), "Context", 3),
+                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
                   makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
                   makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
               });
@@ -140,10 +169,10 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     addTarget(&bundle,
               "component/math/multiply",
               {
-                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
-                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
-                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("product"), "textfield", "Context", 3),
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
+                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
+                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("product"), "Context", 3),
+                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
                   makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
                   makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
               });
@@ -151,10 +180,10 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     addTarget(&bundle,
               "component/math/divide",
               {
-                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
-                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
-                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("quotient"), "textfield", "Context", 3),
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
+                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
+                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("quotient"), "Context", 3),
+                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
                   makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
                   makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
               });
@@ -162,17 +191,17 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     addTarget(&bundle,
               "component/system/error_handler",
               {
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 1),
+                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 1),
                   makeField("message", "string", "Fallback Message", true, QStringLiteral("Unhandled workflow error."), "textarea", "Behavior", 2)
               });
 
     addTarget(&bundle,
               "component/math/mod",
               {
-                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
-                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
-                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("result"), "textfield", "Context", 3),
-                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
+                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
+                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("result"), "Context", 3),
+                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
                   makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
                   makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
               });

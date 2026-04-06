@@ -44,6 +44,11 @@ QVariantMap withOptionsSource(QVariantMap row, const QString &optionsSource)
     return row;
 }
 
+QVariantMap withTokenKeyOptions(QVariantMap row)
+{
+    return withOptionsSource(row, QStringLiteral("tokenKeys"));
+}
+
 } // namespace
 
 QString SamplePropertySchemaProvider::providerId() const
@@ -153,11 +158,10 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
                         "Routing", 20, QString(), {}, {}, sideOptions),
             withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
                         "Routing", 21, QString(), {}, {}, sideOptions),
-            withOptionsSource(
+            withTokenKeyOptions(
                 withSection(entry("tokenKey", "string", "Token Key", false, QString(), "dropdown"),
                             "Routing", 22,
-                            QStringLiteral("Routing token key used for connection payload selection.")),
-                QStringLiteral("tokenKeys"))
+                            QStringLiteral("Routing token key used for connection payload selection. Token options are sourced from connection token keys, execution-state keys, and schema key defaults.")))
         };
     }
 
