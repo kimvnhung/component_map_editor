@@ -18,6 +18,11 @@ public:
     static constexpr const char *TypeMultiply = "math/multiply";
     static constexpr const char *TypeDivide = "math/divide";
     static constexpr const char *TypeErrorHandler = "system/error_handler";
+    static constexpr const char *TypeMod = "math/mod";
+    static constexpr const char *TypeLessThan = "math/less_than";
+    static constexpr const char *TypeLessOrEqual = "math/less_or_equal";
+    static constexpr const char *TypeEqual = "math/equal";
+    static constexpr const char *TypeLogicAnd = "logic/and";
 
     QString      providerId() const override;
     QStringList  componentTypeIds() const override;

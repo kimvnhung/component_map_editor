@@ -13,6 +13,12 @@
 #include "executors/customizemultiplyexecutionprovider.h"
 #include "executors/customizesubtractexecutionprovider.h"
 
+#include "executors/customizelogicandexecutionprovider.h"
+#include "executors/customizelessorequalexecutionprovider.h"
+#include "executors/customizeequalexecutionprovider.h"
+#include "executors/customizemodexecutionprovider.h"
+#include "executors/customizelessthanexecutionprovider.h"
+
 class CustomizeExecutionSemanticsProvider : public IExecutionSemanticsProvider
 {
 public:
@@ -25,6 +31,12 @@ public:
     static constexpr const char *TypeMultiply = CustomizeMultiplyExecutionProvider::TypeId;
     static constexpr const char *TypeDivide = CustomizeDivideExecutionProvider::TypeId;
     static constexpr const char *TypeErrorHandler = CustomizeErrorHandlerExecutionProvider::TypeId;
+    static constexpr const char *TypeMod = CustomizeModExecutionProvider::TypeId;
+    static constexpr const char *TypeLessThan = CustomizeLessThanExecutionProvider::TypeId;
+    static constexpr const char *TypeLessOrEqual = CustomizeLessOrEqualExecutionProvider::TypeId;
+    static constexpr const char *TypeEqual = CustomizeEqualExecutionProvider::TypeId;
+    static constexpr const char *TypeLogicAnd = CustomizeLogicAndExecutionProvider::TypeId;
+
 
     QString providerId() const override;
     QStringList supportedComponentTypes() const override;
@@ -57,6 +69,12 @@ private:
     CustomizeIfElseExecutionProvider m_ifElseProvider;
     CustomizeLoopExecutionProvider m_loopProvider;
     CustomizeErrorHandlerExecutionProvider m_errorHandlerProvider;
+
+    CustomizeLessThanExecutionProvider m_lessThanProvider;
+    CustomizeLessOrEqualExecutionProvider m_lessOrEqualProvider;
+    CustomizeEqualExecutionProvider m_equalProvider;
+    CustomizeLogicAndExecutionProvider m_logicAndProvider;
+    CustomizeModExecutionProvider m_modProvider;
 };
 
 #endif // CUSTOMIZEEXECUTIONSEMANTICSPROVIDER_H

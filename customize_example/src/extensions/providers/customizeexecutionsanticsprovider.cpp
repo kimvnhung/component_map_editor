@@ -16,7 +16,12 @@ QStringList CustomizeExecutionSemanticsProvider::supportedComponentTypes() const
         QString::fromLatin1(TypeSubtract),
         QString::fromLatin1(TypeMultiply),
         QString::fromLatin1(TypeDivide),
-        QString::fromLatin1(TypeErrorHandler)
+        QString::fromLatin1(TypeErrorHandler),
+        QString::fromLatin1(TypeMod),
+        QString::fromLatin1(TypeLessThan),
+        QString::fromLatin1(TypeLessOrEqual),
+        QString::fromLatin1(TypeEqual),
+        QString::fromLatin1(TypeLogicAnd)
     };
 }
 

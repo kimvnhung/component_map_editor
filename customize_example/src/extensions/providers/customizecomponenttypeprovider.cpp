@@ -93,6 +93,53 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
         QStringLiteral("#e53935"),
         true,
         false);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeMod),
+        QStringLiteral("Modulus (a % b)"),
+        QStringLiteral("math"),
+        180.0,
+        108.0,
+        QStringLiteral("#8d6e63"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeLessThan),
+        QStringLiteral("Less Than (a < b)"),
+        QStringLiteral("math"),
+        180.0,
+        108.0,
+        QStringLiteral("#00897b"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeLessOrEqual),
+        QStringLiteral("Less or Equal (a <= b)"),
+        QStringLiteral("math"),
+        180.0,
+        108.0,
+        QStringLiteral("#00796b"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeEqual),
+        QStringLiteral("Equal (a == b)"),
+        QStringLiteral("math"),
+        180.0,
+        108.0,
+        QStringLiteral("#00695c"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeLogicAnd),
+        QStringLiteral("Logical AND (a && b)"),
+        QStringLiteral("logic"),
+        180.0,
+        108.0,
+        QStringLiteral("#2baf2b"),
+        true,
+        true);
+
+
 
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         QString::fromLatin1(CustomizeComponentTypeProvider::TypeStart),

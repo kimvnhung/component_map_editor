@@ -162,6 +162,18 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                   makeField("message", "string", "Fallback Message", true, QStringLiteral("Unhandled workflow error."), "textarea", "Behavior", 2)
               });
 
+    addTarget(&bundle,
+              "component/math/mod",
+              {
+                  makeField("inputAKey", "string", "Input A Key", true, QStringLiteral("a"), "textfield", "Context", 1),
+                  makeField("inputBKey", "string", "Input B Key", true, QStringLiteral("b"), "textfield", "Context", 2),
+                  makeField("outputKey", "string", "Output Key", true, QStringLiteral("result"), "textfield", "Context", 3),
+                  makeField("errorKey", "string", "Error Key", true, QStringLiteral("error"), "textfield", "Context", 4),
+                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
+                  makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
+              });
+
+
     const QVariantList sideOptions{
         QVariantMap{{QStringLiteral("text"), QStringLiteral("Auto")},   {QStringLiteral("value"), -1}},
         QVariantMap{{QStringLiteral("text"), QStringLiteral("Top")},    {QStringLiteral("value"),  0}},
