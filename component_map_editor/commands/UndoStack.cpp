@@ -2,7 +2,6 @@
 
 #include "GraphCommands.h"
 #include "services/GraphSchema.h"
-#include "services/TokenKeyFeatureFlags.h"
 
 #include <QSet>
 
@@ -223,11 +222,6 @@ void UndoStack::pushSetConnectionProperty(ConnectionModel *connection,
 {
     if (!connection || !isConnectionPropertyUndoable(propertyName))
         return;
-
-    if (propertyName == GraphSchema::Keys::connectionTokenKey()
-        && !cme::tokenkey::FeatureFlags::connectionTokenKeyEnabled()) {
-        return;
-    }
 
     const QByteArray propertyUtf8 = propertyName.toUtf8();
     const QVariant oldValue = connection->property(propertyUtf8.constData());

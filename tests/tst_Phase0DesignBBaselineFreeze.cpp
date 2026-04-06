@@ -7,7 +7,6 @@
 #include "models/GraphModel.h"
 #include "services/ExecutionMigrationFlags.h"
 #include "services/GraphExecutionSandbox.h"
-#include "services/TokenKeyFeatureFlags.h"
 #include "services/TraversalEngine.h"
 
 namespace {
@@ -113,13 +112,11 @@ private slots:
 void tst_Phase0DesignBBaselineFreeze::init()
 {
     cme::execution::MigrationFlags::resetDefaults();
-    cme::tokenkey::FeatureFlags::resetDefaults();
 }
 
 void tst_Phase0DesignBBaselineFreeze::cleanup()
 {
     cme::execution::MigrationFlags::resetDefaults();
-    cme::tokenkey::FeatureFlags::resetDefaults();
 }
 
 void tst_Phase0DesignBBaselineFreeze::tokenTransportFlag_defaultOn()

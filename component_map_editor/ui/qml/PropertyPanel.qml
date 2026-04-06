@@ -13,7 +13,6 @@ Rectangle {
     property UndoStack undoStack: null
     property var executionStateSnapshot: ({})
     property TokenKeyCatalog tokenKeyCatalog: null
-    property bool tokenKeySelectorEnabled: true
 
     // Unified entry point. Callers can set this to either a ComponentModel,
     // a ConnectionModel, or null. The handler dispatches to component/connection
@@ -65,7 +64,7 @@ Rectangle {
         : root.sectionsForTarget(root.connectionTarget)
 
     readonly property var dynamicFieldOptions: ({
-        "tokenKeys": root.tokenKeySelectorEnabled && root.effectiveTokenKeyCatalog
+        "tokenKeys": root.effectiveTokenKeyCatalog
             ? root.effectiveTokenKeyCatalog.tokenKeys
             : []
     })

@@ -17,10 +17,6 @@ ApplicationWindow {
     property bool enableInteractionTelemetry: true
     property bool enableStrictMutationGuards: true
     property bool enableLegacyPaletteDropFallback: false
-    property bool enableTokenKeySelector: true
-    // Keep fallback path available through SchemaFormRenderer textfield fallback
-    // for one release cycle before removing compatibility behavior.
-    property bool keepTokenKeyFallbackPath: true
 
     function prettyJson(value) {
         if (value === undefined || value === null)
@@ -321,7 +317,6 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             graph: graph
-                            tokenKeySelectorEnabled: window.enableTokenKeySelector
                             undoStack: undoStack
                             propertySchemaRegistry: startupPropertySchemaRegistry
                             executionStateSnapshot: executionSandbox ? executionSandbox.executionState : ({})

@@ -9,7 +9,6 @@
 #include "models/GraphModel.h"
 #include "services/GraphEditorController.h"
 #include "services/GraphSchema.h"
-#include "services/TokenKeyFeatureFlags.h"
 
 struct TestContext {
     ExtensionContractRegistry reg{ExtensionApiVersion{1, 0, 0}};
@@ -586,9 +585,6 @@ private slots:
 
     void connectComponentsAssignsTokenKeyWhenFeatureEnabled()
     {
-        cme::tokenkey::FeatureFlags::resetDefaults();
-        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
-
         TestContext ctx;
         ctx.controller.createComponentWithId(QStringLiteral("n1"),
                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
@@ -606,15 +602,10 @@ private slots:
         QVERIFY(connection != nullptr);
         QVERIFY(!connection->tokenKey().isEmpty());
         QCOMPARE(connection->tokenKey(), QStringLiteral("tok.n1.n2"));
-
-        cme::tokenkey::FeatureFlags::resetDefaults();
     }
 
     void connectComponentsFromDragAssignsTokenKeyWhenFeatureEnabled()
     {
-        cme::tokenkey::FeatureFlags::resetDefaults();
-        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
-
         TestContext ctx;
         ctx.controller.createComponentWithId(QStringLiteral("d1"),
                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
@@ -637,15 +628,10 @@ private slots:
         QVERIFY(connection != nullptr);
         QVERIFY(!connection->tokenKey().isEmpty());
         QCOMPARE(connection->tokenKey(), QStringLiteral("tok.d1.d2"));
-
-        cme::tokenkey::FeatureFlags::resetDefaults();
     }
 
     void connectComponentsAssignsSuffixOnTokenKeyCollision()
     {
-        cme::tokenkey::FeatureFlags::resetDefaults();
-        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
-
         TestContext ctx;
         ctx.controller.createComponentWithId(QStringLiteral("n1"),
                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
@@ -669,15 +655,10 @@ private slots:
         ConnectionModel *connection = ctx.graph.connectionById(connId);
         QVERIFY(connection != nullptr);
         QCOMPARE(connection->tokenKey(), QStringLiteral("tok.n1.n2_2"));
-
-        cme::tokenkey::FeatureFlags::resetDefaults();
     }
 
     void tokenKeyPropertyEditSupportsUndoRedoWhenFeatureEnabled()
     {
-        cme::tokenkey::FeatureFlags::resetDefaults();
-        cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
-
         TestContext ctx;
         ctx.controller.createComponentWithId(QStringLiteral("n1"),
                                              QLatin1String(SampleComponentTypeProvider::TypeProcess),
@@ -703,8 +684,6 @@ private slots:
 
         ctx.undoStack.redo();
         QCOMPARE(connection->tokenKey(), QStringLiteral("manual.token.key"));
-
-        cme::tokenkey::FeatureFlags::resetDefaults();
     }
 };
 

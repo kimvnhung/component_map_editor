@@ -6,7 +6,6 @@
 #include "adapters/PolicyAdapter.h"
 #include "commands/GraphCommands.h"
 #include "InvariantChecker.h"
-#include "services/TokenKeyFeatureFlags.h"
 
 namespace {
 
@@ -483,12 +482,10 @@ QString GraphEditorController::connectComponents(const QString &sourceId,
     const QString label  = props.value(QStringLiteral("label")).toString();
 
     auto *connection = new ConnectionModel(connId, sourceId, targetId, label);
-    if (cme::tokenkey::FeatureFlags::connectionTokenKeyEnabled()) {
-        QString tokenKey = resolveConnectionTokenKey(sourceId, targetId, connId);
-        if (tokenKey.isEmpty())
-            tokenKey = connId;
-        connection->setTokenKey(tokenKey);
-    }
+    QString tokenKey = resolveConnectionTokenKey(sourceId, targetId, connId);
+    if (tokenKey.isEmpty())
+        tokenKey = connId;
+    connection->setTokenKey(tokenKey);
 
     m_undoStack->pushAddConnection(m_graph, connection);
     emit connectionCreated(connId, sourceId, targetId);
@@ -569,12 +566,10 @@ QString GraphEditorController::connectComponentsFromDrag(const QString &sourceId
     auto *connection = new ConnectionModel(connId, sourceId, targetId, label, m_graph);
     connection->setSourceSide(normalizeSide(sourceSide));
     connection->setTargetSide(normalizeSide(targetSide));
-    if (cme::tokenkey::FeatureFlags::connectionTokenKeyEnabled()) {
-        QString tokenKey = resolveConnectionTokenKey(sourceId, targetId, connId);
-        if (tokenKey.isEmpty())
-            tokenKey = connId;
-        connection->setTokenKey(tokenKey);
-    }
+    QString tokenKey = resolveConnectionTokenKey(sourceId, targetId, connId);
+    if (tokenKey.isEmpty())
+        tokenKey = connId;
+    connection->setTokenKey(tokenKey);
 
     m_undoStack->pushAddConnection(m_graph, connection);
 

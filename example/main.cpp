@@ -13,7 +13,6 @@
 #include "extensions/sample_pack/SampleExtensionPack.h"
 #include "services/ExecutionMigrationFlags.h"
 #include "services/GraphExecutionSandbox.h"
-#include "services/TokenKeyFeatureFlags.h"
 #include "services/ValidationService.h"
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
@@ -30,11 +29,6 @@ int main(int argc, char *argv[])
 
     // Phase 6 canary: keep Design B explicitly enabled in sample app startup.
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
-
-    // Stage 7 rollout: enable token-key assignment and inspector selector in the
-    // example app first. Keep UI fallback behavior in QML for one release cycle.
-    cme::tokenkey::FeatureFlags::setConnectionTokenKeyEnabled(true);
-    cme::tokenkey::FeatureFlags::setInspectorTokenKeySelectorEnabled(true);
 
     ExtensionContractRegistry extensionContracts({1, 0, 0});
 

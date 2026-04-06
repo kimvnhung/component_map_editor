@@ -15,10 +15,6 @@ ApplicationWindow {
 
     property var executionSandbox: customizeExecutionSandbox
     property int inspectorTabIndex: 0
-    property bool enableTokenKeySelector: true
-    // Keep fallback path available through SchemaFormRenderer textfield fallback
-    // for one release cycle before removing compatibility behavior.
-    property bool keepTokenKeyFallbackPath: true
 
     function prettyJson(value) {
         if (value === undefined || value === null)
@@ -237,7 +233,6 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         graph: graph
-                        tokenKeySelectorEnabled: window.enableTokenKeySelector
                         undoStack: canvas ? canvas.undoStack : null
                         propertySchemaRegistry: customizePropertySchemaRegistry
                         executionStateSnapshot: executionSandbox ? executionSandbox.executionState : ({})
