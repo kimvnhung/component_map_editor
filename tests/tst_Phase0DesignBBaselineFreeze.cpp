@@ -7,6 +7,7 @@
 #include "models/GraphModel.h"
 #include "services/ExecutionMigrationFlags.h"
 #include "services/GraphExecutionSandbox.h"
+#include "services/TokenKeyFeatureFlags.h"
 #include "services/TraversalEngine.h"
 
 namespace {
@@ -104,6 +105,7 @@ private slots:
     void cleanup();
 
     void tokenTransportFlag_defaultOn();
+    void tokenKeyFlags_defaultOff();
     void baselineExecutionDeterminism_flagOff();
     void baselineTraversalCorrectness_flagOff();
     void baselineNoLiveGraphMutation_flagOff();
@@ -112,16 +114,24 @@ private slots:
 void tst_Phase0DesignBBaselineFreeze::init()
 {
     cme::execution::MigrationFlags::resetDefaults();
+    cme::tokenkey::FeatureFlags::resetDefaults();
 }
 
 void tst_Phase0DesignBBaselineFreeze::cleanup()
 {
     cme::execution::MigrationFlags::resetDefaults();
+    cme::tokenkey::FeatureFlags::resetDefaults();
 }
 
 void tst_Phase0DesignBBaselineFreeze::tokenTransportFlag_defaultOn()
 {
     QCOMPARE(cme::execution::MigrationFlags::tokenTransportEnabled(), true);
+}
+
+void tst_Phase0DesignBBaselineFreeze::tokenKeyFlags_defaultOff()
+{
+    QCOMPARE(cme::tokenkey::FeatureFlags::connectionTokenKeyEnabled(), false);
+    QCOMPARE(cme::tokenkey::FeatureFlags::inspectorTokenKeySelectorEnabled(), false);
 }
 
 void tst_Phase0DesignBBaselineFreeze::baselineExecutionDeterminism_flagOff()
