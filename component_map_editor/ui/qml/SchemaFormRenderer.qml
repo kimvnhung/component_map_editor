@@ -24,6 +24,19 @@ Item {
 
     implicitHeight: sectionsColumn.implicitHeight
 
+    function readModelProperty(propertyName) {
+        if (!root.modelObject || !propertyName || !propertyName.length)
+            return undefined
+
+        // ComponentModel stores schema-defined fields (for example inputNumber,
+        // addValue) as QObject dynamic properties. Read through the same
+        // API used by command writes so inspector values stay consistent.
+        if (root.modelObject.dynamicPropertyValue !== undefined)
+            return root.modelObject.dynamicPropertyValue(propertyName)
+
+        return root.modelObject[propertyName]
+    }
+
     function fieldValue(field) {
         if (!root.modelObject)
             return field.defaultValue
@@ -32,7 +45,7 @@ Item {
         if (!key.length)
             return field.defaultValue
 
-        var value = root.modelObject[key]
+        var value = root.readModelProperty(key)
         return value === undefined ? field.defaultValue : value
     }
 
@@ -45,7 +58,7 @@ Item {
             return false
 
         var propertyName = rule.property || ""
-        var currentValue = propertyName.length ? root.modelObject[propertyName] : undefined
+        var currentValue = propertyName.length ? root.readModelProperty(propertyName) : undefined
 
         if (rule.equals !== undefined)
             return currentValue === rule.equals

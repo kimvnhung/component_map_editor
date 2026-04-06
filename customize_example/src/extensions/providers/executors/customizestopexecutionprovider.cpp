@@ -41,6 +41,7 @@ bool CustomizeStopExecutionProvider::executeComponentV2(
     Q_UNUSED(error);
 
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
+    qDebug() << "context" << context;
     QVariantMap out = context;
     const int endNumber = static_cast<int>(customize::executors::resolveNumber(context,
                                                                                 componentSnapshot,

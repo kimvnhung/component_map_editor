@@ -38,7 +38,6 @@ bool CustomizeStartExecutionProvider::executeComponentV2(
     QVariantMap *trace,
     QString *error) const
 {
-    Q_UNUSED(componentSnapshot);
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
     QVariantMap out = context;
 
