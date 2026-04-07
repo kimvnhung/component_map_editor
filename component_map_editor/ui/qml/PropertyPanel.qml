@@ -107,6 +107,7 @@ Rectangle {
         graph: root.graph
         executionStateSnapshot: root.executionStateSnapshot
         schemaSections: root.activeSchemaSections
+        targetComponentId: root.component ? root.component.id : ""
     }
 
     color: "#ffffff"

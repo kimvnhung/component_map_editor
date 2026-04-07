@@ -319,7 +319,14 @@ ApplicationWindow {
                             graph: graph
                             undoStack: undoStack
                             propertySchemaRegistry: startupPropertySchemaRegistry
-                            executionStateSnapshot: executionSandbox ? executionSandbox.executionState : ({})
+                            executionStateSnapshot: {
+                                if (!executionSandbox || !propertyPanel.component)
+                                    return ({})
+                                // Bind to executionState so this expression re-evaluates
+                                // on simulation updates, then read per-component runtime state.
+                                var _state = executionSandbox.executionState
+                                return executionSandbox.componentState(propertyPanel.component.id)
+                            }
                         }
 
                         ScrollView {

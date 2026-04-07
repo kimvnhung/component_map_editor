@@ -64,6 +64,22 @@ void TokenKeyCatalog::setSchemaSections(const QVariantList &schemaSections)
     refresh();
 }
 
+QString TokenKeyCatalog::targetComponentId() const
+{
+    return m_targetComponentId;
+}
+
+void TokenKeyCatalog::setTargetComponentId(const QString &targetComponentId)
+{
+    const QString trimmed = targetComponentId.trimmed();
+    if (m_targetComponentId == trimmed)
+        return;
+
+    m_targetComponentId = trimmed;
+    emit targetComponentIdChanged();
+    refresh();
+}
+
 QStringList TokenKeyCatalog::tokenKeys() const
 {
     return m_tokenKeys;
@@ -73,32 +89,30 @@ void TokenKeyCatalog::refresh()
 {
     QSet<QString> keySet;
 
-    if (m_graph) {
+    bool hasRuntimeIncomingTokenKeys = false;
+    const QVariant consumedIncomingTokenIds =
+        m_executionStateSnapshot.value(QStringLiteral("consumedIncomingTokenIds"));
+    const QVariantList consumedList = consumedIncomingTokenIds.toList();
+    for (const QVariant &tokenId : consumedList) {
+        const QString key = tokenId.toString().trimmed();
+        if (key.isEmpty())
+            continue;
+        hasRuntimeIncomingTokenKeys = true;
+        keySet.insert(key);
+    }
+
+    if (!hasRuntimeIncomingTokenKeys && m_graph) {
         const QList<ConnectionModel *> connections = m_graph->connectionList();
         for (const ConnectionModel *connection : connections) {
             if (!connection)
                 continue;
-            addTokenKeyCandidate(connection->tokenKey(), &keySet);
-        }
-    }
 
-    for (auto it = m_executionStateSnapshot.constBegin(); it != m_executionStateSnapshot.constEnd(); ++it)
-        addTokenKeyCandidate(it.key(), &keySet);
-
-    for (const QVariant &sectionVariant : m_schemaSections) {
-        const QVariantMap section = sectionVariant.toMap();
-        const QVariantList fields = section.value(QStringLiteral("fields")).toList();
-        for (const QVariant &fieldVariant : fields) {
-            const QVariantMap field = fieldVariant.toMap();
-            const QString fieldKey = field.value(QStringLiteral("key")).toString();
-            if (!fieldKey.endsWith(QStringLiteral("Key"), Qt::CaseInsensitive))
+            if (!m_targetComponentId.isEmpty()
+                && connection->targetId().trimmed() != m_targetComponentId) {
                 continue;
+            }
 
-            addTokenKeyCandidate(field.value(QStringLiteral("defaultValue")), &keySet);
-
-            const QVariantList options = field.value(QStringLiteral("options")).toList();
-            for (const QVariant &option : options)
-                addTokenKeyCandidate(option, &keySet);
+            addTokenKeyCandidate(connection->tokenKey(), &keySet);
         }
     }
 

@@ -39,12 +39,15 @@ bool CustomizeMultiplyExecutionProvider::executeComponentV2(
     QString *error) const
 {
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
-    return customize::executors::executeBinaryOperation(customize::executors::BinaryOperation::Multiply,
-                                                        componentType,
-                                                        componentId,
-                                                        componentSnapshot,
-                                                        context,
-                                                        outputPayload,
-                                                        trace,
-                                                        error);
+    QVariantMap out = context;
+
+    if (outputPayload)
+        *outputPayload = out;
+    if (trace)
+        *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
+
+    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
+                             .arg(componentType, componentId);
+
+    return true;
 }

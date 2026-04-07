@@ -23,6 +23,8 @@ class TokenKeyCatalog : public QObject
                WRITE setExecutionStateSnapshot NOTIFY executionStateSnapshotChanged FINAL)
     Q_PROPERTY(QVariantList schemaSections READ schemaSections
                WRITE setSchemaSections NOTIFY schemaSectionsChanged FINAL)
+    Q_PROPERTY(QString targetComponentId READ targetComponentId
+               WRITE setTargetComponentId NOTIFY targetComponentIdChanged FINAL)
     Q_PROPERTY(QStringList tokenKeys READ tokenKeys NOTIFY tokenKeysChanged FINAL)
 
 public:
@@ -37,6 +39,9 @@ public:
     QVariantList schemaSections() const;
     void setSchemaSections(const QVariantList &schemaSections);
 
+    QString targetComponentId() const;
+    void setTargetComponentId(const QString &targetComponentId);
+
     QStringList tokenKeys() const;
 
     Q_INVOKABLE void refresh();
@@ -45,6 +50,7 @@ signals:
     void graphChanged();
     void executionStateSnapshotChanged();
     void schemaSectionsChanged();
+    void targetComponentIdChanged();
     void tokenKeysChanged();
 
 private:
@@ -56,6 +62,7 @@ private:
     QPointer<GraphModel> m_graph;
     QVariantMap m_executionStateSnapshot;
     QVariantList m_schemaSections;
+    QString m_targetComponentId;
     QStringList m_tokenKeys;
     QList<ConnectionModel *> m_trackedConnections;
 };
