@@ -661,6 +661,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     QVariantMap outputState = m_executionState;
     cme::execution::IncomingTokens incomingTokens;
     QVariantMap inputStateForState;
+    QVariantMap incomingTokenPayloads;
     QStringList incomingTokenIds;
     QStringList outgoingConnectionIds;
     outgoingConnectionIds.reserve(outgoing.size());
@@ -683,6 +684,8 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
     incomingTokenIds = incomingTokens.keys();
     std::sort(incomingTokenIds.begin(), incomingTokenIds.end());
+    for (const QString &tokenId : incomingTokenIds)
+        incomingTokenPayloads.insert(tokenId, incomingTokens.value(tokenId));
 
     for (const QString &tokenId : incomingTokenIds) {
         ++m_tokenReadCount;
@@ -727,6 +730,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     state.insert(QStringLiteral("tick"), m_tick);
     state.insert(QStringLiteral("type"), component.type);
     state.insert(QStringLiteral("inputState"), inputStateForState);
+    state.insert(QStringLiteral("incomingTokenPayloads"), incomingTokenPayloads);
     state.insert(QStringLiteral("outputState"), outputState);
     state.insert(QStringLiteral("consumedIncomingTokenIds"), incomingTokenIds);
     state.insert(QStringLiteral("producedOutgoingConnectionIds"), outgoingConnectionIds);

@@ -66,6 +66,9 @@ Rectangle {
     readonly property var dynamicFieldOptions: ({
         "tokenKeys": root.effectiveTokenKeyCatalog
             ? root.effectiveTokenKeyCatalog.tokenKeys
+            : [],
+        "tokenKeyOptions": root.effectiveTokenKeyCatalog
+            ? root.effectiveTokenKeyCatalog.tokenKeyOptions
             : []
     })
 

@@ -15,8 +15,12 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
               "component/math/add",
               {
                   customize::property_schemas::makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("sum"), "Context", 3),
+                  customize::property_schemas::makeField("inputARef", "string", "Input A Ref", false, QString(), "dropdown", "Context", 2,
+                                                         QStringLiteral("Optional disambiguated incoming field reference."),
+                                                         {}, {}, {},
+                                                         QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeyOptions")}}),
+                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 3),
+                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("sum"), "Context", 4),
                   customize::property_schemas::makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
                   customize::property_schemas::makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
               });
@@ -25,9 +29,13 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
               "component/math/subtract",
               {
                   customize::property_schemas::makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("difference"), "Context", 3),
-                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
+                  customize::property_schemas::makeField("inputARef", "string", "Input A Ref", false, QString(), "dropdown", "Context", 2,
+                                                         QStringLiteral("Optional disambiguated incoming field reference."),
+                                                         {}, {}, {},
+                                                         QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeyOptions")}}),
+                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 3),
+                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("difference"), "Context", 4),
+                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 5),
                   customize::property_schemas::makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
                   customize::property_schemas::makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
               });
@@ -36,9 +44,13 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
               "component/math/multiply",
               {
                   customize::property_schemas::makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("product"), "Context", 3),
-                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
+                  customize::property_schemas::makeField("inputARef", "string", "Input A Ref", false, QString(), "dropdown", "Context", 2,
+                                                         QStringLiteral("Optional disambiguated incoming field reference."),
+                                                         {}, {}, {},
+                                                         QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeyOptions")}}),
+                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 3),
+                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("product"), "Context", 4),
+                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 5),
                   customize::property_schemas::makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
                   customize::property_schemas::makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
               });
@@ -47,9 +59,13 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
               "component/math/divide",
               {
                   customize::property_schemas::makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("quotient"), "Context", 3),
-                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
+                  customize::property_schemas::makeField("inputARef", "string", "Input A Ref", false, QString(), "dropdown", "Context", 2,
+                                                         QStringLiteral("Optional disambiguated incoming field reference."),
+                                                         {}, {}, {},
+                                                         QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeyOptions")}}),
+                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 3),
+                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("quotient"), "Context", 4),
+                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 5),
                   customize::property_schemas::makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
                   customize::property_schemas::makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
               });
@@ -58,9 +74,13 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
               "component/math/mod",
               {
                   customize::property_schemas::makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("result"), "Context", 3),
-                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
+                  customize::property_schemas::makeField("inputARef", "string", "Input A Ref", false, QString(), "dropdown", "Context", 2,
+                                                         QStringLiteral("Optional disambiguated incoming field reference."),
+                                                         {}, {}, {},
+                                                         QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeyOptions")}}),
+                  customize::property_schemas::makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 3),
+                  customize::property_schemas::makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("result"), "Context", 4),
+                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 5),
                   customize::property_schemas::makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
                   customize::property_schemas::makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
               });

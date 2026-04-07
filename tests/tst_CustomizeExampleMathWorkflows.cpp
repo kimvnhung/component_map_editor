@@ -50,6 +50,8 @@ private slots:
     void controlLoop_stopsByMaxIterAndCondition();
     void divideByZero_reportsError();
     void executionTrace_containsInputsOutputsAndErrors();
+    void duplicateIncomingKeys_disambiguatedByInputRef();
+    void plainKeyFallback_remainsBackwardCompatible();
 
 private:
     CustomizeExecutionSemanticsProvider m_provider;
@@ -198,6 +200,59 @@ void tst_CustomizeExampleMathWorkflows::executionTrace_containsInputsOutputsAndE
     }
 
     QVERIFY(sawStepWithTrace);
+}
+
+void tst_CustomizeExampleMathWorkflows::duplicateIncomingKeys_disambiguatedByInputRef()
+{
+    cme::execution::IncomingTokens incomingTokens;
+    incomingTokens.insert(QStringLiteral("edge.sourceA.crc"),
+                          QVariantMap{{QStringLiteral("rd_key1"), 3.0},
+                                      {QStringLiteral("b"), 2.0}});
+    incomingTokens.insert(QStringLiteral("edge.sourceB.crc"),
+                          QVariantMap{{QStringLiteral("rd_key1"), 9.0},
+                                      {QStringLiteral("b"), 2.0}});
+
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+    const bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
+        QStringLiteral("crc"),
+        QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("edge.sourceB.crc::rd_key1")},
+                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
+                    {QStringLiteral("outputKey"), QStringLiteral("sum")}},
+        incomingTokens,
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY2(ok, qPrintable(error));
+    QCOMPARE(output.value(QStringLiteral("sum")).toDouble(), 11.0);
+}
+
+void tst_CustomizeExampleMathWorkflows::plainKeyFallback_remainsBackwardCompatible()
+{
+    cme::execution::IncomingTokens incomingTokens;
+    incomingTokens.insert(QStringLiteral("edge.sourceA.crc"),
+                          QVariantMap{{QStringLiteral("a"), 4.0},
+                                      {QStringLiteral("b"), 6.0}});
+
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+    const bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
+        QStringLiteral("crc"),
+        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
+                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
+                    {QStringLiteral("outputKey"), QStringLiteral("sum")}},
+        incomingTokens,
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY2(ok, qPrintable(error));
+    QCOMPARE(output.value(QStringLiteral("sum")).toDouble(), 10.0);
 }
 
 QTEST_MAIN(tst_CustomizeExampleMathWorkflows)

@@ -23,6 +23,47 @@ bool CustomizeSubtractExecutionProvider::executeComponent(
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
     QVariantMap out = context;
 
+    const QString outputKey = customize::executors::resolveText(componentSnapshot,
+                                                                QStringLiteral("outputKey"),
+                                                                QStringLiteral("difference"));
+    const QString errorKey = customize::executors::resolveText(componentSnapshot,
+                                                               QStringLiteral("errorKey"),
+                                                               QStringLiteral("error"));
+
+    bool okA = false;
+    bool okB = false;
+    const double a = customize::executors::resolveSelectedNumber(incomingTokens,
+                                                                 context,
+                                                                 componentSnapshot,
+                                                                 QStringLiteral("inputARef"),
+                                                                 QStringLiteral("inputAKey"),
+                                                                 QStringLiteral("a"),
+                                                                 0.0,
+                                                                 &okA);
+    const double b = customize::executors::resolveSelectedNumber(incomingTokens,
+                                                                 context,
+                                                                 componentSnapshot,
+                                                                 QStringLiteral("inputBRef"),
+                                                                 QStringLiteral("inputBKey"),
+                                                                 QStringLiteral("b"),
+                                                                 0.0,
+                                                                 &okB);
+
+    if (!okA || !okB) {
+        const QString msg = QStringLiteral("Invalid numeric input for operation '%1'.").arg(componentType);
+        return customize::executors::failExecution(componentType,
+                                                   componentId,
+                                                   context,
+                                                   out,
+                                                   errorKey,
+                                                   msg,
+                                                   outputPayload,
+                                                   trace,
+                                                   error);
+    }
+
+    out.insert(outputKey, a - b);
+
     if (outputPayload)
         *outputPayload = out;
     if (trace)

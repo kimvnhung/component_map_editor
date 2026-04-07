@@ -28,6 +28,78 @@ inline QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &inc
     return merged;
 }
 
+inline bool parseTokenFieldReference(const QString &reference,
+                                     QString *tokenId,
+                                     QString *fieldKey)
+{
+    const QString trimmed = reference.trimmed();
+    const int sep = trimmed.indexOf(QStringLiteral("::"));
+    if (sep <= 0 || sep >= trimmed.size() - 2)
+        return false;
+
+    const QString left = trimmed.left(sep).trimmed();
+    const QString right = trimmed.mid(sep + 2).trimmed();
+    if (left.isEmpty() || right.isEmpty())
+        return false;
+
+    if (tokenId)
+        *tokenId = left;
+    if (fieldKey)
+        *fieldKey = right;
+    return true;
+}
+
+inline QVariant resolveSelectedContextValue(const cme::execution::IncomingTokens &incomingTokens,
+                                            const QVariantMap &context,
+                                            const QVariantMap &componentSnapshot,
+                                            const QString &referenceProperty,
+                                            const QString &keyProperty,
+                                            const QString &fallbackKey)
+{
+    const QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    QString tokenId;
+    QString fieldKey;
+    if (parseTokenFieldReference(reference, &tokenId, &fieldKey)) {
+        const QVariantMap tokenPayload = incomingTokens.value(tokenId);
+        if (tokenPayload.contains(fieldKey))
+            return tokenPayload.value(fieldKey);
+    }
+
+    const QString contextKeyRaw = componentSnapshot.value(keyProperty).toString().trimmed();
+    const QString contextKey = contextKeyRaw.isEmpty() ? fallbackKey : contextKeyRaw;
+    if (context.contains(contextKey))
+        return context.value(contextKey);
+    if (componentSnapshot.contains(fallbackKey))
+        return componentSnapshot.value(fallbackKey);
+    return {};
+}
+
+inline double resolveSelectedNumber(const cme::execution::IncomingTokens &incomingTokens,
+                                    const QVariantMap &context,
+                                    const QVariantMap &componentSnapshot,
+                                    const QString &referenceProperty,
+                                    const QString &keyProperty,
+                                    const QString &fallbackSnapshotKey,
+                                    double fallbackValue,
+                                    bool *ok = nullptr)
+{
+    bool parsed = false;
+    const QVariant selected = resolveSelectedContextValue(incomingTokens,
+                                                          context,
+                                                          componentSnapshot,
+                                                          referenceProperty,
+                                                          keyProperty,
+                                                          fallbackSnapshotKey);
+    double value = selected.toDouble(&parsed);
+    if (!parsed)
+        value = componentSnapshot.value(fallbackSnapshotKey, fallbackValue).toDouble(&parsed);
+    if (!parsed)
+        value = fallbackValue;
+    if (ok)
+        *ok = parsed;
+    return value;
+}
+
 inline QString resolveText(const QVariantMap &componentSnapshot,
                           const QString &key,
                           const QString &fallback)

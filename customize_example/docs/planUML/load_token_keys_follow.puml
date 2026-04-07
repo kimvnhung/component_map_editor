@@ -1,0 +1,50 @@
+@startuml
+title PropertyPanel loads Token Keys from current Graph
+
+actor User
+participant "PropertyPanel" as PP
+participant "TokenKeyCatalog" as TKC
+participant "GraphModel" as GM
+participant "ConnectionModel[*]" as CM
+participant "ExecutionSandbox\n(componentState snapshot)" as ES
+participant "SchemaFormRenderer" as SFR
+
+User -> PP : Select component CRC
+PP -> PP : componentTarget = "component/<type>"
+PP -> TKC : setTargetComponentId("CRC")
+PP -> TKC : setGraph(currentGraph)
+PP -> TKC : setExecutionStateSnapshot(componentState(CRC))
+PP -> TKC : refresh()
+
+TKC -> GM : connectionList()
+loop For each connection
+TKC -> CM : read sourceId,targetId,id,tokenKey
+TKC -> TKC : keep only targetId == CRC
+end
+
+alt incomingTokenPayloads exists in executionStateSnapshot
+TKC -> TKC : iterate tokenId -> payload map
+TKC -> TKC : extract payload keys
+TKC -> TKC : build tokenKeyOptions rows\ntext, value=edgeId::key, key, tokenId, sourceId
+TKC -> TKC : build tokenKeys (legacy plain keys)
+else inputState exists
+TKC -> TKC : use inputState keys
+else consumedIncomingTokenIds exists
+TKC -> TKC : use consumed token ids as fallback
+else fallback to graph connection tokenKey
+TKC -> TKC : use ConnectionModel.tokenKey per incoming edge
+end
+
+TKC -> PP : emit tokenKeyOptionsChanged/tokenKeysChanged
+PP -> PP : dynamicFieldOptions = {\n tokenKeys, tokenKeyOptions \n}
+PP -> SFR : pass dynamicFieldOptions
+
+SFR -> SFR : field.optionsSource?
+alt optionsSource = tokenKeyOptions
+SFR -> SFR : ComboBox model = tokenKeyOptions\n(object model text/value)
+else optionsSource = tokenKeys
+SFR -> SFR : ComboBox model = tokenKeys\n(string list, backward compatible)
+end
+
+SFR -> User : Dropdown shows token-key candidates
+@enduml

@@ -209,6 +209,27 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_TokenKeyCatalog
+    tst_TokenKeyCatalog.cpp
+)
+
+target_link_libraries(tst_TokenKeyCatalog
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_TokenKeyCatalog
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_TokenKeyCatalog
+    COMMAND tst_TokenKeyCatalog
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_RuleCompilerRuntime
     tst_RuleCompilerRuntime.cpp
 )

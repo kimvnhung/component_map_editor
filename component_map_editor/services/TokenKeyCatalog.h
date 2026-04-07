@@ -26,6 +26,7 @@ class TokenKeyCatalog : public QObject
     Q_PROPERTY(QString targetComponentId READ targetComponentId
                WRITE setTargetComponentId NOTIFY targetComponentIdChanged FINAL)
     Q_PROPERTY(QStringList tokenKeys READ tokenKeys NOTIFY tokenKeysChanged FINAL)
+    Q_PROPERTY(QVariantList tokenKeyOptions READ tokenKeyOptions NOTIFY tokenKeyOptionsChanged FINAL)
 
 public:
     explicit TokenKeyCatalog(QObject *parent = nullptr);
@@ -43,6 +44,7 @@ public:
     void setTargetComponentId(const QString &targetComponentId);
 
     QStringList tokenKeys() const;
+    QVariantList tokenKeyOptions() const;
 
     Q_INVOKABLE void refresh();
 
@@ -52,6 +54,7 @@ signals:
     void schemaSectionsChanged();
     void targetComponentIdChanged();
     void tokenKeysChanged();
+    void tokenKeyOptionsChanged();
 
 private:
     void reconnectGraphSignals();
@@ -64,6 +67,7 @@ private:
     QVariantList m_schemaSections;
     QString m_targetComponentId;
     QStringList m_tokenKeys;
+    QVariantList m_tokenKeyOptions;
     QList<ConnectionModel *> m_trackedConnections;
 };
 
