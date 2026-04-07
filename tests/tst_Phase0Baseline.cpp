@@ -121,10 +121,12 @@ public:
     QStringList supportedComponentTypes() const override { return { QStringLiteral("process") }; }
 
     bool executeComponent(const QString &, const QString &,
-                          const QVariantMap &, const QVariantMap &input,
+                          const QVariantMap &, const cme::execution::IncomingTokens &incomingTokens,
                           QVariantMap *output, QVariantMap *trace,
                           QString *) const override {
-        if (output) *output = input;
+        if (output && !incomingTokens.isEmpty()) {
+            *output = incomingTokens.constBegin().value();
+        }
         if (trace) trace->insert(QStringLiteral("provider"), QStringLiteral("noop"));
         return true;
     }

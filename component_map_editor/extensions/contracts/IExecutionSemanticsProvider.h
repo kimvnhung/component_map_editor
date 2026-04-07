@@ -1,7 +1,6 @@
 #ifndef IEXECUTIONSEMANTICSPROVIDER_H
 #define IEXECUTIONSEMANTICSPROVIDER_H
 
-#include <algorithm>
 
 #include <QHash>
 #include <QString>

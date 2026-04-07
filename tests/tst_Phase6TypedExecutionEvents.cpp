@@ -22,7 +22,7 @@ public:
     bool executeComponent(const QString &componentType,
                           const QString &componentId,
                           const QVariantMap &componentSnapshot,
-                          const QVariantMap &currentState,
+                          const cme::execution::IncomingTokens &incomingTokens,
                           QVariantMap *nextState,
                           QVariantMap *trace,
                           QString *error) const override
@@ -34,7 +34,9 @@ public:
         if (!nextState || !trace)
             return false;
 
-        QVariantMap out = currentState;
+        QVariantMap out;
+        if (!incomingTokens.isEmpty())
+            out = incomingTokens.constBegin().value();
         QStringList order = out.value(QStringLiteral("order")).toStringList();
         order.append(componentId);
         out.insert(QStringLiteral("order"), order);
@@ -60,7 +62,7 @@ public:
         return { QStringLiteral("process") };
     }
 
-    bool executeComponent(const QString &, const QString &, const QVariantMap &, const QVariantMap &,
+    bool executeComponent(const QString &, const QString &, const QVariantMap &, const cme::execution::IncomingTokens &,
                           QVariantMap *, QVariantMap *, QString *error) const override
     {
         if (error)
