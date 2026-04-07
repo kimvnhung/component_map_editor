@@ -46,9 +46,9 @@ void tst_Phase6CutoverReadiness::v1AdapterRetained_forReleaseWindow()
     QVERIFY2(!sandboxSource.isEmpty(), "Could not read GraphExecutionSandbox.cpp");
 
     QVERIFY2(contractSource.contains(QStringLiteral("virtual bool executeComponent(")),
-             "v1 executeComponent contract must remain for compatibility window");
-    QVERIFY2(contractSource.contains(QStringLiteral("virtual bool executeComponentV2(")),
-             "v2 executeComponentV2 contract must be present after cutover");
+             "Single token-aware executeComponent contract must be present after cutover");
+    QVERIFY2(!contractSource.contains(QStringLiteral("executeComponentV2(")),
+             "Legacy executeComponentV2 symbol should be removed after contract consolidation");
     QVERIFY2(sandboxSource.contains(QStringLiteral("__legacy_global_state__")),
              "Legacy global-state fallback path must remain until compatibility window closes");
 }

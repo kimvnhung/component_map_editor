@@ -49,15 +49,7 @@ public:
         };
     }
 
-    bool executeComponent(const QString &, const QString &, const QVariantMap &, const QVariantMap &,
-                          QVariantMap *, QVariantMap *, QString *error) const override
-    {
-        if (error)
-            *error = QStringLiteral("Phase 5 observability tests require v2 execution path.");
-        return false;
-    }
-
-    bool executeComponentV2(const QString &componentType,
+    bool executeComponent(const QString &componentType,
                             const QString &componentId,
                             const QVariantMap &,
                             const cme::execution::IncomingTokens &incomingTokens,

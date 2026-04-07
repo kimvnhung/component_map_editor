@@ -11,25 +11,7 @@ QStringList CustomizeAddExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
-
-bool CustomizeAddExecutionProvider::executeComponent(const QString &componentType,
-                                                     const QString &componentId,
-                                                     const QVariantMap &componentSnapshot,
-                                                     const QVariantMap &inputState,
-                                                     QVariantMap *outputState,
-                                                     QVariantMap *trace,
-                                                     QString *error) const
-{
-    return executeComponentV2(componentType,
-                              componentId,
-                              componentSnapshot,
-                              customize::executors::makeLegacyIncomingTokens(inputState),
-                              outputState,
-                              trace,
-                              error);
-}
-
-bool CustomizeAddExecutionProvider::executeComponentV2(
+bool CustomizeAddExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
     const QVariantMap &componentSnapshot,

@@ -68,18 +68,10 @@ public:
     bool executeComponent(const QString &componentType,
                           const QString &componentId,
                           const QVariantMap &componentSnapshot,
-                          const QVariantMap &inputState,
-                          QVariantMap *outputState,
+                          const cme::execution::IncomingTokens &incomingTokens,
+                          cme::execution::ExecutionPayload *outputPayload,
                           QVariantMap *trace,
                           QString *error) const override;
-
-    bool executeComponentV2(const QString &componentType,
-                            const QString &componentId,
-                            const QVariantMap &componentSnapshot,
-                            const cme::execution::IncomingTokens &incomingTokens,
-                            cme::execution::ExecutionPayload *outputPayload,
-                            QVariantMap *trace,
-                            QString *error) const override;
 
 private:
     void validateDefinitions();

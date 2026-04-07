@@ -11,25 +11,7 @@ QStringList CustomizeLessOrEqualExecutionProvider::supportedComponentTypes() con
 {
     return { QString::fromLatin1(TypeId) };
 }
-
-bool CustomizeLessOrEqualExecutionProvider::executeComponent(const QString &componentType,
-                                                             const QString &componentId,
-                                                             const QVariantMap &componentSnapshot,
-                                                             const QVariantMap &inputState,
-                                                             QVariantMap *outputState,
-                                                             QVariantMap *trace,
-                                                             QString *error) const
-{
-    return executeComponentV2(componentType,
-                              componentId,
-                              componentSnapshot,
-                              customize::executors::makeLegacyIncomingTokens(inputState),
-                              outputState,
-                              trace,
-                              error);
-}
-
-bool CustomizeLessOrEqualExecutionProvider::executeComponentV2(
+bool CustomizeLessOrEqualExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
     const QVariantMap &componentSnapshot,

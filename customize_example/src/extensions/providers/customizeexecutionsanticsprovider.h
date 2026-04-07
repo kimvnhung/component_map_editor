@@ -42,14 +42,6 @@ public:
     QStringList supportedComponentTypes() const override;
 
     bool executeComponent(const QString &componentType,
-                          const QString &componentId,
-                          const QVariantMap &componentSnapshot,
-                          const QVariantMap &inputState,
-                          QVariantMap *outputState,
-                          QVariantMap *trace,
-                          QString *error) const override;
-
-    bool executeComponentV2(const QString &componentType,
                             const QString &componentId,
                             const QVariantMap &componentSnapshot,
                             const cme::execution::IncomingTokens &incomingTokens,

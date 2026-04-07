@@ -50,25 +50,6 @@ public:
     }
 
     bool executeComponent(const QString &componentType,
-                          const QString &componentId,
-                          const QVariantMap &componentSnapshot,
-                          const QVariantMap &inputState,
-                          QVariantMap *outputState,
-                          QVariantMap *trace,
-                          QString *error) const override
-    {
-        Q_UNUSED(componentType)
-        Q_UNUSED(componentId)
-        Q_UNUSED(componentSnapshot)
-        Q_UNUSED(inputState)
-        Q_UNUSED(outputState)
-        Q_UNUSED(trace)
-        if (error)
-            *error = QStringLiteral("v1 path should not be used for this test provider");
-        return false;
-    }
-
-    bool executeComponentV2(const QString &componentType,
                             const QString &componentId,
                             const QVariantMap &componentSnapshot,
                             const cme::execution::IncomingTokens &incomingTokens,

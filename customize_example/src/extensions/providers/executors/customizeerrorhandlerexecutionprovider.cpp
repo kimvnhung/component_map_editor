@@ -11,25 +11,7 @@ QStringList CustomizeErrorHandlerExecutionProvider::supportedComponentTypes() co
 {
     return { QString::fromLatin1(TypeId) };
 }
-
-bool CustomizeErrorHandlerExecutionProvider::executeComponent(const QString &componentType,
-                                                              const QString &componentId,
-                                                              const QVariantMap &componentSnapshot,
-                                                              const QVariantMap &inputState,
-                                                              QVariantMap *outputState,
-                                                              QVariantMap *trace,
-                                                              QString *error) const
-{
-    return executeComponentV2(componentType,
-                              componentId,
-                              componentSnapshot,
-                              customize::executors::makeLegacyIncomingTokens(inputState),
-                              outputState,
-                              trace,
-                              error);
-}
-
-bool CustomizeErrorHandlerExecutionProvider::executeComponentV2(
+bool CustomizeErrorHandlerExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
     const QVariantMap &componentSnapshot,

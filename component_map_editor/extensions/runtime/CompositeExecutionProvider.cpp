@@ -115,31 +115,12 @@ QStringList CompositeExecutionProvider::supportedComponentTypes() const
 }
 
 bool CompositeExecutionProvider::executeComponent(const QString &componentType,
-                                                 const QString &componentId,
-                                                 const QVariantMap &componentSnapshot,
-                                                 const QVariantMap &inputState,
-                                                 QVariantMap *outputState,
-                                                 QVariantMap *trace,
-                                                 QString *error) const
-{
-    cme::execution::IncomingTokens incomingTokens;
-    incomingTokens.insert(QStringLiteral("__legacy_global_state__"), inputState);
-    return executeComponentV2(componentType,
-                              componentId,
-                              componentSnapshot,
-                              incomingTokens,
-                              outputState,
-                              trace,
-                              error);
-}
-
-bool CompositeExecutionProvider::executeComponentV2(const QString &componentType,
-                                                    const QString &componentId,
-                                                    const QVariantMap &componentSnapshot,
-                                                    const cme::execution::IncomingTokens &incomingTokens,
-                                                    cme::execution::ExecutionPayload *outputPayload,
-                                                    QVariantMap *trace,
-                                                    QString *error) const
+                                                  const QString &componentId,
+                                                  const QVariantMap &componentSnapshot,
+                                                  const cme::execution::IncomingTokens &incomingTokens,
+                                                  cme::execution::ExecutionPayload *outputPayload,
+                                                  QVariantMap *trace,
+                                                  QString *error) const
 {
     if (!m_valid) {
         if (error)

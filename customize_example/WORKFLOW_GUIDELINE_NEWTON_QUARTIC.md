@@ -36,7 +36,7 @@ Execution behavior:
 - `customize_example/src/extensions/providers/customizeexecutionsanticsprovider.h`
 - `customize_example/src/extensions/providers/customizeexecutionsanticsprovider.cpp`
   - Add type IDs to `supportedComponentTypes()`.
-  - Implement runtime execution behavior in `executeComponentV2()`.
+  - Implement runtime execution behavior in `executeComponent()`.
   - Reuse helpers `resolveNumber`, `resolveText`, `makeTracePayload`.
 
 Inspector property schema:
@@ -123,7 +123,7 @@ Actual source steps (to implement next):
   - Add component templates/defaults in `customizecomponenttypeprovider.cpp`.
 3. Add execution semantics:
   - Add to `supportedComponentTypes()` in `customizeexecutionsanticsprovider.cpp`.
-  - Implement branches in `executeComponentV2()`.
+  - Implement branches in `executeComponent()`.
 4. Add inspector schemas:
   - Add `component/control/loop` and `component/control/ifelse` in `customizepropertyschemaprovider.cpp`.
 5. Update graph connection constraints if needed:

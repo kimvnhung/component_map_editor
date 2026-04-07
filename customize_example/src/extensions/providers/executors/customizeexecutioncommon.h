@@ -18,13 +18,6 @@ enum class BinaryOperation {
     Divide
 };
 
-inline cme::execution::IncomingTokens makeLegacyIncomingTokens(const QVariantMap &inputState)
-{
-    cme::execution::IncomingTokens incomingTokens;
-    incomingTokens.insert(QStringLiteral("__legacy_global_state__"), inputState);
-    return incomingTokens;
-}
-
 inline QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &incomingTokens)
 {
     QVariantMap merged;

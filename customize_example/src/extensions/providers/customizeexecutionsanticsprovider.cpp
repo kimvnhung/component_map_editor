@@ -25,40 +25,7 @@ QStringList CustomizeExecutionSemanticsProvider::supportedComponentTypes() const
     };
 }
 
-bool CustomizeExecutionSemanticsProvider::executeComponent(const QString &componentType,
-                                                           const QString &componentId,
-                                                           const QVariantMap &componentSnapshot,
-                                                           const QVariantMap &inputState,
-                                                           QVariantMap *outputState,
-                                                           QVariantMap *trace,
-                                                           QString *error) const
-{
-    const IExecutionSemanticsProvider *delegate = providerForType(componentType);
-    if (!delegate) {
-        if (outputState)
-            *outputState = inputState;
-        if (trace)
-            *trace = {
-                { QStringLiteral("componentType"), componentType },
-                { QStringLiteral("componentId"), componentId },
-                { QStringLiteral("inputs"), inputState },
-                { QStringLiteral("outputs"), inputState },
-                { QStringLiteral("provider"), QStringLiteral("default") },
-                { QStringLiteral("note"), QStringLiteral("No execution semantics provider registered for component type.") }
-            };
-        return true;
-    }
-
-    return delegate->executeComponent(componentType,
-                                      componentId,
-                                      componentSnapshot,
-                                      inputState,
-                                      outputState,
-                                      trace,
-                                      error);
-}
-
-bool CustomizeExecutionSemanticsProvider::executeComponentV2(
+bool CustomizeExecutionSemanticsProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
     const QVariantMap &componentSnapshot,
@@ -89,7 +56,7 @@ bool CustomizeExecutionSemanticsProvider::executeComponentV2(
         return true;
     }
 
-    return delegate->executeComponentV2(componentType,
+    return delegate->executeComponent(componentType,
                                         componentId,
                                         componentSnapshot,
                                         incomingTokens,

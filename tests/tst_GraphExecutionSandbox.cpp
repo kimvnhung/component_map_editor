@@ -48,13 +48,19 @@ public:
     bool executeComponent(const QString &componentType,
                           const QString &componentId,
                           const QVariantMap &componentSnapshot,
-                          const QVariantMap &inputState,
-                          QVariantMap *outputState,
+                          const cme::execution::IncomingTokens &incomingTokens,
+                          cme::execution::ExecutionPayload *outputPayload,
                           QVariantMap *trace,
                           QString *error) const override
     {
         Q_UNUSED(componentSnapshot)
         Q_UNUSED(error)
+
+        QVariantMap inputState;
+        QStringList tokenKeys = incomingTokens.keys();
+        std::sort(tokenKeys.begin(), tokenKeys.end());
+        for (const QString &tokenKey : tokenKeys)
+            inputState.insert(incomingTokens.value(tokenKey));
 
         QVariantMap state = inputState;
         QStringList order = state.value(QStringLiteral("order")).toStringList();
@@ -68,8 +74,8 @@ public:
 
         state.insert(QStringLiteral("lastType"), componentType);
 
-        if (outputState)
-            *outputState = state;
+        if (outputPayload)
+            *outputPayload = state;
 
         if (trace) {
             trace->insert(QStringLiteral("provider"), providerId());

@@ -694,13 +694,13 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(component.type, nullptr);
     if (provider) {
         QString error;
-        if (!provider->executeComponentV2(component.type,
-                                          component.id,
-                                          toComponentSnapshotMap(component),
-                                          incomingTokens,
-                                          &outputState,
-                                          &trace,
-                                          &error)) {
+        if (!provider->executeComponent(component.type,
+                                        component.id,
+                                        toComponentSnapshotMap(component),
+                                        incomingTokens,
+                                        &outputState,
+                                        &trace,
+                                        &error)) {
             markError(error.isEmpty() ? QStringLiteral("Execution semantics provider returned failure.")
                                       : error);
             return false;

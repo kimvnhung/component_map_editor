@@ -56,8 +56,8 @@ public:
     bool executeComponent(const QString &componentType,
                           const QString &componentId,
                           const QVariantMap &componentSnapshot,
-                          const QVariantMap &inputState,
-                          QVariantMap *outputState,
+                          const cme::execution::IncomingTokens &incomingTokens,
+                          cme::execution::ExecutionPayload *outputPayload,
                           QVariantMap *trace,
                           QString *error) const override
     {
@@ -65,6 +65,11 @@ public:
         Q_UNUSED(error)
 
         ++m_v1CallCount;
+        QVariantMap inputState;
+        QStringList tokenKeys = incomingTokens.keys();
+        std::sort(tokenKeys.begin(), tokenKeys.end());
+        for (const QString &tokenKey : tokenKeys)
+            inputState.insert(incomingTokens.value(tokenKey));
         m_lastInputState = inputState;
 
         QVariantMap state = inputState;
@@ -73,8 +78,8 @@ public:
         state.insert(QStringLiteral("order"), order);
         state.insert(QStringLiteral("lastType"), componentType);
 
-        if (outputState)
-            *outputState = state;
+        if (outputPayload)
+            *outputPayload = state;
 
         if (trace)
             trace->insert(QStringLiteral("path"), QStringLiteral("v1"));
@@ -137,13 +142,13 @@ void tst_Phase1ExecutionSemanticsV2Compatibility::v1Fallback_mergesIncomingToken
     QVariantMap trace;
     QString error;
 
-    QVERIFY(provider.executeComponentV2(QStringLiteral("process"),
-                                        QStringLiteral("node-1"),
-                                        QVariantMap{},
-                                        incomingTokens,
-                                        &output,
-                                        &trace,
-                                        &error));
+    QVERIFY(provider.executeComponent(QStringLiteral("process"),
+                                      QStringLiteral("node-1"),
+                                      QVariantMap{},
+                                      incomingTokens,
+                                      &output,
+                                      &trace,
+                                      &error));
 
     QCOMPARE(provider.v1CallCount(), 1);
     QCOMPARE(provider.lastInputState().value(QStringLiteral("fromA")).toInt(), 10);

@@ -11,25 +11,7 @@ QStringList CustomizeStopExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
-
-bool CustomizeStopExecutionProvider::executeComponent(const QString &componentType,
-                                                       const QString &componentId,
-                                                       const QVariantMap &componentSnapshot,
-                                                       const QVariantMap &inputState,
-                                                       QVariantMap *outputState,
-                                                       QVariantMap *trace,
-                                                       QString *error) const
-{
-    return executeComponentV2(componentType,
-                              componentId,
-                              componentSnapshot,
-                              customize::executors::makeLegacyIncomingTokens(inputState),
-                              outputState,
-                              trace,
-                              error);
-}
-
-bool CustomizeStopExecutionProvider::executeComponentV2(
+bool CustomizeStopExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
     const QVariantMap &componentSnapshot,
