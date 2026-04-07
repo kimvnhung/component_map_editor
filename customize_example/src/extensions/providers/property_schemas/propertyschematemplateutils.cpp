@@ -55,7 +55,7 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
     bool required,
     const QVariant &defaultValue,
     cme::runtime::SchemaFieldWidget widget,
-    const char *section,
+    cme::runtime::SchemaFieldSection section,
     int order,
     const QString &hint,
     const QVariantMap &validation,
@@ -67,6 +67,7 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
 {
     const QByteArray typeName = cme::runtime::schemaFieldTypeToString(type).toUtf8();
     const QByteArray widgetName = cme::runtime::schemaFieldWidgetToString(widget).toUtf8();
+    const QByteArray sectionName = cme::runtime::schemaFieldSectionToString(section).toUtf8();
 
     QVariantMap mergedExtra = extra;
     const QString optionsSourceValue = cme::runtime::schemaOptionsSourceToString(optionsSource,
@@ -80,7 +81,7 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
                      required,
                      defaultValue,
                      widgetName.constData(),
-                     section,
+                     sectionName.constData(),
                      order,
                      hint,
                      validation,

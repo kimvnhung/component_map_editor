@@ -109,6 +109,53 @@ SchemaOptionsSource schemaOptionsSourceFromString(const QString &value)
     return SchemaOptionsSource::Custom;
 }
 
+QString schemaFieldSectionToString(SchemaFieldSection value, const QString &customValue)
+{
+    switch (value) {
+    case SchemaFieldSection::General:
+        return QStringLiteral("General");
+    case SchemaFieldSection::Identity:
+        return QStringLiteral("Identity");
+    case SchemaFieldSection::Appearance:
+        return QStringLiteral("Appearance");
+    case SchemaFieldSection::Geometry:
+        return QStringLiteral("Geometry");
+    case SchemaFieldSection::Behavior:
+        return QStringLiteral("Behavior");
+    case SchemaFieldSection::Context:
+        return QStringLiteral("Context");
+    case SchemaFieldSection::Fallback:
+        return QStringLiteral("Fallback");
+    case SchemaFieldSection::Routing:
+        return QStringLiteral("Routing");
+    case SchemaFieldSection::Custom:
+        return customValue.trimmed();
+    }
+    return QStringLiteral("General");
+}
+
+SchemaFieldSection schemaFieldSectionFromString(const QString &value)
+{
+    const QString key = normalized(value).toLower();
+    if (key.isEmpty() || key == QStringLiteral("general"))
+        return SchemaFieldSection::General;
+    if (key == QStringLiteral("identity"))
+        return SchemaFieldSection::Identity;
+    if (key == QStringLiteral("appearance"))
+        return SchemaFieldSection::Appearance;
+    if (key == QStringLiteral("geometry"))
+        return SchemaFieldSection::Geometry;
+    if (key == QStringLiteral("behavior"))
+        return SchemaFieldSection::Behavior;
+    if (key == QStringLiteral("context"))
+        return SchemaFieldSection::Context;
+    if (key == QStringLiteral("fallback"))
+        return SchemaFieldSection::Fallback;
+    if (key == QStringLiteral("routing"))
+        return SchemaFieldSection::Routing;
+    return SchemaFieldSection::Custom;
+}
+
 SchemaFieldDefinition SchemaFieldLegacyAdapter::fromLegacyRow(const QVariantMap &raw, const QString &targetId)
 {
     SchemaFieldDefinition field;
@@ -130,6 +177,7 @@ SchemaFieldDefinition SchemaFieldLegacyAdapter::fromLegacyRow(const QVariantMap 
     field.required = raw.value(QStringLiteral("required")).toBool();
     field.defaultValue = raw.value(QStringLiteral("defaultValue"));
     field.section = raw.value(QStringLiteral("section")).toString();
+    field.sectionEnum = schemaFieldSectionFromString(field.section);
     field.order = raw.value(QStringLiteral("order")).toInt();
     field.hint = raw.value(QStringLiteral("hint")).toString();
     field.placeholder = raw.value(QStringLiteral("placeholder")).toString();
@@ -167,6 +215,9 @@ QVariantMap SchemaFieldLegacyAdapter::toNormalizedRow(const SchemaFieldDefinitio
     const QString typeName = field.typeName.isEmpty() ? schemaFieldTypeToString(field.type) : field.typeName;
     const QString widgetName = field.valid ? field.widgetName : QStringLiteral("schema_error");
     const QString optionsSource = schemaOptionsSourceToString(field.optionsSource, field.optionsSourceKey);
+    const QString section = field.section.isEmpty()
+        ? schemaFieldSectionToString(field.sectionEnum)
+        : field.section;
 
     return {
         { QStringLiteral("key"), field.key },
@@ -177,7 +228,8 @@ QVariantMap SchemaFieldLegacyAdapter::toNormalizedRow(const SchemaFieldDefinitio
         { QStringLiteral("widgetEnum"), static_cast<int>(field.widget) },
         { QStringLiteral("required"), field.required },
         { QStringLiteral("defaultValue"), field.defaultValue },
-        { QStringLiteral("section"), field.section },
+        { QStringLiteral("section"), section },
+        { QStringLiteral("sectionEnum"), static_cast<int>(field.sectionEnum) },
         { QStringLiteral("order"), field.order },
         { QStringLiteral("hint"), field.hint },
         { QStringLiteral("placeholder"), field.placeholder },

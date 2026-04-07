@@ -7,6 +7,7 @@ namespace {
 
 using cme::runtime::SchemaFieldType;
 using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaFieldSection;
 
 cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
 {
@@ -17,7 +18,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     customize::property_schemas::addTarget(&bundle,
               "component/start",
               {
-                  customize::property_schemas::makeField("inputNumber", SchemaFieldType::Number, "Input Number", true, 0, SchemaFieldWidget::SpinBox, "Behavior", 20,
+                  customize::property_schemas::makeField("inputNumber", SchemaFieldType::Number, "Input Number", true, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 20,
                             QStringLiteral("Seed number consumed by the start component when simulation begins."),
                             QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
               });
@@ -25,7 +26,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     customize::property_schemas::addTarget(&bundle,
               "component/stop",
               {
-                  customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, "Identity", 1),
+                  customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
               });
 
     return bundle;

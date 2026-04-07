@@ -34,7 +34,7 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
     bool required,
     const QVariant &defaultValue,
     cme::runtime::SchemaFieldWidget widget,
-    const char *section,
+    cme::runtime::SchemaFieldSection section,
     int order,
     const QString &hint = QString(),
     const QVariantMap &validation = {},

@@ -153,6 +153,11 @@ private slots:
                  QStringLiteral("tokenKeyOptions"));
         QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("customSource")),
                  cme::runtime::SchemaOptionsSource::Custom);
+
+        QCOMPARE(cme::runtime::schemaFieldSectionFromString(QStringLiteral("Context")),
+             cme::runtime::SchemaFieldSection::Context);
+        QCOMPARE(cme::runtime::schemaFieldSectionToString(cme::runtime::SchemaFieldSection::Fallback),
+             QStringLiteral("Fallback"));
     }
 
     void legacyAdapter_defaultsAndValidation()

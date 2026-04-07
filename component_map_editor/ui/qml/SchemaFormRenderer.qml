@@ -212,59 +212,100 @@ Item {
             delegate: ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
-                spacing: 6
+                spacing: 4
+                property bool expanded: true
 
-                Label {
-                    text: modelData.title || "Section"
-                    font.bold: true
-                    font.pixelSize: 11
-                    color: "#888"
+                Rectangle {
                     Layout.fillWidth: true
-                }
+                    radius: 6
+                    color: "#fafafa"
+                    border.color: "#e4e4e4"
+                    border.width: 1
 
-                Repeater {
-                    model: modelData.fields || []
+                    implicitHeight: groupColumn.implicitHeight + 12
 
-                    delegate: ColumnLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        spacing: 3
-                        visible: root.fieldVisible(modelData)
+                    ColumnLayout {
+                        id: groupColumn
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 6
 
-                        Label {
-                            text: modelData.title || modelData.key || "Field"
+                        RowLayout {
                             Layout.fillWidth: true
+                            spacing: 4
+
+                            ToolButton {
+                                Layout.preferredWidth: 24
+                                text: expanded ? "▾" : "▸"
+                                onClicked: expanded = !expanded
+                            }
+
+                            Label {
+                                text: modelData.title || "Section"
+                                font.bold: true
+                                font.pixelSize: 12
+                                color: "#606060"
+                                Layout.fillWidth: true
+                            }
+
+                            Label {
+                                text: (modelData.fields || []).length + " options"
+                                color: "#9a9a9a"
+                                font.pixelSize: 10
+                            }
                         }
 
-                        Loader {
-                            id: editorLoader
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            property var fieldData: modelData
-                            sourceComponent: {
-                                var widgetEnum = root.widgetEnumForField(fieldData)
-                                switch (widgetEnum) {
-                                case root.widgetTextField: return textFieldEditor
-                                case root.widgetTextArea: return textAreaEditor
-                                case root.widgetDropdown: return root.shouldFallbackToTextField(fieldData) ? textFieldEditor : comboBoxEditor
-                                case root.widgetCheckbox: return checkBoxEditor
-                                case root.widgetSpinBox: return spinBoxEditor
-                                case root.widgetSchemaError: return schemaErrorEditor
-                                default: return unknownWidgetEditor
+                            spacing: 6
+                            visible: expanded
+
+                            Repeater {
+                                model: modelData.fields || []
+
+                                delegate: ColumnLayout {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    spacing: 3
+                                    visible: root.fieldVisible(modelData)
+
+                                    Label {
+                                        text: modelData.title || modelData.key || "Field"
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Loader {
+                                        id: editorLoader
+                                        Layout.fillWidth: true
+                                        property var fieldData: modelData
+                                        sourceComponent: {
+                                            var widgetEnum = root.widgetEnumForField(fieldData)
+                                            switch (widgetEnum) {
+                                            case root.widgetTextField: return textFieldEditor
+                                            case root.widgetTextArea: return textAreaEditor
+                                            case root.widgetDropdown: return root.shouldFallbackToTextField(fieldData) ? textFieldEditor : comboBoxEditor
+                                            case root.widgetCheckbox: return checkBoxEditor
+                                            case root.widgetSpinBox: return spinBoxEditor
+                                            case root.widgetSchemaError: return schemaErrorEditor
+                                            default: return unknownWidgetEditor
+                                            }
+                                        }
+                                        onLoaded: {
+                                            if (item && item.hasOwnProperty("fieldData"))
+                                                item.fieldData = fieldData
+                                        }
+                                    }
+
+                                    Label {
+                                        visible: (modelData.hint || "").length > 0
+                                        text: modelData.hint || ""
+                                        color: "#8a8a8a"
+                                        font.pixelSize: 11
+                                        wrapMode: Text.WordWrap
+                                        Layout.fillWidth: true
+                                    }
                                 }
                             }
-                            onLoaded: {
-                                if (item && item.hasOwnProperty("fieldData"))
-                                    item.fieldData = fieldData
-                            }
-                        }
-
-                        Label {
-                            visible: (modelData.hint || "").length > 0
-                            text: modelData.hint || ""
-                            color: "#8a8a8a"
-                            font.pixelSize: 11
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
                         }
                     }
                 }

@@ -33,6 +33,18 @@ enum class SchemaOptionsSource {
     Custom
 };
 
+enum class SchemaFieldSection {
+    General = 0,
+    Identity,
+    Appearance,
+    Geometry,
+    Behavior,
+    Context,
+    Fallback,
+    Routing,
+    Custom
+};
+
 QString schemaFieldTypeToString(SchemaFieldType value);
 SchemaFieldType schemaFieldTypeFromString(const QString &value);
 
@@ -41,6 +53,9 @@ SchemaFieldWidget schemaFieldWidgetFromString(const QString &value);
 
 QString schemaOptionsSourceToString(SchemaOptionsSource value, const QString &customValue = QString());
 SchemaOptionsSource schemaOptionsSourceFromString(const QString &value);
+
+QString schemaFieldSectionToString(SchemaFieldSection value, const QString &customValue = QString());
+SchemaFieldSection schemaFieldSectionFromString(const QString &value);
 
 struct SchemaFieldDefinition {
     QString key;
@@ -52,6 +67,7 @@ struct SchemaFieldDefinition {
     bool required = false;
     QVariant defaultValue;
     QString section;
+    SchemaFieldSection sectionEnum = SchemaFieldSection::General;
     int order = 0;
     QString hint;
     QString placeholder;

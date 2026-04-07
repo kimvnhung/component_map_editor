@@ -7,6 +7,7 @@ namespace {
 
 using cme::runtime::SchemaFieldType;
 using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaFieldSection;
 using cme::runtime::SchemaOptionsSource;
 
 const QString kTokenKeyHint =
@@ -21,94 +22,94 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     customize::property_schemas::addTarget(&bundle,
               "component/math/add",
               {
-                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, "Context", 1,
+                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 1,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, "Context", 2,
+                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
                                                          QStringLiteral("Optional disambiguated incoming field reference."),
                                                          {}, {}, {},
                                                          SchemaOptionsSource::TokenKeyOptions),
-                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, "Context", 3,
+                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 3,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("sum"), SchemaFieldWidget::Dropdown, "Context", 4,
+                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("sum"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, "Fallback", 20),
-                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, "Fallback", 21)
+                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
+                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
               });
 
     customize::property_schemas::addTarget(&bundle,
               "component/math/subtract",
               {
-                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, "Context", 1,
+                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 1,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, "Context", 2,
+                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
                                                          QStringLiteral("Optional disambiguated incoming field reference."),
                                                          {}, {}, {},
                                                          SchemaOptionsSource::TokenKeyOptions),
-                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, "Context", 3,
+                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 3,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("difference"), SchemaFieldWidget::Dropdown, "Context", 4,
+                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("difference"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, "Context", 5,
+                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 5,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, "Fallback", 20),
-                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, "Fallback", 21)
+                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
+                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
               });
 
     customize::property_schemas::addTarget(&bundle,
               "component/math/multiply",
               {
-                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, "Context", 1,
+                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 1,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, "Context", 2,
+                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
                                                          QStringLiteral("Optional disambiguated incoming field reference."),
                                                          {}, {}, {},
                                                          SchemaOptionsSource::TokenKeyOptions),
-                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, "Context", 3,
+                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 3,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("product"), SchemaFieldWidget::Dropdown, "Context", 4,
+                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("product"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, "Context", 5,
+                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 5,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, "Fallback", 20),
-                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, "Fallback", 21)
+                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
+                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
               });
 
     customize::property_schemas::addTarget(&bundle,
               "component/math/divide",
               {
-                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, "Context", 1,
+                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 1,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, "Context", 2,
+                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
                                                          QStringLiteral("Optional disambiguated incoming field reference."),
                                                          {}, {}, {},
                                                          SchemaOptionsSource::TokenKeyOptions),
-                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, "Context", 3,
+                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 3,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("quotient"), SchemaFieldWidget::Dropdown, "Context", 4,
+                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("quotient"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, "Context", 5,
+                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 5,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, "Fallback", 20),
-                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, "Fallback", 21)
+                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
+                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
               });
 
     customize::property_schemas::addTarget(&bundle,
               "component/math/mod",
               {
-                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, "Context", 1,
+                  customize::property_schemas::makeField("inputAKey", SchemaFieldType::String, "Input A Key", true, QStringLiteral("a"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 1,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, "Context", 2,
+                  customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
                                                          QStringLiteral("Optional disambiguated incoming field reference."),
                                                          {}, {}, {},
                                                          SchemaOptionsSource::TokenKeyOptions),
-                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, "Context", 3,
+                  customize::property_schemas::makeField("inputBKey", SchemaFieldType::String, "Input B Key", true, QStringLiteral("b"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 3,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("result"), SchemaFieldWidget::Dropdown, "Context", 4,
+                  customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("result"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, "Context", 5,
+                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 5,
                                                          kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, "Fallback", 20),
-                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, "Fallback", 21)
+                  customize::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
+                  customize::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
               });
 
     return bundle;
