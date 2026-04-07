@@ -5,6 +5,10 @@
 
 namespace {
 
+using cme::runtime::SchemaFieldType;
+using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaOptionsSource;
+
 cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
 {
     cme::templates::v1::PropertySchemaTemplateBundle bundle;
@@ -22,18 +26,18 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     customize::property_schemas::addTarget(&bundle,
               "connection/flow",
               {
-                  customize::property_schemas::makeField("label", "string", "Label", false, QString(), "textfield", "Identity", 0),
-                  customize::property_schemas::makeField("id", "string", "Connection ID", true, QString(), "textfield", "Identity", 1),
-                  customize::property_schemas::makeField("sourceId", "string", "Source Component ID", true, QString(), "textfield", "Identity", 2),
-                  customize::property_schemas::makeField("targetId", "string", "Target Component ID", true, QString(), "textfield", "Identity", 3),
-                  customize::property_schemas::makeField("sourceSide", "enum", "Source Side", true, -1, "dropdown", "Routing", 20,
+                  customize::property_schemas::makeField("label", SchemaFieldType::String, "Label", false, QString(), SchemaFieldWidget::TextField, "Identity", 0),
+                  customize::property_schemas::makeField("id", SchemaFieldType::String, "Connection ID", true, QString(), SchemaFieldWidget::TextField, "Identity", 1),
+                  customize::property_schemas::makeField("sourceId", SchemaFieldType::String, "Source Component ID", true, QString(), SchemaFieldWidget::TextField, "Identity", 2),
+                  customize::property_schemas::makeField("targetId", SchemaFieldType::String, "Target Component ID", true, QString(), SchemaFieldWidget::TextField, "Identity", 3),
+                  customize::property_schemas::makeField("sourceSide", SchemaFieldType::Enum, "Source Side", true, -1, SchemaFieldWidget::Dropdown, "Routing", 20,
                             QString(), {}, {}, sideOptions),
-                  customize::property_schemas::makeField("targetSide", "enum", "Target Side", true, -1, "dropdown", "Routing", 21,
+                  customize::property_schemas::makeField("targetSide", SchemaFieldType::Enum, "Target Side", true, -1, SchemaFieldWidget::Dropdown, "Routing", 21,
                             QString(), {}, {}, sideOptions),
-                  customize::property_schemas::makeField("tokenKey", "string", "Token Key", false, QString(), "dropdown", "Routing", 22,
+                  customize::property_schemas::makeField("tokenKey", SchemaFieldType::String, "Token Key", false, QString(), SchemaFieldWidget::Dropdown, "Routing", 22,
                             QStringLiteral("Routing token key used for connection payload selection."),
                             {}, {}, {},
-                            QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeys")}})
+                            SchemaOptionsSource::TokenKeys)
               });
 
     return bundle;

@@ -5,8 +5,24 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    readonly property int widgetUnknown: 0
+    readonly property int widgetTextField: 1
+    readonly property int widgetTextArea: 2
+    readonly property int widgetDropdown: 3
+    readonly property int widgetCheckbox: 4
+    readonly property int widgetSpinBox: 5
+    readonly property int widgetSchemaError: 6
+
+    readonly property int optionsSourceNone: 0
+    readonly property int optionsSourceTokenKeys: 1
+    readonly property int optionsSourceTokenKeyOptions: 2
+    readonly property int optionsSourceCustom: 3
+
     // [ { id, title, fields:[{...}] } ]
     property var schemaSections: []
+    // Stage-2 typed model input (QAbstractListModel-based). Rendering still
+    // uses schemaSections to preserve existing behavior during migration.
+    property var schemaSectionModel: null
     property var modelObject: null
     property bool readOnly: false
     property var dynamicOptions: ({})
@@ -24,6 +40,64 @@ Item {
     signal propertyEditRequested(string propertyName, var value)
 
     implicitHeight: sectionsColumn.implicitHeight
+
+    function typedSectionsToLegacyRows() {
+        if (!root.schemaSectionModel || root.schemaSectionModel.size === undefined || root.schemaSectionModel.rowAt === undefined)
+            return root.schemaSections || []
+
+        var sections = []
+        var sectionCount = root.schemaSectionModel.size()
+        for (var sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex) {
+            var sectionRow = root.schemaSectionModel.rowAt(sectionIndex)
+            var fieldsModel = sectionRow.fieldsModel
+            var fields = []
+
+            if (fieldsModel && fieldsModel.size !== undefined && fieldsModel.rowAt !== undefined) {
+                var fieldCount = fieldsModel.size()
+                for (var fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
+                    fields.push(fieldsModel.rowAt(fieldIndex))
+            }
+
+            sections.push({
+                id: sectionRow.id,
+                title: sectionRow.title,
+                fields: fields
+            })
+        }
+
+        return sections
+    }
+
+    function widgetEnumForField(field) {
+        if (field && field.widgetEnum !== undefined)
+            return Number(field.widgetEnum)
+
+        var widget = field && field.widget ? String(field.widget) : ""
+        switch (widget) {
+        case "textfield": return root.widgetTextField
+        case "textarea": return root.widgetTextArea
+        case "dropdown": return root.widgetDropdown
+        case "checkbox": return root.widgetCheckbox
+        case "spinbox": return root.widgetSpinBox
+        case "schema_error": return root.widgetSchemaError
+        default: return root.widgetUnknown
+        }
+    }
+
+    function optionsSourceKeyForField(field) {
+        if (field && field.optionsSourceEnum !== undefined) {
+            var optionsEnum = Number(field.optionsSourceEnum)
+            if (optionsEnum === root.optionsSourceTokenKeys)
+                return "tokenKeys"
+            if (optionsEnum === root.optionsSourceTokenKeyOptions)
+                return "tokenKeyOptions"
+            if (optionsEnum === root.optionsSourceCustom)
+                return field.optionsSource || ""
+            return ""
+        }
+
+        return field && field.optionsSource ? String(field.optionsSource) : ""
+    }
 
     function readModelProperty(propertyName) {
         if (!root.modelObject || !propertyName || !propertyName.length)
@@ -73,7 +147,7 @@ Item {
     }
 
     function enumModelForField(field) {
-        var optionsSource = field.optionsSource || ""
+        var optionsSource = root.optionsSourceKeyForField(field)
         if (optionsSource.length > 0) {
             var dynamicModel = root.dynamicOptions ? root.dynamicOptions[optionsSource] : undefined
             if (dynamicModel && dynamicModel.length !== undefined)
@@ -90,7 +164,7 @@ Item {
     }
 
     function shouldFallbackToTextField(field) {
-        var optionsSource = field.optionsSource || ""
+        var optionsSource = root.optionsSourceKeyForField(field)
         if (!optionsSource.length)
             return false
         return root.enumModelForField(field).length === 0
@@ -133,7 +207,7 @@ Item {
         spacing: 10
 
         Repeater {
-            model: root.schemaSections || []
+            model: root.typedSectionsToLegacyRows()
 
             delegate: ColumnLayout {
                 required property var modelData
@@ -167,14 +241,14 @@ Item {
                             Layout.fillWidth: true
                             property var fieldData: modelData
                             sourceComponent: {
-                                var widget = fieldData.widget || ""
-                                switch (widget) {
-                                case "textfield": return textFieldEditor
-                                case "textarea": return textAreaEditor
-                                case "dropdown": return root.shouldFallbackToTextField(fieldData) ? textFieldEditor : comboBoxEditor
-                                case "checkbox": return checkBoxEditor
-                                case "spinbox": return spinBoxEditor
-                                case "schema_error": return schemaErrorEditor
+                                var widgetEnum = root.widgetEnumForField(fieldData)
+                                switch (widgetEnum) {
+                                case root.widgetTextField: return textFieldEditor
+                                case root.widgetTextArea: return textAreaEditor
+                                case root.widgetDropdown: return root.shouldFallbackToTextField(fieldData) ? textFieldEditor : comboBoxEditor
+                                case root.widgetCheckbox: return checkBoxEditor
+                                case root.widgetSpinBox: return spinBoxEditor
+                                case root.widgetSchemaError: return schemaErrorEditor
                                 default: return unknownWidgetEditor
                                 }
                             }

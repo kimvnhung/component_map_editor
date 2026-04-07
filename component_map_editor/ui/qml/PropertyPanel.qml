@@ -63,6 +63,15 @@ Rectangle {
         ? root.sectionsForTarget(root.componentTarget)
         : root.sectionsForTarget(root.connectionTarget)
 
+    readonly property var activeSchemaSectionModel: {
+        if (!root.effectiveSchemaRegistry)
+            return null
+        var targetId = root.component !== null ? root.componentTarget : root.connectionTarget
+        if (!targetId || !targetId.length)
+            return null
+        return root.effectiveSchemaRegistry.typedSectionModelForTarget(targetId)
+    }
+
     readonly property var dynamicFieldOptions: ({
         "tokenKeys": root.effectiveTokenKeyCatalog
             ? root.effectiveTokenKeyCatalog.tokenKeys
@@ -145,6 +154,7 @@ Rectangle {
             SchemaFormRenderer {
                 width: parent ? parent.width : 0
                 schemaSections: root.activeSchemaSections
+                schemaSectionModel: root.activeSchemaSectionModel
                 modelObject: root.component !== null ? root.component : root.connection
                 readOnly: root.undoStack === null
                 sideModel: root.connectionSideModel

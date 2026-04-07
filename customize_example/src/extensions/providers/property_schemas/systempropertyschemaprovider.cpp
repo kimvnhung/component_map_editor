@@ -5,6 +5,9 @@
 
 namespace {
 
+using cme::runtime::SchemaFieldType;
+using cme::runtime::SchemaFieldWidget;
+
 cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
 {
     cme::templates::v1::PropertySchemaTemplateBundle bundle;
@@ -15,7 +18,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
               "component/system/error_handler",
               {
                   customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 1),
-                  customize::property_schemas::makeField("message", "string", "Fallback Message", true, QStringLiteral("Unhandled workflow error."), "textarea", "Behavior", 2)
+                  customize::property_schemas::makeField("message", SchemaFieldType::String, "Fallback Message", true, QStringLiteral("Unhandled workflow error."), SchemaFieldWidget::TextArea, "Behavior", 2)
               });
 
     return bundle;

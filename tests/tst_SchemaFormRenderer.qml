@@ -13,6 +13,20 @@ TestCase {
             testCase);
     }
 
+    function makeFieldModel(rows) {
+        return {
+            size: function() { return rows.length; },
+            rowAt: function(index) { return rows[index]; }
+        };
+    }
+
+    function makeSectionModel(sectionRows) {
+        return {
+            size: function() { return sectionRows.length; },
+            rowAt: function(index) { return sectionRows[index]; }
+        };
+    }
+
     function test_optionsSource_resolvesDynamicTokenList() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
@@ -55,5 +69,63 @@ TestCase {
         };
 
         compare(renderer.shouldFallbackToTextField(field), false);
+    }
+
+    function test_typedOptionsSourceEnum_resolvesDynamicTokenKeyOptions() {
+        var renderer = makeRenderer();
+        renderer.dynamicOptions = {
+            "tokenKeyOptions": [
+                { text: "edge-a::value", value: "edge-a::value" },
+                { text: "edge-b::value", value: "edge-b::value" }
+            ]
+        };
+
+        var field = {
+            "key": "inputARef",
+            "widgetEnum": renderer.widgetDropdown,
+            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+        };
+
+        var options = renderer.enumModelForField(field);
+        compare(options.length, 2);
+        compare(options[0].value, "edge-a::value");
+        compare(renderer.shouldFallbackToTextField(field), false);
+    }
+
+    function test_typedWidgetEnum_dispatchesWithoutWidgetString() {
+        var renderer = makeRenderer();
+
+        compare(renderer.widgetEnumForField({ "widgetEnum": renderer.widgetTextField }), renderer.widgetTextField);
+        compare(renderer.widgetEnumForField({ "widgetEnum": renderer.widgetTextArea }), renderer.widgetTextArea);
+        compare(renderer.widgetEnumForField({ "widgetEnum": renderer.widgetDropdown }), renderer.widgetDropdown);
+        compare(renderer.widgetEnumForField({ "widgetEnum": renderer.widgetCheckbox }), renderer.widgetCheckbox);
+        compare(renderer.widgetEnumForField({ "widgetEnum": renderer.widgetSpinBox }), renderer.widgetSpinBox);
+    }
+
+    function test_typedSectionModel_convertsToLegacyRowsForFallbackRenderer() {
+        var renderer = makeRenderer();
+        var fieldsModel = makeFieldModel([
+            {
+                "key": "amount",
+                "title": "Amount",
+                "widgetEnum": renderer.widgetSpinBox,
+                "widget": "spinbox",
+                "defaultValue": 1
+            }
+        ]);
+        renderer.schemaSectionModel = makeSectionModel([
+            {
+                "id": "behavior",
+                "title": "Behavior",
+                "fieldsModel": fieldsModel
+            }
+        ]);
+
+        var sections = renderer.typedSectionsToLegacyRows();
+        compare(sections.length, 1);
+        compare(sections[0].title, "Behavior");
+        compare(sections[0].fields.length, 1);
+        compare(sections[0].fields[0].key, "amount");
+        compare(renderer.widgetEnumForField(sections[0].fields[0]), renderer.widgetSpinBox);
     }
 }

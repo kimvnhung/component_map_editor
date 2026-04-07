@@ -1,8 +1,10 @@
 #include "PropertySchemaRegistry.h"
 
 #include <algorithm>
+#include <QtAlgorithms>
 
 #include "PublicApiContractAdapter.h"
+#include "SchemaFieldDefinition.h"
 
 namespace {
 
@@ -39,6 +41,8 @@ PropertySchemaRegistry::PropertySchemaRegistry(QObject *parent)
 void PropertySchemaRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry)
 {
     m_rowsByTarget.clear();
+    qDeleteAll(m_sectionModelsByTarget);
+    m_sectionModelsByTarget.clear();
 
     const QList<const IPropertySchemaProvider *> providers = registry.propertySchemaProviders();
     for (const IPropertySchemaProvider *provider : providers) {
@@ -113,6 +117,20 @@ QVariantList PropertySchemaRegistry::sectionedSchemaForTarget(const QString &tar
     return sectionizeRows(resolvedSchemaRows(targetId));
 }
 
+QObject *PropertySchemaRegistry::typedSectionModelForTarget(const QString &targetId)
+{
+    if (targetId.isEmpty())
+        return nullptr;
+
+    if (m_sectionModelsByTarget.contains(targetId))
+        return m_sectionModelsByTarget.value(targetId);
+
+    auto *model = new cme::runtime::SchemaSectionListModel(this);
+    model->setSections(sectionizeTypedRows(resolvedSchemaRows(targetId), targetId));
+    m_sectionModelsByTarget.insert(targetId, model);
+    return model;
+}
+
 QVariantList PropertySchemaRegistry::componentSchema(const QString &componentTypeId) const
 {
     return resolvedSchemaRows(QStringLiteral("component/%1").arg(componentTypeId));
@@ -141,40 +159,9 @@ bool PropertySchemaRegistry::connectionSchemaTyped(
 
 QVariantMap PropertySchemaRegistry::normalizeFieldRow(const QVariantMap &raw, const QString &targetId)
 {
-    QVariantMap out;
-    const QString key = raw.value(QStringLiteral("key")).toString().trimmed();
-    const QString title = raw.value(QStringLiteral("title")).toString().trimmed();
-
-    const QString editorLegacy = raw.value(QStringLiteral("editor")).toString().trimmed();
-    const QString widget = raw.value(QStringLiteral("widget")).toString().trimmed();
-    const QString resolvedWidget = widget.isEmpty() ? editorLegacy : widget;
-
-    QString error;
-    if (key.isEmpty()) {
-        error = QStringLiteral("Schema field in target '%1' is missing key.").arg(targetId);
-    } else if (resolvedWidget.isEmpty()) {
-        error = QStringLiteral("Schema field '%1' in target '%2' is missing widget/editor.")
-                    .arg(key, targetId);
-    }
-
-    out.insert(QStringLiteral("key"), key);
-    out.insert(QStringLiteral("title"), title.isEmpty() ? key : title);
-    out.insert(QStringLiteral("type"), raw.value(QStringLiteral("type")).toString());
-    out.insert(QStringLiteral("widget"), error.isEmpty() ? resolvedWidget : QStringLiteral("schema_error"));
-    out.insert(QStringLiteral("required"), raw.value(QStringLiteral("required")).toBool());
-    out.insert(QStringLiteral("defaultValue"), raw.value(QStringLiteral("defaultValue")));
-    out.insert(QStringLiteral("section"), raw.value(QStringLiteral("section")).toString());
-    out.insert(QStringLiteral("order"), raw.value(QStringLiteral("order")).toInt());
-    out.insert(QStringLiteral("hint"), raw.value(QStringLiteral("hint")).toString());
-    out.insert(QStringLiteral("placeholder"), raw.value(QStringLiteral("placeholder")).toString());
-    out.insert(QStringLiteral("optionsSource"), raw.value(QStringLiteral("optionsSource")).toString());
-    out.insert(QStringLiteral("options"), raw.value(QStringLiteral("options")).toList());
-    out.insert(QStringLiteral("visibleWhen"), raw.value(QStringLiteral("visibleWhen")).toMap());
-    out.insert(QStringLiteral("validation"), raw.value(QStringLiteral("validation")).toMap());
-    out.insert(QStringLiteral("valid"), error.isEmpty());
-    out.insert(QStringLiteral("schemaError"), error);
-
-    return out;
+    const cme::runtime::SchemaFieldDefinition field =
+        cme::runtime::SchemaFieldLegacyAdapter::fromLegacyRow(raw, targetId);
+    return cme::runtime::SchemaFieldLegacyAdapter::toNormalizedRow(field);
 }
 
 QVariantList PropertySchemaRegistry::normalizeRows(const QVariantList &rows, const QString &targetId)
@@ -237,6 +224,59 @@ QVariantList PropertySchemaRegistry::sectionizeRows(const QVariantList &rows)
             { QStringLiteral("title"), section },
             { QStringLiteral("fields"), rowsInSection }
         });
+    }
+
+    return sections;
+}
+
+QVector<cme::runtime::SchemaSectionDefinition> PropertySchemaRegistry::sectionizeTypedRows(
+    const QVariantList &rows,
+    const QString &targetId)
+{
+    struct IndexedField {
+        int index;
+        cme::runtime::SchemaFieldDefinition field;
+    };
+
+    QHash<QString, QVector<IndexedField>> fieldsBySection;
+    QStringList sectionOrder;
+    int rowIndex = 0;
+
+    for (const QVariant &value : rows) {
+        const QVariantMap row = value.toMap();
+        if (row.isEmpty())
+            continue;
+
+        cme::runtime::SchemaFieldDefinition field =
+            cme::runtime::SchemaFieldLegacyAdapter::fromLegacyRow(row, targetId);
+        QString section = field.section.trimmed();
+        if (section.isEmpty())
+            section = QStringLiteral("General");
+
+        if (!fieldsBySection.contains(section))
+            sectionOrder.append(section);
+        fieldsBySection[section].append({ rowIndex, field });
+        ++rowIndex;
+    }
+
+    QVector<cme::runtime::SchemaSectionDefinition> sections;
+    sections.reserve(sectionOrder.size());
+
+    for (const QString &sectionName : sectionOrder) {
+        QVector<IndexedField> indexedFields = fieldsBySection.value(sectionName);
+        std::sort(indexedFields.begin(), indexedFields.end(), [](const IndexedField &a, const IndexedField &b) {
+            if (a.field.order != b.field.order)
+                return a.field.order < b.field.order;
+            return a.index < b.index;
+        });
+
+        cme::runtime::SchemaSectionDefinition section;
+        section.id = sectionName.toLower();
+        section.title = sectionName;
+        section.fields.reserve(indexedFields.size());
+        for (const IndexedField &indexedField : indexedFields)
+            section.fields.append(indexedField.field);
+        sections.append(section);
     }
 
     return sections;

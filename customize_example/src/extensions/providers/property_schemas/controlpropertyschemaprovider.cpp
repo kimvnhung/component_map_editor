@@ -5,6 +5,9 @@
 
 namespace {
 
+using cme::runtime::SchemaFieldType;
+using cme::runtime::SchemaFieldWidget;
+
 cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
 {
     cme::templates::v1::PropertySchemaTemplateBundle bundle;
@@ -18,9 +21,9 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                   customize::property_schemas::makeTokenKeyField("maxIterKey", "Max Iter Key", true, QStringLiteral("maxIter"), "Context", 2),
                   customize::property_schemas::makeTokenKeyField("continueKey", "Continue Key", true, QStringLiteral("continueLoop"), "Context", 3),
                   customize::property_schemas::makeTokenKeyField("conditionKey", "Condition Key", true, QStringLiteral("condition"), "Context", 4),
-                  customize::property_schemas::makeField("iter", "number", "Fallback Iter", false, 0, "spinbox", "Fallback", 20),
-                  customize::property_schemas::makeField("maxIter", "number", "Fallback Max Iter", false, 10, "spinbox", "Fallback", 21),
-                  customize::property_schemas::makeField("condition", "bool", "Fallback Condition", false, true, "checkbox", "Fallback", 22)
+                  customize::property_schemas::makeField("iter", SchemaFieldType::Number, "Fallback Iter", false, 0, SchemaFieldWidget::SpinBox, "Fallback", 20),
+                  customize::property_schemas::makeField("maxIter", SchemaFieldType::Number, "Fallback Max Iter", false, 10, SchemaFieldWidget::SpinBox, "Fallback", 21),
+                  customize::property_schemas::makeField("condition", SchemaFieldType::Boolean, "Fallback Condition", false, true, SchemaFieldWidget::Checkbox, "Fallback", 22)
               });
 
     customize::property_schemas::addTarget(&bundle,
@@ -29,7 +32,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                   customize::property_schemas::makeTokenKeyField("conditionKey", "Condition Key", true, QStringLiteral("condition"), "Context", 1),
                   customize::property_schemas::makeTokenKeyField("trueRouteKey", "True Route Key", true, QStringLiteral("routeTrue"), "Context", 2),
                   customize::property_schemas::makeTokenKeyField("falseRouteKey", "False Route Key", true, QStringLiteral("routeFalse"), "Context", 3),
-                  customize::property_schemas::makeField("condition", "bool", "Fallback Condition", false, false, "checkbox", "Fallback", 20)
+                  customize::property_schemas::makeField("condition", SchemaFieldType::Boolean, "Fallback Condition", false, false, SchemaFieldWidget::Checkbox, "Fallback", 20)
               });
 
     return bundle;

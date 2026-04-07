@@ -48,6 +48,47 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
     return field;
 }
 
+cme::templates::v1::PropertySchemaFieldTemplate makeField(
+    const char *key,
+    cme::runtime::SchemaFieldType type,
+    const char *title,
+    bool required,
+    const QVariant &defaultValue,
+    cme::runtime::SchemaFieldWidget widget,
+    const char *section,
+    int order,
+    const QString &hint,
+    const QVariantMap &validation,
+    const QVariantMap &visibleWhen,
+    const QVariantList &options,
+    cme::runtime::SchemaOptionsSource optionsSource,
+    const QString &customOptionsSource,
+    const QVariantMap &extra)
+{
+    const QByteArray typeName = cme::runtime::schemaFieldTypeToString(type).toUtf8();
+    const QByteArray widgetName = cme::runtime::schemaFieldWidgetToString(widget).toUtf8();
+
+    QVariantMap mergedExtra = extra;
+    const QString optionsSourceValue = cme::runtime::schemaOptionsSourceToString(optionsSource,
+                                                                                  customOptionsSource);
+    if (!optionsSourceValue.isEmpty() && !mergedExtra.contains(QStringLiteral("optionsSource")))
+        mergedExtra.insert(QStringLiteral("optionsSource"), optionsSourceValue);
+
+    return makeField(key,
+                     typeName.constData(),
+                     title,
+                     required,
+                     defaultValue,
+                     widgetName.constData(),
+                     section,
+                     order,
+                     hint,
+                     validation,
+                     visibleWhen,
+                     options,
+                     mergedExtra);
+}
+
 cme::templates::v1::PropertySchemaFieldTemplate makeTokenKeyField(
     const char *key,
     const char *title,
@@ -63,18 +104,18 @@ cme::templates::v1::PropertySchemaFieldTemplate makeTokenKeyField(
     resolvedHint.append(QStringLiteral("Token options are sourced from connection token keys, execution-state keys, and schema key defaults."));
 
     return makeField(key,
-                     "string",
+                     cme::runtime::SchemaFieldType::String,
                      title,
                      required,
                      defaultValue,
-                     "dropdown",
+                     cme::runtime::SchemaFieldWidget::Dropdown,
                      section,
                      order,
                      resolvedHint,
                      {},
                      {},
                      {},
-                     QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeys")}});
+                     cme::runtime::SchemaOptionsSource::TokenKeys);
 }
 
 void addTarget(
