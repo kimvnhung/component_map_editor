@@ -89,35 +89,6 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
                      mergedExtra);
 }
 
-cme::templates::v1::PropertySchemaFieldTemplate makeTokenKeyField(
-    const char *key,
-    const char *title,
-    bool required,
-    const QVariant &defaultValue,
-    const char *section,
-    int order,
-    const QString &hint)
-{
-    QString resolvedHint = hint;
-    if (!resolvedHint.isEmpty())
-        resolvedHint.append(QStringLiteral(" "));
-    resolvedHint.append(QStringLiteral("Token options are sourced from connection token keys, execution-state keys, and schema key defaults."));
-
-    return makeField(key,
-                     cme::runtime::SchemaFieldType::String,
-                     title,
-                     required,
-                     defaultValue,
-                     cme::runtime::SchemaFieldWidget::Dropdown,
-                     section,
-                     order,
-                     resolvedHint,
-                     {},
-                     {},
-                     {},
-                     cme::runtime::SchemaOptionsSource::TokenKeys);
-}
-
 void addTarget(
     cme::templates::v1::PropertySchemaTemplateBundle *bundle,
     const char *targetId,

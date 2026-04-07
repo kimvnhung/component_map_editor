@@ -7,6 +7,10 @@ namespace {
 
 using cme::runtime::SchemaFieldType;
 using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaOptionsSource;
+
+const QString kTokenKeyHint =
+    QStringLiteral("Token options are sourced from connection token keys, execution-state keys, and schema key defaults.");
 
 cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
 {
@@ -17,7 +21,8 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     customize::property_schemas::addTarget(&bundle,
               "component/system/error_handler",
               {
-                  customize::property_schemas::makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 1),
+                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, "Context", 1,
+                                                         kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
                   customize::property_schemas::makeField("message", SchemaFieldType::String, "Fallback Message", true, QStringLiteral("Unhandled workflow error."), SchemaFieldWidget::TextArea, "Behavior", 2)
               });
 

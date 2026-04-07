@@ -44,15 +44,6 @@ cme::templates::v1::PropertySchemaFieldTemplate makeField(
     const QString &customOptionsSource = QString(),
     const QVariantMap &extra = {});
 
-cme::templates::v1::PropertySchemaFieldTemplate makeTokenKeyField(
-    const char *key,
-    const char *title,
-    bool required,
-    const QVariant &defaultValue,
-    const char *section,
-    int order,
-    const QString &hint = QString());
-
 void addTarget(
     cme::templates::v1::PropertySchemaTemplateBundle *bundle,
     const char *targetId,
