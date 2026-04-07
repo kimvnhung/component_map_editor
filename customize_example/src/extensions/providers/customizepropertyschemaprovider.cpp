@@ -1,260 +1,40 @@
 #include "customizepropertyschemaprovider.h"
 
-#include <initializer_list>
+#include "property_schemas/connectionpropertyschemaprovider.h"
+#include "property_schemas/controlpropertyschemaprovider.h"
+#include "property_schemas/mathpropertyschemaprovider.h"
+#include "property_schemas/startstoppropertyschemaprovider.h"
+#include "property_schemas/systempropertyschemaprovider.h"
 
-#include "extensions/runtime/templates/PropertySchemaTemplateAdapter.h"
-#include "extensions/runtime/templates/TemplateProtoHelpers.h"
-#include "provider_templates.pb.h"
-
-namespace {
-
-cme::templates::v1::PropertySchemaFieldTemplate makeField(
-    const char *key,
-    const char *type,
-    const char *title,
-    bool required,
-    const QVariant &defaultValue,
-    const char *editor,
-    const char *section,
-    int order,
-    const QString &hint = QString(),
-    const QVariantMap &validation = {},
-    const QVariantMap &visibleWhen = {},
-    const QVariantList &options = {},
-    const QVariantMap &extra = {})
+CustomizePropertySchemaProvider::CustomizePropertySchemaProvider()
 {
-    cme::templates::v1::PropertySchemaFieldTemplate field;
-    field.set_key(key);
-    field.set_type(type);
-    field.set_title(title);
-    field.set_required(required);
-    field.set_editor(editor);
-    field.set_section(section);
-    field.set_order(order);
-    if (!hint.isEmpty())
-        field.set_hint(hint.toStdString());
-
-    *field.mutable_default_value() = cme::runtime::templates::variantToProtoValue(defaultValue);
-
-    for (const QVariant &option : options)
-        *field.add_options() = cme::runtime::templates::variantToProtoValue(option);
-
-    for (auto it = validation.constBegin(); it != validation.constEnd(); ++it)
-        (*field.mutable_validation())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
-
-    for (auto it = visibleWhen.constBegin(); it != visibleWhen.constEnd(); ++it)
-        (*field.mutable_visible_when())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
-
-    for (auto it = extra.constBegin(); it != extra.constEnd(); ++it)
-        (*field.mutable_extra())[it.key().toStdString()] = cme::runtime::templates::variantToProtoValue(it.value());
-
-    return field;
+    m_subProviders.emplace_back(std::make_unique<StartStopPropertySchemaProvider>());
+    m_subProviders.emplace_back(std::make_unique<ControlPropertySchemaProvider>());
+    m_subProviders.emplace_back(std::make_unique<MathPropertySchemaProvider>());
+    m_subProviders.emplace_back(std::make_unique<SystemPropertySchemaProvider>());
+    m_subProviders.emplace_back(std::make_unique<ConnectionPropertySchemaProvider>());
 }
-
-void addTarget(cme::templates::v1::PropertySchemaTemplateBundle *bundle,
-               const char *targetId,
-               const std::initializer_list<cme::templates::v1::PropertySchemaFieldTemplate> &fields)
-{
-    cme::templates::v1::PropertySchemaTargetTemplate *target = bundle->add_targets();
-    target->set_target_id(targetId);
-    for (const auto &field : fields)
-        *target->add_entries() = field;
-}
-
-cme::templates::v1::PropertySchemaFieldTemplate makeTokenKeyField(
-    const char *key,
-    const char *title,
-    bool required,
-    const QVariant &defaultValue,
-    const char *section,
-    int order,
-    const QString &hint = QString())
-{
-    QString resolvedHint = hint;
-    if (!resolvedHint.isEmpty())
-        resolvedHint.append(QStringLiteral(" "));
-    resolvedHint.append(QStringLiteral("Token options are sourced from connection token keys, execution-state keys, and schema key defaults."));
-
-    return makeField(key,
-                     "string",
-                     title,
-                     required,
-                     defaultValue,
-                     "dropdown",
-                     section,
-                     order,
-                     resolvedHint,
-                     {},
-                     {},
-                     {},
-                     QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeys")}});
-}
-
-cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
-{
-    cme::templates::v1::PropertySchemaTemplateBundle bundle;
-    bundle.set_provider_id("customize.workflow.propertySchema");
-    bundle.set_schema_version("1.0.0");
-
-    addTarget(&bundle,
-              "component/start",
-              {
-                  makeField("title", "string", "Title", true, QString(), "textfield", "Identity", 1,
-                            QStringLiteral("Human-friendly label shown on the graph.")),
-                  makeField("inputNumber", "number", "Input Number", true, 0, "spinbox", "Behavior", 20,
-                            QStringLiteral("Seed number consumed by the start component when simulation begins."),
-                            QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
-                  makeField("icon", "string", "Icon", false, QString(), "textfield", "Appearance", 30,
-                            QStringLiteral("FontAwesome icon key, for example 'play' or 'stop'.")),
-                  makeField("color", "string", "Color", true, QStringLiteral("#66bb6a"), "textfield", "Appearance", 31),
-                  makeField("shape", "enum", "Shape", true, QStringLiteral("rounded"), "dropdown", "Appearance", 32,
-                            QString(), {}, {},
-                            QVariantList{ QStringLiteral("rounded"), QStringLiteral("rectangle") })
-              });
-
-    addTarget(&bundle,
-              "component/stop",
-              {
-                  makeField("title", "string", "Title", true, QString(), "textfield", "Identity", 1),
-                  makeField("description", "string", "Description", false, QString(), "textarea", "Behavior", 20,
-                            QStringLiteral("Optional notes shown in the inspector.")),
-                  makeField("icon", "string", "Icon", false, QString(), "textfield", "Appearance", 30,
-                            QStringLiteral("FontAwesome icon key, for example 'stop' or 'flag-checkered'.")),
-                  makeField("color", "string", "Color", true, QStringLiteral("#ef5350"), "textfield", "Appearance", 31)
-              });
-
-    addTarget(&bundle,
-              "component/control/loop",
-              {
-                  makeTokenKeyField("iterKey", "Iter Key", true, QStringLiteral("iter"), "Context", 1),
-                  makeTokenKeyField("maxIterKey", "Max Iter Key", true, QStringLiteral("maxIter"), "Context", 2),
-                  makeTokenKeyField("continueKey", "Continue Key", true, QStringLiteral("continueLoop"), "Context", 3),
-                  makeTokenKeyField("conditionKey", "Condition Key", true, QStringLiteral("condition"), "Context", 4),
-                  makeField("iter", "number", "Fallback Iter", false, 0, "spinbox", "Fallback", 20),
-                  makeField("maxIter", "number", "Fallback Max Iter", false, 10, "spinbox", "Fallback", 21),
-                  makeField("condition", "bool", "Fallback Condition", false, true, "checkbox", "Fallback", 22)
-              });
-
-    addTarget(&bundle,
-              "component/control/ifelse",
-              {
-                  makeTokenKeyField("conditionKey", "Condition Key", true, QStringLiteral("condition"), "Context", 1),
-                  makeTokenKeyField("trueRouteKey", "True Route Key", true, QStringLiteral("routeTrue"), "Context", 2),
-                  makeTokenKeyField("falseRouteKey", "False Route Key", true, QStringLiteral("routeFalse"), "Context", 3),
-                  makeField("condition", "bool", "Fallback Condition", false, false, "checkbox", "Fallback", 20)
-              });
-
-    addTarget(&bundle,
-              "component/math/add",
-              {
-                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("sum"), "Context", 3),
-                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
-                  makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
-                  makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
-              });
-
-    addTarget(&bundle,
-              "component/math/subtract",
-              {
-                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("difference"), "Context", 3),
-                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
-                  makeField("a", "number", "Fallback A", false, 0, "spinbox", "Fallback", 20),
-                  makeField("b", "number", "Fallback B", false, 0, "spinbox", "Fallback", 21)
-              });
-
-    addTarget(&bundle,
-              "component/math/multiply",
-              {
-                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("product"), "Context", 3),
-                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
-                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
-                  makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
-              });
-
-    addTarget(&bundle,
-              "component/math/divide",
-              {
-                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("quotient"), "Context", 3),
-                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
-                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
-                  makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
-              });
-
-    addTarget(&bundle,
-              "component/system/error_handler",
-              {
-                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 1),
-                  makeField("message", "string", "Fallback Message", true, QStringLiteral("Unhandled workflow error."), "textarea", "Behavior", 2)
-              });
-
-    addTarget(&bundle,
-              "component/math/mod",
-              {
-                  makeTokenKeyField("inputAKey", "Input A Key", true, QStringLiteral("a"), "Context", 1),
-                  makeTokenKeyField("inputBKey", "Input B Key", true, QStringLiteral("b"), "Context", 2),
-                  makeTokenKeyField("outputKey", "Output Key", true, QStringLiteral("result"), "Context", 3),
-                  makeTokenKeyField("errorKey", "Error Key", true, QStringLiteral("error"), "Context", 4),
-                  makeField("a", "number", "Fallback A", false, 1, "spinbox", "Fallback", 20),
-                  makeField("b", "number", "Fallback B", false, 1, "spinbox", "Fallback", 21)
-              });
-
-
-    const QVariantList sideOptions{
-        QVariantMap{{QStringLiteral("text"), QStringLiteral("Auto")},   {QStringLiteral("value"), -1}},
-        QVariantMap{{QStringLiteral("text"), QStringLiteral("Top")},    {QStringLiteral("value"),  0}},
-        QVariantMap{{QStringLiteral("text"), QStringLiteral("Right")},  {QStringLiteral("value"),  1}},
-        QVariantMap{{QStringLiteral("text"), QStringLiteral("Bottom")}, {QStringLiteral("value"),  2}},
-        QVariantMap{{QStringLiteral("text"), QStringLiteral("Left")},   {QStringLiteral("value"),  3}}
-    };
-
-    addTarget(&bundle,
-              "connection/flow",
-              {
-                  makeField("label", "string", "Label", false, QString(), "textfield", "Identity", 0),
-                  makeField("id", "string", "Connection ID", true, QString(), "textfield", "Identity", 1),
-                  makeField("sourceId", "string", "Source Component ID", true, QString(), "textfield", "Identity", 2),
-                  makeField("targetId", "string", "Target Component ID", true, QString(), "textfield", "Identity", 3),
-                  makeField("sourceSide", "enum", "Source Side", true, -1, "dropdown", "Routing", 20,
-                            QString(), {}, {}, sideOptions),
-                  makeField("targetSide", "enum", "Target Side", true, -1, "dropdown", "Routing", 21,
-                            QString(), {}, {}, sideOptions),
-                  makeField("tokenKey", "string", "Token Key", false, QString(), "dropdown", "Routing", 22,
-                            QStringLiteral("Routing token key used for connection payload selection."),
-                            {}, {}, {},
-                            QVariantMap{{QStringLiteral("optionsSource"), QStringLiteral("tokenKeys")}})
-              });
-
-    return bundle;
-}
-
-const cme::templates::v1::PropertySchemaTemplateBundle &schemaBundle()
-{
-    static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
-    return kBundle;
-}
-
-} // namespace
 
 QString CustomizePropertySchemaProvider::providerId() const
 {
-    return cme::runtime::templates::PropertySchemaTemplateAdapter::providerId(schemaBundle());
+    return QStringLiteral("customize.workflow.propertySchema");
 }
 
 QStringList CustomizePropertySchemaProvider::schemaTargets() const
 {
-    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaTargets(schemaBundle());
+    QStringList result;
+    for (const auto &provider : m_subProviders)
+        result.append(provider->schemaTargets());
+    result.removeDuplicates();
+    return result;
 }
 
 QVariantList CustomizePropertySchemaProvider::propertySchema(const QString &targetId) const
 {
-    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(
-        schemaBundle(), targetId);
+    for (const auto &provider : m_subProviders) {
+        const QVariantList schema = provider->propertySchema(targetId);
+        if (!schema.isEmpty())
+            return schema;
+    }
+    return {};
 }

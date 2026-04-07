@@ -1,6 +1,9 @@
 #ifndef CUSTOMIZEPROPERTYSCHEMAPROVIDER_H
 #define CUSTOMIZEPROPERTYSCHEMAPROVIDER_H
 
+#include <memory>
+#include <vector>
+
 #include <extensions/contracts/IPropertySchemaProvider.h>
 
 // Customize implementation of IPropertySchemaProvider for the workflow domain.
@@ -15,9 +18,14 @@
 class CustomizePropertySchemaProvider : public IPropertySchemaProvider
 {
 public:
-    QString      providerId() const override;
-    QStringList  schemaTargets() const override;
+    CustomizePropertySchemaProvider();
+
+    QString providerId() const override;
+    QStringList schemaTargets() const override;
     QVariantList propertySchema(const QString &targetId) const override;
+
+private:
+    std::vector<std::unique_ptr<IPropertySchemaProvider>> m_subProviders;
 };
 
 #endif // CUSTOMIZEPROPERTYSCHEMAPROVIDER_H
