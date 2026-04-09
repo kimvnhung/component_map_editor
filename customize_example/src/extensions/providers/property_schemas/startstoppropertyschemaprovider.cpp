@@ -18,6 +18,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     customize::property_schemas::addTarget(&bundle,
               "component/start",
               {
+                customize::property_schemas::makeField("id", SchemaFieldType::String, "Component ID", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 0),
                   customize::property_schemas::makeField("inputNumber", SchemaFieldType::Number, "Input Number", true, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 20,
                             QStringLiteral("Seed number consumed by the start component when simulation begins."),
                             QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),

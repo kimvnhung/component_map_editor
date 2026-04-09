@@ -4,6 +4,49 @@
 
 #include "models/ConnectionModel.h"
 
+struct TokenKeyCatalog::TokenOptionAccumulator {
+    QSet<QString> keySet;
+    QVariantList optionRows;
+    QSet<QString> optionValues;
+
+    static QString makeOptionText(const QString &payloadKey,
+                                  const QString &sourceId,
+                                  const QString &tokenId)
+    {
+        if (!sourceId.isEmpty())
+            return QStringLiteral("%1 (%2)").arg(payloadKey, sourceId);
+        if (!tokenId.isEmpty())
+            return QStringLiteral("%1 (%2)").arg(payloadKey, tokenId);
+        return payloadKey;
+    }
+
+    void appendOption(const QString &payloadKey,
+                      const QString &tokenId,
+                      const QString &sourceId)
+    {
+        const QString key = payloadKey.trimmed();
+        if (key.isEmpty())
+            return;
+
+        keySet.insert(key);
+
+        const QString value = tokenId.isEmpty()
+            ? key
+            : QStringLiteral("%1::%2").arg(tokenId, key);
+        if (optionValues.contains(value))
+            return;
+
+        optionValues.insert(value);
+        optionRows.append(QVariantMap{
+            { QStringLiteral("text"), makeOptionText(key, sourceId, tokenId) },
+            { QStringLiteral("value"), value },
+            { QStringLiteral("key"), key },
+            { QStringLiteral("tokenId"), tokenId },
+            { QStringLiteral("sourceId"), sourceId }
+        });
+    }
+};
+
 TokenKeyCatalog::TokenKeyCatalog(QObject *parent)
     : QObject(parent)
 {}
@@ -92,140 +135,157 @@ QVariantList TokenKeyCatalog::tokenKeyOptions() const
 
 void TokenKeyCatalog::refresh()
 {
-    QSet<QString> keySet;
+    TokenOptionAccumulator accumulator;
+    const QHash<QString, QString> sourceByIncomingTokenId = incomingSourceByTokenId();
 
-    auto makeOptionText = [](const QString &payloadKey,
-                             const QString &sourceId,
-                             const QString &tokenId) {
-        if (!sourceId.isEmpty())
-            return QStringLiteral("%1 (%2)").arg(payloadKey, sourceId);
-        if (!tokenId.isEmpty())
-            return QStringLiteral("%1 (%2)").arg(payloadKey, tokenId);
-        return payloadKey;
-    };
+    bool hasRuntimeIncomingTokenKeys = collectRuntimeOptions(sourceByIncomingTokenId, &accumulator);
+    collectInputStateFallback(&accumulator, &hasRuntimeIncomingTokenKeys);
+    collectConsumedTokenIdFallback(&accumulator, &hasRuntimeIncomingTokenKeys);
+    collectConnectionFallback(&accumulator, hasRuntimeIncomingTokenKeys);
 
-    QVariantList optionRows;
-    QSet<QString> optionValues;
-    auto appendOption = [&](const QString &payloadKey,
-                            const QString &tokenId,
-                            const QString &sourceId) {
-        const QString key = payloadKey.trimmed();
-        if (key.isEmpty())
-            return;
+    publishOptions(sortedKeys(accumulator.keySet),
+                   sortedOptionsByText(accumulator.optionRows));
+}
 
-        keySet.insert(key);
-
-        const QString value = tokenId.isEmpty()
-            ? key
-            : QStringLiteral("%1::%2").arg(tokenId, key);
-        if (optionValues.contains(value))
-            return;
-
-        optionValues.insert(value);
-        optionRows.append(QVariantMap{
-            { QStringLiteral("text"), makeOptionText(key, sourceId, tokenId) },
-            { QStringLiteral("value"), value },
-            { QStringLiteral("key"), key },
-            { QStringLiteral("tokenId"), tokenId },
-            { QStringLiteral("sourceId"), sourceId }
-        });
-    };
-
+QHash<QString, QString> TokenKeyCatalog::incomingSourceByTokenId() const
+{
     QHash<QString, QString> sourceByIncomingTokenId;
-    if (m_graph && !m_targetComponentId.isEmpty()) {
-        const QList<ConnectionModel *> connections = m_graph->connectionList();
-        for (const ConnectionModel *connection : connections) {
-            if (!connection)
-                continue;
-            if (connection->targetId().trimmed() != m_targetComponentId)
-                continue;
-            sourceByIncomingTokenId.insert(connection->id(), connection->sourceId().trimmed());
-        }
+    if (!m_graph || m_targetComponentId.isEmpty())
+        return sourceByIncomingTokenId;
+
+    const QList<ConnectionModel *> connections = m_graph->connectionList();
+    for (const ConnectionModel *connection : connections) {
+        if (!connection)
+            continue;
+        if (connection->targetId().trimmed() != m_targetComponentId)
+            continue;
+        sourceByIncomingTokenId.insert(connection->id(), connection->sourceId().trimmed());
     }
+
+    return sourceByIncomingTokenId;
+}
+
+bool TokenKeyCatalog::collectRuntimeOptions(
+    const QHash<QString, QString> &sourceByIncomingTokenId,
+    TokenOptionAccumulator *accumulator) const
+{
+    if (!accumulator)
+        return false;
 
     bool hasRuntimeIncomingTokenKeys = false;
     const QVariantMap incomingTokenPayloads =
         m_executionStateSnapshot.value(QStringLiteral("incomingTokenPayloads")).toMap();
-    if (!incomingTokenPayloads.isEmpty()) {
-        QStringList incomingTokenIds = incomingTokenPayloads.keys();
-        std::sort(incomingTokenIds.begin(), incomingTokenIds.end(), [](const QString &a, const QString &b) {
+    if (incomingTokenPayloads.isEmpty())
+        return false;
+
+    QStringList incomingTokenIds = incomingTokenPayloads.keys();
+    std::sort(incomingTokenIds.begin(), incomingTokenIds.end(), [](const QString &a, const QString &b) {
+        return QString::compare(a, b, Qt::CaseInsensitive) < 0;
+    });
+
+    for (const QString &tokenId : incomingTokenIds) {
+        const QVariantMap payload = incomingTokenPayloads.value(tokenId).toMap();
+        if (payload.isEmpty())
+            continue;
+
+        hasRuntimeIncomingTokenKeys = true;
+        QStringList payloadKeys = payload.keys();
+        std::sort(payloadKeys.begin(), payloadKeys.end(), [](const QString &a, const QString &b) {
             return QString::compare(a, b, Qt::CaseInsensitive) < 0;
         });
 
-        for (const QString &tokenId : incomingTokenIds) {
-            const QVariantMap payload = incomingTokenPayloads.value(tokenId).toMap();
-            if (payload.isEmpty())
-                continue;
-
-            hasRuntimeIncomingTokenKeys = true;
-            QStringList payloadKeys = payload.keys();
-            std::sort(payloadKeys.begin(), payloadKeys.end(), [](const QString &a, const QString &b) {
-                return QString::compare(a, b, Qt::CaseInsensitive) < 0;
-            });
-
-            const QString sourceId = sourceByIncomingTokenId.value(tokenId);
-            for (const QString &payloadKey : payloadKeys)
-                appendOption(payloadKey, tokenId, sourceId);
-        }
+        const QString sourceId = sourceByIncomingTokenId.value(tokenId);
+        for (const QString &payloadKey : payloadKeys)
+            accumulator->appendOption(payloadKey, tokenId, sourceId);
     }
 
-    if (!hasRuntimeIncomingTokenKeys) {
-        const QVariantMap inputState =
-            m_executionStateSnapshot.value(QStringLiteral("inputState")).toMap();
-        if (!inputState.isEmpty()) {
-            hasRuntimeIncomingTokenKeys = true;
-            QStringList payloadKeys = inputState.keys();
-            std::sort(payloadKeys.begin(), payloadKeys.end(), [](const QString &a, const QString &b) {
-                return QString::compare(a, b, Qt::CaseInsensitive) < 0;
-            });
-            for (const QString &payloadKey : payloadKeys)
-                appendOption(payloadKey, QString(), QString());
-        }
-    }
+    return hasRuntimeIncomingTokenKeys;
+}
+
+void TokenKeyCatalog::collectInputStateFallback(TokenOptionAccumulator *accumulator,
+                                                bool *hasRuntimeIncomingTokenKeys) const
+{
+    if (!accumulator || !hasRuntimeIncomingTokenKeys || *hasRuntimeIncomingTokenKeys)
+        return;
+
+    const QVariantMap inputState = m_executionStateSnapshot.value(QStringLiteral("inputState")).toMap();
+    if (inputState.isEmpty())
+        return;
+
+    *hasRuntimeIncomingTokenKeys = true;
+    QStringList payloadKeys = inputState.keys();
+    std::sort(payloadKeys.begin(), payloadKeys.end(), [](const QString &a, const QString &b) {
+        return QString::compare(a, b, Qt::CaseInsensitive) < 0;
+    });
+
+    for (const QString &payloadKey : payloadKeys)
+        accumulator->appendOption(payloadKey, QString(), QString());
+}
+
+void TokenKeyCatalog::collectConsumedTokenIdFallback(TokenOptionAccumulator *accumulator,
+                                                     bool *hasRuntimeIncomingTokenKeys) const
+{
+    if (!accumulator || !hasRuntimeIncomingTokenKeys || *hasRuntimeIncomingTokenKeys)
+        return;
 
     const QVariant consumedIncomingTokenIds =
         m_executionStateSnapshot.value(QStringLiteral("consumedIncomingTokenIds"));
     const QVariantList consumedList = consumedIncomingTokenIds.toList();
-    if (!hasRuntimeIncomingTokenKeys) {
-        for (const QVariant &tokenId : consumedList)
-            appendOption(tokenId.toString(), QString(), QString());
-        hasRuntimeIncomingTokenKeys = !consumedList.isEmpty();
-    }
+    for (const QVariant &tokenId : consumedList)
+        accumulator->appendOption(tokenId.toString(), QString(), QString());
+    *hasRuntimeIncomingTokenKeys = !consumedList.isEmpty();
+}
 
-    if (!hasRuntimeIncomingTokenKeys && m_graph) {
-        const QList<ConnectionModel *> connections = m_graph->connectionList();
-        for (const ConnectionModel *connection : connections) {
-            if (!connection)
-                continue;
+void TokenKeyCatalog::collectConnectionFallback(TokenOptionAccumulator *accumulator,
+                                                bool hasRuntimeIncomingTokenKeys) const
+{
+    if (!accumulator || hasRuntimeIncomingTokenKeys || !m_graph)
+        return;
 
-            if (!m_targetComponentId.isEmpty()
-                && connection->targetId().trimmed() != m_targetComponentId) {
-                continue;
-            }
+    const QList<ConnectionModel *> connections = m_graph->connectionList();
+    for (const ConnectionModel *connection : connections) {
+        if (!connection)
+            continue;
 
-            appendOption(connection->tokenKey(), QString(), connection->sourceId().trimmed());
-            addTokenKeyCandidate(connection->tokenKey(), &keySet);
+        if (!m_targetComponentId.isEmpty()
+            && connection->targetId().trimmed() != m_targetComponentId) {
+            continue;
         }
-    }
 
-    std::sort(optionRows.begin(), optionRows.end(), [](const QVariant &a, const QVariant &b) {
+        accumulator->appendOption(connection->tokenKey(), QString(), connection->sourceId().trimmed());
+        addTokenKeyCandidate(connection->tokenKey(), &accumulator->keySet);
+    }
+}
+
+QStringList TokenKeyCatalog::sortedKeys(const QSet<QString> &keys)
+{
+    QStringList sorted = keys.values();
+    std::sort(sorted.begin(), sorted.end(), [](const QString &a, const QString &b) {
+        return QString::compare(a, b, Qt::CaseInsensitive) < 0;
+    });
+    return sorted;
+}
+
+QVariantList TokenKeyCatalog::sortedOptionsByText(const QVariantList &rows)
+{
+    QVariantList sorted = rows;
+    std::sort(sorted.begin(), sorted.end(), [](const QVariant &a, const QVariant &b) {
         const QString textA = a.toMap().value(QStringLiteral("text")).toString();
         const QString textB = b.toMap().value(QStringLiteral("text")).toString();
         return QString::compare(textA, textB, Qt::CaseInsensitive) < 0;
     });
+    return sorted;
+}
 
-    QStringList sortedKeys = keySet.values();
-    std::sort(sortedKeys.begin(), sortedKeys.end(), [](const QString &a, const QString &b) {
-        return QString::compare(a, b, Qt::CaseInsensitive) < 0;
-    });
-
-    const bool keysChanged = (m_tokenKeys != sortedKeys);
-    const bool optionsChanged = (m_tokenKeyOptions != optionRows);
+void TokenKeyCatalog::publishOptions(const QStringList &keys, const QVariantList &options)
+{
+    const bool keysChanged = (m_tokenKeys != keys);
+    const bool optionsChanged = (m_tokenKeyOptions != options);
     if (!keysChanged && !optionsChanged)
         return;
 
-    m_tokenKeys = sortedKeys;
-    m_tokenKeyOptions = optionRows;
+    m_tokenKeys = keys;
+    m_tokenKeyOptions = options;
     if (keysChanged)
         emit tokenKeysChanged();
     if (optionsChanged)

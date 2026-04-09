@@ -57,8 +57,23 @@ signals:
     void tokenKeyOptionsChanged();
 
 private:
+    struct TokenOptionAccumulator;
+
     void reconnectGraphSignals();
     void rebuildConnectionTracking();
+
+    QHash<QString, QString> incomingSourceByTokenId() const;
+    bool collectRuntimeOptions(const QHash<QString, QString> &sourceByIncomingTokenId,
+                               TokenOptionAccumulator *accumulator) const;
+    void collectInputStateFallback(TokenOptionAccumulator *accumulator,
+                                   bool *hasRuntimeIncomingTokenKeys) const;
+    void collectConsumedTokenIdFallback(TokenOptionAccumulator *accumulator,
+                                        bool *hasRuntimeIncomingTokenKeys) const;
+    void collectConnectionFallback(TokenOptionAccumulator *accumulator,
+                                   bool hasRuntimeIncomingTokenKeys) const;
+    static QStringList sortedKeys(const QSet<QString> &keys);
+    static QVariantList sortedOptionsByText(const QVariantList &rows);
+    void publishOptions(const QStringList &keys, const QVariantList &options);
 
     static void addTokenKeyCandidate(const QVariant &candidate, QSet<QString> *out);
 
