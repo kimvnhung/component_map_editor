@@ -4,18 +4,38 @@ ComponentModel::ComponentModel(QObject *parent)
     : QObject(parent)
 {}
 
-ComponentModel::ComponentModel(const QString &id, const QString &label,
+ComponentModel::ComponentModel(const QString &id, const QString &title,
                                qreal x, qreal y,
                                const QString &color, const QString &type,
                                QObject *parent)
     : QObject(parent)
     , m_id(id)
-    , m_label(label)
+    , m_title(title)
     , m_x(x)
     , m_y(y)
     , m_color(color)
     , m_type(type)
 {}
+
+bool ComponentModel::setDynamicProperty(const QString &name, const QVariant &value)
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return false;
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::setProperty(utf8Name.constData(), value);
+}
+
+QVariant ComponentModel::dynamicPropertyValue(const QString &name) const
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return {};
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::property(utf8Name.constData());
+}
 
 QString ComponentModel::id() const { return m_id; }
 void ComponentModel::setId(const QString &id)
@@ -25,12 +45,28 @@ void ComponentModel::setId(const QString &id)
     emit idChanged();
 }
 
-QString ComponentModel::label() const { return m_label; }
-void ComponentModel::setLabel(const QString &label)
+QString ComponentModel::title() const { return m_title; }
+void ComponentModel::setTitle(const QString &title)
 {
-    if (m_label == label) return;
-    m_label = label;
-    emit labelChanged();
+    if (m_title == title) return;
+    m_title = title;
+    emit titleChanged();
+}
+
+QString ComponentModel::content() const { return m_content; }
+void ComponentModel::setContent(const QString &content)
+{
+    if (m_content == content) return;
+    m_content = content;
+    emit contentChanged();
+}
+
+QString ComponentModel::icon() const { return m_icon; }
+void ComponentModel::setIcon(const QString &icon)
+{
+    if (m_icon == icon) return;
+    m_icon = icon;
+    emit iconChanged();
 }
 
 qreal ComponentModel::x() const { return m_x; }

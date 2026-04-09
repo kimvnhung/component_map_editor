@@ -1,7 +1,24 @@
-find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2)
 
 qt_add_executable(example_app
     main.cpp
+)
+
+set(EXAMPLE_EXTENSION_MANIFEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/extensions")
+file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_MANIFEST_DIR}")
+configure_file(
+    "${CMAKE_SOURCE_DIR}/component_map_editor/extensions/sample_pack/manifest.sample.workflow.json"
+    "${EXAMPLE_EXTENSION_MANIFEST_DIR}/manifest.sample.workflow.json"
+    COPYONLY
+)
+
+set(EXAMPLE_EXTENSION_RULE_DIR "${CMAKE_CURRENT_BINARY_DIR}/rules")
+file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_RULE_DIR}")
+set(EXAMPLE_EXTENSION_RULE_FILE "${EXAMPLE_EXTENSION_RULE_DIR}/rules.sample.workflow.json")
+configure_file(
+    "${CMAKE_SOURCE_DIR}/component_map_editor/extensions/sample_pack/rules.sample.workflow.json"
+    "${EXAMPLE_EXTENSION_RULE_FILE}"
+    COPYONLY
 )
 
 qt_add_qml_module(example_app
@@ -23,4 +40,30 @@ target_link_libraries(example_app
         Qt6::Quick
         Qt6::QuickControls2
         libComponentMapEditor
+)
+
+target_include_directories(example_app
+    PRIVATE
+        "${CMAKE_SOURCE_DIR}/component_map_editor"
+)
+
+target_compile_definitions(example_app
+    PRIVATE
+        EXAMPLE_EXTENSION_MANIFEST_DIR="${EXAMPLE_EXTENSION_MANIFEST_DIR}"
+        EXAMPLE_EXTENSION_RULE_FILE="${EXAMPLE_EXTENSION_RULE_FILE}"
+)
+
+qt_add_executable(compatibility_checker_tool
+    compatibility_checker_main.cpp
+)
+
+target_link_libraries(compatibility_checker_tool
+    PRIVATE
+        Qt6::Core
+        libComponentMapEditor
+)
+
+target_include_directories(compatibility_checker_tool
+    PRIVATE
+        "${CMAKE_SOURCE_DIR}/component_map_editor"
 )

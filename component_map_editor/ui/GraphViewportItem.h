@@ -11,6 +11,7 @@
 #include <QVariantMap>
 #include <QVector>
 #include <atomic>
+#include <memory>
 
 class QSGGeometryNode;
 class QSGNode;
@@ -19,6 +20,8 @@ class QSGTransformNode;
 class ComponentModel;
 class ConnectionModel;
 class QSGTexture;
+
+#include "routing/RoutingEngine.h"
 
 // Viewport item for C++/QSG-based graph rendering.
 // Provides camera API (panX/panY/zoom) and coordinate conversion helpers,
@@ -34,18 +37,28 @@ class GraphViewportItem : public QQuickItem
     Q_PROPERTY(qreal zoom READ zoom WRITE setZoom NOTIFY zoomChanged FINAL)
 
     Q_PROPERTY(bool renderGrid READ renderGrid WRITE setRenderGrid NOTIFY renderGridChanged FINAL)
-    Q_PROPERTY(bool renderEdges READ renderEdges WRITE setRenderEdges NOTIFY renderEdgesChanged FINAL)
-    Q_PROPERTY(bool renderNodes READ renderNodes WRITE setRenderNodes NOTIFY renderNodesChanged FINAL)
+    Q_PROPERTY(bool renderConnections READ renderConnections WRITE setRenderConnections NOTIFY renderConnectionsChanged FINAL)
+    Q_PROPERTY(bool renderComponents READ renderComponents WRITE setRenderComponents NOTIFY renderComponentsChanged FINAL)
 
     Q_PROPERTY(qreal baseGridStep READ baseGridStep WRITE setBaseGridStep NOTIFY baseGridStepChanged FINAL)
     Q_PROPERTY(qreal minGridPixelStep READ minGridPixelStep WRITE setMinGridPixelStep NOTIFY minGridPixelStepChanged FINAL)
     Q_PROPERTY(qreal maxGridPixelStep READ maxGridPixelStep WRITE setMaxGridPixelStep NOTIFY maxGridPixelStepChanged FINAL)
 
     Q_PROPERTY(QObject *selectedConnection READ selectedConnection WRITE setSelectedConnection NOTIFY selectedConnectionChanged FINAL)
+    Q_PROPERTY(QVariantList selectedConnectionIds READ selectedConnectionIds WRITE setSelectedConnectionIds NOTIFY selectedConnectionIdsChanged FINAL)
     Q_PROPERTY(QObject *selectedComponent READ selectedComponent WRITE setSelectedComponent NOTIFY selectedComponentChanged FINAL)
+    Q_PROPERTY(QVariantList selectedComponentIds READ selectedComponentIds WRITE setSelectedComponentIds NOTIFY selectedComponentIdsChanged FINAL)
     Q_PROPERTY(bool tempConnectionDragging READ tempConnectionDragging WRITE setTempConnectionDragging NOTIFY tempConnectionDraggingChanged FINAL)
     Q_PROPERTY(QPointF tempStart READ tempStart WRITE setTempStart NOTIFY tempStartChanged FINAL)
     Q_PROPERTY(QPointF tempEnd READ tempEnd WRITE setTempEnd NOTIFY tempEndChanged FINAL)
+
+    Q_PROPERTY(int interactionTransitionRejectCount READ interactionTransitionRejectCount NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal intentLatencyP50Ms READ intentLatencyP50Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal intentLatencyP95Ms READ intentLatencyP95Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(int intentLatencySampleCount READ intentLatencySampleCount NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal actionLatencyP50Ms READ actionLatencyP50Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(qreal actionLatencyP95Ms READ actionLatencyP95Ms NOTIFY interactionTelemetryChanged FINAL)
+    Q_PROPERTY(int actionLatencySampleCount READ actionLatencySampleCount NOTIFY interactionTelemetryChanged FINAL)
 
 public:
     explicit GraphViewportItem(QQuickItem *parent = nullptr);
@@ -65,11 +78,11 @@ public:
     bool renderGrid() const;
     void setRenderGrid(bool value);
 
-    bool renderEdges() const;
-    void setRenderEdges(bool value);
+    bool renderConnections() const;
+    void setRenderConnections(bool value);
 
-    bool renderNodes() const;
-    void setRenderNodes(bool value);
+    bool renderComponents() const;
+    void setRenderComponents(bool value);
 
     qreal baseGridStep() const;
     void setBaseGridStep(qreal value);
@@ -83,8 +96,14 @@ public:
     QObject *selectedConnection() const;
     void setSelectedConnection(QObject *value);
 
+    QVariantList selectedConnectionIds() const;
+    void setSelectedConnectionIds(const QVariantList &value);
+
     QObject *selectedComponent() const;
     void setSelectedComponent(QObject *value);
+
+    QVariantList selectedComponentIds() const;
+    void setSelectedComponentIds(const QVariantList &value);
 
     bool tempConnectionDragging() const;
     void setTempConnectionDragging(bool value);
@@ -121,6 +140,26 @@ public:
     Q_INVOKABLE int labelTextureCacheSize() const;
     Q_INVOKABLE qreal rendererMemoryEstimateMb() const;
 
+    // Route rebuild telemetry (edge geometry rebuild cost in ms).
+    Q_INVOKABLE qreal routeRebuildLastMs() const;
+    Q_INVOKABLE qreal routeRebuildP50Ms() const;
+    Q_INVOKABLE qreal routeRebuildP95Ms() const;
+    Q_INVOKABLE int routeRebuildSampleCount() const;
+
+    // Interaction telemetry hooks (driven from QML interaction coordinator).
+    Q_INVOKABLE void clearInteractionTelemetry();
+    Q_INVOKABLE void recordTransitionReject();
+    Q_INVOKABLE void recordIntentLatencySample(qreal ms);
+    Q_INVOKABLE void recordActionLatencySample(qreal ms);
+
+    int interactionTransitionRejectCount() const;
+    qreal intentLatencyP50Ms() const;
+    qreal intentLatencyP95Ms() const;
+    int intentLatencySampleCount() const;
+    qreal actionLatencyP50Ms() const;
+    qreal actionLatencyP95Ms() const;
+    int actionLatencySampleCount() const;
+
 protected:
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *updatePaintNodeData) override;
@@ -131,16 +170,19 @@ signals:
     void panYChanged();
     void zoomChanged();
     void renderGridChanged();
-    void renderEdgesChanged();
-    void renderNodesChanged();
+    void renderConnectionsChanged();
+    void renderComponentsChanged();
     void baseGridStepChanged();
     void minGridPixelStepChanged();
     void maxGridPixelStepChanged();
     void selectedConnectionChanged();
+    void selectedConnectionIdsChanged();
     void selectedComponentChanged();
+    void selectedComponentIdsChanged();
     void tempConnectionDraggingChanged();
     void tempStartChanged();
     void tempEndChanged();
+    void interactionTelemetryChanged();
 
 private:
     struct IndexedComponent {
@@ -150,18 +192,16 @@ private:
 
     struct IndexedConnection {
         QPointer<ConnectionModel> connection;
-        QPointF sourceWorld;
-        QPointF targetWorld;
+        QVector<QPointF> worldPolyline;
+        QVector<QRectF> segmentBounds;
         QRectF worldBounds;
     };
 
-    qreal normalizedGridStep() const;
-    static qreal positiveModulo(qreal value, qreal modulus);
     void requestGraphRebuild();
     void scheduleGraphRebuild();
     void executeScheduledGraphRebuild();
     void updateLodState();
-    void requestNodeRepaint();
+    void requestComponentRepaint();
 
     void markSpatialIndexDirty();
     void ensureSpatialIndex();
@@ -170,8 +210,8 @@ private:
     void clearConnectionGeometryConnections();
     QVector<int> visibleComponentIndices() const;
     QVector<IndexedComponent> visibleComponentsSnapshot() const;
-    void updateNodeGeometry();
-    void updateLabelNodes();
+    void updateComponentGeometry();
+    void updateLabelComponents();
     QString labelCacheKey(const ComponentModel *component) const;
     void clearLabelTexturesOnRenderThread();
 
@@ -180,11 +220,19 @@ private:
     static qreal distanceToSegmentSquared(const QPointF &point,
                                           const QPointF &a,
                                           const QPointF &b);
+    static qreal percentile(const QVector<qreal> &samples, qreal p);
+    void recordRouteRebuildSample(qreal ms);
+    static void recordLatencySample(QVector<qreal> &samples,
+                                    int maxSamples,
+                                    qreal ms,
+                                    std::atomic<qreal> &p50,
+                                    std::atomic<qreal> &p95,
+                                    std::atomic<int> &count);
 
     // Called from updatePaintNode (render thread during sync).
     void updateGridGeometry();
-    void updateEdgesGeometry();
-    void updateTempEdgeGeometry();
+    void updateConnectionsGeometry();
+    void updateTempConnectionGeometry();
 
     QObject *m_graph = nullptr;
     qreal m_panX = 0.0;
@@ -192,15 +240,19 @@ private:
     qreal m_zoom = 1.0;
 
     bool m_renderGrid = false;
-    bool m_renderEdges = false;
-    bool m_renderNodes = false;
+    bool m_renderConnections = false;
+    bool m_renderComponents = false;
 
     qreal m_baseGridStep = 30.0;
     qreal m_minGridPixelStep = 16.0;
     qreal m_maxGridPixelStep = 96.0;
 
     QObject *m_selectedConnection = nullptr;
+    QVariantList m_selectedConnectionIds;
+    QSet<QString> m_selectedConnectionIdSet;
     QObject *m_selectedComponent = nullptr;
+    QVariantList m_selectedComponentIds;
+    QSet<QString> m_selectedComponentIdSet;
     bool m_tempConnectionDragging = false;
     QPointF m_tempStart;
     QPointF m_tempEnd;
@@ -213,26 +265,28 @@ private:
     // Persistent scene-graph node cache (render-thread only).
     QSGNode          *m_rootNode              = nullptr;
     QSGGeometryNode  *m_gridGeomNode          = nullptr;
-    QSGNode          *m_nodesRootNode         = nullptr;
-    QSGTransformNode *m_nodesTransformNode    = nullptr;
-    QSGGeometryNode  *m_nodeFillGeomNode      = nullptr;
-    QSGGeometryNode  *m_nodeOutlineGeomNode   = nullptr;
-    QSGNode          *m_nodeLabelsRootNode    = nullptr;
-    QSGTransformNode *m_edgesTransformNode    = nullptr;
-    QSGGeometryNode  *m_normalEdgesGeomNode   = nullptr;
-    QSGGeometryNode  *m_selectedEdgesGeomNode = nullptr;
-    QSGGeometryNode  *m_tempEdgeGeomNode      = nullptr;
+    QSGNode          *m_componentsRootNode         = nullptr;
+    QSGTransformNode *m_componentsTransformNode    = nullptr;
+    QSGGeometryNode  *m_componentFillGeomNode      = nullptr;
+    QSGGeometryNode  *m_componentOutlineGeomNode   = nullptr;
+    QSGNode          *m_componentLabelsRootNode    = nullptr;
+    QSGTransformNode *m_connectionsTransformNode = nullptr;
+    QSGGeometryNode  *m_normalConnectionsGeomNode  = nullptr;
+    QSGGeometryNode  *m_selectedConnectionsGeomNode = nullptr;
+    QSGGeometryNode  *m_normalArrowsGeomNode  = nullptr;
+    QSGGeometryNode  *m_selectedArrowsGeomNode = nullptr;
+    QSGGeometryNode  *m_tempConnectionGeomNode      = nullptr;
 
     // Dirty flags: written on main thread, read on render thread (sync phase).
-    bool m_graphDirty  = true;   // edge/temp geometry must be rebuilt
+    bool m_graphDirty  = true;   // connection/temp geometry must be rebuilt
     bool m_cameraDirty = true;   // grid geometry + edge transform matrix must update
-    bool m_nodeDirty   = true;   // node fill/outline and label state must update
+    bool m_componentDirty   = true;   // component fill/outline and label state must update
     bool m_graphRebuildScheduled = false;
 
     // Phase 6 LOD flags (updated from camera zoom).
-    bool m_lodSimpleEdges = false;
-    bool m_lodHideNodeLabels = false;
-    bool m_lodHideNodeOutlines = false;
+    bool m_lodSimpleConnections = false;
+    bool m_lodHideComponentLabels = false;
+    bool m_lodHideComponentOutlines = false;
 
     // Spatial index (main thread only; used by QML hit-test invokables).
     bool m_spatialIndexDirty = true;
@@ -248,6 +302,26 @@ private:
     bool m_labelCachePurgeRequested = false;
     std::atomic<int> m_labelTextureCacheCount{0};
     std::atomic<qint64> m_labelTextureCacheBytes{0};
+
+    QVector<qreal> m_routeRebuildSamples;
+    int m_routeRebuildMaxSamples = 2000;
+    std::atomic<qreal> m_routeRebuildLastMs{0.0};
+    std::atomic<qreal> m_routeRebuildP50Ms{0.0};
+    std::atomic<qreal> m_routeRebuildP95Ms{0.0};
+    std::atomic<int> m_routeRebuildSampleCount{0};
+
+    std::atomic<int> m_interactionTransitionRejectCount{0};
+    QVector<qreal> m_intentLatencySamples;
+    int m_intentLatencyMaxSamples = 2000;
+    std::atomic<qreal> m_intentLatencyP50Ms{0.0};
+    std::atomic<qreal> m_intentLatencyP95Ms{0.0};
+    std::atomic<int> m_intentLatencySampleCount{0};
+    QVector<qreal> m_actionLatencySamples;
+    int m_actionLatencyMaxSamples = 2000;
+    std::atomic<qreal> m_actionLatencyP50Ms{0.0};
+    std::atomic<qreal> m_actionLatencyP95Ms{0.0};
+    std::atomic<int> m_actionLatencySampleCount{0};
+    std::unique_ptr<RoutingEngine> m_routingEngine;
 };
 
 #endif // GRAPHVIEWPORTITEM_H

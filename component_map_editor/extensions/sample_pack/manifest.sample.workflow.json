@@ -1,0 +1,19 @@
+{
+  "extensionId": "sample.workflow",
+  "displayName": "Sample Workflow Pack",
+  "extensionVersion": "1.0.0",
+  "minCoreApi": "1.0.0",
+  "maxCoreApi": "1.99.99",
+  "capabilities": [
+    "componentTypes",
+    "connectionPolicy",
+    "propertySchema",
+    "validation",
+    "actions"
+  ],
+  "dependencies": [],
+  "metadata": {
+    "owner": "component_map_editor",
+    "purpose": "phase2_manifest_registry_sample"
+  }
+}

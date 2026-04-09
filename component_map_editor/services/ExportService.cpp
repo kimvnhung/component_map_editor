@@ -1,5 +1,8 @@
 #include "ExportService.h"
 
+#include "GraphJsonMigration.h"
+#include "GraphSchema.h"
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -14,37 +17,20 @@ QString ExportService::exportToJson(GraphModel *graph)
         return QStringLiteral("{}");
 
     QJsonArray componentsArray;
-    for (const ComponentModel *component : graph->componentList()) {
-        QJsonObject obj;
-        obj[QStringLiteral("id")]    = component->id();
-        obj[QStringLiteral("label")] = component->label();
-        obj[QStringLiteral("x")]     = component->x();
-        obj[QStringLiteral("y")]     = component->y();
-        obj[QStringLiteral("width")] = component->width();
-        obj[QStringLiteral("height")] = component->height();
-        obj[QStringLiteral("shape")] = component->shape();
-        obj[QStringLiteral("color")] = component->color();
-        obj[QStringLiteral("type")]  = component->type();
-        componentsArray.append(obj);
-    }
+    for (const ComponentModel *component : graph->componentList())
+        componentsArray.append(GraphSchema::componentToJson(component));
 
     QJsonArray connectionsArray;
-    for (const ConnectionModel *connection : graph->connectionList()) {
-        QJsonObject obj;
-        obj[QStringLiteral("id")]       = connection->id();
-        obj[QStringLiteral("sourceId")] = connection->sourceId();
-        obj[QStringLiteral("targetId")] = connection->targetId();
-        obj[QStringLiteral("label")]    = connection->label();
-        connectionsArray.append(obj);
-    }
+    for (const ConnectionModel *connection : graph->connectionList())
+        connectionsArray.append(GraphSchema::connectionToJson(connection));
 
     QJsonObject root;
     // Geometry contract v3:
     // - component x/y represent center points in world coordinates.
     // - world uses Y-down, matching QML item coordinates.
-    root[QStringLiteral("coordinateSystem")] = QStringLiteral("world-center-y-down-v3");
-    root[QStringLiteral("components")] = componentsArray;
-    root[QStringLiteral("connections")] = connectionsArray;
+    root[GraphSchema::Keys::coordinateSystem()] = GraphSchema::CoordinateSystem::current();
+    root[GraphSchema::Keys::components()] = componentsArray;
+    root[GraphSchema::Keys::connections()] = connectionsArray;
 
     return QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Indented));
 }
@@ -59,58 +45,23 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
     if (err.error != QJsonParseError::NoError || !doc.isObject())
         return false;
 
-    const QJsonObject root = doc.object();
-    const QString coordinateSystem = root[QStringLiteral("coordinateSystem")].toString();
-    const bool isV3CenterYDown = coordinateSystem == QStringLiteral("world-center-y-down-v3");
-    const bool isV2TopLeftYDown = coordinateSystem == QStringLiteral("world-top-left-y-down-v2");
+    const GraphJsonMigration::CanonicalDocument canonical =
+        GraphJsonMigration::migrateToCurrentSchema(doc.object());
 
     graph->clear();
+    graph->beginBatchUpdate();
 
-    const QJsonArray components = root[QStringLiteral("components")].toArray();
-    for (const QJsonValue &v : components) {
-        const QJsonObject obj = v.toObject();
-
-        qreal width = obj[QStringLiteral("width")].toDouble(120.0);
-        qreal height = obj[QStringLiteral("height")].toDouble(40.0);
-        qreal x = obj[QStringLiteral("x")].toDouble();
-        qreal y = obj[QStringLiteral("y")].toDouble();
-
-        // Coordinate system compatibility:
-        // - v3 stores center coordinates with Y-down: use as-is.
-        // - v2 stores top-left coordinates with Y-down: convert to center.
-        // - legacy files store center coordinates with Y-up: flip Y only.
-        if (isV2TopLeftYDown) {
-            x = x + width / 2.0;
-            y = y + height / 2.0;
-        } else if (!isV3CenterYDown) {
-            y = -y;
-        }
-
-        auto *component = new ComponentModel(
-            obj[QStringLiteral("id")].toString(),
-            obj[QStringLiteral("label")].toString(),
-            x,
-            y,
-            obj[QStringLiteral("color")].toString(QStringLiteral("#4fc3f7")),
-            obj[QStringLiteral("type")].toString(QStringLiteral("default")));
-
-        component->setWidth(width);
-        component->setHeight(height);
-        component->setShape(obj[QStringLiteral("shape")].toString(QStringLiteral("rounded")));
-
+    for (const QJsonValue &v : canonical.components) {
+        auto *component = GraphSchema::componentFromCanonicalJson(v.toObject());
         graph->addComponent(component);
     }
 
-    const QJsonArray connections = root[QStringLiteral("connections")].toArray();
-    for (const QJsonValue &v : connections) {
-        const QJsonObject obj = v.toObject();
-        auto *connection = new ConnectionModel(
-            obj[QStringLiteral("id")].toString(),
-            obj[QStringLiteral("sourceId")].toString(),
-            obj[QStringLiteral("targetId")].toString(),
-            obj[QStringLiteral("label")].toString());
+    for (const QJsonValue &v : canonical.connections) {
+        auto *connection = GraphSchema::connectionFromCanonicalJson(v.toObject());
         graph->addConnection(connection);
     }
+
+    graph->endBatchUpdate();
 
     return true;
 }

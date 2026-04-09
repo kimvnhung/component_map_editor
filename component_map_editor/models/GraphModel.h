@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QList>
 #include <QVariantList>
+#include <QHash>
 
 #include "ComponentModel.h"
 #include "ConnectionModel.h"
@@ -55,8 +56,28 @@ signals:
     void connectionsChanged();
 
 private:
+    ComponentModel *firstComponentByIdLinear(const QString &id) const;
+    ConnectionModel *firstConnectionByIdLinear(const QString &id) const;
+    void attachComponent(ComponentModel *component);
+    void detachComponent(ComponentModel *component);
+    void attachConnection(ConnectionModel *connection);
+    void detachConnection(ConnectionModel *connection);
+
+    void onTrackedComponentIdChanged(ComponentModel *component);
+    void onTrackedConnectionIdChanged(ConnectionModel *connection);
+
+#ifdef QT_DEBUG
+    bool verifyComponentIndexIntegrity() const;
+    bool verifyConnectionIndexIntegrity() const;
+    void assertIndexIntegrity() const;
+#endif
+
     QList<ComponentModel *> m_components;
     QList<ConnectionModel *> m_connections;
+    QHash<QString, ComponentModel *> m_componentIndex;
+    QHash<QString, ConnectionModel *> m_connectionIndex;
+    QHash<ComponentModel *, QString> m_componentTrackedIds;
+    QHash<ConnectionModel *, QString> m_connectionTrackedIds;
     bool m_batchMode = false;
 };
 

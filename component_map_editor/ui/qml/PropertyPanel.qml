@@ -1,5 +1,4 @@
-// PropertyPanel.qml — Shows and edits properties of the currently selected
-// component or connection.
+// PropertyPanel.qml — schema-driven inspector for selected component/connection.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -8,15 +7,130 @@ import ComponentMapEditor
 Rectangle {
     id: root
 
+    property GraphModel graph: null
     property ComponentModel component: null
     property ConnectionModel connection: null
+    property UndoStack undoStack: null
+    property var executionStateSnapshot: ({})
+    property TokenKeyCatalog tokenKeyCatalog: null
+
+    // Unified entry point. Callers can set this to either a ComponentModel,
+    // a ConnectionModel, or null. The handler dispatches to component/connection
+    // using duck-typing: ConnectionModel is identified by having a sourceId
+    // property while ComponentModel does not.
+    property var item: null
+
+    onItemChanged: {
+        if (!item) {
+            root.component = null
+            root.connection = null
+        } else if (item.sourceId !== undefined) {
+            root.connection = item
+            root.component = null
+        } else {
+            root.component = item
+            root.connection = null
+        }
+    }
+    property PropertySchemaRegistry propertySchemaRegistry: null
+    readonly property PropertySchemaRegistry effectiveSchemaRegistry:
+        root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
+    readonly property TokenKeyCatalog effectiveTokenKeyCatalog:
+        root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
+
+    readonly property var connectionSideModel: [
+        { text: "Auto", value: ConnectionModel.SideAuto },
+        { text: "Top", value: ConnectionModel.SideTop },
+        { text: "Right", value: ConnectionModel.SideRight },
+        { text: "Bottom", value: ConnectionModel.SideBottom },
+        { text: "Left", value: ConnectionModel.SideLeft }
+    ]
+
+    readonly property string componentTarget: {
+        if (!root.component)
+            return ""
+        var typeId = root.component.type || "default"
+        return "component/" + typeId
+    }
+
+    readonly property string connectionTarget: {
+        if (!root.connection)
+            return ""
+        return "connection/flow"
+    }
+
+    readonly property var activeSchemaSections: root.component !== null
+        ? root.sectionsForTarget(root.componentTarget)
+        : root.sectionsForTarget(root.connectionTarget)
+
+    readonly property var activeSchemaSectionModel: {
+        if (!root.effectiveSchemaRegistry)
+            return null
+        var targetId = root.component !== null ? root.componentTarget : root.connectionTarget
+        if (!targetId || !targetId.length)
+            return null
+        return root.effectiveSchemaRegistry.typedSectionModelForTarget(targetId)
+    }
+
+    readonly property var dynamicFieldOptions: ({
+        "tokenKeys": root.effectiveTokenKeyCatalog
+            ? root.effectiveTokenKeyCatalog.tokenKeys
+            : [],
+        "tokenKeyOptions": root.effectiveTokenKeyCatalog
+            ? root.effectiveTokenKeyCatalog.tokenKeyOptions
+            : []
+    })
+
+    function updateComponentProperty(propertyName, value) {
+        if (!root.component || !root.undoStack || !propertyName)
+            return
+        root.undoStack.pushSetComponentProperty(root.component, propertyName, value)
+    }
+
+    function updateConnectionProperty(propertyName, value) {
+        if (!root.connection || !root.undoStack || !propertyName)
+            return
+
+        if (propertyName === "sourceSide") {
+            root.undoStack.pushSetConnectionSides(root.connection, value, root.connection.targetSide)
+            return
+        }
+
+        if (propertyName === "targetSide") {
+            root.undoStack.pushSetConnectionSides(root.connection, root.connection.sourceSide, value)
+            return
+        }
+
+        root.undoStack.pushSetConnectionProperty(root.connection, propertyName, value)
+    }
+
+    function sectionsForTarget(targetId) {
+        if (root.effectiveSchemaRegistry)
+            return root.effectiveSchemaRegistry.sectionedSchemaForTarget(targetId)
+        return []
+    }
+
+    PropertySchemaRegistry {
+        id: fallbackSchemaRegistry
+    }
+
+    TokenKeyCatalog {
+        id: fallbackTokenKeyCatalog
+        graph: root.graph
+        executionStateSnapshot: root.executionStateSnapshot
+        schemaSections: root.activeSchemaSections
+        targetComponentId: root.component ? root.component.id : ""
+    }
 
     color: "#ffffff"
     border.color: "#e0e0e0"
     border.width: 1
 
     ColumnLayout {
-        anchors { fill: parent; margins: 10 }
+        anchors {
+            fill: parent
+            margins: 10
+        }
         spacing: 8
 
         Label {
@@ -28,141 +142,32 @@ Rectangle {
             bottomPadding: 4
         }
 
-        // ---------- Component properties ----------
         Loader {
-            active: root.component !== null
+            active: root.component !== null || root.connection !== null
             Layout.fillWidth: true
-            sourceComponent: componentProps
+            sourceComponent: unifiedInspector
         }
 
         Component {
-            id: componentProps
+            id: unifiedInspector
 
-            ColumnLayout {
-                spacing: 6
+            SchemaFormRenderer {
                 width: parent ? parent.width : 0
-
-                Label { text: "Component"; font.bold: true; font.pixelSize: 11; color: "#888" }
-
-                Label { text: "ID" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.id : ""
-                    onEditingFinished: if (root.component) root.component.id = text
-                }
-
-                Label { text: "Label" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.label : ""
-                    onEditingFinished: if (root.component) root.component.label = text
-                }
-
-                Label { text: "Color" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.color : ""
-                    onEditingFinished: if (root.component) root.component.color = text
-                }
-
-                Label { text: "Type" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.component ? root.component.type : ""
-                    onEditingFinished: if (root.component) root.component.type = text
-                }
-
-                Label { text: "Shape" }
-                ComboBox {
-                    Layout.fillWidth: true
-                    model: ["rounded", "rectangle"]
-                    currentIndex: root.component && root.component.shape === "rectangle" ? 1 : 0
-                    onActivated: function(index) {
-                        if (root.component) root.component.shape = model[index]
-                    }
-                }
-
-                Label { text: "X" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: -9999; to: 9999
-                    value: root.component ? Math.round(root.component.x) : 0
-                    onValueModified: if (root.component) root.component.x = value
-                }
-
-                Label { text: "Y" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: -9999; to: 9999
-                    value: root.component ? Math.round(root.component.y) : 0
-                    onValueModified: if (root.component) root.component.y = value
-                }
-
-                Label { text: "Width" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: 10; to: 9999
-                    value: root.component ? Math.round(root.component.width) : 120
-                    onValueModified: if (root.component) root.component.width = value
-                }
-
-                Label { text: "Height" }
-                SpinBox {
-                    Layout.fillWidth: true
-                    from: 10; to: 9999
-                    value: root.component ? Math.round(root.component.height) : 40
-                    onValueModified: if (root.component) root.component.height = value
+                schemaSections: root.activeSchemaSections
+                schemaSectionModel: root.activeSchemaSectionModel
+                modelObject: root.component !== null ? root.component : root.connection
+                readOnly: root.undoStack === null
+                sideModel: root.connectionSideModel
+                dynamicOptions: root.dynamicFieldOptions
+                onPropertyEditRequested: function(propertyName, value) {
+                    if (root.component !== null)
+                        root.updateComponentProperty(propertyName, value)
+                    else
+                        root.updateConnectionProperty(propertyName, value)
                 }
             }
         }
 
-        // ---------- Connection properties ----------
-        Loader {
-            active: root.connection !== null
-            Layout.fillWidth: true
-            sourceComponent: connectionProps
-        }
-
-        Component {
-            id: connectionProps
-
-            ColumnLayout {
-                spacing: 6
-                width: parent ? parent.width : 0
-
-                Label { text: "Connection"; font.bold: true; font.pixelSize: 11; color: "#888" }
-
-                Label { text: "ID" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.id : ""
-                    onEditingFinished: if (root.connection) root.connection.id = text
-                }
-
-                Label { text: "Source" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.sourceId : ""
-                    onEditingFinished: if (root.connection) root.connection.sourceId = text
-                }
-
-                Label { text: "Target" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.targetId : ""
-                    onEditingFinished: if (root.connection) root.connection.targetId = text
-                }
-
-                Label { text: "Label" }
-                TextField {
-                    Layout.fillWidth: true
-                    text: root.connection ? root.connection.label : ""
-                    onEditingFinished: if (root.connection) root.connection.label = text
-                }
-            }
-        }
-
-        // Placeholder when nothing is selected
         Label {
             visible: root.component === null && root.connection === null
             text: "Select a component or connection\nto view its properties."
@@ -171,6 +176,15 @@ Rectangle {
             font.pixelSize: 12
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
+        }
+
+        Label {
+            visible: (root.component !== null || root.connection !== null) && root.undoStack === null
+            text: "Inspector is read-only because UndoStack is not available."
+            color: "#b26a00"
+            font.pixelSize: 11
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
 
         Item { Layout.fillHeight: true }
