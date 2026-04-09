@@ -40,6 +40,7 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         Qt6::Core
         Qt6::Quick
+        cme_proto
     QmlFontAwesome::QmlFontAwesome
 )
 
@@ -55,4 +56,6 @@ endforeach()
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_BINARY_DIR}/proto
 )

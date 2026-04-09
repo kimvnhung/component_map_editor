@@ -2,6 +2,7 @@
 
 #include <QJsonDocument>
 
+#include "extensions/sample_pack/SampleValidationProvider.h"
 #include "ExportService.h"
 #include "ValidationService.h"
 
@@ -26,7 +27,10 @@ private slots:
     void roundTripIsStable();
     void importsLegacyTopLeftV2();
     void importsLegacyYUpWithoutCoordinateSystem();
+    void componentModelAcceptsDynamicProperties();
     void validationCatchesExpectedSchemaErrors();
+    void validationRequiresExactlyOneStartAndStop();
+    void validationRejectsDisconnectedWorkflow();
 };
 
 void PersistenceValidationTests::roundTripIsStable()
@@ -60,6 +64,7 @@ void PersistenceValidationTests::roundTripIsStable()
                                            QStringLiteral("A"),
                                            QStringLiteral("B"),
                                            QStringLiteral("main"));
+    connection->setTokenKey(QStringLiteral("tok.A.B"));
     connection->setSourceSide(ConnectionModel::SideRight);
     connection->setTargetSide(ConnectionModel::SideLeft);
     source.addConnection(connection);
@@ -69,6 +74,10 @@ void PersistenceValidationTests::roundTripIsStable()
 
     GraphModel imported;
     QVERIFY(persistence.importFromJson(&imported, jsonBefore));
+
+    ConnectionModel *importedConnection = imported.connectionById(QStringLiteral("E1"));
+    QVERIFY(importedConnection != nullptr);
+    QCOMPARE(importedConnection->tokenKey(), QStringLiteral("tok.A.B"));
 
     const QString jsonAfter = persistence.exportToJson(&imported);
     const QByteArray canonicalBefore = QJsonDocument::fromJson(jsonBefore.toUtf8())
@@ -135,13 +144,23 @@ void PersistenceValidationTests::importsLegacyYUpWithoutCoordinateSystem()
     QCOMPARE(component->y(), -30.0);
 }
 
+void PersistenceValidationTests::componentModelAcceptsDynamicProperties()
+{
+    ComponentModel component;
+    component.setDynamicProperty(QStringLiteral("inputNumber"), 12);
+    component.setDynamicProperty(QStringLiteral("addValue"), 9);
+
+    QCOMPARE(component.dynamicPropertyValue(QStringLiteral("inputNumber")).toInt(), 12);
+    QCOMPARE(component.dynamicPropertyValue(QStringLiteral("addValue")).toInt(), 9);
+}
+
 void PersistenceValidationTests::validationCatchesExpectedSchemaErrors()
 {
     GraphModel graph;
     graph.beginBatchUpdate();
 
     auto *componentA = new ComponentModel(QStringLiteral("A"),
-                                          QStringLiteral("NodeA"),
+                                          QStringLiteral("ComponentA"),
                                           0.0,
                                           0.0);
     graph.addComponent(componentA);
@@ -161,13 +180,116 @@ void PersistenceValidationTests::validationCatchesExpectedSchemaErrors()
     graph.addConnection(connection);
     graph.endBatchUpdate();
 
+    SampleValidationProvider provider;
     ValidationService validation;
+    validation.setValidationProviders({ &provider });
     const QStringList errors = validation.validationErrors(&graph);
 
     QVERIFY(containsFragment(errors, QStringLiteral("Duplicate component id: A")));
     QVERIFY(containsFragment(errors, QStringLiteral("references unknown target component 'MissingTarget'")));
     QVERIFY(containsFragment(errors, QStringLiteral("invalid sourceSide value 99")));
     QVERIFY(containsFragment(errors, QStringLiteral("invalid targetSide value 99")));
+}
+
+void PersistenceValidationTests::validationRequiresExactlyOneStartAndStop()
+{
+    GraphModel graph;
+
+    auto *processOnly = new ComponentModel(QStringLiteral("P1"),
+                                           QStringLiteral("Process"),
+                                           0.0,
+                                           0.0,
+                                           QStringLiteral("#4fc3f7"),
+                                           QStringLiteral("process"));
+    graph.addComponent(processOnly);
+
+    SampleValidationProvider provider;
+    ValidationService validation;
+    validation.setValidationProviders({ &provider });
+    const QStringList missingErrors = validation.validationErrors(&graph);
+    QVERIFY(containsFragment(missingErrors,
+                             QStringLiteral("exactly one start component (found 0)")));
+    QVERIFY(containsFragment(missingErrors,
+                             QStringLiteral("exactly one stop component (found 0)")));
+
+    auto *startA = new ComponentModel(QStringLiteral("S1"),
+                                      QStringLiteral("Start A"),
+                                      10.0,
+                                      10.0,
+                                      QStringLiteral("#66bb6a"),
+                                      QStringLiteral("start"));
+    auto *startB = new ComponentModel(QStringLiteral("S2"),
+                                      QStringLiteral("Start B"),
+                                      20.0,
+                                      20.0,
+                                      QStringLiteral("#66bb6a"),
+                                      QStringLiteral("start"));
+    auto *stop = new ComponentModel(QStringLiteral("T1"),
+                                    QStringLiteral("Stop"),
+                                    30.0,
+                                    30.0,
+                                    QStringLiteral("#ef5350"),
+                                    QStringLiteral("stop"));
+    graph.addComponent(startA);
+    graph.addComponent(startB);
+    graph.addComponent(stop);
+
+    const QStringList duplicateStartErrors = validation.validationErrors(&graph);
+    QVERIFY(containsFragment(duplicateStartErrors,
+                             QStringLiteral("exactly one start component (found 2)")));
+}
+
+void PersistenceValidationTests::validationRejectsDisconnectedWorkflow()
+{
+    GraphModel graph;
+
+    auto *start = new ComponentModel(QStringLiteral("S1"),
+                                     QStringLiteral("Start"),
+                                     0.0,
+                                     0.0,
+                                     QStringLiteral("#66bb6a"),
+                                     QStringLiteral("start"));
+    auto *stop = new ComponentModel(QStringLiteral("T1"),
+                                    QStringLiteral("Stop"),
+                                    100.0,
+                                    0.0,
+                                    QStringLiteral("#ef5350"),
+                                    QStringLiteral("stop"));
+    graph.addComponent(start);
+    graph.addComponent(stop);
+
+    SampleValidationProvider provider;
+    ValidationService validation;
+    validation.setValidationProviders({ &provider });
+    const QStringList disconnectedErrors = validation.validationErrors(&graph);
+    QVERIFY(containsFragment(disconnectedErrors,
+                             QStringLiteral("Start component 'S1' must have at least one outgoing connection")));
+    QVERIFY(containsFragment(disconnectedErrors,
+                             QStringLiteral("Stop component 'T1' must have at least one incoming connection")));
+    QVERIFY(containsFragment(disconnectedErrors,
+                             QStringLiteral("Component 'T1' is not reachable from start component 'S1'")));
+
+    auto *process = new ComponentModel(QStringLiteral("P1"),
+                                       QStringLiteral("Process"),
+                                       50.0,
+                                       50.0,
+                                       QStringLiteral("#4fc3f7"),
+                                       QStringLiteral("process"));
+    graph.addComponent(process);
+
+    auto *startToStop = new ConnectionModel(QStringLiteral("C1"),
+                                            QStringLiteral("S1"),
+                                            QStringLiteral("T1"),
+                                            QStringLiteral("flow"));
+    graph.addConnection(startToStop);
+
+    const QStringList unreachableErrors = validation.validationErrors(&graph);
+    QVERIFY(containsFragment(unreachableErrors,
+                             QStringLiteral("Component 'P1' must have at least one incoming connection")));
+    QVERIFY(containsFragment(unreachableErrors,
+                             QStringLiteral("Component 'P1' must have at least one outgoing connection")));
+    QVERIFY(containsFragment(unreachableErrors,
+                             QStringLiteral("Component 'P1' is not reachable from start component 'S1'")));
 }
 
 QTEST_MAIN(PersistenceValidationTests)

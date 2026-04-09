@@ -6,6 +6,7 @@
 #include "models/GraphModel.h"
 #include "services/CapabilityRegistry.h"
 #include "services/CommandGateway.h"
+#include "services/GraphEditorController.h"
 #include "services/InvariantChecker.h"
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
@@ -103,6 +104,13 @@ private slots:
     void blockedRequestLeavesGraphAndUndoStackUnchanged();
     void successfulCommandIsUndoable();
     void rollbackAfterInvariantViolationRestoresExactState();
+
+    // ── UI-actor strict mode (PR5) ────────────────────────────────────────
+    void uiActorStrictModeBlocksPreCheckViolation();
+    void uiActorStrictModeRollsBackPostViolation();
+    void uiActorStrictModeAllowsValidMutation();
+    void uiActorNonStrictModeBypassesInvariantChecker();
+    void uiActorStrictModeEmitsRollbackSignalOnViolation();
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -471,6 +479,190 @@ void tst_SecurityGuardrails::rollbackAfterInvariantViolationRestoresExactState()
     // Undo stack must be back to exactly what it was before the failed attempt.
     QCOMPARE(f.undo->count(), undoCountBefore);
     QVERIFY(!f.undo->canRedo());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  UI-actor strict mode  (PR5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// Minimal fixture for GraphEditorController strict-mode tests.
+// No CapabilityRegistry needed — the UI actor owns the graph unconditionally.
+struct ControllerFixture {
+    GraphModel            *graph;
+    UndoStack             *undo;
+    InvariantChecker      *invariants;
+    GraphEditorController *controller;
+
+    explicit ControllerFixture(QObject *parent = nullptr)
+    {
+        graph      = new GraphModel(parent);
+        undo       = new UndoStack(parent);
+        invariants = new InvariantChecker(parent);
+        controller = new GraphEditorController(parent);
+
+        controller->setGraph(graph);
+        controller->setUndoStack(undo);
+        controller->setInvariantChecker(invariants);
+    }
+};
+
+} // namespace
+
+// Pre-check fires → mutation is never executed; undo stack unchanged.
+void tst_SecurityGuardrails::uiActorStrictModeBlocksPreCheckViolation()
+{
+    QObject root;
+    ControllerFixture f(&root);
+
+    // Invariant that already fails before any mutation.
+    f.invariants->registerInvariant(
+        QStringLiteral("always-fail"),
+        [](const GraphModel *, QString *msg) -> bool {
+            if (msg) *msg = QStringLiteral("pre-existing violation");
+            return false;
+        });
+
+    f.controller->setStrictMode(true);
+
+    const int undoBefore = f.undo->count();
+    const QString id = f.controller->createPaletteComponent(
+        QStringLiteral("process"), QStringLiteral("Node"), {}, {}, 0.0, 0.0, 96.0, 96.0);
+
+    QVERIFY2(id.isEmpty(), "Pre-check violation must block the mutation");
+    QCOMPARE(f.graph->componentCount(), 0);
+    QCOMPARE(f.undo->count(), undoBefore);
+}
+
+// Post-check fires → command is rolled back; graph restored to pre-command state.
+void tst_SecurityGuardrails::uiActorStrictModeRollsBackPostViolation()
+{
+    QObject root;
+    ControllerFixture f(&root);
+
+    // Invariant: no component may have typeId == "forbidden".
+    f.invariants->registerInvariant(
+        QStringLiteral("no-forbidden-type"),
+        [](const GraphModel *graph, QString *msg) -> bool {
+            for (ComponentModel *comp : graph->componentList()) {
+                if (comp->type() == QStringLiteral("forbidden")) {
+                    if (msg)
+                        *msg = QStringLiteral("component '%1' has forbidden type").arg(comp->id());
+                    return false;
+                }
+            }
+            return true;
+        });
+
+    f.controller->setStrictMode(true);
+
+    const int undoBefore = f.undo->count();
+    const QString id = f.controller->createPaletteComponent(
+        QStringLiteral("forbidden"), QStringLiteral("Bad"), {}, {}, 0.0, 0.0, 96.0, 96.0);
+
+    QVERIFY2(id.isEmpty(), "Post-check violation must roll back and return empty");
+    QCOMPARE(f.graph->componentCount(), 0);
+    // Undo stack must be clean — the rolled-back command is discarded.
+    QCOMPARE(f.undo->count(), undoBefore);
+    QVERIFY(!f.undo->canRedo());
+}
+
+// Valid mutation in strict mode — no invariant violations — succeeds normally.
+void tst_SecurityGuardrails::uiActorStrictModeAllowsValidMutation()
+{
+    QObject root;
+    ControllerFixture f(&root);
+
+    // Register a passing invariant to confirm the check itself runs.
+    f.invariants->registerInvariant(
+        QStringLiteral("max-10-components"),
+        [](const GraphModel *graph, QString *msg) -> bool {
+            if (graph->componentCount() > 10) {
+                if (msg) *msg = QStringLiteral("too many components");
+                return false;
+            }
+            return true;
+        });
+
+    f.controller->setStrictMode(true);
+
+    const QString id = f.controller->createPaletteComponent(
+        QStringLiteral("process"), QStringLiteral("Node"), {}, {}, 10.0, 20.0, 96.0, 96.0);
+
+    QVERIFY2(!id.isEmpty(), "Valid mutation must succeed in strict mode");
+    QCOMPARE(f.graph->componentCount(), 1);
+    QVERIFY(f.undo->canUndo());
+    // Undo must remove the component.
+    f.undo->undo();
+    QCOMPARE(f.graph->componentCount(), 0);
+}
+
+// Non-strict mode (default): invariant checker is present but ignored.
+void tst_SecurityGuardrails::uiActorNonStrictModeBypassesInvariantChecker()
+{
+    QObject root;
+    ControllerFixture f(&root);
+
+    // Always-failing invariant — would block every mutation in strict mode.
+    f.invariants->registerInvariant(
+        QStringLiteral("always-fail"),
+        [](const GraphModel *, QString *msg) -> bool {
+            if (msg) *msg = QStringLiteral("always fails");
+            return false;
+        });
+
+    // strictMode is false by default — mutations must go through unchecked.
+    QVERIFY(!f.controller->strictMode());
+
+    const QString id = f.controller->createPaletteComponent(
+        QStringLiteral("process"), QStringLiteral("Node"), {}, {}, 0.0, 0.0, 96.0, 96.0);
+
+    QVERIFY2(!id.isEmpty(), "Non-strict mode must bypass the invariant checker");
+    QCOMPARE(f.graph->componentCount(), 1);
+}
+
+// invariantViolationRolledBack signal is emitted on post-check rollback.
+void tst_SecurityGuardrails::uiActorStrictModeEmitsRollbackSignalOnViolation()
+{
+    QObject root;
+    ControllerFixture f(&root);
+
+    f.invariants->registerInvariant(
+        QStringLiteral("no-forbidden-type"),
+        [](const GraphModel *graph, QString *msg) -> bool {
+            for (ComponentModel *comp : graph->componentList()) {
+                if (comp->type() == QStringLiteral("forbidden")) {
+                    if (msg) *msg = QStringLiteral("forbidden type detected");
+                    return false;
+                }
+            }
+            return true;
+        });
+
+    f.controller->setStrictMode(true);
+
+    QString capturedOpType;
+    QString capturedViolation;
+    QObject::connect(f.controller, &GraphEditorController::invariantViolationRolledBack,
+                     &root, [&](const QString &opType, const QString &violation) {
+                         capturedOpType   = opType;
+                         capturedViolation = violation;
+                     });
+
+    bool mutationBlockedEmitted = false;
+    QObject::connect(f.controller, &GraphEditorController::mutationBlocked,
+                     &root, [&](const QString &, const QString &) {
+                         mutationBlockedEmitted = true;
+                     });
+
+    f.controller->createPaletteComponent(
+        QStringLiteral("forbidden"), QStringLiteral("Bad"), {}, {}, 0.0, 0.0, 96.0, 96.0);
+
+    QVERIFY2(!capturedOpType.isEmpty(),   "invariantViolationRolledBack must be emitted");
+    QCOMPARE(capturedOpType, QStringLiteral("createPaletteComponent"));
+    QVERIFY2(!capturedViolation.isEmpty(), "Violation message must be non-empty");
+    QVERIFY2(mutationBlockedEmitted,       "mutationBlocked must also be emitted");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

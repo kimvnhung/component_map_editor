@@ -17,6 +17,26 @@ ComponentModel::ComponentModel(const QString &id, const QString &title,
     , m_type(type)
 {}
 
+bool ComponentModel::setDynamicProperty(const QString &name, const QVariant &value)
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return false;
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::setProperty(utf8Name.constData(), value);
+}
+
+QVariant ComponentModel::dynamicPropertyValue(const QString &name) const
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return {};
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::property(utf8Name.constData());
+}
+
 QString ComponentModel::id() const { return m_id; }
 void ComponentModel::setId(const QString &id)
 {

@@ -18,25 +18,24 @@ public:
         return QStringLiteral("compiled.rules.connectionPolicy");
     }
 
-    bool canConnect(const QString &sourceTypeId,
-                    const QString &targetTypeId,
-                    const QVariantMap & /*context*/,
+    bool canConnect(const cme::ConnectionPolicyContext &context,
                     QString *reason) const override
     {
         if (!m_registry)
             return true;
+
+        const QString sourceTypeId = QString::fromStdString(context.source_type_id());
+        const QString targetTypeId = QString::fromStdString(context.target_type_id());
 
         RuleRuntimeEngine engine;
         engine.setDescriptor(&m_registry->descriptor());
         return engine.canConnect(sourceTypeId, targetTypeId, reason);
     }
 
-    QVariantMap normalizeConnectionProperties(const QString &sourceTypeId,
-                                              const QString &targetTypeId,
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
                                               const QVariantMap &rawProperties) const override
     {
-        Q_UNUSED(sourceTypeId)
-        Q_UNUSED(targetTypeId)
+        Q_UNUSED(context)
 
         if (!m_registry)
             return rawProperties;
@@ -68,14 +67,55 @@ public:
         return QStringLiteral("compiled.rules.validation");
     }
 
-    QVariantList validateGraph(const QVariantMap &graphSnapshot) const override
+    bool validateGraph(const cme::GraphSnapshot &graphSnapshot,
+                       cme::GraphValidationResult *outResult,
+                       QString *error) const override
     {
-        if (!m_registry)
-            return {};
+        if (!outResult) {
+            if (error)
+                *error = QStringLiteral("outResult is null");
+            return false;
+        }
+
+        outResult->Clear();
+        if (!m_registry) {
+            outResult->set_is_valid(true);
+            return true;
+        }
+
+        const QVariantMap graphSnapshotMap =
+            cme::adapter::graphSnapshotForValidationToVariantMap(graphSnapshot);
 
         RuleRuntimeEngine engine;
         engine.setDescriptor(&m_registry->descriptor());
-        return engine.validateGraph(graphSnapshot);
+        const QVariantList issues = engine.validateGraph(graphSnapshotMap);
+
+        bool hasError = false;
+        for (const QVariant &issueValue : issues) {
+            const QVariantMap issueMap = issueValue.toMap();
+            if (issueMap.isEmpty())
+                continue;
+
+            cme::ValidationIssue issueProto;
+            const cme::adapter::ConversionError conversionErr =
+                cme::adapter::variantMapToValidationIssue(issueMap, issueProto);
+            if (conversionErr.has_error) {
+                if (error) {
+                    *error = QStringLiteral("Failed to convert rule issue: %1")
+                                 .arg(conversionErr.error_message);
+                }
+                return false;
+            }
+
+            if (issueProto.severity() == cme::VALIDATION_SEVERITY_ERROR
+                || issueProto.severity() == cme::VALIDATION_SEVERITY_UNSPECIFIED) {
+                hasError = true;
+            }
+            *outResult->add_issues() = issueProto;
+        }
+
+        outResult->set_is_valid(!hasError);
+        return true;
     }
 
 private:

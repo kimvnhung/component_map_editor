@@ -10,8 +10,11 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <google/protobuf/struct.pb.h>
+
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "models/GraphModel.h"
+#include "execution.pb.h"
 
 class ExtensionContractRegistry;
 
@@ -42,7 +45,10 @@ public:
     void setExecutionSemanticsProviders(const QList<const IExecutionSemanticsProvider *> &providers);
     void rebuildSemanticsFromRegistry(const ExtensionContractRegistry &registry);
 
+    // Legacy wrapper for QML/internal map-based start.
     Q_INVOKABLE bool start(const QVariantMap &inputSnapshot = {});
+    // Typed external entrypoint. Preferred for integrations outside the library.
+    bool startTyped(const google::protobuf::Struct &inputSnapshot);
     Q_INVOKABLE bool step();
     Q_INVOKABLE int run(int maxSteps = -1);
     Q_INVOKABLE void pause();
@@ -52,8 +58,18 @@ public:
     Q_INVOKABLE void clearBreakpoints();
     Q_INVOKABLE QStringList breakpoints() const;
 
+    // Legacy wrapper for QML/internal map-based state access.
     Q_INVOKABLE QVariantMap componentState(const QString &componentId) const;
+    bool componentStateTyped(const QString &componentId,
+                             google::protobuf::Struct *outState,
+                             QString *error = nullptr) const;
     Q_INVOKABLE QVariantMap snapshotSummary() const;
+    Q_INVOKABLE QVariantMap debugSnapshot() const;
+    Q_INVOKABLE QVariantMap executionTelemetry() const;
+    Q_INVOKABLE QStringList sensitiveDebugKeys() const;
+    Q_INVOKABLE void setSensitiveDebugKeys(const QStringList &keys);
+
+    cme::ExecutionSnapshot executionSnapshotTyped() const;
 
 signals:
     void graphChanged();
@@ -64,14 +80,14 @@ signals:
     void lastErrorChanged();
 
 private:
-    struct NodeSnapshot {
+    struct ComponentSnapshot {
         QString id;
         QString type;
         QString title;
         QVariantMap attributes;
     };
 
-    struct EdgeSnapshot {
+    struct ConnectionSnapshot {
         QString id;
         QString sourceId;
         QString targetId;
@@ -86,20 +102,31 @@ private:
         Error
     };
 
+    enum class TimelineEventKind {
+        SimulationStarted,
+        StepExecuted,
+        SimulationPaused,
+        SimulationCompleted,
+        SimulationBlocked,
+        BreakpointHit,
+        Error
+    };
+
     static QString statusToString(RunStatus status);
+    static cme::TimelineEventType timelineKindToProtoType(TimelineEventKind kind);
 
     void setStatus(RunStatus status);
-    void appendTimelineEvent(const QString &event, const QVariantMap &payload = {});
+    void appendTimelineEvent(TimelineEventKind kind, const QVariantMap &payload = {});
     void markError(const QString &message);
 
     void clearSimulationData();
     bool captureGraphSnapshot();
     bool executeOneStep(bool bypassBreakpoint);
-    void finalizeIfNoReadyNodes();
+    void finalizeIfNoReadyComponents();
     void flushTimelineChanged();
 
-    void enqueueReadyNode(const QString &componentId);
-    QVariantMap toComponentSnapshotMap(const NodeSnapshot &node) const;
+    void enqueueReadyComponent(const QString &componentId);
+    QVariantMap toComponentSnapshotMap(const ComponentSnapshot &component) const;
 
     QPointer<GraphModel> m_graph;
     RunStatus m_status = RunStatus::Idle;
@@ -109,10 +136,13 @@ private:
     QVariantMap m_executionState;
     QVariantMap m_componentStates;
     QVariantList m_timeline;
+    QList<cme::TimelineEvent> m_typedTimeline;
     QString m_lastError;
 
-    QHash<QString, NodeSnapshot> m_nodesById;
-    QHash<QString, QList<EdgeSnapshot>> m_outgoingBySource;
+    QHash<QString, ComponentSnapshot> m_componentsById;
+    QHash<QString, QList<ConnectionSnapshot>> m_outgoingBySource;
+    QHash<QString, QList<ConnectionSnapshot>> m_incomingByTarget;
+    QHash<QString, cme::execution::ExecutionPayload> m_connectionTokens;
     QHash<QString, int> m_pendingInDegree;
     QSet<QString> m_executed;
     QStringList m_readyQueue;
@@ -121,7 +151,15 @@ private:
     bool m_deferTimelineSignal = false;
     bool m_timelineDirty = false;
 
+    qint64 m_payloadBytesRead = 0;
+    qint64 m_payloadBytesWritten = 0;
+    qint64 m_maxPayloadBytes = 0;
+    int m_tokenReadCount = 0;
+    int m_tokenWriteCount = 0;
+    int m_redactedFieldCount = 0;
+
     QSet<QString> m_breakpoints;
+    QSet<QString> m_sensitiveDebugKeys;
     QHash<QString, const IExecutionSemanticsProvider *> m_providerByComponentType;
 };
 

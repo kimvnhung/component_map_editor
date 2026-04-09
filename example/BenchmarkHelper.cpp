@@ -36,27 +36,27 @@ void BenchmarkHelper::populateGraph(GraphModel *graph, int nodeCount)
         graph->addComponent(c);
     }
 
-    // --- Edges: right neighbor + down neighbor (grid topology) ---
-    int edgeIdx = 0;
+    // --- Connections: right neighbor + down neighbor (grid topology) ---
+    int connIdx = 0;
     for (int i = 0; i < nodeCount; ++i) {
         const int col = i % cols;
 
-        // Right edge: connect i → i+1 (same row only)
+        // Right connection: connect i → i+1 (same row only)
         const int rightIdx = i + 1;
         if (col + 1 < cols && rightIdx < nodeCount) {
             auto *e = new ConnectionModel(
-                QStringLiteral("bench_e%1").arg(edgeIdx++),
+                QStringLiteral("bench_conn%1").arg(connIdx++),
                 QStringLiteral("bench_n%1").arg(i),
                 QStringLiteral("bench_n%1").arg(rightIdx),
                 QString(), graph);
             graph->addConnection(e);
         }
 
-        // Down edge: connect i → i+cols
+        // Down connection: connect i → i+cols
         const int downIdx = i + cols;
         if (downIdx < nodeCount) {
             auto *e = new ConnectionModel(
-                QStringLiteral("bench_e%1").arg(edgeIdx++),
+                QStringLiteral("bench_conn%1").arg(connIdx++),
                 QStringLiteral("bench_n%1").arg(i),
                 QStringLiteral("bench_n%1").arg(downIdx),
                 QString(), graph);

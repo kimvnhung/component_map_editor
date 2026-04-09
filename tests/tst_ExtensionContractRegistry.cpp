@@ -7,6 +7,7 @@
 #include "extensions/contracts/ExtensionManifest.h"
 #include "extensions/sample_pack/SampleComponentTypeProvider.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
+#include "extensions/sample_pack/SampleValidationProvider.h"
 
 namespace {
 
@@ -24,8 +25,8 @@ struct StubConnectionPolicyProviderById : public IConnectionPolicyProvider
 {
     explicit StubConnectionPolicyProviderById(const QString &id) : m_id(id) {}
     QString providerId() const override { return m_id; }
-    bool canConnect(const QString &, const QString &, const QVariantMap &, QString *) const override { return true; }
-    QVariantMap normalizeConnectionProperties(const QString &, const QString &, const QVariantMap &raw) const override { return raw; }
+    bool canConnect(const cme::ConnectionPolicyContext &, QString *) const override { return true; }
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &, const QVariantMap &raw) const override { return raw; }
     QString m_id;
 };
 
@@ -38,6 +39,15 @@ ExtensionManifest validManifest(const QString &id = QStringLiteral("test.pack"))
     manifest.minCoreApi = { 1, 0, 0 };
     manifest.maxCoreApi = { 1, 99, 99 };
     return manifest;
+}
+
+cme::ConnectionPolicyContext makePolicyContext(const QString &sourceType,
+                                               const QString &targetType)
+{
+    cme::ConnectionPolicyContext context;
+    context.set_source_type_id(sourceType.toStdString());
+    context.set_target_type_id(targetType.toStdString());
+    return context;
 }
 
 ExtensionContractRegistry registryV1()
@@ -292,40 +302,44 @@ void ExtensionContractRegistryTests::componentTypeDefaultsForStopIsEmpty()
 void ExtensionContractRegistryTests::connectionPolicyAllowsStartToProcess()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("start"), QStringLiteral("process"), {}, nullptr));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("start"), QStringLiteral("process"));
+    QVERIFY(provider.canConnect(context, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyAllowsProcessToProcess()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("process"), QStringLiteral("process"), {}, nullptr));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("process"), QStringLiteral("process"));
+    QVERIFY(provider.canConnect(context, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyAllowsProcessToStop()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(provider.canConnect(QStringLiteral("process"), QStringLiteral("stop"), {}, nullptr));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("process"), QStringLiteral("stop"));
+    QVERIFY(provider.canConnect(context, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyDeniesStopToProcess()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(!provider.canConnect(QStringLiteral("stop"), QStringLiteral("process"), {}, nullptr));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("stop"), QStringLiteral("process"));
+    QVERIFY(!provider.canConnect(context, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyAllowsProcessToStopWithProperties()
 {
     SampleConnectionPolicyProvider provider;
-    QVariantMap properties;
-    properties.insert(QStringLiteral("type"), QStringLiteral("flow"));
-    QVERIFY(provider.canConnect(QStringLiteral("process"), QStringLiteral("stop"), properties, nullptr));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("process"), QStringLiteral("stop"));
+    QVERIFY(provider.canConnect(context, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyDeniesStartAsTarget()
 {
     SampleConnectionPolicyProvider provider;
     QString reason;
-    QVERIFY(!provider.canConnect(QStringLiteral("process"), QStringLiteral("start"), {}, &reason));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("process"), QStringLiteral("start"));
+    QVERIFY(!provider.canConnect(context, &reason));
     QVERIFY(!reason.isEmpty());
 }
 
@@ -333,39 +347,42 @@ void ExtensionContractRegistryTests::connectionPolicyDeniesStopAsSource()
 {
     SampleConnectionPolicyProvider provider;
     QString reason;
-    QVERIFY(!provider.canConnect(QStringLiteral("stop"), QStringLiteral("process"), {}, &reason));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("stop"), QStringLiteral("process"));
+    QVERIFY(!provider.canConnect(context, &reason));
     QVERIFY(!reason.isEmpty());
 }
 
 void ExtensionContractRegistryTests::connectionPolicyDeniesStartToStop()
 {
     SampleConnectionPolicyProvider provider;
-    QVERIFY(!provider.canConnect(QStringLiteral("start"), QStringLiteral("stop"), {}, nullptr));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("start"), QStringLiteral("stop"));
+    QVERIFY(!provider.canConnect(context, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyDeniesStartToStopWithProperties()
 {
     SampleConnectionPolicyProvider provider;
-    QVariantMap properties;
-    properties.insert(QStringLiteral("type"), QStringLiteral("flow"));
-    QVERIFY(!provider.canConnect(QStringLiteral("start"), QStringLiteral("stop"), properties, nullptr));
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("start"), QStringLiteral("stop"));
+    QVERIFY(!provider.canConnect(context, nullptr));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyNormalizeAddsFlowType()
 {
     SampleConnectionPolicyProvider provider;
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("process"), QStringLiteral("process"));
     const QVariantMap result = provider.normalizeConnectionProperties(
-        QStringLiteral("process"), QStringLiteral("process"), {});
+        context, {});
     QCOMPARE(result.value(QStringLiteral("type")).toString(), QStringLiteral("flow"));
 }
 
 void ExtensionContractRegistryTests::connectionPolicyNormalizePreservesExistingType()
 {
     SampleConnectionPolicyProvider provider;
+    const cme::ConnectionPolicyContext context = makePolicyContext(QStringLiteral("process"), QStringLiteral("process"));
     QVariantMap raw;
     raw[QStringLiteral("type")] = QStringLiteral("dependency");
     const QVariantMap result = provider.normalizeConnectionProperties(
-        QStringLiteral("process"), QStringLiteral("process"), raw);
+        context, raw);
     QCOMPARE(result.value(QStringLiteral("type")).toString(), QStringLiteral("dependency"));
 }
 

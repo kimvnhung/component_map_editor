@@ -44,16 +44,32 @@ class DenyAllConnectionPolicyProvider : public IConnectionPolicyProvider
 public:
     QString providerId() const override { return QStringLiteral("deny.all"); }
 
-    bool canConnect(const QString &, const QString &, const QVariantMap &, QString *reason) const override
+    bool canConnect(const cme::ConnectionPolicyContext &, QString *reason) const override
     {
         if (reason)
             *reason = QStringLiteral("DenyAll: connection refused.");
         return false;
     }
 
-    QVariantMap normalizeConnectionProperties(const QString &, const QString &, const QVariantMap &raw) const override
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &, const QVariantMap &raw) const override
     {
         return raw;
+    }
+};
+
+class CardinalityConnectionPolicyProvider : public IConnectionPolicyProvider
+{
+public:
+    QString providerId() const override { return QStringLiteral("cardinality.v2"); }
+
+    bool canConnect(const cme::ConnectionPolicyContext &context, QString *reason) const override
+    {
+        if (context.target_incoming_count() >= 1) {
+            if (reason)
+                *reason = QStringLiteral("Target already has incoming connection");
+            return false;
+        }
+        return true;
     }
 };
 
@@ -269,6 +285,47 @@ private slots:
         const QVariantMap out = tr.normalizeConnectionProperties(
             QStringLiteral("x"), QStringLiteral("y"), input);
         QCOMPARE(out, input);
+    }
+
+    void typedProviderCanUseContextAccessors()
+    {
+        CardinalityConnectionPolicyProvider v2Provider;
+        ExtensionContractRegistry reg(coreV1());
+        QVERIFY(reg.registerConnectionPolicyProvider(&v2Provider));
+
+        TypeRegistry tr;
+        tr.rebuildFromRegistry(reg);
+
+        cme::ConnectionPolicyContext context;
+        context.set_source_type_id("process");
+        context.set_target_type_id("process");
+        context.set_target_incoming_count(1);
+
+        QString reason;
+        QVERIFY(!tr.canConnect(context, &reason));
+        QVERIFY(reason.contains(QStringLiteral("incoming")));
+
+        context.set_target_incoming_count(0);
+        reason.clear();
+        QVERIFY(tr.canConnect(context, &reason));
+    }
+
+    void typedProviderRejectsViaContextRules()
+    {
+        DenyAllConnectionPolicyProvider provider;
+        ExtensionContractRegistry reg(coreV1());
+        QVERIFY(reg.registerConnectionPolicyProvider(&provider));
+
+        TypeRegistry tr;
+        tr.rebuildFromRegistry(reg);
+
+        cme::ConnectionPolicyContext context;
+        context.set_source_type_id("start");
+        context.set_target_type_id("process");
+
+        QString reason;
+        QVERIFY(!tr.canConnect(context, &reason));
+        QVERIFY(reason.contains(QStringLiteral("DenyAll")));
     }
 
     void componentTypeDescriptorsPropertyMatchesHash()

@@ -32,13 +32,28 @@ Item {
     readonly property real panStartThreshold: 3
 
     property GraphModel graph: null
+    property var componentTypeRegistry: null
     // Selection and interaction mode are owned by interactionState below.
     // These aliases keep GraphCanvas's public API intact for external callers.
     property alias selectedComponent: interactionState.primaryComponent
     property alias selectedComponentIds: interactionState.componentIds
     property alias selectedConnection: interactionState.connection
     property alias selectedConnectionIds: interactionState.connectionIds
-    property UndoStack undoStack: null
+    property UndoStack undoStack: UndoStack {}
+    property GraphEditorController graphEditorController: GraphEditorController {
+        graph: root.graph
+        undoStack: root.undoStack
+        typeRegistry: root.componentTypeRegistry
+    }
+    property bool mutationStrictMode: true
+    property var mutationInvariantChecker: null
+    property bool builtInGraphIssueValidationEnabled: true
+    property var builtInGraphIssues: []
+    property var errorOverlayMessages: []
+    property var runtimeErrorMessages: []
+    property var mergedErrorOverlayMessages: []
+    property bool errorOverlayExpanded: false
+    property url errorOverlaySource: Qt.resolvedUrl("components/GraphIssueOverlay.qml")
     property ComponentModel menuTargetComponent: null
     property ConnectionModel menuTargetConnection: null
     property point menuTargetWorldPos: Qt.point(0, 0)
@@ -57,17 +72,21 @@ Item {
     property real panY: 0
     // Interaction-mode derived state — mutated only through interactionState transitions.
     readonly property alias enableBackgroundDrag: interactionState.backgroundDragEnabled
-    readonly property alias nodeInteractionActive: interactionState.nodeInteractionActive
+    readonly property alias componentInteractionActive: interactionState.componentInteractionActive
     property bool pointerOverComponent: false
     property ComponentModel hoveredComponent: null
     // pressedComponent: transient per-pointer-event state only; not persisted interaction state.
     property ComponentModel pressedComponent: null
     readonly property alias activeInteractionComponent: interactionState.interactionTarget
     property alias suppressNextCanvasTap: interactionState.suppressNextTap
-    readonly property var nodeRenderer: nodeViewport
-    readonly property var edgeRenderer: edgeViewport
+    readonly property var componentRenderer: componentViewport
+    readonly property var connectionRenderer: connectionViewport
     property point mouseViewPos: Qt.point(0, 0)
     property point mouseWorldPos: Qt.point(0, 0)
+    // Set by Palette while dragging from palette into graph. During this
+    // interval, drop placement should use live canvas mouse position and
+    // background panning must stay disabled.
+    property bool paletteDragInProgress: false
     property int livePointerModifiers: 0
     property bool ctrlSelectionModifierActive: false
     property bool ctrlReleasedByKey: false  // Flag to prevent stale modifiers from re-enabling Ctrl
@@ -83,450 +102,602 @@ Item {
     // collect camera-update and drag-event interval samples for Phase 0 baseline.
     // Leave null (default) for zero overhead in production.
     property PerformanceTelemetry telemetry: null
+    property bool interactionTelemetryEnabled: true
+
+    onMutationStrictModeChanged: {
+        if (root.graphEditorController && root.graphEditorController.strictMode !== undefined)
+            root.graphEditorController.strictMode = root.mutationStrictMode;
+    }
+
+    onErrorOverlayMessagesChanged: {
+        root.refreshMergedErrorOverlayMessages();
+    }
+
+    onBuiltInGraphIssuesChanged: {
+        root.refreshMergedErrorOverlayMessages();
+    }
+
+    onRuntimeErrorMessagesChanged: {
+        root.refreshMergedErrorOverlayMessages();
+    }
+
+    onBuiltInGraphIssueValidationEnabledChanged: {
+        root.refreshBuiltInGraphIssues();
+    }
+
+    onGraphChanged: {
+        root.refreshBuiltInGraphIssues();
+        connectionCanvas.repaint();
+    }
+
+    onErrorOverlayExpandedChanged: {
+        root.syncErrorOverlayWidget();
+    }
+
+    function refreshMergedErrorOverlayMessages() {
+        var merged = [];
+        var seen = {};
+
+        function appendUnique(messages) {
+            if (!messages)
+                return;
+            for (var i = 0; i < messages.length; ++i) {
+                var msg = ("" + messages[i]).trim();
+                if (msg.length === 0 || seen[msg])
+                    continue;
+                seen[msg] = true;
+                merged.push(msg);
+            }
+        }
+
+        appendUnique(root.runtimeErrorMessages);
+        appendUnique(root.builtInGraphIssues);
+        appendUnique(root.errorOverlayMessages);
+        root.mergedErrorOverlayMessages = merged;
+        root.syncErrorOverlayWidget();
+    }
+
+    function refreshBuiltInGraphIssues() {
+        if (!root.builtInGraphIssueValidationEnabled || !root.graph) {
+            root.builtInGraphIssues = [];
+            return;
+        }
+
+        var issues = [];
+        var componentIds = {};
+        var components = root.graph.components ? root.graph.components : [];
+        var connections = root.graph.connections ? root.graph.connections : [];
+
+        for (var i = 0; i < components.length; ++i) {
+            var component = components[i];
+            if (!component)
+                continue;
+
+            var componentId = ("" + (component.id !== undefined ? component.id : "")).trim();
+            if (componentId.length === 0) {
+                issues.push("Component with empty id detected.");
+                continue;
+            }
+
+            if (componentIds[componentId]) {
+                issues.push("Duplicate component id '" + componentId + "'.");
+                continue;
+            }
+
+            componentIds[componentId] = true;
+        }
+
+        var connectionIds = {};
+        for (var j = 0; j < connections.length; ++j) {
+            var connection = connections[j];
+            if (!connection)
+                continue;
+
+            var connectionId = ("" + (connection.id !== undefined ? connection.id : "")).trim();
+            if (connectionId.length === 0)
+                issues.push("Connection with empty id detected.");
+            else if (connectionIds[connectionId])
+                issues.push("Duplicate connection id '" + connectionId + "'.");
+            else
+                connectionIds[connectionId] = true;
+
+            var sourceId = ("" + (connection.sourceId !== undefined ? connection.sourceId : "")).trim();
+            var targetId = ("" + (connection.targetId !== undefined ? connection.targetId : "")).trim();
+
+            if (sourceId.length === 0 || targetId.length === 0) {
+                issues.push("Connection '" + (connectionId.length > 0 ? connectionId : "<unnamed>") + "' has empty endpoint id.");
+                continue;
+            }
+
+            if (!componentIds[sourceId])
+                issues.push("Connection '" + connectionId + "' source component '" + sourceId + "' not found.");
+            if (!componentIds[targetId])
+                issues.push("Connection '" + connectionId + "' target component '" + targetId + "' not found.");
+        }
+
+        root.builtInGraphIssues = issues;
+    }
+
+    function syncErrorOverlayWidget() {
+        if (!errorOverlayLoader.item)
+            return;
+
+        if (errorOverlayLoader.item.messages !== undefined)
+            errorOverlayLoader.item.messages = root.mergedErrorOverlayMessages;
+        if (errorOverlayLoader.item.expanded !== undefined)
+            errorOverlayLoader.item.expanded = root.errorOverlayExpanded;
+        if (errorOverlayLoader.item.canClearRuntime !== undefined)
+            errorOverlayLoader.item.canClearRuntime = root.runtimeErrorMessages.length > 0;
+    }
+
+    function appendRuntimeErrorMessage(message) {
+        var text = ("" + message).trim();
+        if (text.length === 0)
+            return;
+
+        var next = root.runtimeErrorMessages.slice(0);
+        next.push(text);
+        // Keep a bounded runtime error history for readability.
+        if (next.length > 32)
+            next = next.slice(next.length - 32);
+        root.runtimeErrorMessages = next;
+    }
+
+    function clearRuntimeErrorMessages() {
+        root.runtimeErrorMessages = [];
+    }
+    onMutationInvariantCheckerChanged: {
+        if (root.graphEditorController && root.graphEditorController.invariantChecker !== undefined)
+            root.graphEditorController.invariantChecker = root.mutationInvariantChecker;
+    }
 
     signal componentSelected(ComponentModel component)
     signal connectionSelected(ConnectionModel connection)
     signal backgroundClicked(real x, real y)
     signal viewTransformChanged(real panX, real panY, real zoom)
 
+    function _timestampMs() {
+        return Date.now();
+    }
+
+    function _recordTransitionReject() {
+        if (!root.interactionTelemetryEnabled || !connectionViewport || !connectionViewport.recordTransitionReject)
+            return;
+        connectionViewport.recordTransitionReject();
+    }
+
+    function _recordIntentLatency(ms) {
+        if (!root.interactionTelemetryEnabled || !connectionViewport || !connectionViewport.recordIntentLatencySample)
+            return;
+        connectionViewport.recordIntentLatencySample(ms);
+    }
+
+    function _recordActionLatency(ms) {
+        if (!root.interactionTelemetryEnabled || !connectionViewport || !connectionViewport.recordActionLatencySample)
+            return;
+        connectionViewport.recordActionLatencySample(ms);
+    }
+
+    function _runIntent(intentFn) {
+        var startMs = root._timestampMs();
+        var ok = intentFn();
+        root._recordIntentLatency(root._timestampMs() - startMs);
+        if (!ok)
+            root._recordTransitionReject();
+        return ok;
+    }
+
+    function _runAction(actionFn) {
+        var startMs = root._timestampMs();
+        var result = actionFn();
+        root._recordActionLatency(root._timestampMs() - startMs);
+        return result;
+    }
+
     function syncCtrlModifierState(modifiers) {
-        var next = (modifiers & Qt.ControlModifier) !== 0
+        var next = (modifiers & Qt.ControlModifier) !== 0;
         // Don't allow modifiers to re-enable Ctrl immediately after keyboard release
         if (root.ctrlReleasedByKey && next && !root.ctrlSelectionModifierActive)
-            return
+            return;
         if (root.ctrlSelectionModifierActive === next)
-            return
-        root.ctrlSelectionModifierActive = next
+            return;
+        root.ctrlSelectionModifierActive = next;
         // End any in-progress marquee when Ctrl just turned off.
         if (!next && interactionState.marqueeSelecting)
-            root.finishMarqueeSelection()
-        root.debugInputLog("ctrl_state_changed")
+            root.finishMarqueeSelection();
+        root.debugInputLog("ctrl_state_changed");
     }
 
     function formatPoint(pointValue) {
-        return "(" + pointValue.x.toFixed(1) + "," + pointValue.y.toFixed(1) + ")"
+        return "(" + pointValue.x.toFixed(1) + "," + pointValue.y.toFixed(1) + ")";
     }
 
     function debugInputLog(reason) {
         if (!root.debugInputLogs)
-            return
-
-        var rect = root.normalizedViewRect(interactionState.marqueeStart,
-                                           interactionState.marqueeEnd)
-        var pressedId = root.pressedComponent ? root.pressedComponent.id : "<none>"
-        console.log("[GraphCanvas][input]", reason,
-                    "mouseView=", root.formatPoint(root.mouseViewPos),
-                    "mouseWorld=", root.formatPoint(root.mouseWorldPos),
-                    "ctrl=", root.ctrlSelectionModifierActive,
-                    "mods=", root.livePointerModifiers,
-                    "pressed=", pressedId,
-                    "marquee=", interactionState.marqueeSelecting,
-                    "start=", root.formatPoint(interactionState.marqueeStart),
-                    "end=", root.formatPoint(interactionState.marqueeEnd),
-                    "rectX=", rect.left.toFixed(1),
-                    "rectY=", rect.top.toFixed(1),
-                    "rectW=", rect.width.toFixed(1),
-                    "rectH=", rect.height.toFixed(1))
+            return;
+        var rect = root.normalizedViewRect(interactionState.marqueeStart, interactionState.marqueeEnd);
+        var pressedId = root.pressedComponent ? root.pressedComponent.id : "<none>";
+        console.log("[GraphCanvas][input]", reason, "mouseView=", root.formatPoint(root.mouseViewPos), "mouseWorld=", root.formatPoint(root.mouseWorldPos), "ctrl=", root.ctrlSelectionModifierActive, "mods=", root.livePointerModifiers, "pressed=", pressedId, "marquee=", interactionState.marqueeSelecting, "start=", root.formatPoint(interactionState.marqueeStart), "end=", root.formatPoint(interactionState.marqueeEnd), "rectX=", rect.left.toFixed(1), "rectY=", rect.top.toFixed(1), "rectW=", rect.width.toFixed(1), "rectH=", rect.height.toFixed(1));
     }
 
     function componentIsSelected(component) {
-        return interactionState.isSelected(component)
+        return interactionState.isSelected(component);
     }
 
     function removeComponentFromSelection(component) {
         if (!component || !component.id)
-            return
-        interactionState.removeComponentId(component.id)
+            return;
+        interactionState.removeComponentId(component.id);
     }
 
     function clearComponentSelection() {
-        interactionState.clearComponents()
+        interactionState.clearComponents();
     }
 
     function selectSingleComponent(component) {
-        interactionState.selectSingle(component)
+        interactionState.selectSingle(component);
     }
 
     function selectConnection(connection) {
-        interactionState.selectConnectionModel(connection)
+        interactionState.selectConnectionModel(connection);
         if (connection)
-            root.connectionSelected(connection)
+            root.connectionSelected(connection);
     }
 
     function handleLeftComponentClick(component, modifiers) {
-        interactionState.handleComponentClick(component, modifiers,
-                                              root.graph, root.livePointerModifiers)
+        interactionState.handleComponentClick(component, modifiers, root.graph, root.livePointerModifiers);
         if (interactionState.primaryComponent)
-            root.componentSelected(interactionState.primaryComponent)
+            root.componentSelected(interactionState.primaryComponent);
         else
-            root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
-        edgeCanvas.repaint()
+            root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y);
+        connectionCanvas.repaint();
     }
 
     // Resets all interaction mode and selection in one call.
     // Use this instead of directly writing to the readonly interaction properties.
     function resetAllState() {
-        interactionState.resetInteraction()
-        interactionState.clearAll()
+        interactionState.resetInteraction();
+        interactionState.clearAll();
     }
 
     function uniqueComponentId(baseId) {
-        var prefix = (baseId && baseId.length > 0) ? baseId : "component"
-        var candidate = prefix
-        var suffix = 1
+        var prefix = (baseId && baseId.length > 0) ? baseId : "component";
+        var candidate = prefix;
+        var suffix = 1;
         while (root.graph && root.graph.componentById(candidate)) {
-            candidate = prefix + "_" + suffix
-            suffix += 1
+            candidate = prefix + "_" + suffix;
+            suffix += 1;
         }
-        return candidate
+        return candidate;
     }
 
     function uniqueConnectionId(baseId) {
-        var prefix = (baseId && baseId.length > 0) ? baseId : "connection"
-        var candidate = prefix
-        var suffix = 1
+        var prefix = (baseId && baseId.length > 0) ? baseId : "connection";
+        var candidate = prefix;
+        var suffix = 1;
         while (root.graph && root.graph.connectionById(candidate)) {
-            candidate = prefix + "_" + suffix
-            suffix += 1
+            candidate = prefix + "_" + suffix;
+            suffix += 1;
         }
-        return candidate
+        return candidate;
     }
 
     function removeConnectionById(connectionId, useUndo) {
         if (!root.graph || !connectionId)
-            return
-
-        var shouldUseUndo = useUndo === undefined ? true : useUndo
-        if (shouldUseUndo && root.undoStack)
-            root.undoStack.pushRemoveConnection(root.graph, connectionId)
-        else
-            root.graph.removeConnection(connectionId)
+            return;
+        var shouldUseUndo = useUndo === undefined ? true : useUndo;
+        if (!shouldUseUndo || !root.undoStack)
+            return;
+        root._runAction(function () {
+            root.undoStack.pushRemoveConnection(root.graph, connectionId);
+            return true;
+        });
 
         if (root.selectedConnection && root.selectedConnection.id === connectionId)
-            root.selectedConnection = null
+            root.selectedConnection = null;
         if (root.selectedConnectionIds.indexOf(connectionId) !== -1)
-            interactionState.pruneStaleConnection(root.graph)
+            interactionState.pruneStaleConnection(root.graph);
     }
 
     function clearComponentConnections(component, clearIncoming, clearOutgoing, useUndo) {
         if (!root.graph || !component)
-            return
+            return;
+        var shouldUseUndo = useUndo === undefined ? true : useUndo;
 
-        var shouldUseUndo = useUndo === undefined ? true : useUndo
-
-        var idsToRemove = []
-        var currentConnections = root.graph.connections
+        var idsToRemove = [];
+        var currentConnections = root.graph.connections;
         for (var i = 0; i < currentConnections.length; ++i) {
-            var connection = currentConnections[i]
-            var shouldRemove = (clearIncoming && connection.targetId === component.id)
-                    || (clearOutgoing && connection.sourceId === component.id)
+            var connection = currentConnections[i];
+            var shouldRemove = (clearIncoming && connection.targetId === component.id) || (clearOutgoing && connection.sourceId === component.id);
             if (shouldRemove)
-                idsToRemove.push(connection.id)
+                idsToRemove.push(connection.id);
         }
 
         for (var j = 0; j < idsToRemove.length; ++j)
-            root.removeConnectionById(idsToRemove[j], shouldUseUndo)
+            root.removeConnectionById(idsToRemove[j], shouldUseUndo);
 
-        edgeCanvas.repaint()
+        connectionCanvas.repaint();
     }
 
     function deleteComponent(component) {
         if (!root.graph || !component)
-            return
-
-        if (root.undoStack) {
-            root.undoStack.pushRemoveComponent(root.graph, component.id)
-        } else {
-            root.clearComponentConnections(component, true, true, false)
-            root.graph.removeComponent(component.id)
-        }
-        root.removeComponentFromSelection(component)
+            return;
+        if (!root.undoStack)
+            return;
+        root._runAction(function () {
+            root.undoStack.pushRemoveComponent(root.graph, component.id);
+            return true;
+        });
+        root.removeComponentFromSelection(component);
         if (root.selectedComponentIds.length > 0) {
-            var lastId = root.selectedComponentIds[root.selectedComponentIds.length - 1]
-            root.selectedComponent = root.graph.componentById(lastId)
+            var lastId = root.selectedComponentIds[root.selectedComponentIds.length - 1];
+            root.selectedComponent = root.graph.componentById(lastId);
         } else {
-            root.selectedComponent = null
+            root.selectedComponent = null;
         }
         if (!root.selectedComponent)
-            root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
-        edgeCanvas.repaint()
+            root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y);
+        connectionCanvas.repaint();
     }
 
     function duplicateComponent(component) {
-        if (!root.graph || !component)
-            return
-
-        var copy = Qt.createQmlObject(
-                    'import ComponentMapEditor; ComponentModel {}',
-                    root.graph)
-        copy.id = root.uniqueComponentId(component.id + "_copy")
-        copy.title = component.title + " Copy"
-        copy.content = component.content
-        copy.icon = component.icon
-        copy.x = component.x + 40
-        copy.y = component.y + 40
-        copy.width = component.width
-        copy.height = component.height
-        copy.shape = component.shape
-        copy.color = component.color
-        copy.type = component.type
-        if (root.undoStack)
-            root.undoStack.pushAddComponent(root.graph, copy)
-        else
-            root.graph.addComponent(copy)
-        root.selectSingleComponent(copy)
-        root.selectedConnection = null
-        root.componentSelected(copy)
-        edgeCanvas.repaint()
+        if (!root.graph || !component || !root.graphEditorController)
+            return;
+        var copyId = root._runAction(function () {
+            return root.graphEditorController.duplicateComponent(component.id, 40, 40);
+        });
+        if (!copyId || copyId.length === 0)
+            return;
+        var copy = root.graph.componentById(copyId);
+        if (!copy)
+            return;
+        root.selectSingleComponent(copy);
+        root.selectedConnection = null;
+        root.componentSelected(copy);
+        connectionCanvas.repaint();
     }
 
     function addComponentAtWorldPos(worldPos) {
-        if (!root.graph)
-            return
-
-        var component = Qt.createQmlObject(
-                    'import ComponentMapEditor; ComponentModel {}', root.graph)
-        component.id = root.uniqueComponentId("component")
-        component.title = "Component"
-        component.content = ""
-        component.icon = "cube"
-        component.x = worldPos.x
-        component.y = worldPos.y
-        component.width = 96
-        component.height = 96
-        component.color = "#4fc3f7"
-        component.shape = "rounded"
-        component.type = "default"
-        if (root.undoStack)
-            root.undoStack.pushAddComponent(root.graph, component)
-        else
-            root.graph.addComponent(component)
-        root.selectSingleComponent(component)
-        root.selectedConnection = null
-        root.componentSelected(component)
-        edgeCanvas.repaint()
+        if (!root.graph || !root.graphEditorController)
+            return;
+        var componentId = root._runAction(function () {
+            return root.graphEditorController.createPaletteComponent("default", "Component", "cube", "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        });
+        if (!componentId || componentId.length === 0)
+            return;
+        var component = root.graph.componentById(componentId);
+        if (!component)
+            return;
+        root.selectSingleComponent(component);
+        root.selectedConnection = null;
+        root.componentSelected(component);
+        connectionCanvas.repaint();
     }
 
     function addPaletteComponentAtScenePos(title, icon, color, type, scenePos) {
         if (!root.graph || !scenePos)
-            return false
+            return false;
 
-        var viewPos = root.mapFromItem(null, scenePos.x, scenePos.y)
+        var viewPos = root.mapFromItem(null, scenePos.x, scenePos.y);
+        if (root.paletteDragInProgress)
+            viewPos = Qt.point(root.mouseViewPos.x, root.mouseViewPos.y);
+
+        // Fallback when a drag source provides an invalid/stale scene point
+        // (e.g., release-time grab reset). mouseViewPos is continuously
+        // tracked on this canvas and is a safer last-known cursor location.
+        if ((scenePos.x === 0 && scenePos.y === 0) || viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height)
+            viewPos = Qt.point(root.mouseViewPos.x, root.mouseViewPos.y);
+
         if (viewPos.x < 0 || viewPos.x > root.width || viewPos.y < 0 || viewPos.y > root.height)
-            return false
+            return false;
 
-        var worldPos = root.viewToWorld(viewPos.x, viewPos.y)
+        var worldPos = root.viewToWorld(viewPos.x, viewPos.y);
 
-        var component = Qt.createQmlObject(
-                    'import ComponentMapEditor; ComponentModel {}', root.graph)
-        component.id = root.uniqueComponentId("component")
-        component.title = title && title.length > 0 ? title : "Component"
-        component.content = ""
-        component.icon = icon && icon.length > 0 ? icon : "cube"
-        component.x = worldPos.x
-        component.y = worldPos.y
-        component.width = 96
-        component.height = 96
-        component.color = color && color.length > 0 ? color : "#4fc3f7"
-        component.shape = "rounded"
-        component.type = type && type.length > 0 ? type : "default"
+        if (!root.graphEditorController)
+            return false;
 
-        if (root.undoStack)
-            root.undoStack.pushAddComponent(root.graph, component)
-        else
-            root.graph.addComponent(component)
-        root.selectSingleComponent(component)
-        root.selectedConnection = null
-        root.componentSelected(component)
-        edgeCanvas.repaint()
-        return true
+        var componentId = root._runAction(function () {
+            return root.graphEditorController.createPaletteComponent(type && type.length > 0 ? type : "default", title && title.length > 0 ? title : "Component", icon && icon.length > 0 ? icon : "cube", color && color.length > 0 ? color : "#4fc3f7", worldPos.x, worldPos.y, 96, 96);
+        });
+        if (!componentId || componentId.length === 0)
+            return false;
+
+        var component = root.graph.componentById(componentId);
+        if (!component)
+            return false;
+
+        root.selectSingleComponent(component);
+        root.selectedConnection = null;
+        root.componentSelected(component);
+        connectionCanvas.repaint();
+        return true;
+    }
+
+    function beginPaletteDrag() {
+        root.paletteDragInProgress = true;
+        root.pressedComponent = null;
+        // Palette drag is an external gesture source. Cancel marquee to avoid
+        // simultaneous interaction modes competing for pointer semantics.
+        if (interactionState.marqueeSelecting)
+            interactionState.intentCancel();
+    }
+
+    function endPaletteDrag() {
+        root.paletteDragInProgress = false;
+        root.pressedComponent = null;
     }
 
     function clearAllConnections() {
         if (!root.graph)
-            return
-
-        var ids = []
-        var currentConnections = root.graph.connections
+            return;
+        var ids = [];
+        var currentConnections = root.graph.connections;
         for (var i = 0; i < currentConnections.length; ++i)
-            ids.push(currentConnections[i].id)
+            ids.push(currentConnections[i].id);
 
         for (var j = 0; j < ids.length; ++j)
-            root.removeConnectionById(ids[j], true)
+            root.removeConnectionById(ids[j], true);
 
-        root.selectedConnection = null
-        root.selectedConnectionIds = []
-        edgeCanvas.repaint()
+        root.selectedConnection = null;
+        root.selectedConnectionIds = [];
+        connectionCanvas.repaint();
     }
 
     function clearAllComponents() {
         if (!root.graph)
-            return
-
-        var ids = []
-        var components = root.graph.components
+            return;
+        var ids = [];
+        var components = root.graph.components;
         for (var i = 0; i < components.length; ++i)
-            ids.push(components[i].id)
+            ids.push(components[i].id);
 
-        if (root.undoStack) {
+        if (!root.undoStack)
+            return;
+        root._runAction(function () {
             for (var j = 0; j < ids.length; ++j)
-                root.undoStack.pushRemoveComponent(root.graph, ids[j])
-        } else {
-            root.graph.clear()
-        }
-        interactionState.clearAll()
-        root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
-        edgeCanvas.repaint()
+                root.undoStack.pushRemoveComponent(root.graph, ids[j]);
+            return true;
+        });
+        interactionState.clearAll();
+        root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y);
+        connectionCanvas.repaint();
     }
 
     function commitMoveCommands(anchorComponent) {
         if (!root.undoStack || !root.graph || !anchorComponent)
-            return
-
-        var batchedMoves = []
+            return;
+        var batchedMoves = [];
         if (root.groupMoveActive) {
             for (var i = 0; i < root.selectedComponentIds.length; ++i) {
-                var componentId = root.selectedComponentIds[i]
-                var component = root.graph.componentById(componentId)
-                var base = root.groupMoveBaseCenters[componentId]
+                var componentId = root.selectedComponentIds[i];
+                var component = root.graph.componentById(componentId);
+                var base = root.groupMoveBaseCenters[componentId];
                 if (component && base) {
                     batchedMoves.push({
-                                          "id": componentId,
-                                          "oldX": base.x,
-                                          "oldY": base.y,
-                                          "newX": component.x,
-                                          "newY": component.y
-                                      })
+                        "id": componentId,
+                        "oldX": base.x,
+                        "oldY": base.y,
+                        "newX": component.x,
+                        "newY": component.y
+                    });
                 }
             }
         } else {
-            var start = root.moveStartPositions[anchorComponent.id]
+            var start = root.moveStartPositions[anchorComponent.id];
             if (start) {
                 batchedMoves.push({
-                                      "id": anchorComponent.id,
-                                      "oldX": start.x,
-                                      "oldY": start.y,
-                                      "newX": anchorComponent.x,
-                                      "newY": anchorComponent.y
-                                  })
+                    "id": anchorComponent.id,
+                    "oldX": start.x,
+                    "oldY": start.y,
+                    "newX": anchorComponent.x,
+                    "newY": anchorComponent.y
+                });
             }
         }
 
-        if (batchedMoves.length > 0)
-            root.undoStack.pushMoveComponents(root.graph, batchedMoves)
+        if (batchedMoves.length > 0 && root.graphEditorController) {
+            root._runAction(function () {
+                return root.graphEditorController.commitMoveBatch(batchedMoves);
+            });
+        }
 
-        var nextMoveStart = root.moveStartPositions
-        delete nextMoveStart[anchorComponent.id]
-        root.moveStartPositions = nextMoveStart
+        var nextMoveStart = root.moveStartPositions;
+        delete nextMoveStart[anchorComponent.id];
+        root.moveStartPositions = nextMoveStart;
     }
 
     function startResizeCapture(component) {
         if (!component)
-            return
-        var nextResize = root.resizeStartGeometries
+            return;
+        var nextResize = root.resizeStartGeometries;
         nextResize[component.id] = {
             "x": component.x,
             "y": component.y,
             "width": component.width,
             "height": component.height
-        }
-        root.resizeStartGeometries = nextResize
+        };
+        root.resizeStartGeometries = nextResize;
     }
 
     function commitResizeCommand(component) {
         if (!component)
-            return
-
-        var start = root.resizeStartGeometries[component.id]
-        if (start && root.undoStack) {
-            root.undoStack.pushSetComponentGeometry(component,
-                                                    start.x,
-                                                    start.y,
-                                                    start.width,
-                                                    start.height,
-                                                    component.x,
-                                                    component.y,
-                                                    component.width,
-                                                    component.height)
+            return;
+        var start = root.resizeStartGeometries[component.id];
+        if (start && root.graphEditorController) {
+            root._runAction(function () {
+                return root.graphEditorController.commitResize(component.id, start.x, start.y, start.width, start.height, component.x, component.y, component.width, component.height);
+            });
         }
 
-        var nextResize = root.resizeStartGeometries
-        delete nextResize[component.id]
-        root.resizeStartGeometries = nextResize
+        var nextResize = root.resizeStartGeometries;
+        delete nextResize[component.id];
+        root.resizeStartGeometries = nextResize;
     }
 
     function openConfirm(action, message) {
-        root.pendingConfirmAction = action
-        root.pendingConfirmMessage = message
-        confirmDialog.open()
+        root.pendingConfirmAction = action;
+        root.pendingConfirmMessage = message;
+        confirmDialog.open();
     }
 
     function executePendingConfirm() {
         if (root.pendingConfirmAction === "clear_connections")
-            root.clearAllConnections()
+            root.clearAllConnections();
         else if (root.pendingConfirmAction === "clear_components")
-            root.clearAllComponents()
+            root.clearAllComponents();
 
-        root.pendingConfirmAction = ""
-        root.pendingConfirmMessage = ""
+        root.pendingConfirmAction = "";
+        root.pendingConfirmMessage = "";
     }
 
     function viewToWorld(viewX, viewY) {
-        if (nodeViewport)
-            return nodeViewport.viewToWorld(viewX, viewY)
-        return Qt.point(0, 0)
+        if (componentViewport)
+            return componentViewport.viewToWorld(viewX, viewY);
+        return Qt.point(0, 0);
     }
 
     function worldToView(worldX, worldY) {
-        if (nodeViewport)
-            return nodeViewport.worldToView(worldX, worldY)
-        return Qt.point(0, 0)
+        if (componentViewport)
+            return componentViewport.worldToView(worldX, worldY);
+        return Qt.point(0, 0);
     }
 
     function updateMouseWorldPos() {
-        root.mouseWorldPos = root.viewToWorld(root.mouseViewPos.x,
-                                              root.mouseViewPos.y)
+        root.mouseWorldPos = root.viewToWorld(root.mouseViewPos.x, root.mouseViewPos.y);
     }
 
     // Zooms around a view-space anchor and lets C++ compute the camera state,
     // keeping one authoritative camera math path.
     function zoomAtView(viewX, viewY, zoomFactor) {
-        if (!nodeViewport)
-            return
-
-        var state = nodeViewport.zoomAtViewAnchor(viewX,
-                                                  viewY,
-                                                  zoomFactor,
-                                                  minZoom,
-                                                  maxZoom,
-                                                  zoomEpsilon)
+        if (!componentViewport)
+            return;
+        var state = componentViewport.zoomAtViewAnchor(viewX, viewY, zoomFactor, minZoom, maxZoom, zoomEpsilon);
         if (!state.changed)
-            return
-
-        zoom = state.zoom
-        panX = state.panX
-        panY = state.panY
+            return;
+        zoom = state.zoom;
+        panX = state.panX;
+        panY = state.panY;
     }
 
     function zoomAtCursor(zoomFactor) {
-        root.zoomAtView(mouseViewPos.x, mouseViewPos.y, zoomFactor)
+        root.zoomAtView(mouseViewPos.x, mouseViewPos.y, zoomFactor);
     }
 
     function childToView(childItem, childX, childY) {
         if (!childItem)
-            return Qt.point(0, 0)
-        return childItem.mapToItem(root, childX, childY)
+            return Qt.point(0, 0);
+        return childItem.mapToItem(root, childX, childY);
     }
 
     function windowSceneToView(windowScenePoint) {
-        return root.mapFromItem(null, windowScenePoint.x, windowScenePoint.y)
+        return root.mapFromItem(null, windowScenePoint.x, windowScenePoint.y);
     }
 
     function normalizedViewRect(p1, p2) {
-        var left = Math.min(p1.x, p2.x)
-        var right = Math.max(p1.x, p2.x)
-        var top = Math.min(p1.y, p2.y)
-        var bottom = Math.max(p1.y, p2.y)
+        var left = Math.min(p1.x, p2.x);
+        var right = Math.max(p1.x, p2.x);
+        var top = Math.min(p1.y, p2.y);
+        var bottom = Math.max(p1.y, p2.y);
         return {
             "left": left,
             "right": right,
@@ -534,196 +705,174 @@ Item {
             "bottom": bottom,
             "width": right - left,
             "height": bottom - top
-        }
+        };
     }
 
     function pointInRect(point, rect) {
-        return point.x >= rect.left && point.x <= rect.right
-                && point.y >= rect.top && point.y <= rect.bottom
+        return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
     }
 
     function segmentIntersectsSegment(a, b, c, d) {
         function cross(p, q, r) {
-            return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x)
+            return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
         }
 
-        var c1 = cross(a, b, c)
-        var c2 = cross(a, b, d)
-        var c3 = cross(c, d, a)
-        var c4 = cross(c, d, b)
-        return (c1 * c2 <= 0) && (c3 * c4 <= 0)
+        var c1 = cross(a, b, c);
+        var c2 = cross(a, b, d);
+        var c3 = cross(c, d, a);
+        var c4 = cross(c, d, b);
+        return (c1 * c2 <= 0) && (c3 * c4 <= 0);
     }
 
     function segmentIntersectsRect(a, b, rect) {
         if (pointInRect(a, rect) || pointInRect(b, rect))
-            return true
+            return true;
 
-        var tl = Qt.point(rect.left, rect.top)
-        var tr = Qt.point(rect.right, rect.top)
-        var br = Qt.point(rect.right, rect.bottom)
-        var bl = Qt.point(rect.left, rect.bottom)
+        var tl = Qt.point(rect.left, rect.top);
+        var tr = Qt.point(rect.right, rect.top);
+        var br = Qt.point(rect.right, rect.bottom);
+        var bl = Qt.point(rect.left, rect.bottom);
 
-        return segmentIntersectsSegment(a, b, tl, tr)
-                || segmentIntersectsSegment(a, b, tr, br)
-                || segmentIntersectsSegment(a, b, br, bl)
-                || segmentIntersectsSegment(a, b, bl, tl)
+        return segmentIntersectsSegment(a, b, tl, tr) || segmentIntersectsSegment(a, b, tr, br) || segmentIntersectsSegment(a, b, br, bl) || segmentIntersectsSegment(a, b, bl, tl);
     }
 
     function componentIntersectsViewRect(component, rect) {
-        var halfW = component.width / 2
-        var halfH = component.height / 2
-        var topLeft = root.worldToView(component.x - halfW, component.y - halfH)
-        var bottomRight = root.worldToView(component.x + halfW, component.y + halfH)
-        var compRect = normalizedViewRect(topLeft, bottomRight)
+        var halfW = component.width / 2;
+        var halfH = component.height / 2;
+        var topLeft = root.worldToView(component.x - halfW, component.y - halfH);
+        var bottomRight = root.worldToView(component.x + halfW, component.y + halfH);
+        var compRect = normalizedViewRect(topLeft, bottomRight);
 
-        return !(compRect.right < rect.left || compRect.left > rect.right
-                 || compRect.bottom < rect.top || compRect.top > rect.bottom)
+        return !(compRect.right < rect.left || compRect.left > rect.right || compRect.bottom < rect.top || compRect.top > rect.bottom);
     }
 
     function connectionIntersectsViewRect(connection, rect) {
-        var source = root.graph ? root.graph.componentById(connection.sourceId) : null
-        var target = root.graph ? root.graph.componentById(connection.targetId) : null
+        var source = root.graph ? root.graph.componentById(connection.sourceId) : null;
+        var target = root.graph ? root.graph.componentById(connection.targetId) : null;
         if (!source || !target)
-            return false
+            return false;
 
-        var s = root.worldToView(source.x, source.y)
-        var t = root.worldToView(target.x, target.y)
-        return pointInRect(s, rect) || pointInRect(t, rect)
-                || segmentIntersectsRect(s, t, rect)
+        var s = root.worldToView(source.x, source.y);
+        var t = root.worldToView(target.x, target.y);
+        return pointInRect(s, rect) || pointInRect(t, rect) || segmentIntersectsRect(s, t, rect);
     }
 
     function mergeUnique(baseIds, addIds) {
-        var set = {}
-        var merged = []
+        var set = {};
+        var merged = [];
         for (var i = 0; i < baseIds.length; ++i) {
-            var existing = baseIds[i]
+            var existing = baseIds[i];
             if (!set[existing]) {
-                set[existing] = true
-                merged.push(existing)
+                set[existing] = true;
+                merged.push(existing);
             }
         }
         for (var j = 0; j < addIds.length; ++j) {
-            var next = addIds[j]
+            var next = addIds[j];
             if (!set[next]) {
-                set[next] = true
-                merged.push(next)
+                set[next] = true;
+                merged.push(next);
             }
         }
-        return merged
+        return merged;
     }
 
     function applyMarqueeSelection(viewStart, viewEnd, additive) {
         if (!root.graph)
-            return
-
-        var rect = normalizedViewRect(viewStart, viewEnd)
+            return;
+        var rect = normalizedViewRect(viewStart, viewEnd);
         if (rect.width < 2 && rect.height < 2)
-            return
-
-        var hitComponentIds = []
-        var components = root.graph.components
+            return;
+        var hitComponentIds = [];
+        var components = root.graph.components;
         for (var i = 0; i < components.length; ++i) {
-            var component = components[i]
+            var component = components[i];
             if (componentIntersectsViewRect(component, rect))
-                hitComponentIds.push(component.id)
+                hitComponentIds.push(component.id);
         }
 
-        var hitConnectionIds = []
-        var connections = root.graph.connections
+        var hitConnectionIds = [];
+        var connections = root.graph.connections;
         for (var k = 0; k < connections.length; ++k) {
-            var connection = connections[k]
+            var connection = connections[k];
             if (connectionIntersectsViewRect(connection, rect))
-                hitConnectionIds.push(connection.id)
+                hitConnectionIds.push(connection.id);
         }
 
-        var nextComponentIds = additive
-                ? mergeUnique(root.selectedComponentIds, hitComponentIds)
-                : hitComponentIds
-        var nextConnectionIds = additive
-                ? mergeUnique(root.selectedConnectionIds, hitConnectionIds)
-                : hitConnectionIds
+        var nextComponentIds = additive ? mergeUnique(root.selectedComponentIds, hitComponentIds) : hitComponentIds;
+        var nextConnectionIds = additive ? mergeUnique(root.selectedConnectionIds, hitConnectionIds) : hitConnectionIds;
 
-        root.selectedComponentIds = nextComponentIds
-        root.selectedConnectionIds = nextConnectionIds
-        root.selectedComponent = nextComponentIds.length > 0
-                ? root.graph.componentById(nextComponentIds[nextComponentIds.length - 1])
-                : null
-        root.selectedConnection = nextConnectionIds.length > 0
-                ? root.graph.connectionById(nextConnectionIds[nextConnectionIds.length - 1])
-                : null
+        root.selectedComponentIds = nextComponentIds;
+        root.selectedConnectionIds = nextConnectionIds;
+        root.selectedComponent = nextComponentIds.length > 0 ? root.graph.componentById(nextComponentIds[nextComponentIds.length - 1]) : null;
+        root.selectedConnection = nextConnectionIds.length > 0 ? root.graph.connectionById(nextConnectionIds[nextConnectionIds.length - 1]) : null;
 
         if (root.selectedComponent)
-            root.componentSelected(root.selectedComponent)
+            root.componentSelected(root.selectedComponent);
         else if (root.selectedConnection)
-            root.connectionSelected(root.selectedConnection)
+            root.connectionSelected(root.selectedConnection);
         else
-            root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y)
+            root.backgroundClicked(root.mouseWorldPos.x, root.mouseWorldPos.y);
 
-        edgeCanvas.repaint()
+        connectionCanvas.repaint();
     }
 
     function beginGroupMove(anchorComponent) {
-        root.groupMoveActive = false
-        root.groupMoveBaseCenters = ({})
+        root.groupMoveActive = false;
+        root.groupMoveBaseCenters = ({});
 
         if (!anchorComponent || !root.graph)
-            return
+            return;
         if (!root.componentIsSelected(anchorComponent) || root.selectedComponentIds.length < 2)
-            return
-
-        root.groupMoveAnchorStart = Qt.point(anchorComponent.x, anchorComponent.y)
-        var snapshot = {}
+            return;
+        root.groupMoveAnchorStart = Qt.point(anchorComponent.x, anchorComponent.y);
+        var snapshot = {};
         for (var i = 0; i < root.selectedComponentIds.length; ++i) {
-            var id = root.selectedComponentIds[i]
-            var component = root.graph.componentById(id)
+            var id = root.selectedComponentIds[i];
+            var component = root.graph.componentById(id);
             if (component)
-                snapshot[id] = Qt.point(component.x, component.y)
+                snapshot[id] = Qt.point(component.x, component.y);
         }
-        root.groupMoveBaseCenters = snapshot
-        root.groupMoveActive = true
+        root.groupMoveBaseCenters = snapshot;
+        root.groupMoveActive = true;
     }
 
     function updateGroupMove(anchorComponent) {
         if (!root.groupMoveActive || !anchorComponent || !root.graph)
-            return
-
-        var dx = anchorComponent.x - root.groupMoveAnchorStart.x
-        var dy = anchorComponent.y - root.groupMoveAnchorStart.y
+            return;
+        var dx = anchorComponent.x - root.groupMoveAnchorStart.x;
+        var dy = anchorComponent.y - root.groupMoveAnchorStart.y;
         for (var i = 0; i < root.selectedComponentIds.length; ++i) {
-            var id = root.selectedComponentIds[i]
+            var id = root.selectedComponentIds[i];
             if (id === anchorComponent.id)
-                continue
-            var component = root.graph.componentById(id)
-            var base = root.groupMoveBaseCenters[id]
+                continue;
+            var component = root.graph.componentById(id);
+            var base = root.groupMoveBaseCenters[id];
             if (component && base) {
-                component.x = base.x + dx
-                component.y = base.y + dy
+                component.x = base.x + dx;
+                component.y = base.y + dy;
             }
         }
     }
 
     function endGroupMove() {
-        root.groupMoveActive = false
-        root.groupMoveBaseCenters = ({})
+        root.groupMoveActive = false;
+        root.groupMoveBaseCenters = ({});
     }
 
     function finishMarqueeSelection() {
         if (!interactionState.marqueeSelecting)
-            return
-
-        var rect = root.normalizedViewRect(interactionState.marqueeStart,
-                                           interactionState.marqueeEnd)
-        var draggedEnough = rect.width >= 2 || rect.height >= 2
-        root.debugInputLog("marquee_finish")
+            return;
+        var rect = root.normalizedViewRect(interactionState.marqueeStart, interactionState.marqueeEnd);
+        var draggedEnough = rect.width >= 2 || rect.height >= 2;
+        root.debugInputLog("marquee_finish");
         if (draggedEnough) {
-            root.applyMarqueeSelection(interactionState.marqueeStart,
-                                       interactionState.marqueeEnd,
-                                       true)
-            root.suppressNextCanvasTap = true
-            root.debugInputLog("marquee_apply")
+            root.applyMarqueeSelection(interactionState.marqueeStart, interactionState.marqueeEnd, true);
+            root.suppressNextCanvasTap = true;
+            root.debugInputLog("marquee_apply");
         }
-        interactionState.endMarqueeSelect()
-        root.debugInputLog("marquee_end")
+        interactionState.endMarqueeSelect();
+        root.debugInputLog("marquee_end");
     }
 
     // ── Interaction state manager ────────────────────────────────────────
@@ -743,7 +892,7 @@ Item {
 
     // C++ viewport layers (Phase 2)
     // - gridViewport: background grid
-    // - edgeViewport: connection lines + temp drag preview
+    // - connectionViewport: connection lines + temp drag preview
     GraphViewportItem {
         id: gridViewport
         anchors.fill: parent
@@ -752,14 +901,14 @@ Item {
         panY: root.panY
         zoom: root.zoom
         renderGrid: true
-        renderEdges: false
+        renderConnections: false
         baseGridStep: root.baseGridStep
         minGridPixelStep: root.minGridPixelStep
         maxGridPixelStep: root.maxGridPixelStep
     }
 
     GraphViewportItem {
-        id: edgeViewport
+        id: connectionViewport
         anchors.fill: parent
         z: 1
         graph: root.graph
@@ -767,16 +916,21 @@ Item {
         panY: root.panY
         zoom: root.zoom
         renderGrid: false
-        renderEdges: true
+        renderConnections: true
         selectedConnection: root.selectedConnection
         selectedConnectionIds: root.selectedConnectionIds
         tempConnectionDragging: root.tempConnectionDragging
         tempStart: Qt.point(root.tempStart.x, root.tempStart.y)
         tempEnd: Qt.point(root.tempEnd.x, root.tempEnd.y)
+
+        Component.onCompleted: {
+            if (root.interactionTelemetryEnabled && connectionViewport.clearInteractionTelemetry)
+                connectionViewport.clearInteractionTelemetry();
+        }
     }
 
     GraphViewportItem {
-        id: nodeViewport
+        id: componentViewport
         anchors.fill: parent
         z: 0.2
         graph: root.graph
@@ -784,8 +938,8 @@ Item {
         panY: root.panY
         zoom: root.zoom
         renderGrid: false
-        renderEdges: false
-        renderNodes: true
+        renderConnections: false
+        renderComponents: true
         selectedComponent: root.selectedComponent
         selectedComponentIds: root.selectedComponentIds
     }
@@ -794,14 +948,14 @@ Item {
     QtObject {
         id: gridCanvas
         function requestPaint() {
-            gridViewport.repaint()
+            gridViewport.repaint();
         }
     }
 
     QtObject {
-        id: edgeCanvas
+        id: connectionCanvas
         function repaint() {
-            edgeViewport.repaint()
+            connectionViewport.repaint();
         }
     }
 
@@ -813,67 +967,68 @@ Item {
         property real startPanX: 0
         property real startPanY: 0
         property bool dragStartedWithCtrl: false
+        // True when a canvas drag gesture started on top of a component;
+        // while set, background pan updates are ignored for this gesture.
+        property bool suppressPanFromComponentPress: false
 
         HoverHandler {
             id: canvasHover
-            cursorShape: interactionState.marqueeSelecting || interactionLayer.dragStartedWithCtrl
-                         ? Qt.CrossCursor
-                         : (canvasDrag.active
-                            ? Qt.ClosedHandCursor
-                            : (root.ctrlSelectionModifierActive
-                               ? Qt.CrossCursor
-                               : (root.pointerOverComponent || root.enableBackgroundDrag
-                                  ? Qt.OpenHandCursor
-                                  : Qt.ArrowCursor)))
+            cursorShape: interactionState.marqueeSelecting || interactionLayer.dragStartedWithCtrl ? Qt.CrossCursor : (canvasDrag.active ? Qt.ClosedHandCursor : (root.ctrlSelectionModifierActive ? Qt.CrossCursor : (root.pointerOverComponent || root.enableBackgroundDrag ? Qt.OpenHandCursor : Qt.ArrowCursor)))
             onPointChanged: {
                 // interactionLayer fills GraphCanvas at (0, 0), so the hover
                 // point is already in GraphCanvas view coordinates.
-                root.mouseViewPos = Qt.point(point.position.x,
-                                             point.position.y)
-                root.livePointerModifiers = point.modifiers
-                root.syncCtrlModifierState(point.modifiers)
+                root.mouseViewPos = Qt.point(point.position.x, point.position.y);
+                root.livePointerModifiers = point.modifiers;
+                root.syncCtrlModifierState(point.modifiers);
 
                 // Keep marquee endpoint in sync with pointer movement even if
                 // DragHandler does not become active for this gesture.
                 if (interactionState.marqueeSelecting && root.ctrlSelectionModifierActive) {
-                    interactionState.updateMarqueeSelect(
-                                interactionState.marqueeStart,
-                                root.mouseViewPos)
+                    interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, root.mouseViewPos);
                 }
 
                 if (root.ctrlSelectionModifierActive || interactionState.marqueeSelecting)
-                    root.debugInputLog("mouse_move")
+                    root.debugInputLog("mouse_move");
             }
         }
 
         DragHandler {
             id: canvasDrag
-            enabled: root.enableBackgroundDrag
-                     && !root.nodeInteractionActive
-                     && !root.ctrlSelectionModifierActive
-                     && !root.pressedComponent
+            enabled: root.enableBackgroundDrag && !root.componentInteractionActive && !root.ctrlSelectionModifierActive && !root.pressedComponent && !root.pointerOverComponent && !root.paletteDragInProgress
             target: null
             acceptedButtons: Qt.LeftButton
             dragThreshold: root.panStartThreshold
 
             onActiveChanged: {
                 if (active) {
-                    interactionLayer.startPanX = root.panX
-                    interactionLayer.startPanY = root.panY
-                    root.debugInputLog("drag_start_pan")
-                    if (root.telemetry) root.telemetry.notifyDragStarted()
-                } else {
+                    var hitComponent = connectionViewport.hitTestComponentAtView(centroid.position.x, centroid.position.y);
+                    interactionLayer.suppressPanFromComponentPress = hitComponent !== null;
+                    if (interactionLayer.suppressPanFromComponentPress) {
+                        root.pressedComponent = hitComponent;
+                        root.debugInputLog("drag_pan_suppressed_component_press");
+                        return;
+                    }
+                    interactionLayer.startPanX = root.panX;
+                    interactionLayer.startPanY = root.panY;
+                    root.debugInputLog("drag_start_pan");
                     if (root.telemetry)
-                        root.telemetry.notifyDragEnded()
-                    interactionLayer.dragStartedWithCtrl = false
-                    root.debugInputLog("drag_end")
+                        root.telemetry.notifyDragStarted();
+                } else {
+                    if (!interactionLayer.suppressPanFromComponentPress && root.telemetry)
+                        root.telemetry.notifyDragEnded();
+                    interactionLayer.suppressPanFromComponentPress = false;
+                    interactionLayer.dragStartedWithCtrl = false;
+                    root.debugInputLog("drag_end");
                 }
             }
 
             onTranslationChanged: {
-                root.panX = interactionLayer.startPanX + translation.x
-                root.panY = interactionLayer.startPanY + translation.y
-                if (root.telemetry) root.telemetry.notifyDragMoved()
+                if (interactionLayer.suppressPanFromComponentPress)
+                    return;
+                root.panX = interactionLayer.startPanX + translation.x;
+                root.panY = interactionLayer.startPanY + translation.y;
+                if (root.telemetry)
+                    root.telemetry.notifyDragMoved();
             }
         }
 
@@ -883,94 +1038,78 @@ Item {
 
             onPressedChanged: {
                 if (pressed) {
-                    root.forceActiveFocus()
-                    root.livePointerModifiers = point.modifiers
-                    root.syncCtrlModifierState(point.modifiers)
-                    root.pressedComponent = edgeViewport.hitTestComponentAtView(point.position.x,
-                                                                                 point.position.y)
-                    root.debugInputLog("mouse_press")
+                    root.forceActiveFocus();
+                    root.livePointerModifiers = point.modifiers;
+                    root.syncCtrlModifierState(point.modifiers);
+                    root.pressedComponent = connectionViewport.hitTestComponentAtView(point.position.x, point.position.y);
+                    root.debugInputLog("mouse_press");
                 } else {
-                    root.pressedComponent = null
-                    root.syncCtrlModifierState(point.modifiers)
-                    interactionLayer.dragStartedWithCtrl = false
-                    root.debugInputLog("mouse_release")
+                    root.pressedComponent = null;
+                    root.syncCtrlModifierState(point.modifiers);
+                    interactionLayer.dragStartedWithCtrl = false;
+                    root.debugInputLog("mouse_release");
                 }
             }
 
             onTapped: point => {
-                          if (root.suppressNextCanvasTap) {
-                              root.suppressNextCanvasTap = false
-                              return
-                          }
+                if (root.suppressNextCanvasTap) {
+                    root.suppressNextCanvasTap = false;
+                    return;
+                }
 
-                          var viewPos = Qt.point(point.position.x,
-                                                 point.position.y)
+                var viewPos = Qt.point(point.position.x, point.position.y);
 
-                          var hitComponent = edgeViewport.hitTestComponentAtView(viewPos.x,
-                                                                                  viewPos.y)
-                          if (hitComponent) {
-                              root.handleLeftComponentClick(hitComponent,
-                                                            point.modifiers)
-                              return
-                          }
+                var hitComponent = connectionViewport.hitTestComponentAtView(viewPos.x, viewPos.y);
+                if (hitComponent) {
+                    root.handleLeftComponentClick(hitComponent, point.modifiers);
+                    return;
+                }
 
-                          var hitConnection = edgeViewport.hitTestConnectionAtView(viewPos.x,
-                                                                                    viewPos.y,
-                                                                                    10.0)
-                          if (hitConnection) {
-                              root.selectConnection(hitConnection)
-                              edgeCanvas.repaint()
-                              return
-                          }
+                var hitConnection = connectionViewport.hitTestConnectionAtView(viewPos.x, viewPos.y, 10.0);
+                if (hitConnection) {
+                    root.selectConnection(hitConnection);
+                    connectionCanvas.repaint();
+                    return;
+                }
 
-                          root.clearComponentSelection()
-                          root.selectedConnection = null
-                          root.selectedConnectionIds = []
-                          var worldPos = root.viewToWorld(point.position.x,
-                                                          point.position.y)
-                          root.backgroundClicked(worldPos.x, worldPos.y)
-                          edgeCanvas.repaint()
-                      }
+                root.clearComponentSelection();
+                root.selectedConnection = null;
+                root.selectedConnectionIds = [];
+                var worldPos = root.viewToWorld(point.position.x, point.position.y);
+                root.backgroundClicked(worldPos.x, worldPos.y);
+                connectionCanvas.repaint();
+            }
         }
 
         TapHandler {
             acceptedButtons: Qt.RightButton
             onTapped: point => {
-                          var viewPos = Qt.point(point.position.x,
-                                                 point.position.y)
-                          root.menuTargetWorldPos = root.viewToWorld(viewPos.x,
-                                                                     viewPos.y)
+                var viewPos = Qt.point(point.position.x, point.position.y);
+                root.menuTargetWorldPos = root.viewToWorld(viewPos.x, viewPos.y);
 
-                          root.menuTargetComponent = edgeViewport.hitTestComponentAtView(viewPos.x,
-                                                                                           viewPos.y)
-                          if (root.menuTargetComponent) {
-                              componentMenu.popup(point.position.x,
-                                                  point.position.y)
-                              return
-                          }
+                root.menuTargetComponent = connectionViewport.hitTestComponentAtView(viewPos.x, viewPos.y);
+                if (root.menuTargetComponent) {
+                    componentMenu.popup(point.position.x, point.position.y);
+                    return;
+                }
 
-                          root.menuTargetConnection = edgeViewport.hitTestConnectionAtView(viewPos.x,
-                                                                                             viewPos.y,
-                                                                                             10.0)
-                          if (root.menuTargetConnection) {
-                              connectionMenu.popup(point.position.x,
-                                                   point.position.y)
-                              return
-                          }
+                root.menuTargetConnection = connectionViewport.hitTestConnectionAtView(viewPos.x, viewPos.y, 10.0);
+                if (root.menuTargetConnection) {
+                    connectionMenu.popup(point.position.x, point.position.y);
+                    return;
+                }
 
-                          backgroundMenu.popup(point.position.x,
-                                               point.position.y)
-                      }
+                backgroundMenu.popup(point.position.x, point.position.y);
+            }
         }
 
         WheelHandler {
             onWheel: event => {
-                         var factor = event.angleDelta.y
-                         > 0 ? root.zoomStepFactor : 1 / root.zoomStepFactor
+                var factor = event.angleDelta.y > 0 ? root.zoomStepFactor : 1 / root.zoomStepFactor;
 
-                         root.zoomAtCursor(factor)
-                         event.accepted = true
-                     }
+                root.zoomAtCursor(factor);
+                event.accepted = true;
+            }
         }
     }
 
@@ -1027,18 +1166,14 @@ Item {
                         const components = graph ? graph.components : null;
                         // Some models may not expose a length; in that case
                         // default to eager activation to preserve behavior.
-                        const count = components && components.length !== undefined
-                                       ? components.length
-                                       : -1;
+                        const count = components && components.length !== undefined ? components.length : -1;
                         const eager = (count < 0) || (count <= root.maxEagerComponentDelegates);
                         if (eager)
                             return true;
 
                         // On very large graphs, only keep delegates active
                         // when they are selected or explicitly kept alive.
-                        return delegateRoot.keepAlive
-                            || root.selectedComponent === modelData
-                            || root.componentIsSelected(modelData);
+                        return delegateRoot.keepAlive || root.selectedComponent === modelData || root.componentIsSelected(modelData);
                     }
                     asynchronous: false
 
@@ -1047,106 +1182,116 @@ Item {
                         viewZoom: root.zoom
                         moveEnabled: !root.ctrlSelectionModifierActive
                         resizeEnabled: !root.ctrlSelectionModifierActive
-                        selected: root.selectedComponent === modelData
-                                  || root.componentIsSelected(modelData)
+                        selected: root.selectedComponent === modelData || root.componentIsSelected(modelData)
                         renderVisuals: false
                         undoStack: root.undoStack
 
                         onComponentClicked: function (clickedComponent, modifiers) {
-                                                root.suppressNextCanvasTap = true
-                                                root.handleLeftComponentClick(clickedComponent,
-                                                                              modifiers)
-                                            }
+                            root.suppressNextCanvasTap = true;
+                            root.handleLeftComponentClick(clickedComponent, modifiers);
+                        }
 
                         onFocusedChanged: {
-                            delegateRoot.keepAlive = focused
+                            delegateRoot.keepAlive = focused;
                         }
 
                         onConnectionDragged: function (sourceComponent, sourceSide, startP, targetP) {
-                            var viewStart = root.windowSceneToView(startP)
-                            var viewEnd = root.windowSceneToView(targetP)
-                            if (interactionState.mode === InteractionStateManager.ConnectionDraw)
-                                interactionState.updateConnectionDraw(viewStart, viewEnd)
-                            else
-                                interactionState.startConnectionDraw(sourceComponent, viewStart, viewEnd)
-                            edgeCanvas.repaint()
+                            var viewStart = root.windowSceneToView(startP);
+                            var viewEnd = root.windowSceneToView(targetP);
+                            // Use intent-based API (PR2: thin adapter layer)
+                            if (interactionState.mode === InteractionStateManager.ConnectionDraw) {
+                                root._runIntent(function () {
+                                    return interactionState.intentUpdateConnectionDraw(viewStart, viewEnd);
+                                });
+                            } else {
+                                root._runIntent(function () {
+                                    return interactionState.intentStartConnectionDraw(sourceComponent, viewStart, viewEnd);
+                                });
+                            }
+                            connectionCanvas.repaint();
                         }
                         onConnectionDropped: function (sourceComponent, sourceSide, startP, targetP) {
-                            interactionState.endConnectionDraw()
+                            // Use intent-based API (PR2: thin adapter layer)
+                            root._runIntent(function () {
+                                return interactionState.intentEndConnectionDraw();
+                            });
 
-                            var dropPoint = root.windowSceneToView(targetP)
-                            var component = edgeViewport.hitTestComponentAtView(dropPoint.x,
-                                                                                dropPoint.y)
+                            var dropPoint = root.windowSceneToView(targetP);
+                            var component = connectionViewport.hitTestComponentAtView(dropPoint.x, dropPoint.y);
                             if (!component) {
-                                edgeCanvas.repaint()
-                                return
+                                connectionCanvas.repaint();
+                                return;
                             }
 
                             if (component === sourceComponent) {
-                                edgeCanvas.repaint()
-                                return
+                                connectionCanvas.repaint();
+                                return;
                             }
 
-                            var connectionId = "conn_" + sourceComponent.id + "_" + component.id
-                            if (root.graph.connectionById(connectionId)) {
-                                edgeCanvas.repaint()
-                                return
+                            if (root.graphEditorController) {
+                                var preferredId = "conn_" + sourceComponent.id + "_" + component.id;
+                                root._runAction(function () {
+                                    return root.graphEditorController.connectComponentsFromDrag(sourceComponent.id, component.id, sourceSide, -1, preferredId, "path A");
+                                });
                             }
-
-                            // Add connection from sourceComponent to component.
-                            var e1 = Qt.createQmlObject(
-                                        'import ComponentMapEditor; ConnectionModel {}',
-                                        root.graph)
-                            e1.id = connectionId
-                            e1.sourceId = sourceComponent.id
-                            e1.targetId = component.id
-                            e1.label = "path A"
-                            e1.sourceSide = sourceSide
-                            if (root.undoStack)
-                                root.undoStack.pushAddConnection(root.graph, e1)
-                            else
-                                root.graph.addConnection(e1)
-                            edgeCanvas.repaint()
+                            connectionCanvas.repaint();
                         }
 
                         onMoveStarted: {
-                            interactionState.startNodeMove(modelData)
-                            var nextMoveStart = root.moveStartPositions
-                            nextMoveStart[modelData.id] = Qt.point(modelData.x,
-                                                                   modelData.y)
-                            root.moveStartPositions = nextMoveStart
-                            root.beginGroupMove(modelData)
-                            if (root.telemetry) root.telemetry.notifyDragStarted()
+                            // Use intent-based API (PR2: thin adapter layer)
+                            var success = root._runIntent(function () {
+                                return interactionState.intentStartComponentMove(modelData);
+                            });
+                            if (success) {
+                                var nextMoveStart = root.moveStartPositions;
+                                nextMoveStart[modelData.id] = Qt.point(modelData.x, modelData.y);
+                                root.moveStartPositions = nextMoveStart;
+                                root.beginGroupMove(modelData);
+                                if (root.telemetry)
+                                    root.telemetry.notifyDragStarted();
+                            }
                         }
                         onMoved: {
-                            root.updateGroupMove(modelData)
-                            edgeCanvas.repaint()
-                            if (root.telemetry) root.telemetry.notifyDragMoved()
+                            root.updateGroupMove(modelData);
+                            connectionCanvas.repaint();
+                            if (root.telemetry)
+                                root.telemetry.notifyDragMoved();
                         }
                         onMoveFinished: {
-                            root.commitMoveCommands(modelData)
-                            root.endGroupMove()
-                            interactionState.endNodeMove()
-                            if (root.telemetry) root.telemetry.notifyDragEnded()
+                            root.commitMoveCommands(modelData);
+                            root.endGroupMove();
+                            // Use intent-based API (PR2: thin adapter layer)
+                            var success = root._runIntent(function () {
+                                return interactionState.intentEndComponentMove();
+                            });
+                            if (success && root.telemetry)
+                                root.telemetry.notifyDragEnded();
                         }
 
                         onResizeStarted: {
-                            interactionState.startNodeResize(modelData)
-                            root.startResizeCapture(modelData)
+                            // Use intent-based API (PR2: thin adapter layer)
+                            var success = root._runIntent(function () {
+                                return interactionState.intentStartComponentResize(modelData);
+                            });
+                            if (success)
+                                root.startResizeCapture(modelData);
                         }
                         onResizeFinished: {
-                            root.commitResizeCommand(modelData)
-                            interactionState.endNodeResize()
+                            root.commitResizeCommand(modelData);
+                            // Use intent-based API (PR2: thin adapter layer)
+                            root._runIntent(function () {
+                                return interactionState.intentEndComponentResize();
+                            });
                         }
 
                         onHoverPositionChanged: function (hoverX, hoverY) {
-                            root.mouseViewPos = root.childToView(this, hoverX, hoverY)
+                            root.mouseViewPos = root.childToView(this, hoverX, hoverY);
                         }
                     }
 
                     onLoaded: {
                         if (itemLoader.item)
-                            delegateRoot.keepAlive = itemLoader.item.focused
+                            delegateRoot.keepAlive = itemLoader.item.focused;
                     }
                 }
             }
@@ -1167,44 +1312,49 @@ Item {
             preventStealing: true
 
             onPressed: mouse => {
-                           // Clear the release flag on any mouse press to allow modifiers to work again
-                           root.ctrlReleasedByKey = false
-                           // Safety check: only start marquee if Ctrl is still active
-                           if (!root.ctrlSelectionModifierActive)
-                               return
-                           var start = Qt.point(mouse.x, mouse.y)
-                           interactionState.startMarqueeSelect(start, start)
-                           root.debugInputLog("marquee_start_press")
-                       }
+                // Clear the release flag on any mouse press to allow modifiers to work again
+                root.ctrlReleasedByKey = false;
+                // Safety check: only start marquee if Ctrl is still active
+                if (!root.ctrlSelectionModifierActive)
+                    return;
+                var start = Qt.point(mouse.x, mouse.y);
+                // Use intent-based API (PR2: thin adapter layer)
+                var success = root._runIntent(function () {
+                    return interactionState.intentStartMarqueeSelect(start, start);
+                });
+                if (success)
+                    root.debugInputLog("marquee_start_press");
+            }
 
             onPositionChanged: mouse => {
-                                    // Safety check: only continue marquee if Ctrl is still active
-                                    if (!root.ctrlSelectionModifierActive)
-                                        return
-                                    if (!pressed || !interactionState.marqueeSelecting)
-                                        return
-                                    interactionState.updateMarqueeSelect(
-                                                interactionState.marqueeStart,
-                                                Qt.point(mouse.x, mouse.y))
-                                    root.mouseViewPos = Qt.point(mouse.x, mouse.y)
-                                    root.updateMouseWorldPos()
-                                    root.debugInputLog("drag_update_marquee")
-                                }
+                // Safety check: only continue marquee if Ctrl is still active
+                if (!root.ctrlSelectionModifierActive)
+                    return;
+                if (!pressed || !interactionState.marqueeSelecting)
+                    return;
+                // Use intent-based API (PR2: thin adapter layer)
+                root._runIntent(function () {
+                    return interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                });
+                root.mouseViewPos = Qt.point(mouse.x, mouse.y);
+                root.updateMouseWorldPos();
+                root.debugInputLog("drag_update_marquee");
+            }
 
             onReleased: mouse => {
-                             // Safety check: only process marquee release if Ctrl is still active
-                             if (!root.ctrlSelectionModifierActive)
-                                 return
-                             if (!interactionState.marqueeSelecting)
-                                 return
-                             interactionState.updateMarqueeSelect(
-                                         interactionState.marqueeStart,
-                                         Qt.point(mouse.x, mouse.y))
-                             root.mouseViewPos = Qt.point(mouse.x, mouse.y)
-                             root.updateMouseWorldPos()
-                             root.finishMarqueeSelection()
-                             root.debugInputLog("mouse_release")
-                         }
+                // Safety check: only process marquee release if Ctrl is still active
+                if (!root.ctrlSelectionModifierActive)
+                    return;
+                if (!interactionState.marqueeSelecting)
+                    return;
+                root._runIntent(function () {
+                    return interactionState.intentUpdateMarqueeSelect(interactionState.marqueeStart, Qt.point(mouse.x, mouse.y));
+                });
+                root.mouseViewPos = Qt.point(mouse.x, mouse.y);
+                root.updateMouseWorldPos();
+                root.finishMarqueeSelection();
+                root.debugInputLog("mouse_release");
+            }
         }
 
         Rectangle {
@@ -1242,6 +1392,57 @@ Item {
         mouseViewPos: root.mouseViewPos
         mouseWorldPos: root.mouseWorldPos
         zoom: root.zoom
+        interactionTransitionRejectCount: connectionViewport.interactionTransitionRejectCount
+        intentLatencyP50Ms: connectionViewport.intentLatencyP50Ms
+        intentLatencyP95Ms: connectionViewport.intentLatencyP95Ms
+        actionLatencyP50Ms: connectionViewport.actionLatencyP50Ms
+        actionLatencyP95Ms: connectionViewport.actionLatencyP95Ms
+    }
+
+    Loader {
+        id: errorOverlayLoader
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 12
+        anchors.rightMargin: 12
+        z: 210
+        active: root.mergedErrorOverlayMessages.length > 0
+        source: root.errorOverlaySource
+        onLoaded: {
+            root.syncErrorOverlayWidget();
+        }
+    }
+
+    Connections {
+        target: errorOverlayLoader.item
+        enabled: errorOverlayLoader.item !== null
+        ignoreUnknownSignals: true
+
+        function onClearRequested() {
+            root.clearRuntimeErrorMessages();
+        }
+
+        function onExpandedChanged() {
+            if (errorOverlayLoader.item.expanded === root.errorOverlayExpanded)
+                return;
+            root.errorOverlayExpanded = errorOverlayLoader.item.expanded;
+        }
+    }
+
+    Connections {
+        target: root.graphEditorController
+
+        function onConnectionRejected(sourceId, targetId, reason) {
+            root.appendRuntimeErrorMessage("Connection blocked: " + reason);
+        }
+
+        function onMutationBlocked(operationType, reason) {
+            root.appendRuntimeErrorMessage("Mutation blocked (" + operationType + "): " + reason);
+        }
+
+        function onInvariantViolationRolledBack(operationType, violation) {
+            root.appendRuntimeErrorMessage("Rollback (" + operationType + "): " + violation);
+        }
     }
 
     // React to graph-level changes
@@ -1250,16 +1451,18 @@ Item {
         enabled: root.graph !== null
 
         function onComponentsChanged() {
-            root.pressedComponent = null
-            root.pointerOverComponent = false
-            root.endGroupMove()
-            interactionState.resetInteraction()
-            interactionState.pruneStaleComponents(root.graph)
-            edgeCanvas.repaint()
+            root.pressedComponent = null;
+            root.pointerOverComponent = false;
+            root.endGroupMove();
+            interactionState.resetInteraction();
+            interactionState.pruneStaleComponents(root.graph);
+            root.refreshBuiltInGraphIssues();
+            connectionCanvas.repaint();
         }
         function onConnectionsChanged() {
-            interactionState.pruneStaleConnection(root.graph)
-            edgeCanvas.repaint()
+            interactionState.pruneStaleConnection(root.graph);
+            root.refreshBuiltInGraphIssues();
+            connectionCanvas.repaint();
         }
     }
 
@@ -1277,15 +1480,11 @@ Item {
         MenuSeparator {}
         MenuItem {
             text: "Clear Incoming Connections"
-            onTriggered: root.clearComponentConnections(root.menuTargetComponent,
-                                                        true,
-                                                        false)
+            onTriggered: root.clearComponentConnections(root.menuTargetComponent, true, false)
         }
         MenuItem {
             text: "Clear Outgoing Connections"
-            onTriggered: root.clearComponentConnections(root.menuTargetComponent,
-                                                        false,
-                                                        true)
+            onTriggered: root.clearComponentConnections(root.menuTargetComponent, false, true)
         }
     }
 
@@ -1296,8 +1495,8 @@ Item {
             text: "Delete"
             onTriggered: {
                 if (root.menuTargetConnection)
-                    root.removeConnectionById(root.menuTargetConnection.id)
-                edgeCanvas.repaint()
+                    root.removeConnectionById(root.menuTargetConnection.id);
+                connectionCanvas.repaint();
             }
         }
     }
@@ -1312,13 +1511,11 @@ Item {
         MenuSeparator {}
         MenuItem {
             text: "Clear All Connections"
-            onTriggered: root.openConfirm("clear_connections",
-                                          "Clear all connections?")
+            onTriggered: root.openConfirm("clear_connections", "Clear all connections?")
         }
         MenuItem {
             text: "Clear All Components"
-            onTriggered: root.openConfirm("clear_components",
-                                          "Clear all components and related connections?")
+            onTriggered: root.openConfirm("clear_components", "Clear all components and related connections?")
         }
     }
 
@@ -1338,67 +1535,82 @@ Item {
 
         onAccepted: root.executePendingConfirm()
         onRejected: {
-            root.pendingConfirmAction = ""
-            root.pendingConfirmMessage = ""
+            root.pendingConfirmAction = "";
+            root.pendingConfirmMessage = "";
         }
     }
 
-    onSelectedConnectionChanged: edgeCanvas.repaint()
-    onGraphChanged: edgeCanvas.repaint()
+    onSelectedConnectionChanged: connectionCanvas.repaint()
     onPanXChanged: {
-        if (telemetry) telemetry.notifyCameraChanged()
-        root.updateMouseWorldPos()
-        root.viewTransformChanged(root.panX, root.panY, root.zoom)
+        if (telemetry)
+            telemetry.notifyCameraChanged();
+        root.updateMouseWorldPos();
+        root.viewTransformChanged(root.panX, root.panY, root.zoom);
     }
     onPanYChanged: {
-        root.updateMouseWorldPos()
-        root.viewTransformChanged(root.panX, root.panY, root.zoom)
+        root.updateMouseWorldPos();
+        root.viewTransformChanged(root.panX, root.panY, root.zoom);
     }
     onZoomChanged: {
-        if (telemetry) telemetry.notifyCameraChanged()
-        root.updateMouseWorldPos()
-        root.viewTransformChanged(root.panX, root.panY, root.zoom)
+        if (telemetry)
+            telemetry.notifyCameraChanged();
+        root.updateMouseWorldPos();
+        root.viewTransformChanged(root.panX, root.panY, root.zoom);
     }
     onMouseViewPosChanged: {
-        root.hoveredComponent = edgeViewport.hitTestComponentAtView(root.mouseViewPos.x,
-                                                                     root.mouseViewPos.y)
-        root.pointerOverComponent = root.hoveredComponent !== null
-        root.updateMouseWorldPos()
+        root.hoveredComponent = connectionViewport.hitTestComponentAtView(root.mouseViewPos.x, root.mouseViewPos.y);
+        root.pointerOverComponent = root.hoveredComponent !== null;
+        root.updateMouseWorldPos();
     }
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Control) {
-            root.ctrlReleasedByKey = false  // Clear the release flag when Ctrl is pressed again
-            root.ctrlSelectionModifierActive = true
-            root.debugInputLog("key_ctrl_pressed")
-            event.accepted = false
+            root.ctrlReleasedByKey = false;  // Clear the release flag when Ctrl is pressed again
+            root.ctrlSelectionModifierActive = true;
+            root.debugInputLog("key_ctrl_pressed");
+            event.accepted = false;
         }
     }
     Keys.onReleased: event => {
         if (event.key === Qt.Key_Control) {
-            root.ctrlSelectionModifierActive = false
-            root.ctrlReleasedByKey = true  // Set flag to prevent stale modifiers from re-enabling Ctrl
+            root.ctrlSelectionModifierActive = false;
+            root.ctrlReleasedByKey = true;  // Set flag to prevent stale modifiers from re-enabling Ctrl
             // Exit marquee mode if active when Ctrl is released
             if (interactionState.marqueeSelecting) {
-                root.finishMarqueeSelection()
+                // Use intent-based API (PR2: thin adapter layer)
+                root._runIntent(function () {
+                    return interactionState.intentCancel();
+                });
+                root.finishMarqueeSelection();
             }
-            root.debugInputLog("key_ctrl_released")
-            event.accepted = false
+            root.debugInputLog("key_ctrl_released");
+            event.accepted = false;
         }
     }
     onActiveFocusChanged: {
         if (!activeFocus) {
-            if (interactionState.marqueeSelecting)
-                root.finishMarqueeSelection()
-            root.ctrlSelectionModifierActive = false
-            root.ctrlReleasedByKey = false
-            root.debugInputLog("focus_lost")
+            if (interactionState.marqueeSelecting) {
+                // Use intent-based API (PR2: thin adapter layer)
+                root._runIntent(function () {
+                    return interactionState.intentCancel();
+                });
+                root.finishMarqueeSelection();
+            }
+            root.ctrlSelectionModifierActive = false;
+            root.ctrlReleasedByKey = false;
+            root.debugInputLog("focus_lost");
         } else {
-            root.debugInputLog("focus_gained")
+            root.debugInputLog("focus_gained");
         }
     }
 
     Component.onCompleted: {
-        FontAwesome.ensureLoaded()
-        root.updateMouseWorldPos()
+        FontAwesome.ensureLoaded();
+        if (root.graphEditorController && root.graphEditorController.strictMode !== undefined)
+            root.graphEditorController.strictMode = root.mutationStrictMode;
+        if (root.graphEditorController && root.graphEditorController.invariantChecker !== undefined)
+            root.graphEditorController.invariantChecker = root.mutationInvariantChecker;
+        root.refreshBuiltInGraphIssues();
+        root.refreshMergedErrorOverlayMessages();
+        root.updateMouseWorldPos();
     }
 }

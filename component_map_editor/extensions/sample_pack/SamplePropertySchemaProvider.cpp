@@ -37,6 +37,18 @@ QVariantMap withSection(QVariantMap row,
     return row;
 }
 
+QVariantMap withOptionsSource(QVariantMap row, const QString &optionsSource)
+{
+    if (!optionsSource.isEmpty())
+        row.insert(QStringLiteral("optionsSource"), optionsSource);
+    return row;
+}
+
+QVariantMap withTokenKeyOptions(QVariantMap row)
+{
+    return withOptionsSource(row, QStringLiteral("tokenKeys"));
+}
+
 } // namespace
 
 QString SamplePropertySchemaProvider::providerId() const
@@ -63,7 +75,7 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
                         QStringLiteral("Human-friendly label shown on the graph.")),
             withSection(entry("inputNumber", "number", "Input Number", true, 0, "spinbox"),
                         "Behavior", 20,
-                        QStringLiteral("Seed number consumed by the start node when simulation begins."),
+                        QStringLiteral("Seed number consumed by the start component when simulation begins."),
                         QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
             withSection(entry("icon", "string", "Icon", false, QString(), "textfield"),
                         "Appearance", 30,
@@ -83,7 +95,7 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         return {
             withSection(entry("title", "string", "Title", true, QString(), "textfield"),
                         "Identity", 1,
-                        QStringLiteral("Display title used in the node body.")),
+                        QStringLiteral("Display title used in the component body.")),
             withSection(entry("description", "string", "Description", false, QString(), "textarea"),
                         "Behavior", 20,
                         QStringLiteral("Optional implementation notes for this process.")),
@@ -135,11 +147,21 @@ QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetI
         };
         return {
             withSection(entry("label", "string", "Label", false, QString(), "textfield"),
+                        "Identity", 0),
+            withSection(entry("id", "string", "Connection ID", true, QString(), "textfield"),
                         "Identity", 1),
+            withSection(entry("sourceId", "string", "Source Component ID", true, QString(), "textfield"),
+                        "Identity", 2),
+            withSection(entry("targetId", "string", "Target Component ID", true, QString(), "textfield"),
+                        "Identity", 3),
             withSection(entry("sourceSide", "enum", "Source Side", true, -1, "dropdown"),
                         "Routing", 20, QString(), {}, {}, sideOptions),
             withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
-                        "Routing", 21, QString(), {}, {}, sideOptions)
+                        "Routing", 21, QString(), {}, {}, sideOptions),
+            withTokenKeyOptions(
+                withSection(entry("tokenKey", "string", "Token Key", false, QString(), "dropdown"),
+                            "Routing", 22,
+                            QStringLiteral("Routing token key used for connection payload selection. Token options are sourced from connection token keys, execution-state keys, and schema key defaults.")))
         };
     }
 

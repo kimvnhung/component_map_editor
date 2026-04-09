@@ -35,7 +35,7 @@ bool SampleExtensionPack::registerProviders(ExtensionContractRegistry &registry,
         return false;
     if (!registry.registerPropertySchemaProvider(&m_propertySchemaProvider, error))
         return false;
-    if (!registry.registerValidationProvider(&m_validationProvider, error))
+    if (!registry.registerValidationProvider(&m_workflowValidationProvider, error))
         return false;
     if (!registry.registerActionProvider(&m_actionProvider, error))
         return false;

@@ -10,7 +10,7 @@
 #include "SampleComponentTypeProvider.h"
 #include "SampleExecutionSemanticsProvider.h"
 #include "SamplePropertySchemaProvider.h"
-#include "SampleValidationProvider.h"
+#include "built_in_validation_providers/WorkflowValidationProvider.h"
 
 // SampleExtensionPack aggregates sample providers and exposes a
 // single registerAll() entry point.  This is the canonical usage pattern
@@ -47,7 +47,7 @@ private:
     SampleComponentTypeProvider m_componentTypeProvider;
     SampleConnectionPolicyProvider m_connectionPolicyProvider;
     SamplePropertySchemaProvider   m_propertySchemaProvider;
-    SampleValidationProvider  m_validationProvider;
+    WorkflowValidationProvider m_workflowValidationProvider;
     SampleActionProvider      m_actionProvider;
     SampleExecutionSemanticsProvider m_executionSemanticsProvider;
 };

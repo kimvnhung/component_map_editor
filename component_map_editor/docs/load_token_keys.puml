@@ -1,0 +1,67 @@
+@startuml
+title PropertyPanel Runtime - Token Key Loading (Activity Diagram)
+
+start
+
+:User selects a component in GraphCanvas;
+:PropertyPanel.item updated;
+:PropertyPanel resolves selected object as component;
+:Set componentTarget = "component/<type>";
+
+:Request schema sections from PropertySchemaRegistry\nsectionedSchemaForTarget(componentTarget);
+:PropertyPanel receives activeSchemaSections;
+
+:Set TokenKeyCatalog.graph = graph;
+:Set TokenKeyCatalog.schemaSections = activeSchemaSections;
+:Set TokenKeyCatalog.targetComponentId = selected component.id;
+
+:TokenKeyCatalog.refresh();
+:Read graph.connectionList();
+
+while (More connections?) is (yes)
+  :Take next connection;
+  if (connection.targetId == targetComponentId?) then (yes)
+    if (connection.tokenKey non-empty?) then (yes)
+      :Add tokenKey candidate;
+    else (no)
+      :Skip connection;
+    endif
+  else (no)
+    :Skip connection;
+  endif
+endwhile (no)
+
+:Deduplicate + sort token keys;
+:Emit tokenKeysChanged;
+
+:PropertyPanel builds dynamicFieldOptions\n{ tokenKeys: catalog.tokenKeys };
+:Pass schemaSections + dynamicOptions to SchemaFormRenderer;
+
+while (More schema fields?) is (yes)
+  :Read field.optionsSource;
+  if (optionsSource == "tokenKeys"?) then (yes)
+    if (dynamic token list not empty?) then (yes)
+      :Render dropdown with token keys;
+    else (no)
+      :Fallback to textfield;
+    endif
+  else (no)
+    :Use normal widget resolution;
+  endif
+endwhile (no)
+
+:Dropdown values visible in PropertyPanel;
+
+fork
+  :Connection added/removed in graph;
+fork again
+  :Existing connection tokenKey changed;
+fork again
+  :User selects another component;
+end fork
+
+:TokenKeyCatalog refresh triggered again;
+:PropertyPanel/Renderer bindings auto-update options;
+
+stop
+@enduml

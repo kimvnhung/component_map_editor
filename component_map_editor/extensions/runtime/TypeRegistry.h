@@ -13,6 +13,7 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/contracts/IComponentTypeProvider.h"
 #include "extensions/contracts/IConnectionPolicyProvider.h"
+#include "policy.pb.h"
 
 /**
  * TypeRegistry builds an O(1) lookup cache from all IComponentTypeProvider and
@@ -75,6 +76,10 @@ public:
                     const QVariantMap &context = {},
                     QString *reason = nullptr) const;
 
+    // Typed external entrypoint. Preferred for integrations outside the library.
+    bool canConnect(const cme::ConnectionPolicyContext &context,
+                    QString *reason = nullptr) const;
+
     /**
      * Runs rawProperties through each registered policy provider's
      * normalizeConnectionProperties() in registration order and returns the
@@ -83,6 +88,10 @@ public:
      */
     QVariantMap normalizeConnectionProperties(const QString &srcTypeId,
                                               const QString &tgtTypeId,
+                                              const QVariantMap &rawProps = {}) const;
+
+    // Typed external entrypoint. Preferred for integrations outside the library.
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
                                               const QVariantMap &rawProps = {}) const;
 
 signals:
@@ -94,7 +103,7 @@ private:
     QHash<QString, QVariantMap> m_defaults;    // typeId → default property map
     QStringList                 m_orderedTypeIds;
 
-    // Connection-policy provider list (ordered; non-owning)
+    // Connection-policy provider list (ordered; non-owning, typed canonical path)
     QList<const IConnectionPolicyProvider *> m_connectionPolicies;
 };
 

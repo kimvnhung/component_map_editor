@@ -7,6 +7,7 @@
 #include <QFile>
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
+#include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "extensions/runtime/ExtensionCompatibilityChecker.h"
 #include "extensions/runtime/ExtensionManifestJson.h"
 #include "extensions/sample_pack/LegacyV0ExtensionPack.h"
@@ -115,10 +116,12 @@ void CompatibilityMigrationToolkitTests::legacyExecutionPackRegistersViaAdapterW
     QVariantMap output;
     QVariantMap trace;
     QString execError;
+    cme::execution::IncomingTokens incomingTokens;
+    incomingTokens.insert(QStringLiteral("__legacy_global_state__"), QVariantMap{});
     QVERIFY(providers.first()->executeComponent(QStringLiteral("start"),
                                                 QStringLiteral("t-1"),
                                                 QVariantMap{},
-                                                QVariantMap{},
+                                                incomingTokens,
                                                 &output,
                                                 &trace,
                                                 &execError));

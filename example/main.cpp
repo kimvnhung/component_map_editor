@@ -6,10 +6,14 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/ExtensionStartupLoader.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
+#include "extensions/runtime/TypeRegistry.h"
 #include "extensions/runtime/rules/RuleBackedProviders.h"
 #include "extensions/runtime/rules/RuleHotReloadService.h"
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
+#include "services/ExecutionMigrationFlags.h"
+#include "services/GraphExecutionSandbox.h"
+#include "services/ValidationService.h"
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
 #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
@@ -22,6 +26,9 @@
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    // Phase 6 canary: keep Design B explicitly enabled in sample app startup.
+    cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
     ExtensionContractRegistry extensionContracts({1, 0, 0});
 
@@ -72,9 +79,24 @@ int main(int argc, char *argv[])
     PropertySchemaRegistry propertySchemas;
     propertySchemas.rebuildFromRegistry(extensionContracts);
 
+    TypeRegistry typeRegistry;
+    typeRegistry.rebuildFromRegistry(extensionContracts);
+
+    GraphExecutionSandbox executionSandbox;
+    executionSandbox.rebuildSemanticsFromRegistry(extensionContracts);
+
+    ValidationService validationService;
+    validationService.rebuildValidationFromRegistry(extensionContracts);
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("startupPropertySchemaRegistry"),
                                              &propertySchemas);
+    engine.rootContext()->setContextProperty(QStringLiteral("startupComponentTypeRegistry"),
+                                             &typeRegistry);
+    engine.rootContext()->setContextProperty(QStringLiteral("startupExecutionSandbox"),
+                                             &executionSandbox);
+    engine.rootContext()->setContextProperty(QStringLiteral("startupValidationService"),
+                                             &validationService);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

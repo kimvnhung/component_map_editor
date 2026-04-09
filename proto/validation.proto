@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package cme;
+
+// ── Severity levels for validation issues ─────────────────────────────────
+enum ValidationSeverity {
+  VALIDATION_SEVERITY_UNSPECIFIED = 0;
+  VALIDATION_SEVERITY_ERROR       = 1;
+  VALIDATION_SEVERITY_WARNING     = 2;
+  VALIDATION_SEVERITY_INFO        = 3;
+}
+
+// ── Single validation issue (replaces the QVariantMap "issue" shape) ───────
+message ValidationIssue {
+  string             code          = 1; // e.g. "CORE_NULL_GRAPH"
+  ValidationSeverity severity      = 2;
+  string             message       = 3;
+  string             component_id  = 4; // empty when graph-level
+  string             connection_id = 5; // empty when not connection-related
+}
+
+// ── Aggregate result returned by IValidationProvider ──────────────────────
+message GraphValidationResult {
+  repeated ValidationIssue issues   = 1;
+  bool                     is_valid = 2;
+}

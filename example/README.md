@@ -169,6 +169,34 @@ int main(int argc, char *argv[])
 }
 ```
 
+```plantuml
+@startuml
+actor "App Startup (main.cpp)" as App
+
+App -> ExtensionContractRegistry : create (coreApiVersion)
+App -> RuleRuntimeRegistry : create
+App -> RuleBackedConnectionPolicyProvider : create (&ruleRegistry)
+App -> RuleBackedValidationProvider : create (&ruleRegistry)
+App -> ExtensionContractRegistry : registerConnectionPolicyProvider
+App -> ExtensionContractRegistry : registerValidationProvider
+App -> RuleHotReloadService : create (&ruleRegistry)
+App -> RuleHotReloadService : startWatchingFile(ruleFilePath)
+App -> ExtensionStartupLoader : create
+App -> ExtensionStartupLoader : registerFactory("sample.workflow", ...)
+App -> ExtensionStartupLoader : loadFromDirectory(manifestDir, extensionContracts)
+ExtensionStartupLoader -> ExtensionContractRegistry : registerManifest(manifest)
+ExtensionStartupLoader -> ExtensionContractRegistry : registerComponentTypeProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerConnectionPolicyProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerPropertySchemaProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerValidationProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerActionProvider
+ExtensionStartupLoader -> ExtensionContractRegistry : registerExecutionSemanticsProvider
+App -> PropertySchemaRegistry : create
+App -> PropertySchemaRegistry : rebuildFromRegistry(extensionContracts)
+App -> QQmlApplicationEngine : setContextProperty("startupPropertySchemaRegistry", &propertySchemas)
+@enduml
+```
+
 > **Why expose `PropertySchemaRegistry` to QML?**  
 > `PropertyPanel` uses it to discover which fields should appear for a selected
 > component type.  Without it, the panel falls back to a generic title/content
@@ -237,9 +265,28 @@ GraphModel {
         node.color = "#26a69a"   // any CSS colour string
         node.type  = "start"     // matched against your extension pack types
 
+        // Schema-defined runtime fields are dynamic properties.
+        // Use the explicit QML-facing API instead of direct assignment.
+        node.setDynamicProperty("inputNumber", 12)
+
         graph.addComponent(node)
     }
 }
+```
+
+For schema-defined runtime fields such as `inputNumber` or `addValue`, prefer
+`setDynamicProperty(...)` in QML:
+
+```qml
+var processNode = Qt.createQmlObject(
+    'import ComponentMapEditor; ComponentModel {}', graph)
+
+processNode.id = "node-2"
+processNode.title = "Process"
+processNode.type = "process"
+processNode.setDynamicProperty("addValue", 9)
+
+graph.addComponent(processNode)
 ```
 
 ### Adding components from C++
@@ -548,14 +595,18 @@ undoStack.clear()   // called when loading a new graph
 
 ## 7. Feature: Validation
 
-**Why useful:** `ValidationService` runs all registered `IValidationProvider`
-implementations and returns a human-readable list of errors (e.g. "Graph must
-contain exactly one start component").
+**Why useful:** `ValidationService` is provider-backed. It forwards a graph snapshot
+to registered `IValidationProvider` implementations and exposes both flattened
+error text and raw issue objects.
 
 ### Using `ValidationService` in QML
 
 ```qml
-ValidationService { id: validator }
+// If startupValidationService was injected from C++, prefer it so the service
+// uses the same registry-backed providers loaded at startup.
+property var validator: startupValidationService ? startupValidationService : validatorFallback
+
+ValidationService { id: validatorFallback }
 
 Button {
     text: "Validate"
@@ -574,6 +625,31 @@ Button {
 ```qml
 // Boolean check (no error list)
 var isOk = validator.validate(graph)
+```
+
+### Distinguish warnings vs errors in UI
+
+```qml
+var issues = validator.validationIssues(graph)
+var warnings = []
+var errors = []
+
+for (var i = 0; i < issues.length; ++i) {
+    var issue = issues[i]
+    var sev = (issue.severity || "error").toLowerCase()
+    if (sev === "warning")
+        warnings.push(issue.message)
+    else
+        errors.push(issue.message)
+}
+
+if (errors.length > 0) {
+    statusLabel.text = "✗ " + errors.join(" | ")
+} else if (warnings.length > 0) {
+    statusLabel.text = "WARN " + warnings.join(" | ")
+} else {
+    statusLabel.text = "✓ Graph is valid"
+}
 ```
 
 ### Writing a custom provider in C++
@@ -738,9 +814,12 @@ class MyConnectionPolicyProvider : public IConnectionPolicyProvider
 public:
     QString providerId() const override { return "my.domain.connections"; }
 
-    bool canConnect(const QString &srcType, const QString &dstType,
-                    const QVariantMap & /*context*/, QString *reason) const override
+    bool canConnect(const cme::ConnectionPolicyContext &context,
+                    QString *reason) const override
     {
+        const QString srcType = QString::fromStdString(context.source_type_id());
+        const QString dstType = QString::fromStdString(context.target_type_id());
+
         // start has output-only behavior; stop has input-only behavior.
         if (dstType == "start") return false;
         if (srcType == "stop")  return false;
@@ -755,7 +834,7 @@ public:
         return false;
     }
 
-    QVariantMap normalizeConnectionProperties(const QString &, const QString &,
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &,
                                               const QVariantMap &raw) const override {
         return raw;   // pass through; transform if needed
     }
@@ -884,6 +963,46 @@ public:
         return false;
     }
 };
+```
+
+---
+
+### Typed Service Boundaries (External Integrations)
+
+For external integrations, call typed service entrypoints and treat QVariant
+entrypoints as legacy wrappers.
+
+```cpp
+// Command boundary
+cme::GraphCommandRequest cmd;
+auto *add = cmd.mutable_add_component();
+add->set_component_id("node_1");
+add->set_type_id("process");
+add->set_x(120.0);
+add->set_y(80.0);
+gateway.executeTypedRequest("my.extension", cmd, &error);
+
+// Policy boundary
+cme::ConnectionPolicyContext policyCtx;
+policyCtx.set_source_type_id("process");
+policyCtx.set_target_type_id("stop");
+policyCtx.set_target_incoming_count(0);
+typeRegistry.canConnect(policyCtx, &reason);
+
+// Execution boundary
+google::protobuf::Struct input;
+sandbox.startTyped(input);
+cme::ExecutionSnapshot snap = sandbox.executionSnapshotTyped();
+
+// Schema boundary
+cme::publicapi::v1::PropertySchemaResponse schema;
+schemaRegistry.schemaForTargetTyped("component/process", &schema, &error);
+
+// Action invocation boundary
+cme::publicapi::v1::ActionInvokeRequest actionReq;
+actionReq.set_action_id("setTaskPriority");
+cme::publicapi::v1::ActionInvokeResponse actionResp;
+actionService.invokeActionTyped(actionReq, &actionResp, &error);
 ```
 
 ---
@@ -1038,12 +1157,37 @@ means.
 
 The sample pack now models a simple numeric pipeline:
 
-1. `start` has an `inputNumber` property (for example `12`).
-2. `process` reads the current value and adds `addValue` (default `9`).
+1. `start` stores `inputNumber` (for example `12`) via `setDynamicProperty("inputNumber", 12)` in QML.
+2. `process` stores `addValue` (default `9`) via `setDynamicProperty("addValue", 9)` in QML.
 3. `stop` stores `finalResult` in state and prints a log line.
 
 For example, with `inputNumber = 12` and `addValue = 9`, the final output is
 $12 + 9 = 21$.
+
+### Execution Panel In The Example App
+
+The example application now includes an `Execution` tab beside the normal
+`Properties` inspector. It is backed by `GraphExecutionSandbox` and lets you
+run the current graph with the loaded execution semantics providers.
+
+Use the controls as follows:
+
+1. `Start` resets the sandbox, captures the current graph snapshot, and prepares
+    the ready queue without executing any node.
+2. `Step` executes exactly one ready component and appends a timeline entry.
+3. `Run` keeps executing until the graph completes, blocks, or hits an error.
+4. `Reset` clears execution state, timeline entries, and per-component sandbox state.
+
+The panel also shows:
+
+1. Current sandbox `status` and `tick`.
+2. A JSON summary of ready and executed nodes.
+3. The global execution state map.
+4. The selected component's execution state.
+5. A readable execution timeline for each step.
+
+With the seeded sample graph (`start -> process -> stop`), click `Start` and
+then `Run` to demonstrate the full pipeline and confirm that the final result is `21`.
 
 ### Legacy V0 adapter
 

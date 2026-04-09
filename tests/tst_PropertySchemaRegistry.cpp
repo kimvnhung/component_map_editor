@@ -4,6 +4,7 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/contracts/IPropertySchemaProvider.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
+#include "extensions/runtime/SchemaFieldDefinition.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
 
 class InvalidPropertySchemaProvider : public IPropertySchemaProvider
@@ -105,6 +106,96 @@ private slots:
         QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("schema_error"));
         QVERIFY(!row.value(QStringLiteral("valid")).toBool());
         QVERIFY(!row.value(QStringLiteral("schemaError")).toString().isEmpty());
+    }
+
+    void samplePackConnectionSchemaIncludesTokenKeyOptionsSource()
+    {
+        ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+        SampleExtensionPack pack;
+        QVERIFY(pack.registerAll(contracts));
+
+        PropertySchemaRegistry schemas;
+        schemas.rebuildFromRegistry(contracts);
+
+        const QVariantList rows = schemas.schemaForTarget(QStringLiteral("connection/flow"));
+        QVERIFY(!rows.isEmpty());
+
+        bool foundTokenKey = false;
+        for (const QVariant &rowValue : rows) {
+            const QVariantMap row = rowValue.toMap();
+            if (row.value(QStringLiteral("key")).toString() != QStringLiteral("tokenKey"))
+                continue;
+
+            foundTokenKey = true;
+            QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("dropdown"));
+            QCOMPARE(row.value(QStringLiteral("optionsSource")).toString(), QStringLiteral("tokenKeys"));
+            break;
+        }
+
+        QVERIFY(foundTokenKey);
+    }
+
+    void schemaFieldEnums_roundTripStrings()
+    {
+        QCOMPARE(cme::runtime::schemaFieldWidgetFromString(QStringLiteral("dropdown")),
+                 cme::runtime::SchemaFieldWidget::Dropdown);
+        QCOMPARE(cme::runtime::schemaFieldWidgetToString(cme::runtime::SchemaFieldWidget::SpinBox),
+                 QStringLiteral("spinbox"));
+
+        QCOMPARE(cme::runtime::schemaFieldTypeFromString(QStringLiteral("integer")),
+                 cme::runtime::SchemaFieldType::Number);
+        QCOMPARE(cme::runtime::schemaFieldTypeToString(cme::runtime::SchemaFieldType::Boolean),
+                 QStringLiteral("bool"));
+
+        QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenKeys")),
+                 cme::runtime::SchemaOptionsSource::TokenKeys);
+        QCOMPARE(cme::runtime::schemaOptionsSourceToString(cme::runtime::SchemaOptionsSource::TokenKeyOptions),
+                 QStringLiteral("tokenKeyOptions"));
+        QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("customSource")),
+                 cme::runtime::SchemaOptionsSource::Custom);
+
+        QCOMPARE(cme::runtime::schemaFieldSectionFromString(QStringLiteral("Context")),
+             cme::runtime::SchemaFieldSection::Context);
+        QCOMPARE(cme::runtime::schemaFieldSectionToString(cme::runtime::SchemaFieldSection::Fallback),
+             QStringLiteral("Fallback"));
+    }
+
+    void legacyAdapter_defaultsAndValidation()
+    {
+        const QVariantMap legacyRow = {
+            { QStringLiteral("key"), QStringLiteral("inputA") },
+            { QStringLiteral("editor"), QStringLiteral("dropdown") },
+            { QStringLiteral("defaultValue"), QStringLiteral("token.a") }
+        };
+
+        const cme::runtime::SchemaFieldDefinition field =
+            cme::runtime::SchemaFieldLegacyAdapter::fromLegacyRow(legacyRow,
+                                                                   QStringLiteral("component/math/add"));
+        QVERIFY(field.valid);
+        QCOMPARE(field.title, QStringLiteral("inputA"));
+        QCOMPARE(field.widget, cme::runtime::SchemaFieldWidget::Dropdown);
+        QCOMPARE(field.optionsSource, cme::runtime::SchemaOptionsSource::None);
+
+        const QVariantMap normalized = cme::runtime::SchemaFieldLegacyAdapter::toNormalizedRow(field);
+        QCOMPARE(normalized.value(QStringLiteral("widget")).toString(), QStringLiteral("dropdown"));
+        QCOMPARE(normalized.value(QStringLiteral("title")).toString(), QStringLiteral("inputA"));
+        QVERIFY(normalized.value(QStringLiteral("schemaError")).toString().isEmpty());
+    }
+
+    void typedSectionModel_isExposedAlongsideLegacySections()
+    {
+        ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+        SampleExtensionPack pack;
+        QVERIFY(pack.registerAll(contracts));
+
+        PropertySchemaRegistry schemas;
+        schemas.rebuildFromRegistry(contracts);
+
+        QObject *typedModel = schemas.typedSectionModelForTarget(QStringLiteral("component/process"));
+        QVERIFY(typedModel != nullptr);
+
+        const QVariantList legacySections = schemas.sectionedSchemaForTarget(QStringLiteral("component/process"));
+        QVERIFY(!legacySections.isEmpty());
     }
 };
 

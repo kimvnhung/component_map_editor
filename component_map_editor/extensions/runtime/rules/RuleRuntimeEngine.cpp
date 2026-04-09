@@ -78,7 +78,8 @@ QVariantList RuleRuntimeEngine::validateGraph(const QVariantMap &graphSnapshot) 
     }
 
     for (const CompiledValidationRule &rule : m_descriptor->validationRules) {
-        if (rule.kind == QStringLiteral("exactlyOneType")) {
+        switch (rule.kind) {
+        case RuleKind::ExactlyOneType: {
             const int count = typeCounts.value(rule.type);
             if (count != 1) {
                 issues.append(QVariantMap{
@@ -92,10 +93,9 @@ QVariantList RuleRuntimeEngine::validateGraph(const QVariantMap &graphSnapshot) 
                     { QStringLiteral("entityId"), QString() }
                 });
             }
-            continue;
+            break;
         }
-
-        if (rule.kind == QStringLiteral("endpointExists")) {
+        case RuleKind::EndpointExists: {
             for (const QVariant &value : connections) {
                 const QVariantMap connection = value.toMap();
                 const QString connectionId = connection.value(QStringLiteral("id")).toString();
@@ -126,10 +126,9 @@ QVariantList RuleRuntimeEngine::validateGraph(const QVariantMap &graphSnapshot) 
                     });
                 }
             }
-            continue;
+            break;
         }
-
-        if (rule.kind == QStringLiteral("noIsolated")) {
+        case RuleKind::NoIsolated: {
             QSet<QString> connectedIds;
             for (const QVariant &value : connections) {
                 const QVariantMap connection = value.toMap();
@@ -151,6 +150,11 @@ QVariantList RuleRuntimeEngine::validateGraph(const QVariantMap &graphSnapshot) 
                     });
                 }
             }
+            break;
+        }
+        default:
+            // RuleKind::Unknown — skipped (compiler already emitted a diagnostic)
+            break;
         }
     }
 

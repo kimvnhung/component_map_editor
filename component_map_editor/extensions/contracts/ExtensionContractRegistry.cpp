@@ -60,8 +60,11 @@ bool ExtensionContractRegistry::registerPropertySchemaProvider(const IPropertySc
 
 bool ExtensionContractRegistry::registerValidationProvider(const IValidationProvider *provider, QString *error)
 {
-    return registerProviderInternal(provider, &m_validationProviders,
-                                    QStringLiteral("validation"), error);
+    if (!registerProviderInternal(provider, &m_validationProviders,
+                                  QStringLiteral("validation"), error)) {
+        return false;
+    }
+    return true;
 }
 
 bool ExtensionContractRegistry::registerActionProvider(const IActionProvider *provider, QString *error)
@@ -131,6 +134,16 @@ QList<const IConnectionPolicyProvider *> ExtensionContractRegistry::connectionPo
 QList<const IPropertySchemaProvider *> ExtensionContractRegistry::propertySchemaProviders() const
 {
     return m_propertySchemaProviders.order;
+}
+
+QList<const IValidationProvider *> ExtensionContractRegistry::validationProviders() const
+{
+    return m_validationProviders.order;
+}
+
+QList<const IActionProvider *> ExtensionContractRegistry::actionProviders() const
+{
+    return m_actionProviders.order;
 }
 
 QList<const IExecutionSemanticsProvider *> ExtensionContractRegistry::executionSemanticsProviders() const

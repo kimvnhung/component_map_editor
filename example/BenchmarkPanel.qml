@@ -98,15 +98,15 @@ Rectangle {
         root.telemetry.enabled = true
         root.frameTelemetry.enabled = true
         root.manualDragWindowActive = false
-        if (root.canvas && root.canvas.edgeRenderer
-                && typeof root.canvas.edgeRenderer.resetRouteRebuildTelemetry === "function") {
+        if (root.canvas && root.canvas.connectionRenderer
+                && typeof root.canvas.connectionRenderer.resetRouteRebuildTelemetry === "function") {
             // Prefer explicit reset of route-rebuild telemetry to avoid cumulative stats
-            root.canvas.edgeRenderer.resetRouteRebuildTelemetry()
+            root.canvas.connectionRenderer.resetRouteRebuildTelemetry()
             root._routeRebuildStartCount = 0
         } else {
             // Fallback: record start count so downstream code can compute per-run deltas
-            root._routeRebuildStartCount = (root.canvas && root.canvas.edgeRenderer)
-                    ? root.canvas.edgeRenderer.routeRebuildSampleCount()
+            root._routeRebuildStartCount = (root.canvas && root.canvas.connectionRenderer)
+                    ? root.canvas.connectionRenderer.routeRebuildSampleCount()
                     : 0
         }
     }
@@ -126,14 +126,14 @@ Rectangle {
         root.telemetry.report(reportTag)
         root.frameTelemetry.report(reportTag)
 
-        var routeP50 = (root.canvas && root.canvas.edgeRenderer)
-            ? root.canvas.edgeRenderer.routeRebuildP50Ms()
+        var routeP50 = (root.canvas && root.canvas.connectionRenderer)
+            ? root.canvas.connectionRenderer.routeRebuildP50Ms()
             : 0
-        var routeP95 = (root.canvas && root.canvas.edgeRenderer)
-            ? root.canvas.edgeRenderer.routeRebuildP95Ms()
+        var routeP95 = (root.canvas && root.canvas.connectionRenderer)
+            ? root.canvas.connectionRenderer.routeRebuildP95Ms()
             : 0
-        var routeSamples = (root.canvas && root.canvas.edgeRenderer)
-            ? root.canvas.edgeRenderer.routeRebuildSampleCount()
+        var routeSamples = (root.canvas && root.canvas.connectionRenderer)
+            ? root.canvas.connectionRenderer.routeRebuildSampleCount()
             : 0
         var routeRebuildDelta = Math.max(0, routeSamples - root._routeRebuildStartCount)
 
@@ -232,8 +232,8 @@ Rectangle {
         var datasetSize = root.matrixDatasets[root.matrixDatasetIndex]
         if (root.matrixStageIndex === 0) {
             root._captureBaseline()
-            if (root.canvas && root.canvas.nodeRenderer)
-                root.canvas.nodeRenderer.renderNodes = true
+            if (root.canvas && root.canvas.componentRenderer)
+                root.canvas.componentRenderer.renderComponents = true
             benchHelper.populateGraph(root.graph, datasetSize)
         }
 
@@ -440,9 +440,9 @@ Rectangle {
             Label {
                 text: "RSS: " + (root._rssKb / 1024).toFixed(1) + " MB"
                       + "   Δ " + ((root._rssKb - root._baselineRssKb) / 1024).toFixed(1) + " MB"
-                                            + (root.canvas && root.canvas.nodeRenderer
-                                                     ? "   Renderer≈" + root.canvas.nodeRenderer.rendererMemoryEstimateMb().toFixed(1) + " MB"
-                                                         + "   LabelCache=" + root.canvas.nodeRenderer.labelTextureCacheSize()
+                                            + (root.canvas && root.canvas.componentRenderer
+                                                     ? "   Renderer≈" + root.canvas.componentRenderer.rendererMemoryEstimateMb().toFixed(1) + " MB"
+                                                         + "   LabelCache=" + root.canvas.componentRenderer.labelTextureCacheSize()
                                                      : "")
                 font.pixelSize: 11
                 color: "#555"
@@ -467,8 +467,8 @@ Rectangle {
                     implicitWidth:  44
                     onClicked: {
                         root._captureBaseline()
-                        if (root.canvas && root.canvas.nodeRenderer)
-                            root.canvas.nodeRenderer.renderNodes = true
+                        if (root.canvas && root.canvas.componentRenderer)
+                            root.canvas.componentRenderer.renderComponents = true
                         benchHelper.populateGraph(root.graph, modelData)
                     }
                 }
@@ -499,10 +499,10 @@ Rectangle {
                     root.telemetry.enabled = false
                     root.frameTelemetry.enabled = false
                     if (root.canvas) {
-                        if (root.canvas.nodeRenderer)
-                            root.canvas.nodeRenderer.renderNodes = false
+                        if (root.canvas.componentRenderer)
+                            root.canvas.componentRenderer.renderComponents = false
                         root.canvas.tempConnectionDragging = false
-                        root.canvas.nodeInteractionActive = false
+                        root.canvas.componentInteractionActive = false
                         root.canvas.enableBackgroundDrag = true
                         root.canvas.selectedComponent = null
                         root.canvas.selectedConnection = null
@@ -638,9 +638,9 @@ Rectangle {
                     { lbl: "Cam p95",  val: root.telemetry.frameTimeP95,   n: -1 },
                     { lbl: "Drag p50", val: root.telemetry.dragLatencyP50, n: root.telemetry.dragLatencySampleCount },
                                         { lbl: "Drag p95", val: root.telemetry.dragLatencyP95, n: -1 },
-                                        { lbl: "Route p50", val: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildP50Ms() : 0,
-                                            n: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildSampleCount() : 0 },
-                                        { lbl: "Route p95", val: root.canvas && root.canvas.edgeRenderer ? root.canvas.edgeRenderer.routeRebuildP95Ms() : 0,
+                                        { lbl: "Route p50", val: root.canvas && root.canvas.connectionRenderer ? root.canvas.connectionRenderer.routeRebuildP50Ms() : 0,
+                                            n: root.canvas && root.canvas.connectionRenderer ? root.canvas.connectionRenderer.routeRebuildSampleCount() : 0 },
+                                        { lbl: "Route p95", val: root.canvas && root.canvas.connectionRenderer ? root.canvas.connectionRenderer.routeRebuildP95Ms() : 0,
                                             n: -1 }
                 ]
 

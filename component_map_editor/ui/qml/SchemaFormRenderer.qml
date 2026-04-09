@@ -5,10 +5,27 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    readonly property int widgetUnknown: 0
+    readonly property int widgetTextField: 1
+    readonly property int widgetTextArea: 2
+    readonly property int widgetDropdown: 3
+    readonly property int widgetCheckbox: 4
+    readonly property int widgetSpinBox: 5
+    readonly property int widgetSchemaError: 6
+
+    readonly property int optionsSourceNone: 0
+    readonly property int optionsSourceTokenKeys: 1
+    readonly property int optionsSourceTokenKeyOptions: 2
+    readonly property int optionsSourceCustom: 3
+
     // [ { id, title, fields:[{...}] } ]
     property var schemaSections: []
+    // Stage-2 typed model input (QAbstractListModel-based). Rendering still
+    // uses schemaSections to preserve existing behavior during migration.
+    property var schemaSectionModel: null
     property var modelObject: null
     property bool readOnly: false
+    property var dynamicOptions: ({})
 
     // Optional map for enum side values if a schema uses sourceSide/targetSide.
     // Values must match ConnectionModel::Side: SideAuto=-1, SideTop=0, SideRight=1, SideBottom=2, SideLeft=3
@@ -24,6 +41,77 @@ Item {
 
     implicitHeight: sectionsColumn.implicitHeight
 
+    function typedSectionsToLegacyRows() {
+        if (!root.schemaSectionModel || root.schemaSectionModel.size === undefined || root.schemaSectionModel.rowAt === undefined)
+            return root.schemaSections || []
+
+        var sections = []
+        var sectionCount = root.schemaSectionModel.size()
+        for (var sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex) {
+            var sectionRow = root.schemaSectionModel.rowAt(sectionIndex)
+            var fieldsModel = sectionRow.fieldsModel
+            var fields = []
+
+            if (fieldsModel && fieldsModel.size !== undefined && fieldsModel.rowAt !== undefined) {
+                var fieldCount = fieldsModel.size()
+                for (var fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
+                    fields.push(fieldsModel.rowAt(fieldIndex))
+            }
+
+            sections.push({
+                id: sectionRow.id,
+                title: sectionRow.title,
+                fields: fields
+            })
+        }
+
+        return sections
+    }
+
+    function widgetEnumForField(field) {
+        if (field && field.widgetEnum !== undefined)
+            return Number(field.widgetEnum)
+
+        var widget = field && field.widget ? String(field.widget) : ""
+        switch (widget) {
+        case "textfield": return root.widgetTextField
+        case "textarea": return root.widgetTextArea
+        case "dropdown": return root.widgetDropdown
+        case "checkbox": return root.widgetCheckbox
+        case "spinbox": return root.widgetSpinBox
+        case "schema_error": return root.widgetSchemaError
+        default: return root.widgetUnknown
+        }
+    }
+
+    function optionsSourceKeyForField(field) {
+        if (field && field.optionsSourceEnum !== undefined) {
+            var optionsEnum = Number(field.optionsSourceEnum)
+            if (optionsEnum === root.optionsSourceTokenKeys)
+                return "tokenKeys"
+            if (optionsEnum === root.optionsSourceTokenKeyOptions)
+                return "tokenKeyOptions"
+            if (optionsEnum === root.optionsSourceCustom)
+                return field.optionsSource || ""
+            return ""
+        }
+
+        return field && field.optionsSource ? String(field.optionsSource) : ""
+    }
+
+    function readModelProperty(propertyName) {
+        if (!root.modelObject || !propertyName || !propertyName.length)
+            return undefined
+
+        // ComponentModel stores schema-defined fields (for example inputNumber,
+        // addValue) as QObject dynamic properties. Read through the same
+        // API used by command writes so inspector values stay consistent.
+        if (root.modelObject.dynamicPropertyValue !== undefined)
+            return root.modelObject.dynamicPropertyValue(propertyName)
+
+        return root.modelObject[propertyName]
+    }
+
     function fieldValue(field) {
         if (!root.modelObject)
             return field.defaultValue
@@ -32,7 +120,7 @@ Item {
         if (!key.length)
             return field.defaultValue
 
-        var value = root.modelObject[key]
+        var value = root.readModelProperty(key)
         return value === undefined ? field.defaultValue : value
     }
 
@@ -45,7 +133,7 @@ Item {
             return false
 
         var propertyName = rule.property || ""
-        var currentValue = propertyName.length ? root.modelObject[propertyName] : undefined
+        var currentValue = propertyName.length ? root.readModelProperty(propertyName) : undefined
 
         if (rule.equals !== undefined)
             return currentValue === rule.equals
@@ -59,6 +147,13 @@ Item {
     }
 
     function enumModelForField(field) {
+        var optionsSource = root.optionsSourceKeyForField(field)
+        if (optionsSource.length > 0) {
+            var dynamicModel = root.dynamicOptions ? root.dynamicOptions[optionsSource] : undefined
+            if (dynamicModel && dynamicModel.length !== undefined)
+                return dynamicModel
+        }
+
         if (field.options && field.options.length)
             return field.options
         if (field.key === "shape")
@@ -66,6 +161,13 @@ Item {
         if (field.key === "sourceSide" || field.key === "targetSide")
             return root.sideModel
         return []
+    }
+
+    function shouldFallbackToTextField(field) {
+        var optionsSource = root.optionsSourceKeyForField(field)
+        if (!optionsSource.length)
+            return false
+        return root.enumModelForField(field).length === 0
     }
 
     function enumIndexForValue(options, value) {
@@ -105,64 +207,105 @@ Item {
         spacing: 10
 
         Repeater {
-            model: root.schemaSections || []
+            model: root.typedSectionsToLegacyRows()
 
             delegate: ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
-                spacing: 6
+                spacing: 4
+                property bool expanded: true
 
-                Label {
-                    text: modelData.title || "Section"
-                    font.bold: true
-                    font.pixelSize: 11
-                    color: "#888"
+                Rectangle {
                     Layout.fillWidth: true
-                }
+                    radius: 6
+                    color: "#fafafa"
+                    border.color: "#e4e4e4"
+                    border.width: 1
 
-                Repeater {
-                    model: modelData.fields || []
+                    implicitHeight: groupColumn.implicitHeight + 12
 
-                    delegate: ColumnLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        spacing: 3
-                        visible: root.fieldVisible(modelData)
+                    ColumnLayout {
+                        id: groupColumn
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 6
 
-                        Label {
-                            text: modelData.title || modelData.key || "Field"
+                        RowLayout {
                             Layout.fillWidth: true
+                            spacing: 4
+
+                            ToolButton {
+                                Layout.preferredWidth: 24
+                                text: expanded ? "▾" : "▸"
+                                onClicked: expanded = !expanded
+                            }
+
+                            Label {
+                                text: modelData.title || "Section"
+                                font.bold: true
+                                font.pixelSize: 12
+                                color: "#606060"
+                                Layout.fillWidth: true
+                            }
+
+                            Label {
+                                text: (modelData.fields || []).length + " options"
+                                color: "#9a9a9a"
+                                font.pixelSize: 10
+                            }
                         }
 
-                        Loader {
-                            id: editorLoader
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            property var fieldData: modelData
-                            sourceComponent: {
-                                var widget = fieldData.widget || ""
-                                switch (widget) {
-                                case "textfield": return textFieldEditor
-                                case "textarea": return textAreaEditor
-                                case "dropdown": return comboBoxEditor
-                                case "checkbox": return checkBoxEditor
-                                case "spinbox": return spinBoxEditor
-                                case "schema_error": return schemaErrorEditor
-                                default: return unknownWidgetEditor
+                            spacing: 6
+                            visible: expanded
+
+                            Repeater {
+                                model: modelData.fields || []
+
+                                delegate: ColumnLayout {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    spacing: 3
+                                    visible: root.fieldVisible(modelData)
+
+                                    Label {
+                                        text: modelData.title || modelData.key || "Field"
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Loader {
+                                        id: editorLoader
+                                        Layout.fillWidth: true
+                                        property var fieldData: modelData
+                                        sourceComponent: {
+                                            var widgetEnum = root.widgetEnumForField(fieldData)
+                                            switch (widgetEnum) {
+                                            case root.widgetTextField: return textFieldEditor
+                                            case root.widgetTextArea: return textAreaEditor
+                                            case root.widgetDropdown: return root.shouldFallbackToTextField(fieldData) ? textFieldEditor : comboBoxEditor
+                                            case root.widgetCheckbox: return checkBoxEditor
+                                            case root.widgetSpinBox: return spinBoxEditor
+                                            case root.widgetSchemaError: return schemaErrorEditor
+                                            default: return unknownWidgetEditor
+                                            }
+                                        }
+                                        onLoaded: {
+                                            if (item && item.hasOwnProperty("fieldData"))
+                                                item.fieldData = fieldData
+                                        }
+                                    }
+
+                                    Label {
+                                        visible: (modelData.hint || "").length > 0
+                                        text: modelData.hint || ""
+                                        color: "#8a8a8a"
+                                        font.pixelSize: 11
+                                        wrapMode: Text.WordWrap
+                                        Layout.fillWidth: true
+                                    }
                                 }
                             }
-                            onLoaded: {
-                                if (item && item.hasOwnProperty("fieldData"))
-                                    item.fieldData = fieldData
-                            }
-                        }
-
-                        Label {
-                            visible: (modelData.hint || "").length > 0
-                            text: modelData.hint || ""
-                            color: "#8a8a8a"
-                            font.pixelSize: 11
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
                         }
                     }
                 }

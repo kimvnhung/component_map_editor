@@ -3,11 +3,14 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantList>
 #include <QQmlEngine>
 
 #include "models/GraphModel.h"
 #include "commands/UndoStack.h"
 #include "extensions/runtime/TypeRegistry.h"
+#include "services/InvariantChecker.h"
+#include "policy.pb.h"
 
 /**
  * GraphEditorController orchestrates type-aware graph mutations.
@@ -29,23 +32,31 @@ class GraphEditorController : public QObject
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(GraphModel   *graph        READ graph        WRITE setGraph
-                   NOTIFY graphChanged        FINAL)
-    Q_PROPERTY(UndoStack    *undoStack    READ undoStack    WRITE setUndoStack
-                   NOTIFY undoStackChanged    FINAL)
-    Q_PROPERTY(TypeRegistry *typeRegistry READ typeRegistry WRITE setTypeRegistry
-                   NOTIFY typeRegistryChanged FINAL)
+    Q_PROPERTY(GraphModel      *graph            READ graph            WRITE setGraph
+                   NOTIFY graphChanged            FINAL)
+    Q_PROPERTY(UndoStack       *undoStack        READ undoStack        WRITE setUndoStack
+                   NOTIFY undoStackChanged        FINAL)
+    Q_PROPERTY(TypeRegistry    *typeRegistry     READ typeRegistry     WRITE setTypeRegistry
+                   NOTIFY typeRegistryChanged     FINAL)
+    Q_PROPERTY(InvariantChecker *invariantChecker READ invariantChecker WRITE setInvariantChecker
+                   NOTIFY invariantCheckerChanged FINAL)
+    Q_PROPERTY(bool             strictMode       READ strictMode       WRITE setStrictMode
+                   NOTIFY strictModeChanged       FINAL)
 
 public:
     explicit GraphEditorController(QObject *parent = nullptr);
 
-    GraphModel   *graph()        const;
-    UndoStack    *undoStack()    const;
-    TypeRegistry *typeRegistry() const;
+    GraphModel      *graph()            const;
+    UndoStack       *undoStack()        const;
+    TypeRegistry    *typeRegistry()     const;
+    InvariantChecker *invariantChecker() const;
+    bool             strictMode()       const;
 
     void setGraph(GraphModel *graph);
     void setUndoStack(UndoStack *undoStack);
     void setTypeRegistry(TypeRegistry *registry);
+    void setInvariantChecker(InvariantChecker *checker);
+    void setStrictMode(bool strict);
 
     /**
     * Creates a new component of @p typeId at (@p x, @p y).
@@ -67,6 +78,22 @@ public:
                                               qreal x,
                                               qreal y);
 
+    // Creates a component for palette/menu flows with explicit visual fields.
+    // Width/height <= 0 fallback to type defaults.
+    Q_INVOKABLE QString createPaletteComponent(const QString &typeId,
+                                               const QString &title,
+                                               const QString &icon,
+                                               const QString &color,
+                                               qreal x,
+                                               qreal y,
+                                               qreal width,
+                                               qreal height);
+
+    // Duplicates an existing component with positional offset.
+    Q_INVOKABLE QString duplicateComponent(const QString &sourceId,
+                                           qreal offsetX = 40.0,
+                                           qreal offsetY = 40.0);
+
     /**
     * Validates and creates a directed connection from the component
     * identified by @p sourceId to the component identified by @p targetId.
@@ -81,6 +108,30 @@ public:
     Q_INVOKABLE QString connectComponents(const QString &sourceId,
                                           const QString &targetId);
 
+    // Deterministic connect API for drag-drop flows.
+    // preferredConnectionId defaults to "conn_<source>_<target>" if empty.
+    // Returns empty if invalid, rejected by policy, or duplicate id already exists.
+    Q_INVOKABLE QString connectComponentsFromDrag(const QString &sourceId,
+                                                  const QString &targetId,
+                                                  int sourceSide,
+                                                  int targetSide = -1,
+                                                  const QString &preferredConnectionId = QString(),
+                                                  const QString &fallbackLabel = QStringLiteral("path A"));
+
+    // Commits grouped move operations through UndoStack command batching.
+    Q_INVOKABLE bool commitMoveBatch(const QVariantList &moves);
+
+    // Commits resize geometry through UndoStack to preserve undo semantics.
+    Q_INVOKABLE bool commitResize(const QString &componentId,
+                                  qreal oldX,
+                                  qreal oldY,
+                                  qreal oldWidth,
+                                  qreal oldHeight,
+                                  qreal newX,
+                                  qreal newY,
+                                  qreal newWidth,
+                                  qreal newHeight);
+
     /**
      * Returns the policy-rejection message from the most recent failed
     * connectComponents() call. Empty if the last call succeeded or no call was
@@ -92,6 +143,8 @@ signals:
     void graphChanged();
     void undoStackChanged();
     void typeRegistryChanged();
+    void invariantCheckerChanged();
+    void strictModeChanged();
 
     void componentCreated(const QString &componentId, const QString &typeId);
 
@@ -105,6 +158,16 @@ signals:
                             const QString &targetId,
                             const QString &reason);
 
+    // ── Strict-mode observability signals ─────────────────────────────────
+    // Emitted when a UI mutation is blocked by a pre-check invariant violation
+    // or when a post-check violation fires (before rollback).
+    void mutationBlocked(const QString &operationType, const QString &reason);
+
+    // Emitted after a post-mutation invariant failure.  The command is rolled
+    // back before this signal fires.
+    void invariantViolationRolledBack(const QString &operationType,
+                                      const QString &violation);
+
 private:
     // Resolves default component geometry/visuals for @p typeId.
     struct ComponentDefaults {
@@ -114,11 +177,42 @@ private:
         QString shape  = QStringLiteral("rounded");
     };
     ComponentDefaults resolveComponentDefaults(const QString &typeId) const;
+    QVariantMap buildConnectionPolicyContext(const QString &sourceId,
+                                             const QString &targetId) const;
+
+    // ── Phase 4: Typed context building for policy providers ─────────────
+    // Builds a typed ConnectionPolicyContext proto message.
+    cme::ConnectionPolicyContext buildTypedConnectionPolicyContext(
+        const QString &sourceId,
+        const QString &targetId,
+        const QString &sourceTypeId = QString(),
+        const QString &targetTypeId = QString(),
+        const QString &sourcePort = QString(),
+        const QString &targetPort = QString()) const;
+
+    QString resolveConnectionTokenKey(const QString &sourceId,
+                                      const QString &targetId,
+                                      const QString &fallbackTokenKey) const;
 
     GraphModel   *m_graph        = nullptr;
     UndoStack    *m_undoStack    = nullptr;
     TypeRegistry *m_typeRegistry = nullptr;
     QString       m_lastRejectionReason;
+
+    // ── Strict-mode enforcement ───────────────────────────────────────────
+    // When strictMode is true, every write method runs pre- and post-mutation
+    // invariant checks via m_invariantChecker.  A pre-failure rejects the
+    // mutation before any command is pushed.  A post-failure rolls back the
+    // last-pushed command via UndoStack::undo() + discardRedoHistory().
+    InvariantChecker *m_invariantChecker = nullptr;
+    bool              m_strictMode       = false;
+
+    // Returns true (pass) or false (blocked); emits mutationBlocked on false.
+    bool preCheckInvariants(const QString &operationType, QString *error);
+
+    // Returns true (pass) or false (rolled back); emits
+    // invariantViolationRolledBack + mutationBlocked on false.
+    bool postCheckAndRollback(const QString &operationType, QString *error);
 };
 
 #endif // GRAPHEDITORCONTROLLER_H

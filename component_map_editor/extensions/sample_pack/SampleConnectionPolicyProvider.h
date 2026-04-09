@@ -16,12 +16,9 @@ class SampleConnectionPolicyProvider : public IConnectionPolicyProvider
 {
 public:
     QString     providerId() const override;
-    bool        canConnect(const QString &sourceTypeId,
-                           const QString &targetTypeId,
-                           const QVariantMap &context,
+    bool        canConnect(const cme::ConnectionPolicyContext &context,
                            QString *reason) const override;
-    QVariantMap normalizeConnectionProperties(const QString &sourceTypeId,
-                                              const QString &targetTypeId,
+    QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
                                               const QVariantMap &rawProperties) const override;
 };
 

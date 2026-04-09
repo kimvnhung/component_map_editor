@@ -1,6 +1,7 @@
 #include "UndoStack.h"
 
 #include "GraphCommands.h"
+#include "services/GraphSchema.h"
 
 #include <QSet>
 
@@ -22,13 +23,15 @@ ConnectionModel::Side sideFromInt(int sideValue)
 
 bool isConnectionPropertyUndoable(const QString &name)
 {
+    // Use GraphSchema::Keys constants — no raw string literals in core logic.
     static const QSet<QString> kAllowed {
-        QStringLiteral("id"),
-        QStringLiteral("sourceId"),
-        QStringLiteral("targetId"),
-        QStringLiteral("label"),
-        QStringLiteral("sourceSide"),
-        QStringLiteral("targetSide")
+        GraphSchema::Keys::connectionId(),
+        GraphSchema::Keys::connectionSourceId(),
+        GraphSchema::Keys::connectionTargetId(),
+        GraphSchema::Keys::connectionLabel(),
+        GraphSchema::Keys::connectionTokenKey(),
+        GraphSchema::Keys::connectionSourceSide(),
+        GraphSchema::Keys::connectionTargetSide()
     };
     return kAllowed.contains(name);
 }
@@ -234,6 +237,23 @@ void UndoStack::pushAddConnection(GraphModel *graph, ConnectionModel *connection
         return;
 
     push(new AddConnectionCommand(graph, connection));
+}
+
+void UndoStack::pushAddConnectionBySpec(GraphModel *graph,
+                                        const QString &connectionId,
+                                        const QString &sourceId,
+                                        const QString &targetId,
+                                        const QString &label,
+                                        int sourceSide,
+                                        int targetSide)
+{
+    if (!graph || connectionId.isEmpty() || sourceId.isEmpty() || targetId.isEmpty())
+        return;
+
+    auto *connection = new ConnectionModel(connectionId, sourceId, targetId, label, graph);
+    connection->setSourceSide(sideFromInt(sourceSide));
+    connection->setTargetSide(sideFromInt(targetSide));
+    pushAddConnection(graph, connection);
 }
 
 void UndoStack::pushRemoveConnection(GraphModel *graph, const QString &connectionId)

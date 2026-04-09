@@ -1,0 +1,63 @@
+@startuml
+title PropertyPanel Runtime Flow - Token Key Loading
+
+actor User
+participant "GraphCanvas\n(selection source)" as Canvas
+participant "PropertyPanel\n(QML)" as Panel
+participant "PropertySchemaRegistry\n(C++)" as SchemaRegistry
+participant "TokenKeyCatalog\n(C++)" as Catalog
+participant "GraphModel\n(C++)" as Graph
+participant "ConnectionModel[*]\n(C++)" as Conn
+participant "SchemaFormRenderer\n(QML)" as Renderer
+
+== Selection ==
+User -> Canvas : Click component (e.g. Add)
+Canvas -> Panel : set item = selected component
+Panel -> Panel : resolve item -> component\nset componentTarget = "component/<type>"
+
+== Schema load ==
+Panel -> SchemaRegistry : sectionedSchemaForTarget(componentTarget)
+SchemaRegistry --> Panel : activeSchemaSections (fields include optionsSource=tokenKeys)
+
+== Catalog inputs ==
+Panel -> Catalog : set graph
+Panel -> Catalog : set schemaSections = activeSchemaSections
+Panel -> Catalog : set targetComponentId = component.id
+
+== Token key refresh ==
+Catalog -> Graph : connectionList()
+loop for each connection
+  Catalog -> Conn : read targetId, tokenKey
+  alt targetId == current component.id
+    Catalog -> Catalog : keep tokenKey
+  else
+    Catalog -> Catalog : ignore
+  end
+end
+Catalog -> Catalog : dedupe + sort tokenKeys
+Catalog --> Panel : tokenKeysChanged()
+
+== Dynamic options into renderer ==
+Panel -> Panel : dynamicFieldOptions = { tokenKeys: catalog.tokenKeys }
+Panel -> Renderer : schemaSections + dynamicOptions + modelObject
+
+== Field editor resolution ==
+loop for each visible field
+  Renderer -> Renderer : optionsSource = field.optionsSource
+  alt optionsSource == "tokenKeys" and list not empty
+    Renderer -> Renderer : render dropdown with tokenKeys
+  else optionsSource present but list empty
+    Renderer -> Renderer : fallback to textfield
+  else no optionsSource
+    Renderer -> Renderer : normal widget behavior
+  end
+end
+
+== Runtime updates ==
+Graph -> Catalog : connectionAdded/Removed or connectionsChanged
+Conn -> Catalog : tokenKeyChanged
+Catalog -> Catalog : refresh()
+Catalog --> Panel : tokenKeysChanged()
+Panel -> Renderer : dynamic options auto-updated (binding)
+
+@enduml

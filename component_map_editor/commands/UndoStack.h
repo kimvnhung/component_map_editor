@@ -63,6 +63,13 @@ public:
                                                const QVariant &newValue);
 
     Q_INVOKABLE void pushAddConnection(GraphModel *graph, ConnectionModel *connection);
+    Q_INVOKABLE void pushAddConnectionBySpec(GraphModel *graph,
+                                             const QString &connectionId,
+                                             const QString &sourceId,
+                                             const QString &targetId,
+                                             const QString &label,
+                                             int sourceSide = ConnectionModel::SideAuto,
+                                             int targetSide = ConnectionModel::SideAuto);
     Q_INVOKABLE void pushRemoveConnection(GraphModel *graph, const QString &connectionId);
     Q_INVOKABLE void pushSetConnectionSides(ConnectionModel *connection,
                                             int sourceSide,

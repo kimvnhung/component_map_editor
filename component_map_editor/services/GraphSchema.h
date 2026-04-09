@@ -32,6 +32,7 @@ const QString &connectionId();
 const QString &connectionSourceId();
 const QString &connectionTargetId();
 const QString &connectionLabel();
+const QString &connectionTokenKey();
 const QString &connectionSourceSide();
 const QString &connectionTargetSide();
 
