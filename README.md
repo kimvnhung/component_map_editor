@@ -76,7 +76,14 @@ example/
 cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt6
 cmake --build build
 
-The example application is built as build/example/example_app.
+By default, only libraries/modules are built. Enable optional targets with:
+
+cmake -B build \
+  -DCMAKE_PREFIX_PATH=/path/to/Qt6 \
+  -DCME_BUILD_EXAMPLES=ON \
+  -DCME_BUILD_TESTS=ON
+
+When examples are enabled, the example application is built as build/example/example_app.
 
 ## Routing Verification
 
