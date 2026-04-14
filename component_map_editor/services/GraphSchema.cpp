@@ -20,6 +20,8 @@ const QString &componentShape() { static const QString key = QStringLiteral("sha
 const QString &componentColor() { static const QString key = QStringLiteral("color"); return key; }
 const QString &componentType() { static const QString key = QStringLiteral("type"); return key; }
 
+const QString &properties() { static const QString key = QStringLiteral("properties"); return key; }
+
 const QString &connectionId() { static const QString key = QStringLiteral("id"); return key; }
 const QString &connectionSourceId() { static const QString key = QStringLiteral("sourceId"); return key; }
 const QString &connectionTargetId() { static const QString key = QStringLiteral("targetId"); return key; }
@@ -107,6 +109,15 @@ QJsonObject componentToJson(const ComponentModel *component)
     obj[Keys::componentShape()] = component->shape();
     obj[Keys::componentColor()] = component->color();
     obj[Keys::componentType()] = component->type();
+
+    const QList<QByteArray> dynNames = component->dynamicPropertyNames();
+    if (!dynNames.isEmpty()) {
+        QJsonObject propsObj;
+        for (const QByteArray &name : dynNames)
+            propsObj[QString::fromUtf8(name)] = QJsonValue::fromVariant(component->property(name.constData()));
+        obj[Keys::properties()] = propsObj;
+    }
+
     return obj;
 }
 
@@ -124,6 +135,15 @@ QJsonObject connectionToJson(const ConnectionModel *connection)
         obj[Keys::connectionTokenKey()] = connection->tokenKey();
     obj[Keys::connectionSourceSide()] = static_cast<int>(connection->sourceSide());
     obj[Keys::connectionTargetSide()] = static_cast<int>(connection->targetSide());
+
+    const QList<QByteArray> dynNames = connection->dynamicPropertyNames();
+    if (!dynNames.isEmpty()) {
+        QJsonObject propsObj;
+        for (const QByteArray &name : dynNames)
+            propsObj[QString::fromUtf8(name)] = QJsonValue::fromVariant(connection->property(name.constData()));
+        obj[Keys::properties()] = propsObj;
+    }
+
     return obj;
 }
 
@@ -147,6 +167,11 @@ ComponentModel *componentFromCanonicalJson(const QJsonObject &obj)
     component->setTitle(title);
     component->setContent(obj[Keys::componentContent()].toString());
     component->setIcon(obj[Keys::componentIcon()].toString());
+
+    const QJsonObject propsObj = obj[Keys::properties()].toObject();
+    for (auto it = propsObj.begin(); it != propsObj.end(); ++it)
+        component->setProperty(it.key().toUtf8().constData(), it.value().toVariant());
+
     return component;
 }
 
@@ -163,6 +188,11 @@ ConnectionModel *connectionFromCanonicalJson(const QJsonObject &obj)
         obj[Keys::connectionSourceSide()].toInt(static_cast<int>(ConnectionModel::SideAuto))));
     connection->setTargetSide(normalizeConnectionSide(
         obj[Keys::connectionTargetSide()].toInt(static_cast<int>(ConnectionModel::SideAuto))));
+
+    const QJsonObject propsObj = obj[Keys::properties()].toObject();
+    for (auto it = propsObj.begin(); it != propsObj.end(); ++it)
+        connection->setProperty(it.key().toUtf8().constData(), it.value().toVariant());
+
     return connection;
 }
 

@@ -27,6 +27,7 @@ const QString &componentHeight();
 const QString &componentShape();
 const QString &componentColor();
 const QString &componentType();
+const QString &properties(); // dynamic extension fields (component and connection)
 
 const QString &connectionId();
 const QString &connectionSourceId();
