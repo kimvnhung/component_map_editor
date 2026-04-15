@@ -114,6 +114,13 @@ QStringList CompositeExecutionProvider::supportedComponentTypes() const
     return out;
 }
 
+QStringList CompositeExecutionProvider::providedOutputKeys(const QString &) const
+{
+    // Composite providers expose dynamically-mapped output ports;
+    // the contract is declared at the definition level, not statically here.
+    return {};
+}
+
 bool CompositeExecutionProvider::executeComponent(const QString &componentType,
                                                   const QString &componentId,
                                                   const QVariantMap &componentSnapshot,

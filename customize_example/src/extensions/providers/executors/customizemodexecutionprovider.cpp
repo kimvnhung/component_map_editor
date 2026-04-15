@@ -11,6 +11,11 @@ QStringList CustomizeModExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeModExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("result"), QStringLiteral("error") };
+}
 bool CustomizeModExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

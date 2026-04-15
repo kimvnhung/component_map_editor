@@ -11,6 +11,11 @@ QStringList CustomizeSubtractExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeSubtractExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("difference"), QStringLiteral("error") };
+}
 bool CustomizeSubtractExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

@@ -59,6 +59,8 @@ public:
         return { QStringLiteral("start"), QStringLiteral("process"), QStringLiteral("stop") };
     }
 
+    QStringList providedOutputKeys(const QString &) const override { return {}; }
+
     bool executeComponent(const QString &componentType,
                           const QString &componentId,
                           const QVariantMap &componentSnapshot,

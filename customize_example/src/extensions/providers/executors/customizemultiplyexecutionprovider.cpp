@@ -11,6 +11,11 @@ QStringList CustomizeMultiplyExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeMultiplyExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("product"), QStringLiteral("error") };
+}
 bool CustomizeMultiplyExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

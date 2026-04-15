@@ -11,6 +11,11 @@ QStringList CustomizeEqualExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeEqualExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("result"), QStringLiteral("error") };
+}
 bool CustomizeEqualExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -46,12 +51,16 @@ bool CustomizeEqualExecutionProvider::executeComponent(
                              error);
     }
 
+    out.insert(outputKey, qFuzzyCompare(a, b));
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2 = (%3 == %4)")
-                       .arg(componentId)
-                       .arg(outputKey)
-                       .arg(a)
-                       .arg(b);
+    if (outputPayload)
+        *outputPayload = out;
+    if (trace)
+        *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
+
+    qInfo().noquote() << QStringLiteral("[Trace][%1] %2 = (%3 == %4) -> %5")
+                       .arg(componentType, componentId, outputKey)
+                       .arg(a).arg(b);
 
     return true;
 }

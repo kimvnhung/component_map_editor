@@ -11,6 +11,11 @@ QStringList CustomizeIfElseExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeIfElseExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("routeTrue"), QStringLiteral("routeFalse"), QStringLiteral("error") };
+}
 bool CustomizeIfElseExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

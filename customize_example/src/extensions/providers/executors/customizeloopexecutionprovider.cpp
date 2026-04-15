@@ -11,6 +11,11 @@ QStringList CustomizeLoopExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeLoopExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("iter"), QStringLiteral("continueLoop"), QStringLiteral("error") };
+}
 bool CustomizeLoopExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

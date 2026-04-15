@@ -11,6 +11,11 @@ QStringList CustomizeStopExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeStopExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("endNumber"), QStringLiteral("completed") };
+}
 bool CustomizeStopExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

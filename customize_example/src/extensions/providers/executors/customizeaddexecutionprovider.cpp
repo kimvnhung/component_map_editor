@@ -11,6 +11,11 @@ QStringList CustomizeAddExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeAddExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("sum"), QStringLiteral("error") };
+}
 bool CustomizeAddExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

@@ -11,6 +11,11 @@ QStringList CustomizeErrorHandlerExecutionProvider::supportedComponentTypes() co
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeErrorHandlerExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("error") };
+}
 bool CustomizeErrorHandlerExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

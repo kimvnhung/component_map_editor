@@ -23,6 +23,11 @@ public:
     virtual QString providerId() const = 0;
     virtual QStringList supportedComponentTypes() const = 0;
 
+    // Returns the keys this provider promises to write into outputPayload
+    // for the given componentType. Used by the sandbox for post-execute
+    // validation and by TokenKeyCatalog for design-time dropdown population.
+    virtual QStringList providedOutputKeys(const QString &componentType) const = 0;
+
     // Executes one component in sandbox context using token-aware inputs.
     // Implementations must be side-effect free against live graph/editor state.
     virtual bool executeComponent(const QString &componentType,

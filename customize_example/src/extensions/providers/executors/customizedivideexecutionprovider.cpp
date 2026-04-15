@@ -11,6 +11,11 @@ QStringList CustomizeDivideExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeDivideExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("quotient"), QStringLiteral("error") };
+}
 bool CustomizeDivideExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

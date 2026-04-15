@@ -11,6 +11,11 @@ QStringList CustomizeStartExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeStartExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("inputNumber") };
+}
 bool CustomizeStartExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,

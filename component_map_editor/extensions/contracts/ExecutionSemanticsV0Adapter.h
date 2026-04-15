@@ -11,6 +11,7 @@ public:
 
     QString providerId() const override;
     QStringList supportedComponentTypes() const override;
+    QStringList providedOutputKeys(const QString &componentType) const override;
 
     bool executeComponent(const QString &componentType,
                           const QString &componentId,

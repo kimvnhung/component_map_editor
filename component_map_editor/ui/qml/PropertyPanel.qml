@@ -11,7 +11,7 @@ Rectangle {
     property ComponentModel component: null
     property ConnectionModel connection: null
     property UndoStack undoStack: null
-    property var executionStateSnapshot: ({})
+    property var providerOutputKeyHints: ({})
     property TokenKeyCatalog tokenKeyCatalog: null
 
     // Unified entry point. Callers can set this to either a ComponentModel,
@@ -117,8 +117,7 @@ Rectangle {
     TokenKeyCatalog {
         id: fallbackTokenKeyCatalog
         graph: root.graph
-        executionStateSnapshot: root.executionStateSnapshot
-        schemaSections: root.activeSchemaSections
+        providerOutputKeyHints: root.providerOutputKeyHints
         targetComponentId: root.component ? root.component.id : ""
     }
 

@@ -65,6 +65,14 @@ bool CustomizeExecutionSemanticsProvider::executeComponent(
                                         error);
 }
 
+QStringList CustomizeExecutionSemanticsProvider::providedOutputKeys(const QString &componentType) const
+{
+    const IExecutionSemanticsProvider *provider = providerForType(componentType);
+    if (!provider)
+        return {};
+    return provider->providedOutputKeys(componentType);
+}
+
 const IExecutionSemanticsProvider *CustomizeExecutionSemanticsProvider::providerForType(const QString &componentType) const
 {
     if (componentType == QLatin1String(TypeStart))
@@ -85,5 +93,15 @@ const IExecutionSemanticsProvider *CustomizeExecutionSemanticsProvider::provider
         return &m_loopProvider;
     if (componentType == QLatin1String(TypeErrorHandler))
         return &m_errorHandlerProvider;
+    if (componentType == QLatin1String(TypeMod))
+        return &m_modProvider;
+    if (componentType == QLatin1String(TypeLessThan))
+        return &m_lessThanProvider;
+    if (componentType == QLatin1String(TypeLessOrEqual))
+        return &m_lessOrEqualProvider;
+    if (componentType == QLatin1String(TypeEqual))
+        return &m_equalProvider;
+    if (componentType == QLatin1String(TypeLogicAnd))
+        return &m_logicAndProvider;
     return nullptr;
 }

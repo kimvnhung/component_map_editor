@@ -1,24 +1,26 @@
 #include <QtTest>
 
+#include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"
 #include "services/TokenKeyCatalog.h"
 
 namespace {
 
-ConnectionModel *makeConnection(GraphModel &graph,
-                                const QString &id,
-                                const QString &sourceId,
-                                const QString &targetId,
-                                const QString &tokenKey)
+void addComponent(GraphModel &graph, const QString &id, const QString &type)
+{
+    auto *component = new ComponentModel(id, id, 0.0, 0.0, QStringLiteral("#ffffff"), type, &graph);
+    graph.addComponent(component);
+}
+
+void addConnection(GraphModel &graph, const QString &id,
+                   const QString &sourceId, const QString &targetId)
 {
     auto *connection = new ConnectionModel(&graph);
     connection->setId(id);
     connection->setSourceId(sourceId);
     connection->setTargetId(targetId);
-    connection->setTokenKey(tokenKey);
     graph.addConnection(connection);
-    return connection;
 }
 
 } // namespace
@@ -28,76 +30,110 @@ class tst_TokenKeyCatalog : public QObject
     Q_OBJECT
 
 private slots:
-    void runtimeOptionExtraction_prefersIncomingPayloadKeys();
-    void fallbackToConnectionTokenKey_whenRuntimePayloadUnavailable();
+    void showsDeclaredKeysForIncomingSourceType();
+    void emptyWhenNoHintsRegistered();
+    void multipleSources_unionsKeys();
+    void updatesWhenHintsChange();
 };
 
-void tst_TokenKeyCatalog::runtimeOptionExtraction_prefersIncomingPayloadKeys()
+void tst_TokenKeyCatalog::showsDeclaredKeysForIncomingSourceType()
 {
     GraphModel graph;
-    makeConnection(graph,
-                   QStringLiteral("edge.rdc.crc"),
-                   QStringLiteral("RDC"),
-                   QStringLiteral("CRC"),
-                   QStringLiteral("tok.rdc.crc"));
+    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
+    addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
+    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
 
     TokenKeyCatalog catalog;
     catalog.setGraph(&graph);
-    catalog.setTargetComponentId(QStringLiteral("CRC"));
-
-    QVariantMap executionState;
-    executionState.insert(
-        QStringLiteral("incomingTokenPayloads"),
-        QVariantMap{{QStringLiteral("edge.rdc.crc"),
-                     QVariantMap{{QStringLiteral("rd_key1"), 10},
-                                 {QStringLiteral("rd_key2"), 20}}}});
-    catalog.setExecutionStateSnapshot(executionState);
+    catalog.setTargetComponentId(QStringLiteral("P1"));
+    catalog.setProviderOutputKeyHints(QVariantMap{
+        { QStringLiteral("start"),
+          QStringList{ QStringLiteral("workingNumber"),
+                       QStringLiteral("started"),
+                       QStringLiteral("inputNumber") } }
+    });
 
     const QStringList keys = catalog.tokenKeys();
-    QVERIFY(keys.contains(QStringLiteral("rd_key1")));
-    QVERIFY(keys.contains(QStringLiteral("rd_key2")));
+    QVERIFY(keys.contains(QStringLiteral("workingNumber")));
+    QVERIFY(keys.contains(QStringLiteral("started")));
+    QVERIFY(keys.contains(QStringLiteral("inputNumber")));
 
-    const QVariantList options = catalog.tokenKeyOptions();
-    bool hasRdKey1 = false;
-    bool hasRdKey2 = false;
-    for (const QVariant &value : options) {
-        const QVariantMap row = value.toMap();
-        if (row.value(QStringLiteral("key")).toString() == QStringLiteral("rd_key1")
-            && row.value(QStringLiteral("value")).toString() == QStringLiteral("edge.rdc.crc::rd_key1")) {
-            hasRdKey1 = true;
-        }
-        if (row.value(QStringLiteral("key")).toString() == QStringLiteral("rd_key2")
-            && row.value(QStringLiteral("value")).toString() == QStringLiteral("edge.rdc.crc::rd_key2")) {
-            hasRdKey2 = true;
+    // Options carry sourceId for display context
+    bool foundWithSourceId = false;
+    for (const QVariant &v : catalog.tokenKeyOptions()) {
+        const QVariantMap row = v.toMap();
+        if (row.value(QStringLiteral("key")).toString() == QStringLiteral("workingNumber")
+            && row.value(QStringLiteral("sourceId")).toString() == QStringLiteral("S1")) {
+            foundWithSourceId = true;
+            break;
         }
     }
-
-    QVERIFY(hasRdKey1);
-    QVERIFY(hasRdKey2);
+    QVERIFY(foundWithSourceId);
 }
 
-void tst_TokenKeyCatalog::fallbackToConnectionTokenKey_whenRuntimePayloadUnavailable()
+void tst_TokenKeyCatalog::emptyWhenNoHintsRegistered()
 {
     GraphModel graph;
-    makeConnection(graph,
-                   QStringLiteral("edge.rdc.crc"),
-                   QStringLiteral("RDC"),
-                   QStringLiteral("CRC"),
-                   QStringLiteral("tok.rdc.crc"));
+    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
+    addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
+    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
 
     TokenKeyCatalog catalog;
     catalog.setGraph(&graph);
-    catalog.setTargetComponentId(QStringLiteral("CRC"));
-    catalog.setExecutionStateSnapshot(QVariantMap{});
+    catalog.setTargetComponentId(QStringLiteral("P1"));
+    // No providerOutputKeyHints set — catalog should be empty
+
+    QVERIFY(catalog.tokenKeys().isEmpty());
+    QVERIFY(catalog.tokenKeyOptions().isEmpty());
+}
+
+void tst_TokenKeyCatalog::multipleSources_unionsKeys()
+{
+    GraphModel graph;
+    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
+    addComponent(graph, QStringLiteral("P2"), QStringLiteral("process"));
+    addComponent(graph, QStringLiteral("T1"), QStringLiteral("stop"));
+    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("T1"));
+    addConnection(graph, QStringLiteral("e2"), QStringLiteral("P2"), QStringLiteral("T1"));
+
+    TokenKeyCatalog catalog;
+    catalog.setGraph(&graph);
+    catalog.setTargetComponentId(QStringLiteral("T1"));
+    catalog.setProviderOutputKeyHints(QVariantMap{
+        { QStringLiteral("start"),
+          QStringList{ QStringLiteral("workingNumber"), QStringLiteral("started") } },
+        { QStringLiteral("process"),
+          QStringList{ QStringLiteral("workingNumber"), QStringLiteral("lastProcessAddValue") } }
+    });
 
     const QStringList keys = catalog.tokenKeys();
-    QCOMPARE(keys, QStringList{QStringLiteral("tok.rdc.crc")});
+    // workingNumber appears in both — deduplicated
+    QCOMPARE(keys.count(QStringLiteral("workingNumber")), 1);
+    QVERIFY(keys.contains(QStringLiteral("started")));
+    QVERIFY(keys.contains(QStringLiteral("lastProcessAddValue")));
+}
 
-    const QVariantList options = catalog.tokenKeyOptions();
-    QVERIFY(!options.isEmpty());
-    const QVariantMap first = options.first().toMap();
-    QCOMPARE(first.value(QStringLiteral("value")).toString(), QStringLiteral("tok.rdc.crc"));
+void tst_TokenKeyCatalog::updatesWhenHintsChange()
+{
+    GraphModel graph;
+    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
+    addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
+    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
+
+    TokenKeyCatalog catalog;
+    catalog.setGraph(&graph);
+    catalog.setTargetComponentId(QStringLiteral("P1"));
+
+    QVERIFY(catalog.tokenKeys().isEmpty());
+
+    catalog.setProviderOutputKeyHints(QVariantMap{
+        { QStringLiteral("start"),
+          QStringList{ QStringLiteral("workingNumber") } }
+    });
+
+    QVERIFY(catalog.tokenKeys().contains(QStringLiteral("workingNumber")));
 }
 
 QTEST_MAIN(tst_TokenKeyCatalog)
 #include "tst_TokenKeyCatalog.moc"
+
