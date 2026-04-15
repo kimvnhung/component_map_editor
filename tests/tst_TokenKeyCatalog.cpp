@@ -33,6 +33,7 @@ private slots:
     void showsDeclaredKeysForIncomingSourceType();
     void emptyWhenNoHintsRegistered();
     void multipleSources_unionsKeys();
+    void duplicateKeys_preserveDistinctTokenReferences();
     void updatesWhenHintsChange();
 };
 
@@ -111,6 +112,43 @@ void tst_TokenKeyCatalog::multipleSources_unionsKeys()
     QCOMPARE(keys.count(QStringLiteral("workingNumber")), 1);
     QVERIFY(keys.contains(QStringLiteral("started")));
     QVERIFY(keys.contains(QStringLiteral("lastProcessAddValue")));
+}
+
+void tst_TokenKeyCatalog::duplicateKeys_preserveDistinctTokenReferences()
+{
+    GraphModel graph;
+    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
+    addComponent(graph, QStringLiteral("S2"), QStringLiteral("start"));
+    addComponent(graph, QStringLiteral("A1"), QStringLiteral("process"));
+    addConnection(graph, QStringLiteral("edge.S1.A1"), QStringLiteral("S1"), QStringLiteral("A1"));
+    addConnection(graph, QStringLiteral("edge.S2.A1"), QStringLiteral("S2"), QStringLiteral("A1"));
+
+    TokenKeyCatalog catalog;
+    catalog.setGraph(&graph);
+    catalog.setTargetComponentId(QStringLiteral("A1"));
+    catalog.setProviderOutputKeyHints(QVariantMap{
+        { QStringLiteral("start"),
+          QStringList{ QStringLiteral("inputNumber") } }
+    });
+
+    const QStringList keys = catalog.tokenKeys();
+    QCOMPARE(keys.count(QStringLiteral("inputNumber")), 1);
+
+    QStringList references;
+    QStringList texts;
+    for (const QVariant &v : catalog.tokenKeyOptions()) {
+        const QVariantMap row = v.toMap();
+        if (row.value(QStringLiteral("key")).toString() != QStringLiteral("inputNumber"))
+            continue;
+        references.append(row.value(QStringLiteral("value")).toString());
+        texts.append(row.value(QStringLiteral("text")).toString());
+    }
+
+    QCOMPARE(references.size(), 2);
+    QVERIFY(references.contains(QStringLiteral("edge.S1.A1::inputNumber")));
+    QVERIFY(references.contains(QStringLiteral("edge.S2.A1::inputNumber")));
+    QVERIFY(texts.contains(QStringLiteral("inputNumber (S1 via edge.S1.A1)")));
+    QVERIFY(texts.contains(QStringLiteral("inputNumber (S2 via edge.S2.A1)")));
 }
 
 void tst_TokenKeyCatalog::updatesWhenHintsChange()

@@ -197,6 +197,7 @@ private slots:
         const QVariantList legacySections = schemas.sectionedSchemaForTarget(QStringLiteral("component/process"));
         QVERIFY(!legacySections.isEmpty());
     }
+
 };
 
 QTEST_MAIN(tst_PropertySchemaRegistry)

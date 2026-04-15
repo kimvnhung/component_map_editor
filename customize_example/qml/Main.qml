@@ -201,7 +201,8 @@ ApplicationWindow {
         }
 
         Rectangle {
-            Layout.preferredWidth: 320
+            Layout.preferredWidth: 360
+            Layout.minimumWidth: 360
             Layout.fillHeight: true
             color: "#ffffff"
 

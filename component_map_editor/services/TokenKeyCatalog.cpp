@@ -78,7 +78,7 @@ void TokenKeyCatalog::refresh()
 
     QStringList keys;
     QVariantList options;
-    QSet<QString> seen;
+    QSet<QString> seenKeys;
 
     const QList<ConnectionModel *> connections = m_graph->connectionList();
     for (const ConnectionModel *connection : connections) {
@@ -94,15 +94,27 @@ void TokenKeyCatalog::refresh()
 
         const QString sourceType = source->type();
         const QStringList declared = m_providerOutputKeyHints.value(sourceType).toStringList();
+        const QString connectionId = connection->id().trimmed();
         for (const QString &key : declared) {
-            if (key.isEmpty() || seen.contains(key))
+            if (key.isEmpty())
                 continue;
-            seen.insert(key);
-            keys.append(key);
+
+            if (!seenKeys.contains(key)) {
+                seenKeys.insert(key);
+                keys.append(key);
+            }
+
+            const QString tokenReference = connectionId.isEmpty()
+                ? key
+                : QStringLiteral("%1::%2").arg(connectionId, key);
+            const QString optionText = connectionId.isEmpty()
+                ? QStringLiteral("%1 (%2)").arg(key, sourceId)
+                : QStringLiteral("%1 (%2 via %3)").arg(key, sourceId, connectionId);
             options.append(QVariantMap{
-                { QStringLiteral("text"),     QStringLiteral("%1 (%2)").arg(key, sourceId) },
-                { QStringLiteral("value"),    key },
+                { QStringLiteral("text"),     optionText },
+                { QStringLiteral("value"),    tokenReference },
                 { QStringLiteral("key"),      key },
+                { QStringLiteral("tokenId"),  connectionId },
                 { QStringLiteral("sourceId"), sourceId }
             });
         }
