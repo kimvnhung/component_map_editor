@@ -11,6 +11,16 @@
 
 namespace customize::executors {
 
+inline QString fallbackReferenceSelectionValue()
+{
+    return QStringLiteral("__use_fallback__");
+}
+
+inline bool isFallbackReferenceSelection(const QString &reference)
+{
+    return reference.trimmed() == fallbackReferenceSelectionValue();
+}
+
 enum class BinaryOperation {
     Add,
     Subtract,
@@ -105,7 +115,9 @@ inline double resolveReferencedNumber(const cme::execution::IncomingTokens &inco
                                      bool *ok = nullptr)
 {
     bool parsed = false;
-    const QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    if (isFallbackReferenceSelection(reference))
+        reference.clear();
     if (!reference.isEmpty()) {
         QString tokenId;
         QString fieldKey;
@@ -140,7 +152,9 @@ inline QVariant resolveSelectedContextValue(const cme::execution::IncomingTokens
     if (ambiguous)
         *ambiguous = false;
 
-    const QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    if (isFallbackReferenceSelection(reference))
+        reference.clear();
     QString tokenId;
     QString fieldKey;
     if (parseTokenFieldReference(reference, &tokenId, &fieldKey)) {

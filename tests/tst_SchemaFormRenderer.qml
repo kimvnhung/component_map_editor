@@ -87,21 +87,24 @@ TestCase {
         };
 
         var options = renderer.enumModelForField(field);
-        compare(options.length, 2);
-        compare(options[0].value, "edge-a::value");
+        compare(options.length, 3);
+        compare(options[0].value, renderer.fallbackSelectionValue);
+        compare(options[0].text, "Use fallback value");
+        compare(options[1].value, "edge-a::value");
         compare(renderer.shouldFallbackToTextField(field), false);
     }
 
     function test_autoInitializeDropdownField_persistsFirstOptionWhenValueMissing() {
         var renderer = makeRenderer();
         var edits = [];
-        renderer.propertyEditRequested.connect(function(propertyName, value) {
-            edits.push({ propertyName: propertyName, value: value });
+        renderer.propertyEditRequested.connect(function(propertyName, value, sourceModelObject) {
+            edits.push({ propertyName: propertyName, value: value, sourceModelObject: sourceModelObject });
         });
 
-        renderer.modelObject = {
+        var modelObject = {
             dynamicPropertyValue: function() { return ""; }
         };
+        renderer.modelObject = modelObject;
 
         var field = {
             "key": "inputARef",
@@ -110,6 +113,7 @@ TestCase {
         };
 
         var applied = renderer.autoInitializeDropdownField(field, [
+            { text: "Use fallback value", value: renderer.fallbackSelectionValue },
             { text: "edge-a::value", value: "edge-a::value" },
             { text: "edge-b::value", value: "edge-b::value" }
         ]);
@@ -118,13 +122,14 @@ TestCase {
         compare(edits.length, 1);
         compare(edits[0].propertyName, "inputARef");
         compare(edits[0].value, "edge-a::value");
+        compare(edits[0].sourceModelObject, modelObject);
     }
 
     function test_autoInitializeDropdownField_keepsPersistedValueUntouched() {
         var renderer = makeRenderer();
         var edits = [];
-        renderer.propertyEditRequested.connect(function(propertyName, value) {
-            edits.push({ propertyName: propertyName, value: value });
+        renderer.propertyEditRequested.connect(function(propertyName, value, sourceModelObject) {
+            edits.push({ propertyName: propertyName, value: value, sourceModelObject: sourceModelObject });
         });
 
         renderer.modelObject = {
@@ -137,13 +142,89 @@ TestCase {
             "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
         };
 
+        renderer.modelObject = {
+            hasDynamicProperty: function() { return true; },
+            dynamicPropertyValue: function() { return renderer.fallbackSelectionValue; }
+        };
+
         var applied = renderer.autoInitializeDropdownField(field, [
+            { text: "Use fallback value", value: renderer.fallbackSelectionValue },
             { text: "edge-a::value", value: "edge-a::value" },
             { text: "edge-b::value", value: "edge-b::value" }
         ]);
 
         compare(applied, undefined);
         compare(edits.length, 0);
+    }
+
+    function test_autoInitializeDropdownField_skipsFallbackOptionForNewRefField() {
+        var renderer = makeRenderer();
+        var edits = [];
+        renderer.propertyEditRequested.connect(function(propertyName, value, sourceModelObject) {
+            edits.push({ propertyName: propertyName, value: value, sourceModelObject: sourceModelObject });
+        });
+
+        var modelObject = {
+            hasDynamicProperty: function() { return false; },
+            dynamicPropertyValue: function() { return undefined; }
+        };
+        renderer.modelObject = modelObject;
+
+        var field = {
+            "key": "inputBRef",
+            "widgetEnum": renderer.widgetDropdown,
+            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+        };
+
+        var applied = renderer.autoInitializeDropdownField(field, [
+            { text: "Use fallback value", value: renderer.fallbackSelectionValue },
+            { text: "edge-a::value", value: "edge-a::value" },
+            { text: "edge-b::value", value: "edge-b::value" }
+        ]);
+
+        compare(applied, "edge-a::value");
+        compare(edits.length, 1);
+        compare(edits[0].propertyName, "inputBRef");
+        compare(edits[0].value, "edge-a::value");
+        compare(edits[0].sourceModelObject, modelObject);
+    }
+
+    function test_enumIndexForValue_matchesFallbackSentinel() {
+        var renderer = makeRenderer();
+        var options = renderer.enumModelForField({
+            "key": "inputARef",
+            "widgetEnum": renderer.widgetDropdown,
+            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions,
+            "options": [
+                { text: "edge-a::value", value: "edge-a::value" }
+            ]
+        });
+
+        compare(renderer.enumIndexForValue(options, renderer.fallbackSelectionValue), 0);
+    }
+
+    function test_isRendererStateStable_requires_matchingExpectedObjectAndTarget() {
+        var renderer = makeRenderer();
+
+        renderer.expectedModelObjectId = "component-b";
+        renderer.expectedSchemaTarget = "component/math/add";
+        renderer.modelObject = {
+            id: "component-a",
+            type: "start"
+        };
+        compare(renderer.isRendererStateStable(), false);
+
+        renderer.modelObject = {
+            id: "component-b",
+            type: "start"
+        };
+        compare(renderer.isRendererStateStable(), false);
+
+        renderer.modelObject = {
+            id: "component-b",
+            type: "math/add"
+        };
+        compare(renderer.isRendererStateStable(), true);
     }
 
     function test_typedWidgetEnum_dispatchesWithoutWidgetString() {

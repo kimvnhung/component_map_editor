@@ -155,10 +155,20 @@ Rectangle {
                 schemaSections: root.activeSchemaSections
                 schemaSectionModel: root.activeSchemaSectionModel
                 modelObject: root.component !== null ? root.component : root.connection
+                expectedModelObjectId: root.component !== null
+                    ? root.component.id
+                    : (root.connection !== null ? root.connection.id : "")
+                expectedSchemaTarget: root.component !== null
+                    ? root.componentTarget
+                    : root.connectionTarget
                 readOnly: root.undoStack === null
                 sideModel: root.connectionSideModel
                 dynamicOptions: root.dynamicFieldOptions
-                onPropertyEditRequested: function(propertyName, value) {
+                onPropertyEditRequested: function(propertyName, value, sourceModelObject) {
+                    var activeModelObject = root.component !== null ? root.component : root.connection
+                    if (sourceModelObject !== activeModelObject)
+                        return
+
                     if (root.component !== null)
                         root.updateComponentProperty(propertyName, value)
                     else

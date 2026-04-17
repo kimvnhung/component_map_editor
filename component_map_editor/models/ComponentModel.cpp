@@ -27,6 +27,16 @@ bool ComponentModel::setDynamicProperty(const QString &name, const QVariant &val
     return QObject::setProperty(utf8Name.constData(), value);
 }
 
+bool ComponentModel::hasDynamicProperty(const QString &name) const
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return false;
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::dynamicPropertyNames().contains(utf8Name);
+}
+
 QVariant ComponentModel::dynamicPropertyValue(const QString &name) const
 {
     const QString trimmedName = name.trimmed();

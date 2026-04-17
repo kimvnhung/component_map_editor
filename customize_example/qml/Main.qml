@@ -49,6 +49,25 @@ ApplicationWindow {
         return prettyJson(state);
     }
 
+    component ReadOnlyPlainTextPanel: ScrollView {
+        id: plainTextPanel
+        property string panelText: ""
+        property int preferredHeight: 120
+
+        Layout.fillWidth: true
+        Layout.preferredHeight: preferredHeight
+        clip: true
+
+        TextArea {
+            text: plainTextPanel.panelText || ""
+            readOnly: true
+            wrapMode: TextArea.NoWrap
+            selectByMouse: true
+            font.family: "monospace"
+            font.pixelSize: 12
+        }
+    }
+
     Component.onCompleted: {
         if (executionSandbox) {
             executionSandbox.graph = graph;
@@ -136,7 +155,6 @@ ApplicationWindow {
                 onClicked: {
                     if (canvas)
                         canvas.resetAllState();
-                    propertyPanel.item = null;
                     graph.clear();
                     undoStack.clear();
                 }
@@ -181,16 +199,6 @@ ApplicationWindow {
             Layout.fillHeight: true
             graph: graph
             componentTypeRegistry: customizeComponentTypeRegistry
-
-            onComponentSelected: component => {
-                propertyPanel.item = component;
-            }
-            onConnectionSelected: connection => {
-                propertyPanel.item = connection;
-            }
-            onBackgroundClicked: {
-                propertyPanel.item = null;
-            }
         }
 
         // Thin separator
@@ -234,6 +242,11 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         graph: graph
+                        item: canvas
+                            ? (canvas.selectedConnection !== null
+                                ? canvas.selectedConnection
+                                : canvas.selectedComponent)
+                            : null
                         undoStack: canvas ? canvas.undoStack : null
                         propertySchemaRegistry: customizePropertySchemaRegistry
                         providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
@@ -340,10 +353,9 @@ ApplicationWindow {
                                     text: "Summary"
                                     font.bold: true
                                 }
-                                Label {
-                                    Layout.fillWidth: true
-                                    wrapMode: Text.WordWrap
-                                    text: executionSandbox ? prettyJson(executionSandbox.snapshotSummary()) : "{}"
+                                ReadOnlyPlainTextPanel {
+                                    preferredHeight: 96
+                                    panelText: executionSandbox ? prettyJson(executionSandbox.snapshotSummary()) : "{}"
                                 }
 
                                 Label {
@@ -366,13 +378,9 @@ ApplicationWindow {
                                 font.bold: true
                             }
 
-                            TextArea {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 120
-                                readOnly: true
-                                wrapMode: TextArea.Wrap
-                                font.family: "monospace"
-                                text: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
+                            ReadOnlyPlainTextPanel {
+                                preferredHeight: 140
+                                panelText: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
                             }
 
                             Label {
@@ -381,13 +389,9 @@ ApplicationWindow {
                                 font.bold: true
                             }
 
-                            TextArea {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 120
-                                readOnly: true
-                                wrapMode: TextArea.Wrap
-                                font.family: "monospace"
-                                text: selectedExecutionStateText()
+                            ReadOnlyPlainTextPanel {
+                                preferredHeight: 140
+                                panelText: selectedExecutionStateText()
                             }
 
                             Label {
@@ -535,7 +539,6 @@ ApplicationWindow {
 
             if (canvas)
                 canvas.resetAllState();
-            propertyPanel.item = null;
             statusLabel.text = "✓ Graph imported";
             statusLabel.color = "#2e7d32";
             canvas.connectionRenderer.repaint();

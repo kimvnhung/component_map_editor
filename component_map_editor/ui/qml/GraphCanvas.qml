@@ -1186,11 +1186,6 @@ Item {
                         renderVisuals: false
                         undoStack: root.undoStack
 
-                        onComponentClicked: function (clickedComponent, modifiers) {
-                            root.suppressNextCanvasTap = true;
-                            root.handleLeftComponentClick(clickedComponent, modifiers);
-                        }
-
                         onFocusedChanged: {
                             delegateRoot.keepAlive = focused;
                         }

@@ -53,6 +53,7 @@ private slots:
     void duplicateIncomingKeys_disambiguatedByInputRef();
     void duplicateIncomingKeys_plainKeyFailsWithoutInputRef();
     void directFallbackWithoutRefs_usesSnapshotFallbacks();
+    void explicitFallbackSentinel_usesSnapshotFallbacks();
     void plainKeyFallback_remainsBackwardCompatible();
 
 private:
@@ -290,6 +291,28 @@ void tst_CustomizeExampleMathWorkflows::directFallbackWithoutRefs_usesSnapshotFa
 
     QVERIFY2(ok, qPrintable(error));
     QCOMPARE(output.value(QStringLiteral("difference")).toDouble(), 6.0);
+}
+
+void tst_CustomizeExampleMathWorkflows::explicitFallbackSentinel_usesSnapshotFallbacks()
+{
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+    const bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
+        QStringLiteral("fallback-sentinel-node"),
+        QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__use_fallback__")},
+                    {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                    {QStringLiteral("a"), 10.0},
+                    {QStringLiteral("outputKey"), QStringLiteral("sum")}},
+        cme::execution::IncomingTokens{{QStringLiteral("__graph_input__"),
+                                        QVariantMap{{QStringLiteral("b"), 4.0}}}},
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY2(ok, qPrintable(error));
+    QCOMPARE(output.value(QStringLiteral("sum")).toDouble(), 14.0);
 }
 
 void tst_CustomizeExampleMathWorkflows::plainKeyFallback_remainsBackwardCompatible()
