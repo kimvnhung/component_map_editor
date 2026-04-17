@@ -170,6 +170,10 @@ Item {
         return root.enumModelForField(field).length === 0
     }
 
+    function isUnsetValue(value) {
+        return value === undefined || value === null || value === ""
+    }
+
     function enumIndexForValue(options, value) {
         for (var i = 0; i < options.length; ++i) {
             var option = options[i]
@@ -180,7 +184,7 @@ Item {
                 return i
             }
         }
-        return 0
+        return -1
     }
 
     function enumValueAt(options, index) {
@@ -198,6 +202,34 @@ Item {
         if (typeof options[0] === "object")
             return "text"
         return ""
+    }
+
+    function autoInitializeDropdownField(field, options) {
+        if (root.readOnly || !field)
+            return undefined
+
+        var propertyName = field.key || ""
+        if (!propertyName.length)
+            return undefined
+
+        var persistedValue = root.readModelProperty(propertyName)
+        if (!root.isUnsetValue(persistedValue))
+            return undefined
+
+        if (!options || options.length === undefined || options.length === 0)
+            return undefined
+
+        var preferredValue = root.fieldValue(field)
+        var preferredIndex = root.enumIndexForValue(options, preferredValue)
+        if (preferredIndex < 0)
+            preferredIndex = 0
+
+        var nextValue = root.enumValueAt(options, preferredIndex)
+        if (nextValue === undefined)
+            return undefined
+
+        root.propertyEditRequested(propertyName, nextValue)
+        return nextValue
     }
 
     ColumnLayout {
@@ -361,10 +393,18 @@ Item {
             id: combo
             property var fieldData: ({})
             property var optionsModel: root.enumModelForField(fieldData)
+
+            function applyDefaultSelectionIfNeeded() {
+                root.autoInitializeDropdownField(fieldData, optionsModel)
+            }
+
             model: optionsModel
             textRole: root.enumTextRole(optionsModel)
             currentIndex: root.enumIndexForValue(optionsModel, root.fieldValue(fieldData))
             enabled: !root.readOnly
+
+            Component.onCompleted: applyDefaultSelectionIfNeeded()
+            onOptionsModelChanged: applyDefaultSelectionIfNeeded()
 
             onActivated: function(index) {
                 if (root.readOnly)

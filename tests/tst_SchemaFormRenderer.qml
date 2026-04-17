@@ -92,6 +92,60 @@ TestCase {
         compare(renderer.shouldFallbackToTextField(field), false);
     }
 
+    function test_autoInitializeDropdownField_persistsFirstOptionWhenValueMissing() {
+        var renderer = makeRenderer();
+        var edits = [];
+        renderer.propertyEditRequested.connect(function(propertyName, value) {
+            edits.push({ propertyName: propertyName, value: value });
+        });
+
+        renderer.modelObject = {
+            dynamicPropertyValue: function() { return ""; }
+        };
+
+        var field = {
+            "key": "inputARef",
+            "widgetEnum": renderer.widgetDropdown,
+            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+        };
+
+        var applied = renderer.autoInitializeDropdownField(field, [
+            { text: "edge-a::value", value: "edge-a::value" },
+            { text: "edge-b::value", value: "edge-b::value" }
+        ]);
+
+        compare(applied, "edge-a::value");
+        compare(edits.length, 1);
+        compare(edits[0].propertyName, "inputARef");
+        compare(edits[0].value, "edge-a::value");
+    }
+
+    function test_autoInitializeDropdownField_keepsPersistedValueUntouched() {
+        var renderer = makeRenderer();
+        var edits = [];
+        renderer.propertyEditRequested.connect(function(propertyName, value) {
+            edits.push({ propertyName: propertyName, value: value });
+        });
+
+        renderer.modelObject = {
+            dynamicPropertyValue: function() { return "edge-b::value"; }
+        };
+
+        var field = {
+            "key": "inputARef",
+            "widgetEnum": renderer.widgetDropdown,
+            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+        };
+
+        var applied = renderer.autoInitializeDropdownField(field, [
+            { text: "edge-a::value", value: "edge-a::value" },
+            { text: "edge-b::value", value: "edge-b::value" }
+        ]);
+
+        compare(applied, undefined);
+        compare(edits.length, 0);
+    }
+
     function test_typedWidgetEnum_dispatchesWithoutWidgetString() {
         var renderer = makeRenderer();
 
