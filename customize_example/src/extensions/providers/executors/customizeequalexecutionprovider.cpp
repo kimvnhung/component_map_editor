@@ -28,15 +28,23 @@ bool CustomizeEqualExecutionProvider::executeComponent(
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
     QVariantMap out = context;
 
-    const QString inputAKey =  customize::executors::resolveText(componentSnapshot, QStringLiteral("inputAKey"), QStringLiteral("a"));
-    const QString inputBKey = customize::executors::resolveText(componentSnapshot, QStringLiteral("inputBKey"), QStringLiteral("b"));
     const QString outputKey = customize::executors::resolveText(componentSnapshot, QStringLiteral("outputKey"), QStringLiteral("result"));
     const QString errorKey = customize::executors::resolveText(componentSnapshot, QStringLiteral("errorKey"), QStringLiteral("error"));
 
     bool okA = false;
     bool okB = false;
-    const double a = customize::executors::resolveNumber(context, componentSnapshot, inputAKey, QStringLiteral("a"), 0.0, &okA);
-    const double b = customize::executors::resolveNumber(context, componentSnapshot, inputBKey, QStringLiteral("b"), 0.0, &okB);
+    const double a = customize::executors::resolveReferencedNumber(incomingTokens,
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputARef"),
+                                                                   QStringLiteral("a"),
+                                                                   0.0,
+                                                                   &okA);
+    const double b = customize::executors::resolveReferencedNumber(incomingTokens,
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputBRef"),
+                                                                   QStringLiteral("b"),
+                                                                   0.0,
+                                                                   &okB);
 
     if (!okA || !okB) {
         const QString msg = QStringLiteral("Invalid numeric input for operation '%1'.").arg(componentType);

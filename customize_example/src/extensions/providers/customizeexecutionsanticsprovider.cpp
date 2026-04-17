@@ -1,5 +1,86 @@
 #include "customizeexecutionsanticsprovider.h"
 
+namespace {
+
+bool isRefOnlyMathType(const QString &componentType)
+{
+    return componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeAdd)
+        || componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeSubtract)
+        || componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeMultiply)
+        || componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeDivide)
+        || componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeMod)
+        || componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeLessThan)
+        || componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeLessOrEqual)
+        || componentType == QLatin1String(CustomizeExecutionSemanticsProvider::TypeEqual);
+}
+
+QString inferUniqueIncomingReference(const cme::execution::IncomingTokens &incomingTokens,
+                                    const QString &fieldKey)
+{
+    if (fieldKey.trimmed().isEmpty())
+        return {};
+
+    QString matchedTokenId;
+    QStringList tokenIds = incomingTokens.keys();
+    std::sort(tokenIds.begin(), tokenIds.end());
+    for (const QString &tokenId : tokenIds) {
+        if (!incomingTokens.value(tokenId).contains(fieldKey))
+            continue;
+
+        if (!matchedTokenId.isEmpty())
+            return {};
+
+        matchedTokenId = tokenId;
+    }
+
+    if (matchedTokenId.isEmpty())
+        return {};
+    return QStringLiteral("%1::%2").arg(matchedTokenId, fieldKey);
+}
+
+void normalizeLegacyOperandReference(QVariantMap *componentSnapshot,
+                                     const cme::execution::IncomingTokens &incomingTokens,
+                                     const QString &refProperty,
+                                     const QString &keyProperty)
+{
+    if (!componentSnapshot)
+        return;
+
+    const QString ref = componentSnapshot->value(refProperty).toString().trimmed();
+    if (!ref.isEmpty()) {
+        componentSnapshot->remove(keyProperty);
+        return;
+    }
+
+    const QString key = componentSnapshot->value(keyProperty).toString().trimmed();
+    if (key.isEmpty())
+        return;
+
+    const QString inferredRef = inferUniqueIncomingReference(incomingTokens, key);
+    if (!inferredRef.isEmpty())
+        componentSnapshot->insert(refProperty, inferredRef);
+    componentSnapshot->remove(keyProperty);
+}
+
+QVariantMap normalizeComponentSnapshot(const QString &componentType,
+                                      const QVariantMap &componentSnapshot,
+                                      const cme::execution::IncomingTokens &incomingTokens)
+{
+    if (!isRefOnlyMathType(componentType))
+        return componentSnapshot;
+
+    QVariantMap normalized = componentSnapshot;
+    normalizeLegacyOperandReference(&normalized, incomingTokens,
+                                    QStringLiteral("inputARef"),
+                                    QStringLiteral("inputAKey"));
+    normalizeLegacyOperandReference(&normalized, incomingTokens,
+                                    QStringLiteral("inputBRef"),
+                                    QStringLiteral("inputBKey"));
+    return normalized;
+}
+
+} // namespace
+
 QString CustomizeExecutionSemanticsProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution");
@@ -56,13 +137,17 @@ bool CustomizeExecutionSemanticsProvider::executeComponent(
         return true;
     }
 
+    const QVariantMap normalizedSnapshot = normalizeComponentSnapshot(componentType,
+                                                                     componentSnapshot,
+                                                                     incomingTokens);
+
     return delegate->executeComponent(componentType,
-                                        componentId,
-                                        componentSnapshot,
-                                        incomingTokens,
-                                        outputPayload,
-                                        trace,
-                                        error);
+                                      componentId,
+                                      normalizedSnapshot,
+                                      incomingTokens,
+                                      outputPayload,
+                                      trace,
+                                      error);
 }
 
 QStringList CustomizeExecutionSemanticsProvider::providedOutputKeys(const QString &componentType) const

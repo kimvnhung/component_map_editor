@@ -47,8 +47,8 @@ Every component below must exist in the extension pack before this workflow can 
 |---|---|---|---|
 | `start` | control | `inputNumber` | Entry point, seeds `n` into context. |
 | `stop` | control | — | Exit point, reads final `isPrime`. |
-| `math/add` | math | `inputAKey`, `inputBKey`, `outputKey` | Increment divisor: `divisor + 1`. |
-| `math/multiply` | math | `inputAKey`, `inputBKey`, `outputKey` | Compute `d2 = divisor * divisor`. |
+| `math/add` | math | `inputARef`, `inputBRef`, `outputKey` | Increment divisor: `divisor + 1`. |
+| `math/multiply` | math | `inputARef`, `inputBRef`, `outputKey` | Compute `d2 = divisor * divisor`. |
 | `control/loop` | control | `iterKey`, `maxIterKey`, `continueKey`, `conditionKey` | Guard iteration budget; write `continueLoop`. |
 | `control/ifelse` | control | `conditionKey`, `trueRouteKey`, `falseRouteKey` | Branch on `n < 2`, `continueLoop`, and `rem == 0`. |
 | `system/error_handler` | system | `errorKey`, `message` | Catch any unexpected execution error. |
@@ -57,10 +57,10 @@ Every component below must exist in the extension pack before this workflow can 
 
 | Type ID | Category | Key Properties | Role in Prime Graph |
 |---|---|---|---|
-| `math/mod` | math | `inputAKey` (`n`), `inputBKey` (`divisor`), `outputKey` (`rem`), `errorKey` | Compute remainder: `rem = n % divisor`. |
-| `math/less_than` | math | `inputAKey` (`n`), `inputBKey` (`2`), `outputKey` (`nLt2`), `errorKey` | Guard: is `n < 2`? |
-| `math/less_or_equal` | math | `inputAKey` (`d2`), `inputBKey` (`n`), `outputKey` (`d2LeN`), `errorKey` | Loop condition: is `d2 <= n`? |
-| `math/equal` | math | `inputAKey` (`rem`), `inputBKey` (`0`), `outputKey` (`isDivisible`), `errorKey` | Test: is `rem == 0`? |
+| `math/mod` | math | `inputARef` (`<ref to n>`), `inputBRef` (`<ref to divisor>`), `outputKey` (`rem`), `errorKey` | Compute remainder: `rem = n % divisor`. |
+| `math/less_than` | math | `inputARef` (`<ref to n>`), `inputBRef` or fallback `b=2`, `outputKey` (`nLt2`), `errorKey` | Guard: is `n < 2`? |
+| `math/less_or_equal` | math | `inputARef` (`<ref to d2>`), `inputBRef` (`<ref to n>`), `outputKey` (`d2LeN`), `errorKey` | Loop condition: is `d2 <= n`? |
+| `math/equal` | math | `inputARef` (`<ref to rem>`), `inputBRef` or fallback `b=0`, `outputKey` (`isDivisible`), `errorKey` | Test: is `rem == 0`? |
 | `logic/and` | logic | `inputAKey` (`d2LeN`), `inputBKey` (`isPrime`), `outputKey` (`continueCandidate`), `errorKey` | Combine loop condition: `d2LeN AND isPrime`. |
 | `context/set` | context | `key`, `value` | Write constant values back to context (e.g. `isPrime=false`). |
 
@@ -77,20 +77,20 @@ Every component below must exist in the extension pack before this workflow can 
 | Step | Node ID | Type | Property Panel Configuration | Reads from Context | Writes to Context |
 |---|---|---|---|---|---|
 | 1 | `start` | `start` | `inputNumber = n` | — | `n` |
-| 2 | `check_lt2` | `math/less_than` | `inputAKey=n`, `inputBKey=__two__`, `outputKey=nLt2` | `n` | `nLt2` |
+| 2 | `check_lt2` | `math/less_than` | `inputARef=<ref to n>`, `b=2`, `outputKey=nLt2` | `n` | `nLt2` |
 | 3 | `branch_small` | `control/ifelse` | `conditionKey=nLt2`, `trueRouteKey=routeSmall`, `falseRouteKey=routeCandidate` | `nLt2` | `routeSmall`, `routeCandidate` |
 | 4a | `set_not_prime_small` | `context/set` | `key=isPrime`, `value=false` | `routeSmall` | `isPrime` |
 | 4b | `init_divisor` | `context/set` | `key=divisor`, `value=2` | `routeCandidate` | `divisor=2`, `isPrime=true` |
-| 5 | `compute_d2` | `math/multiply` | `inputAKey=divisor`, `inputBKey=divisor`, `outputKey=d2` | `divisor` | `d2` |
-| 6 | `compute_d2leN` | `math/less_or_equal` | `inputAKey=d2`, `inputBKey=n`, `outputKey=d2LeN` | `d2`, `n` | `d2LeN` |
+| 5 | `compute_d2` | `math/multiply` | `inputARef=<ref to divisor>`, `inputBRef=<ref to divisor>`, `outputKey=d2` | `divisor` | `d2` |
+| 6 | `compute_d2leN` | `math/less_or_equal` | `inputARef=<ref to d2>`, `inputBRef=<ref to n>`, `outputKey=d2LeN` | `d2`, `n` | `d2LeN` |
 | 7 | `combine_cond` | `logic/and` | `inputAKey=d2LeN`, `inputBKey=isPrime`, `outputKey=continueCandidate` | `d2LeN`, `isPrime` | `continueCandidate` |
 | 8 | `loop_guard` | `control/loop` | `conditionKey=continueCandidate`, `continueKey=continueLoop`, `maxIterKey=maxIter` | `continueCandidate`, `iter`, `maxIter` | `continueLoop`, `iter` |
 | 9 | `branch_continue` | `control/ifelse` | `conditionKey=continueLoop`, `trueRouteKey=routeBody`, `falseRouteKey=routeDone` | `continueLoop` | `routeBody`, `routeDone` |
-| 10 | `compute_rem` | `math/mod` | `inputAKey=n`, `inputBKey=divisor`, `outputKey=rem` | `n`, `divisor` | `rem` |
-| 11 | `check_divisible` | `math/equal` | `inputAKey=rem`, `inputBKey=__zero__`, `outputKey=isDivisible` | `rem` | `isDivisible` |
+| 10 | `compute_rem` | `math/mod` | `inputARef=<ref to n>`, `inputBRef=<ref to divisor>`, `outputKey=rem` | `n`, `divisor` | `rem` |
+| 11 | `check_divisible` | `math/equal` | `inputARef=<ref to rem>`, `b=0`, `outputKey=isDivisible` | `rem` | `isDivisible` |
 | 12 | `branch_div` | `control/ifelse` | `conditionKey=isDivisible`, `trueRouteKey=routeDivisible`, `falseRouteKey=routeNotDiv` | `isDivisible` | `routeDivisible`, `routeNotDiv` |
 | 13a | `set_not_prime_div` | `context/set` | `key=isPrime`, `value=false` | `routeDivisible` | `isPrime=false` |
-| 13b | `inc_divisor` | `math/add` | `inputAKey=divisor`, `inputBKey=__one__`, `outputKey=divisor` | `divisor` | `divisor` |
+| 13b | `inc_divisor` | `math/add` | `inputARef=<ref to divisor>`, `b=1`, `outputKey=divisor` | `divisor` | `divisor` |
 | 14 | ← back-edge to step 5 | — | — | — | — |
 | 15 | `stop` | `stop` | — | `isPrime` | final output |
 

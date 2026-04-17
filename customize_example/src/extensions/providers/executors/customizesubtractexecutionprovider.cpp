@@ -37,22 +37,18 @@ bool CustomizeSubtractExecutionProvider::executeComponent(
 
     bool okA = false;
     bool okB = false;
-    const double a = customize::executors::resolveSelectedNumber(incomingTokens,
-                                                                 context,
-                                                                 componentSnapshot,
-                                                                 QStringLiteral("inputARef"),
-                                                                 QStringLiteral("inputAKey"),
-                                                                 QStringLiteral("a"),
-                                                                 0.0,
-                                                                 &okA);
-    const double b = customize::executors::resolveSelectedNumber(incomingTokens,
-                                                                 context,
-                                                                 componentSnapshot,
-                                                                 QStringLiteral("inputBRef"),
-                                                                 QStringLiteral("inputBKey"),
-                                                                 QStringLiteral("b"),
-                                                                 0.0,
-                                                                 &okB);
+    const double a = customize::executors::resolveReferencedNumber(incomingTokens,
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputARef"),
+                                                                   QStringLiteral("a"),
+                                                                   0.0,
+                                                                   &okA);
+    const double b = customize::executors::resolveReferencedNumber(incomingTokens,
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputBRef"),
+                                                                   QStringLiteral("b"),
+                                                                   0.0,
+                                                                   &okB);
 
     if (!okA || !okB) {
         const QString msg = QStringLiteral("Invalid numeric input for operation '%1'.").arg(componentType);

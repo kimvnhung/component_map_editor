@@ -162,27 +162,35 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
 
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeAdd,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("sum")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("sum")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeSubtract,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("difference")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("difference")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeMultiply,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("product")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("product")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeDivide,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("quotient")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("quotient")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeMod,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeLessThan,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeLessOrEqual,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeEqual,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeErrorHandler,
