@@ -16,6 +16,7 @@ QStringList CustomizeModExecutionProvider::providedOutputKeys(const QString &) c
 {
     return { QStringLiteral("result"), QStringLiteral("error") };
 }
+
 bool CustomizeModExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -82,8 +83,8 @@ bool CustomizeModExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2 executing component '%3'")
-                        .arg(providerId(), componentType, componentId);
+    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
+                      .arg(componentType, componentId);
 
     return true;
 }

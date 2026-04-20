@@ -16,6 +16,7 @@ QStringList CustomizeLogicAndExecutionProvider::providedOutputKeys(const QString
 {
     return { QStringLiteral("result"), QStringLiteral("error") };
 }
+
 bool CustomizeLogicAndExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -25,8 +26,6 @@ bool CustomizeLogicAndExecutionProvider::executeComponent(
     QVariantMap *trace,
     QString *error) const
 {
-    Q_UNUSED(error)
-
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
     QVariantMap out = context;
 
@@ -39,6 +38,9 @@ bool CustomizeLogicAndExecutionProvider::executeComponent(
     const QString outputKey = customize::executors::resolveText(componentSnapshot,
                                                                 QStringLiteral("outputKey"),
                                                                 QStringLiteral("result"));
+    const QString errorKey = customize::executors::resolveText(componentSnapshot,
+                                                               QStringLiteral("errorKey"),
+                                                               QStringLiteral("error"));
 
     bool okA = false;
     bool okB = false;
@@ -46,8 +48,19 @@ bool CustomizeLogicAndExecutionProvider::executeComponent(
                                                      inputAKey, QStringLiteral("a"), false, &okA);
     const bool b = customize::executors::resolveBool(context, componentSnapshot,
                                                      inputBKey, QStringLiteral("b"), false, &okB);
-    Q_UNUSED(okA)
-    Q_UNUSED(okB)
+
+    if (!okA || !okB) {
+        const QString msg = QStringLiteral("Invalid boolean input for operation '%1'.").arg(componentType);
+        return customize::executors::failExecution(componentType,
+                                                   componentId,
+                                                   context,
+                                                   out,
+                                                   errorKey,
+                                                   msg,
+                                                   outputPayload,
+                                                   trace,
+                                                   error);
+    }
 
     out.insert(outputKey, a && b);
 
@@ -56,9 +69,8 @@ bool CustomizeLogicAndExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2 = (%3 AND %4) -> %5")
-                             .arg(componentType, componentId, outputKey)
-                             .arg(a).arg(b);
+    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
+                      .arg(componentType, componentId);
 
     return true;
 }

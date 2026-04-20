@@ -16,6 +16,7 @@ QStringList CustomizeAddExecutionProvider::providedOutputKeys(const QString &) c
 {
     return { QStringLiteral("sum"), QStringLiteral("error") };
 }
+
 bool CustomizeAddExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -28,44 +29,48 @@ bool CustomizeAddExecutionProvider::executeComponent(
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
     QVariantMap out = context;
 
+    const QString outputKey = customize::executors::resolveText(componentSnapshot,
+                                                                QStringLiteral("outputKey"),
+                                                                QStringLiteral("sum"));
+    const QString errorKey = customize::executors::resolveText(componentSnapshot,
+                                                               QStringLiteral("errorKey"),
+                                                               QStringLiteral("error"));
+
     bool okA = false;
     bool okB = false;
     const double a = customize::executors::resolveReferencedNumber(incomingTokens,
-                     componentSnapshot,
-                     QStringLiteral("inputARef"),
-                     QStringLiteral("a"),
-                     0.0,
-                     &okA);
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputARef"),
+                                                                   QStringLiteral("a"),
+                                                                   0.0,
+                                                                   &okA);
     const double b = customize::executors::resolveReferencedNumber(incomingTokens,
-                     componentSnapshot,
-                     QStringLiteral("inputBRef"),
-                     QStringLiteral("b"),
-                     0.0,
-                     &okB);
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputBRef"),
+                                                                   QStringLiteral("b"),
+                                                                   0.0,
+                                                                   &okB);
 
-    if (!okA || !okB)
-    {
+    if (!okA || !okB) {
         const QString msg = QStringLiteral("Invalid numeric input for operation '%1'.").arg(componentType);
         return customize::executors::failExecution(componentType,
-                componentId,
-                context,
-                out,
-                "error",
-                msg,
-                outputPayload,
-                trace,
-                error);
+                                                   componentId,
+                                                   context,
+                                                   out,
+                                                   errorKey,
+                                                   msg,
+                                                   outputPayload,
+                                                   trace,
+                                                   error);
     }
 
-    out.insert("sum", a + b);
+    out.insert(outputKey, a + b);
 
-    if (outputPayload)
-    {
+    if (outputPayload) {
         *outputPayload = out;
     }
 
-    if (trace)
-    {
+    if (trace) {
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
     }
 

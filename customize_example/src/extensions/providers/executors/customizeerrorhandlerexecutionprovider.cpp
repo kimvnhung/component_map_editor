@@ -16,6 +16,7 @@ QStringList CustomizeErrorHandlerExecutionProvider::providedOutputKeys(const QSt
 {
     return { QStringLiteral("error") };
 }
+
 bool CustomizeErrorHandlerExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -45,6 +46,6 @@ bool CustomizeErrorHandlerExecutionProvider::executeComponent(
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
     qWarning().noquote() << QStringLiteral("[Trace][%1] %2 handled=%3")
-                                .arg(componentType, componentId, out.value(errorKey).toString());
+                         .arg(componentType, componentId, out.value(errorKey).toString());
     return true;
 }

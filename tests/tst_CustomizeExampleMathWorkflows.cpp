@@ -46,6 +46,7 @@ private slots:
     void cleanup();
 
     void basicComponents_computeAndWriteContext();
+    void mathProviders_supportConfigurableOutputAndErrorKeys();
     void controlIfElse_routesTrueAndFalse();
     void controlLoop_stopsByMaxIterAndCondition();
     void divideByZero_reportsError();
@@ -80,9 +81,9 @@ void tst_CustomizeExampleMathWorkflows::basicComponents_computeAndWriteContext()
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
                   QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__graph_input__::a")},
                               {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
-                              {QStringLiteral("outputKey"), QStringLiteral("sum")}},
+                              {QStringLiteral("outputKey"), QStringLiteral("total")}},
                   QVariantMap{{QStringLiteral("a"), 3}, {QStringLiteral("b"), 2}});
-    QCOMPARE(sandbox.executionState().value(QStringLiteral("sum")).toDouble(), 5.0);
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("total")).toDouble(), 5.0);
 
     runSingleNode(sandbox,
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSubtract),
@@ -107,6 +108,45 @@ void tst_CustomizeExampleMathWorkflows::basicComponents_computeAndWriteContext()
                               {QStringLiteral("outputKey"), QStringLiteral("quotient")}},
                   QVariantMap{{QStringLiteral("a"), 12}, {QStringLiteral("b"), 3}});
     QCOMPARE(sandbox.executionState().value(QStringLiteral("quotient")).toDouble(), 4.0);
+}
+
+void tst_CustomizeExampleMathWorkflows::mathProviders_supportConfigurableOutputAndErrorKeys()
+{
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+
+    bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
+        QStringLiteral("add-custom-output"),
+        QVariantMap{{QStringLiteral("a"), 5.0},
+                    {QStringLiteral("b"), 6.0},
+                    {QStringLiteral("outputKey"), QStringLiteral("customSum")}},
+        cme::execution::IncomingTokens{},
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY2(ok, qPrintable(error));
+    QCOMPARE(output.value(QStringLiteral("customSum")).toDouble(), 11.0);
+
+    output.clear();
+    trace.clear();
+    error.clear();
+    ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSubtract),
+        QStringLiteral("subtract-custom-error"),
+        QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("missing::a")},
+                    {QStringLiteral("inputBRef"), QStringLiteral("missing::b")},
+                    {QStringLiteral("errorKey"), QStringLiteral("customError")}},
+        cme::execution::IncomingTokens{},
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY(!ok);
+    QCOMPARE(output.value(QStringLiteral("customError")).toString(), error);
+    QVERIFY(trace.value(QStringLiteral("outputs")).toMap().contains(QStringLiteral("customError")));
 }
 
 void tst_CustomizeExampleMathWorkflows::controlIfElse_routesTrueAndFalse()

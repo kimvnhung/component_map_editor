@@ -16,6 +16,7 @@ QStringList CustomizeMultiplyExecutionProvider::providedOutputKeys(const QString
 {
     return { QStringLiteral("product"), QStringLiteral("error") };
 }
+
 bool CustomizeMultiplyExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -71,7 +72,7 @@ bool CustomizeMultiplyExecutionProvider::executeComponent(
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
     qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
-                             .arg(componentType, componentId);
+                      .arg(componentType, componentId);
 
     return true;
 }

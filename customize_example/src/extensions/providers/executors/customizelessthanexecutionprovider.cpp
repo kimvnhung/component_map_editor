@@ -16,6 +16,7 @@ QStringList CustomizeLessThanExecutionProvider::providedOutputKeys(const QString
 {
     return { QStringLiteral("result"), QStringLiteral("error") };
 }
+
 bool CustomizeLessThanExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -63,9 +64,8 @@ bool CustomizeLessThanExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2 = (%3 < %4) -> %5")
-                             .arg(componentType, componentId, outputKey)
-                             .arg(a).arg(b);
+    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
+                      .arg(componentType, componentId);
 
     return true;
 }
