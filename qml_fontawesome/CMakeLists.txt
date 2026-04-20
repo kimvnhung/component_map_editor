@@ -6,7 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
-qt_policy(SET QTP0004 NEW)
+if(COMMAND qt_policy)
+    qt_policy(SET QTP0004 NEW)
+endif()
 qt_standard_project_setup(REQUIRES 6.5)
 
 include(GNUInstallDirs)

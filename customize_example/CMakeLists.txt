@@ -8,7 +8,9 @@ set(QT_QML_GENERATE_QMLLS_INI ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 
 qt_standard_project_setup(REQUIRES 6.5)
-qt_policy(SET QTP0004 NEW)
+if(COMMAND qt_policy)
+    qt_policy(SET QTP0004 NEW)
+endif()
 
 qt_add_executable(customize_example_app
     main.cpp

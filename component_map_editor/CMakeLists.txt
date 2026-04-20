@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(libComponentMapEditor VERSION 1.0.0 LANGUAGES CXX)
-qt_policy(SET QTP0004 NEW)
+if(COMMAND qt_policy)
+    qt_policy(SET QTP0004 NEW)
+endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 
 # set headers
