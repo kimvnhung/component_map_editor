@@ -36,6 +36,9 @@ QJsonObject normalizeComponentObject(const QJsonObject &obj, const QString &coor
         obj[GraphSchema::Keys::componentColor()].toString(QStringLiteral("#4fc3f7"));
     normalized[GraphSchema::Keys::componentType()] =
         obj[GraphSchema::Keys::componentType()].toString(QStringLiteral("default"));
+    const QJsonValue propsValue = obj[GraphSchema::Keys::properties()];
+    if (propsValue.isObject())
+        normalized[GraphSchema::Keys::properties()] = propsValue;
     return normalized;
 }
 
@@ -48,12 +51,18 @@ QJsonObject normalizeConnectionObject(const QJsonObject &obj)
     normalized[GraphSchema::Keys::connectionTargetId()] =
         obj[GraphSchema::Keys::connectionTargetId()].toString();
     normalized[GraphSchema::Keys::connectionLabel()] = obj[GraphSchema::Keys::connectionLabel()].toString();
+    const QString tokenKey = obj[GraphSchema::Keys::connectionTokenKey()].toString();
+    if (!tokenKey.isEmpty())
+        normalized[GraphSchema::Keys::connectionTokenKey()] = tokenKey;
     normalized[GraphSchema::Keys::connectionSourceSide()] = static_cast<int>(
         GraphSchema::normalizeConnectionSide(obj[GraphSchema::Keys::connectionSourceSide()]
                                                  .toInt(static_cast<int>(ConnectionModel::SideAuto))));
     normalized[GraphSchema::Keys::connectionTargetSide()] = static_cast<int>(
         GraphSchema::normalizeConnectionSide(obj[GraphSchema::Keys::connectionTargetSide()]
                                                  .toInt(static_cast<int>(ConnectionModel::SideAuto))));
+    const QJsonValue connPropsValue = obj[GraphSchema::Keys::properties()];
+    if (connPropsValue.isObject())
+        normalized[GraphSchema::Keys::properties()] = connPropsValue;
     return normalized;
 }
 

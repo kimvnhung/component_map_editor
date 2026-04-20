@@ -49,6 +49,25 @@ ApplicationWindow {
         return prettyJson(state);
     }
 
+    component ReadOnlyPlainTextPanel: ScrollView {
+        id: plainTextPanel
+        property string panelText: ""
+        property int preferredHeight: 120
+
+        Layout.fillWidth: true
+        Layout.preferredHeight: preferredHeight
+        clip: true
+
+        TextArea {
+            text: plainTextPanel.panelText || ""
+            readOnly: true
+            wrapMode: TextArea.NoWrap
+            selectByMouse: true
+            font.family: "monospace"
+            font.pixelSize: 12
+        }
+    }
+
     Component.onCompleted: {
         if (executionSandbox) {
             executionSandbox.graph = graph;
@@ -136,7 +155,6 @@ ApplicationWindow {
                 onClicked: {
                     if (canvas)
                         canvas.resetAllState();
-                    propertyPanel.item = null;
                     graph.clear();
                     undoStack.clear();
                 }
@@ -181,16 +199,6 @@ ApplicationWindow {
             Layout.fillHeight: true
             graph: graph
             componentTypeRegistry: customizeComponentTypeRegistry
-
-            onComponentSelected: component => {
-                propertyPanel.item = component;
-            }
-            onConnectionSelected: connection => {
-                propertyPanel.item = connection;
-            }
-            onBackgroundClicked: {
-                propertyPanel.item = null;
-            }
         }
 
         // Thin separator
@@ -201,7 +209,8 @@ ApplicationWindow {
         }
 
         Rectangle {
-            Layout.preferredWidth: 320
+            Layout.preferredWidth: 360
+            Layout.minimumWidth: 360
             Layout.fillHeight: true
             color: "#ffffff"
 
@@ -233,28 +242,20 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         graph: graph
+                        item: canvas
+                            ? (canvas.selectedConnection !== null
+                                ? canvas.selectedConnection
+                                : canvas.selectedComponent)
+                            : null
                         undoStack: canvas ? canvas.undoStack : null
                         propertySchemaRegistry: customizePropertySchemaRegistry
-                        executionStateSnapshot: {
-                            if (!executionSandbox || !propertyPanel.component)
-                                return ({})
-                            // Bind to executionState so this expression re-evaluates
-                            // on simulation updates, then read per-component runtime state.
-                            var _state = executionSandbox.executionState
-                            return executionSandbox.componentState(propertyPanel.component.id)
-                        }
+                        providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
                     }
 
-                    ScrollView {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-
-                        ColumnLayout {
-                            width: parent ? parent.width : 300
+                    ColumnLayout {
+                            Layout.fillWidth: true
                             spacing: 10
-                            anchors.left: parent ? parent.left : undefined
-                            anchors.right: parent ? parent.right : undefined
-                            anchors.margins: 10
+                            Layout.margins: 10
 
                             Label {
                                 Layout.fillWidth: true
@@ -352,10 +353,9 @@ ApplicationWindow {
                                     text: "Summary"
                                     font.bold: true
                                 }
-                                Label {
-                                    Layout.fillWidth: true
-                                    wrapMode: Text.WordWrap
-                                    text: executionSandbox ? prettyJson(executionSandbox.snapshotSummary()) : "{}"
+                                ReadOnlyPlainTextPanel {
+                                    preferredHeight: 96
+                                    panelText: executionSandbox ? prettyJson(executionSandbox.snapshotSummary()) : "{}"
                                 }
 
                                 Label {
@@ -378,13 +378,9 @@ ApplicationWindow {
                                 font.bold: true
                             }
 
-                            TextArea {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 120
-                                readOnly: true
-                                wrapMode: TextArea.Wrap
-                                font.family: "monospace"
-                                text: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
+                            ReadOnlyPlainTextPanel {
+                                preferredHeight: 140
+                                panelText: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
                             }
 
                             Label {
@@ -393,13 +389,9 @@ ApplicationWindow {
                                 font.bold: true
                             }
 
-                            TextArea {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 120
-                                readOnly: true
-                                wrapMode: TextArea.Wrap
-                                font.family: "monospace"
-                                text: selectedExecutionStateText()
+                            ReadOnlyPlainTextPanel {
+                                preferredHeight: 140
+                                panelText: selectedExecutionStateText()
                             }
 
                             Label {
@@ -416,7 +408,6 @@ ApplicationWindow {
                                 font.family: "monospace"
                                 text: executionSandbox ? timelineText(executionSandbox.timeline) : "Sandbox unavailable."
                             }
-                        }
                     }
                 }
             }
@@ -548,7 +539,6 @@ ApplicationWindow {
 
             if (canvas)
                 canvas.resetAllState();
-            propertyPanel.item = null;
             statusLabel.text = "✓ Graph imported";
             statusLabel.color = "#2e7d32";
             canvas.connectionRenderer.repaint();

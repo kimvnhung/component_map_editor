@@ -284,7 +284,8 @@ ApplicationWindow {
             }
 
             Rectangle {
-                Layout.preferredWidth: 320
+                Layout.preferredWidth: 360
+                Layout.minimumWidth: 360
                 Layout.fillHeight: true
                 color: "#ffffff"
 
@@ -319,21 +320,10 @@ ApplicationWindow {
                             graph: graph
                             undoStack: undoStack
                             propertySchemaRegistry: startupPropertySchemaRegistry
-                            executionStateSnapshot: {
-                                if (!executionSandbox || !propertyPanel.component)
-                                    return ({})
-                                // Bind to executionState so this expression re-evaluates
-                                // on simulation updates, then read per-component runtime state.
-                                var _state = executionSandbox.executionState
-                                return executionSandbox.componentState(propertyPanel.component.id)
-                            }
+                            providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
                         }
 
-                        ScrollView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-
-                            ColumnLayout {
+                        ColumnLayout {
                                 width: parent ? parent.width : 300
                                 spacing: 10
                                 anchors.left: parent ? parent.left : undefined
@@ -499,7 +489,6 @@ ApplicationWindow {
                                     font.family: "monospace"
                                     text: executionSandbox ? timelineText(executionSandbox.timeline) : "Sandbox unavailable."
                                 }
-                            }
                         }
                     }
                 }

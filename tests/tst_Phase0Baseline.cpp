@@ -119,6 +119,7 @@ class NoOpExecutionProvider : public IExecutionSemanticsProvider
 public:
     QString providerId() const override { return QStringLiteral("baseline.execution"); }
     QStringList supportedComponentTypes() const override { return { QStringLiteral("process") }; }
+    QStringList providedOutputKeys(const QString &) const override { return {}; }
 
     bool executeComponent(const QString &, const QString &,
                           const QVariantMap &, const cme::execution::IncomingTokens &incomingTokens,

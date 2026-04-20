@@ -1,11 +1,13 @@
-#ifndef SAMPLEEXECUTIONSEMANTICSPROVIDER_H
-#define SAMPLEEXECUTIONSEMANTICSPROVIDER_H
+#ifndef CUSTOMIZESQRTEXECUTIONPROVIDER_H
+#define CUSTOMIZESQRTEXECUTIONPROVIDER_H
 
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 
-class SampleExecutionSemanticsProvider : public IExecutionSemanticsProvider
+class CustomizeSqrtExecutionProvider : public IExecutionSemanticsProvider
 {
 public:
+    static constexpr const char *TypeId = "math/sqrt";
+
     QString providerId() const override;
     QStringList supportedComponentTypes() const override;
     QStringList providedOutputKeys(const QString &componentType) const override;
@@ -18,4 +20,4 @@ public:
                           QString *error) const override;
 };
 
-#endif // SAMPLEEXECUTIONSEMANTICSPROVIDER_H
+#endif // CUSTOMIZESQRTEXECUTIONPROVIDER_H

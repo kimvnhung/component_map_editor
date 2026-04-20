@@ -85,6 +85,15 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
         true,
         true);
     *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeSqrt),
+        QStringLiteral("Square Root"),
+        QStringLiteral("math"),
+        180.0,
+        108.0,
+        QStringLiteral("#29b6f6"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
         QString::fromLatin1(CustomizeComponentTypeProvider::TypeErrorHandler),
         QStringLiteral("Error Handler"),
         QStringLiteral("system"),
@@ -138,6 +147,24 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
         QStringLiteral("#2baf2b"),
         true,
         true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeSqrtGraph),
+        QStringLiteral("Sqrt Graph"),
+        QStringLiteral("workflow"),
+        220.0,
+        116.0,
+        QStringLiteral("#1e88e5"),
+        true,
+        true);
+    *bundle.add_component_types() = cme::runtime::templates::makeComponentTypeTemplate(
+        QString::fromLatin1(CustomizeComponentTypeProvider::TypeRightTriangleLongestEdge),
+        QStringLiteral("Right Triangle Longest Edge"),
+        QStringLiteral("workflow"),
+        240.0,
+        124.0,
+        QStringLiteral("#3949ab"),
+        true,
+        true);
 
 
 
@@ -162,32 +189,51 @@ cme::templates::v1::ComponentTypeTemplateBundle buildTemplateBundle()
 
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeAdd,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("sum")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("sum")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeSubtract,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("difference")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("difference")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeMultiply,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("product")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("product")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeDivide,
-        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("a")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
-                    {QStringLiteral("outputKey"), QStringLiteral("quotient")},
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("quotient")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeSqrt,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("sqrtS")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeMod,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeLessThan,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeLessOrEqual,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
+                    {QStringLiteral("errorKey"), QStringLiteral("error")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeEqual,
+        QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("result")},
                     {QStringLiteral("errorKey"), QStringLiteral("error")}});
     *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
         CustomizeComponentTypeProvider::TypeErrorHandler,
         QVariantMap{{QStringLiteral("errorKey"), QStringLiteral("error")},
                     {QStringLiteral("message"), QStringLiteral("Unhandled workflow error.")}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeSqrtGraph,
+        QVariantMap{{QStringLiteral("S"), 0.0}});
+    *bundle.add_defaults() = cme::runtime::templates::makeComponentTypeDefaultsTemplate(
+        CustomizeComponentTypeProvider::TypeRightTriangleLongestEdge,
+        QVariantMap{{QStringLiteral("a"), 0.0},
+                    {QStringLiteral("b"), 0.0}});
 
     return bundle;
 }

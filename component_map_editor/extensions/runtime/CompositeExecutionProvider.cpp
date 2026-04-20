@@ -1,6 +1,7 @@
 #include "CompositeExecutionProvider.h"
 
-#include <QElapsedTimer>
+#include <algorithm>
+#include <functional>
 
 #include "models/ComponentModel.h"
 #include "models/GraphModel.h"
@@ -18,14 +19,77 @@ QString componentPortKey(const QVariantMap &componentSnapshot)
     return componentSnapshot.value(QStringLiteral("portKey")).toString();
 }
 
-QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &incomingTokens)
+QString resolveText(const QVariantMap &snapshot,
+                    const QString &propertyName,
+                    const QString &fallback = {})
 {
-    QVariantMap merged;
-    QStringList tokenKeys = incomingTokens.keys();
-    std::sort(tokenKeys.begin(), tokenKeys.end());
-    for (const QString &tokenKey : tokenKeys)
-        merged.insert(incomingTokens.value(tokenKey));
-    return merged;
+    if (!propertyName.isEmpty()) {
+        const QString value = snapshot.value(propertyName).toString().trimmed();
+        if (!value.isEmpty())
+            return value;
+    }
+    return fallback;
+}
+
+bool parseTokenFieldReference(const QString &reference,
+                              QString *tokenId,
+                              QString *fieldKey)
+{
+    const QString trimmed = reference.trimmed();
+    const int separatorIndex = trimmed.indexOf(QStringLiteral("::"));
+    if (separatorIndex <= 0 || separatorIndex >= trimmed.size() - 2)
+        return false;
+
+    const QString left = trimmed.left(separatorIndex).trimmed();
+    const QString right = trimmed.mid(separatorIndex + 2).trimmed();
+    if (left.isEmpty() || right.isEmpty())
+        return false;
+
+    if (tokenId)
+        *tokenId = left;
+    if (fieldKey)
+        *fieldKey = right;
+    return true;
+}
+
+QVariantMap wrapPortValue(const QString &portKey, const QVariant &value)
+{
+    if (portKey.isEmpty())
+        return value.toMap();
+    return QVariantMap{{portKey, value}};
+}
+
+QVariantMap resolveInputPayload(const cme::runtime::CompositeInputPortMapping &mapping,
+                                const QVariantMap &componentSnapshot,
+                                const cme::execution::IncomingTokens &incomingTokens)
+{
+    const QString reference = resolveText(componentSnapshot, mapping.componentRefProperty);
+    if (!reference.isEmpty() && reference != QStringLiteral("__use_fallback__")) {
+        QString tokenId;
+        QString fieldKey;
+        if (parseTokenFieldReference(reference, &tokenId, &fieldKey)) {
+            const QVariantMap tokenPayload = incomingTokens.value(tokenId);
+            if (tokenPayload.contains(fieldKey))
+                return wrapPortValue(mapping.innerPortKey, tokenPayload.value(fieldKey));
+        }
+    }
+
+    if (!mapping.outerTokenKey.isEmpty() && incomingTokens.contains(mapping.outerTokenKey))
+        return incomingTokens.value(mapping.outerTokenKey);
+
+    const QString fallbackProperty = !mapping.componentValueProperty.isEmpty()
+        ? mapping.componentValueProperty
+        : mapping.innerPortKey;
+    if (!fallbackProperty.isEmpty() && componentSnapshot.contains(fallbackProperty))
+        return wrapPortValue(mapping.innerPortKey, componentSnapshot.value(fallbackProperty));
+
+    return {};
+}
+
+QString resolveOutputPayloadKey(const cme::runtime::CompositeOutputPortMapping &mapping,
+                                const QVariantMap &componentSnapshot)
+{
+    return resolveText(componentSnapshot, mapping.componentOutputKeyProperty, mapping.outerPayloadKey);
 }
 
 GraphModel *instantiateGraph(const cme::runtime::CompositeGraphDefinition &definition)
@@ -114,6 +178,23 @@ QStringList CompositeExecutionProvider::supportedComponentTypes() const
     return out;
 }
 
+QStringList CompositeExecutionProvider::providedOutputKeys(const QString &componentType) const
+{
+    const auto it = m_definitionsByType.constFind(componentType);
+    if (it == m_definitionsByType.constEnd())
+        return {};
+
+    QStringList keys;
+    for (const CompositeOutputPortMapping &mapping : it.value().outputMappings) {
+        if (!mapping.outerPayloadKey.isEmpty())
+            keys.append(mapping.outerPayloadKey);
+    }
+
+    keys.removeDuplicates();
+    std::sort(keys.begin(), keys.end());
+    return keys;
+}
+
 bool CompositeExecutionProvider::executeComponent(const QString &componentType,
                                                   const QString &componentId,
                                                   const QVariantMap &componentSnapshot,
@@ -123,30 +204,36 @@ bool CompositeExecutionProvider::executeComponent(const QString &componentType,
                                                   QString *error) const
 {
     if (!m_valid) {
-        if (error)
+        if (error) {
             *error = m_diagnostics.isEmpty()
                 ? QStringLiteral("Composite definitions are invalid.")
                 : m_diagnostics.first();
+        }
         return false;
     }
 
-    if (componentType == entryComponentType()) {
+    if (componentType == entryComponentType())
         return executeEntryComponent(componentId, componentSnapshot, incomingTokens, outputPayload, trace, error);
-    }
 
-    if (componentType == exitComponentType()) {
+    if (componentType == exitComponentType())
         return executeExitComponent(componentId, componentSnapshot, incomingTokens, outputPayload, trace, error);
-    }
 
     const auto it = m_definitionsByType.constFind(componentType);
     if (it == m_definitionsByType.constEnd()) {
-        if (error)
+        if (error) {
             *error = QStringLiteral("No composite definition registered for component type '%1'.")
                 .arg(componentType);
+        }
         return false;
     }
 
-    return executeCompositeComponent(it.value(), componentId, incomingTokens, outputPayload, trace, error);
+    return executeCompositeComponent(it.value(),
+                                     componentId,
+                                     componentSnapshot,
+                                     incomingTokens,
+                                     outputPayload,
+                                     trace,
+                                     error);
 }
 
 void CompositeExecutionProvider::validateDefinitions()
@@ -293,6 +380,7 @@ bool CompositeExecutionProvider::executeExitComponent(const QString &componentId
 
 bool CompositeExecutionProvider::executeCompositeComponent(const CompositeGraphDefinition &definition,
                                                            const QString &componentId,
+                                                           const QVariantMap &componentSnapshot,
                                                            const cme::execution::IncomingTokens &incomingTokens,
                                                            cme::execution::ExecutionPayload *outputPayload,
                                                            QVariantMap *trace,
@@ -310,10 +398,10 @@ bool CompositeExecutionProvider::executeCompositeComponent(const CompositeGraphD
 
     QVariantMap inputSnapshot;
     for (const CompositeInputPortMapping &mapping : definition.inputMappings) {
-        if (!incomingTokens.contains(mapping.outerTokenKey))
+        const QVariantMap payload = resolveInputPayload(mapping, componentSnapshot, incomingTokens);
+        if (payload.isEmpty())
             continue;
-        inputSnapshot.insert(inputSnapshotKey(mapping.innerEntryComponentId, mapping.innerPortKey),
-                             incomingTokens.value(mapping.outerTokenKey));
+        inputSnapshot.insert(inputSnapshotKey(mapping.innerEntryComponentId, mapping.innerPortKey), payload);
     }
 
     if (!sandbox.start(inputSnapshot)) {
@@ -334,6 +422,8 @@ bool CompositeExecutionProvider::executeCompositeComponent(const CompositeGraphD
         const QVariantMap exitState = sandbox.componentState(mapping.innerExitComponentId);
         const QVariantMap exitOutput = exitState.value(QStringLiteral("outputState")).toMap();
         if (!exitOutput.contains(mapping.innerPortKey)) {
+            if (mapping.optional)
+                continue;
             if (error) {
                 *error = QStringLiteral("Composite exit '%1' did not produce port '%2'.")
                     .arg(mapping.innerExitComponentId, mapping.innerPortKey);
@@ -341,7 +431,25 @@ bool CompositeExecutionProvider::executeCompositeComponent(const CompositeGraphD
             return false;
         }
 
-        out.insert(mapping.outerPayloadKey, exitOutput.value(mapping.innerPortKey));
+        const QVariant exitPayload = exitOutput.value(mapping.innerPortKey);
+        QVariant resolvedOutput = exitPayload;
+        if (!mapping.innerFieldKey.isEmpty()) {
+            const QVariantMap exitPayloadMap = exitPayload.toMap();
+            if (!exitPayloadMap.contains(mapping.innerFieldKey)) {
+                if (mapping.optional)
+                    continue;
+                if (error) {
+                    *error = QStringLiteral("Composite exit '%1' payload for port '%2' is missing field '%3'.")
+                        .arg(mapping.innerExitComponentId, mapping.innerPortKey, mapping.innerFieldKey);
+                }
+                return false;
+            }
+            resolvedOutput = exitPayloadMap.value(mapping.innerFieldKey);
+        }
+
+        const QString outputKey = resolveOutputPayloadKey(mapping, componentSnapshot);
+        if (!outputKey.isEmpty())
+            out.insert(outputKey, resolvedOutput);
     }
 
     if (outputPayload)

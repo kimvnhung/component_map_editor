@@ -46,11 +46,17 @@ private slots:
     void cleanup();
 
     void basicComponents_computeAndWriteContext();
+    void mathProviders_supportConfigurableOutputAndErrorKeys();
+    void workflowSqrtGraph_reusesCompositeBinding();
+    void workflowRightTriangleLongestEdge_reusesSqrtGraph();
     void controlIfElse_routesTrueAndFalse();
     void controlLoop_stopsByMaxIterAndCondition();
     void divideByZero_reportsError();
     void executionTrace_containsInputsOutputsAndErrors();
     void duplicateIncomingKeys_disambiguatedByInputRef();
+    void duplicateIncomingKeys_plainKeyFailsWithoutInputRef();
+    void directFallbackWithoutRefs_usesSnapshotFallbacks();
+    void explicitFallbackSentinel_usesSnapshotFallbacks();
     void plainKeyFallback_remainsBackwardCompatible();
 
 private:
@@ -75,27 +81,108 @@ void tst_CustomizeExampleMathWorkflows::basicComponents_computeAndWriteContext()
 
     runSingleNode(sandbox,
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
-                  QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("sum")}},
+                  QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                              {QStringLiteral("outputKey"), QStringLiteral("total")}},
                   QVariantMap{{QStringLiteral("a"), 3}, {QStringLiteral("b"), 2}});
-    QCOMPARE(sandbox.executionState().value(QStringLiteral("sum")).toDouble(), 5.0);
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("total")).toDouble(), 5.0);
 
     runSingleNode(sandbox,
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSubtract),
-                  QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("diff")}},
+                  QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                              {QStringLiteral("outputKey"), QStringLiteral("diff")}},
                   QVariantMap{{QStringLiteral("a"), 7}, {QStringLiteral("b"), 2}});
     QCOMPARE(sandbox.executionState().value(QStringLiteral("diff")).toDouble(), 5.0);
 
     runSingleNode(sandbox,
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeMultiply),
-                  QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("product")}},
+                  QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                              {QStringLiteral("outputKey"), QStringLiteral("product")}},
                   QVariantMap{{QStringLiteral("a"), 3}, {QStringLiteral("b"), 4}});
     QCOMPARE(sandbox.executionState().value(QStringLiteral("product")).toDouble(), 12.0);
 
     runSingleNode(sandbox,
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeDivide),
-                  QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("quotient")}},
+                  QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                              {QStringLiteral("outputKey"), QStringLiteral("quotient")}},
                   QVariantMap{{QStringLiteral("a"), 12}, {QStringLiteral("b"), 3}});
     QCOMPARE(sandbox.executionState().value(QStringLiteral("quotient")).toDouble(), 4.0);
+}
+
+void tst_CustomizeExampleMathWorkflows::mathProviders_supportConfigurableOutputAndErrorKeys()
+{
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+
+    bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
+        QStringLiteral("add-custom-output"),
+        QVariantMap{{QStringLiteral("a"), 5.0},
+                    {QStringLiteral("b"), 6.0},
+                    {QStringLiteral("outputKey"), QStringLiteral("customSum")}},
+        cme::execution::IncomingTokens{},
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY2(ok, qPrintable(error));
+    QCOMPARE(output.value(QStringLiteral("customSum")).toDouble(), 11.0);
+
+    output.clear();
+    trace.clear();
+    error.clear();
+    ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSubtract),
+        QStringLiteral("subtract-custom-error"),
+        QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("missing::a")},
+                    {QStringLiteral("inputBRef"), QStringLiteral("missing::b")},
+                    {QStringLiteral("errorKey"), QStringLiteral("customError")}},
+        cme::execution::IncomingTokens{},
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY(!ok);
+    QCOMPARE(output.value(QStringLiteral("customError")).toString(), error);
+    QVERIFY(trace.value(QStringLiteral("outputs")).toMap().contains(QStringLiteral("customError")));
+}
+
+void tst_CustomizeExampleMathWorkflows::workflowSqrtGraph_reusesCompositeBinding()
+{
+    GraphExecutionSandbox sandbox;
+    sandbox.setExecutionSemanticsProviders({ &m_provider });
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSqrtGraph),
+                  QVariantMap{{QStringLiteral("sRef"), QStringLiteral("__graph_input__::S")}},
+                  QVariantMap{{QStringLiteral("S"), 81.0}});
+
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("sqrtS")).toDouble(), 9.0);
+    QCOMPARE(m_provider.providedOutputKeys(QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSqrtGraph)),
+             QStringList{QStringLiteral("sqrtS")});
+}
+
+void tst_CustomizeExampleMathWorkflows::workflowRightTriangleLongestEdge_reusesSqrtGraph()
+{
+    GraphExecutionSandbox sandbox;
+    sandbox.setExecutionSemanticsProviders({ &m_provider });
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeRightTriangleLongestEdge),
+                  QVariantMap{{QStringLiteral("sideARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("sideBRef"), QStringLiteral("__graph_input__::b")}},
+                  QVariantMap{{QStringLiteral("a"), 3.0},
+                              {QStringLiteral("b"), 4.0}});
+
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("longestEdge")).toDouble(), 5.0);
+    QCOMPARE(m_provider.providedOutputKeys(QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeRightTriangleLongestEdge)),
+             QStringList{QStringLiteral("longestEdge")});
 }
 
 void tst_CustomizeExampleMathWorkflows::controlIfElse_routesTrueAndFalse()
@@ -166,7 +253,9 @@ void tst_CustomizeExampleMathWorkflows::divideByZero_reportsError()
 
     runSingleNode(sandbox,
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeDivide),
-                  QVariantMap{{QStringLiteral("errorKey"), QStringLiteral("error")}},
+                  QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                              {QStringLiteral("errorKey"), QStringLiteral("error")}},
                   QVariantMap{{QStringLiteral("a"), 8}, {QStringLiteral("b"), 0}});
 
     QCOMPARE(sandbox.status(), QStringLiteral("error"));
@@ -180,7 +269,9 @@ void tst_CustomizeExampleMathWorkflows::executionTrace_containsInputsOutputsAndE
 
     runSingleNode(sandbox,
                   QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
-                  QVariantMap{{QStringLiteral("outputKey"), QStringLiteral("sum")}},
+                  QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                              {QStringLiteral("outputKey"), QStringLiteral("sum")}},
                   QVariantMap{{QStringLiteral("a"), 8.0}, {QStringLiteral("b"), 3.0}});
 
     const QVariantList timeline = sandbox.timeline();
@@ -219,7 +310,7 @@ void tst_CustomizeExampleMathWorkflows::duplicateIncomingKeys_disambiguatedByInp
         QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
         QStringLiteral("crc"),
         QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("edge.sourceB.crc::rd_key1")},
-                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
+                    {QStringLiteral("inputBRef"), QStringLiteral("edge.sourceB.crc::b")},
                     {QStringLiteral("outputKey"), QStringLiteral("sum")}},
         incomingTokens,
         &output,
@@ -228,6 +319,76 @@ void tst_CustomizeExampleMathWorkflows::duplicateIncomingKeys_disambiguatedByInp
 
     QVERIFY2(ok, qPrintable(error));
     QCOMPARE(output.value(QStringLiteral("sum")).toDouble(), 11.0);
+}
+
+void tst_CustomizeExampleMathWorkflows::duplicateIncomingKeys_plainKeyFailsWithoutInputRef()
+{
+    cme::execution::IncomingTokens incomingTokens;
+    incomingTokens.insert(QStringLiteral("edge.sourceA.crc"),
+                          QVariantMap{{QStringLiteral("rd_key1"), 3.0},
+                                      {QStringLiteral("b"), 2.0}});
+    incomingTokens.insert(QStringLiteral("edge.sourceB.crc"),
+                          QVariantMap{{QStringLiteral("rd_key1"), 9.0},
+                                      {QStringLiteral("b"), 2.0}});
+
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+    const bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
+        QStringLiteral("crc"),
+        QVariantMap{{QStringLiteral("inputAKey"), QStringLiteral("rd_key1")},
+                    {QStringLiteral("inputBKey"), QStringLiteral("b")},
+                    {QStringLiteral("outputKey"), QStringLiteral("sum")}},
+        incomingTokens,
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY(!ok);
+    QVERIFY(error.contains(QStringLiteral("Invalid numeric input")));
+}
+
+void tst_CustomizeExampleMathWorkflows::directFallbackWithoutRefs_usesSnapshotFallbacks()
+{
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+    const bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSubtract),
+        QStringLiteral("fallback-node"),
+        QVariantMap{{QStringLiteral("a"), 10.0},
+                    {QStringLiteral("b"), 4.0},
+                    {QStringLiteral("outputKey"), QStringLiteral("difference")}},
+        cme::execution::IncomingTokens{},
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY2(ok, qPrintable(error));
+    QCOMPARE(output.value(QStringLiteral("difference")).toDouble(), 6.0);
+}
+
+void tst_CustomizeExampleMathWorkflows::explicitFallbackSentinel_usesSnapshotFallbacks()
+{
+    QVariantMap output;
+    QVariantMap trace;
+    QString error;
+    const bool ok = m_provider.executeComponent(
+        QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeAdd),
+        QStringLiteral("fallback-sentinel-node"),
+        QVariantMap{{QStringLiteral("inputARef"), QStringLiteral("__use_fallback__")},
+                    {QStringLiteral("inputBRef"), QStringLiteral("__graph_input__::b")},
+                    {QStringLiteral("a"), 10.0},
+                    {QStringLiteral("outputKey"), QStringLiteral("sum")}},
+        cme::execution::IncomingTokens{{QStringLiteral("__graph_input__"),
+                                        QVariantMap{{QStringLiteral("b"), 4.0}}}},
+        &output,
+        &trace,
+        &error);
+
+    QVERIFY2(ok, qPrintable(error));
+    QCOMPARE(output.value(QStringLiteral("sum")).toDouble(), 14.0);
 }
 
 void tst_CustomizeExampleMathWorkflows::plainKeyFallback_remainsBackwardCompatible()

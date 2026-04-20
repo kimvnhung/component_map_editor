@@ -18,6 +18,17 @@ QStringList SampleExecutionSemanticsProvider::supportedComponentTypes() const
     };
 }
 
+QStringList SampleExecutionSemanticsProvider::providedOutputKeys(const QString &componentType) const
+{
+    if (componentType == QStringLiteral("start"))
+        return { QStringLiteral("workingNumber"), QStringLiteral("started"), QStringLiteral("inputNumber") };
+    if (componentType == QStringLiteral("process"))
+        return { QStringLiteral("workingNumber"), QStringLiteral("lastProcessAddValue") };
+    if (componentType == QStringLiteral("stop"))
+        return { QStringLiteral("finalResult"), QStringLiteral("completed") };
+    return {};
+}
+
 bool SampleExecutionSemanticsProvider::executeComponent(const QString &componentType,
                                                         const QString &componentId,
                                                         const QVariantMap &componentSnapshot,

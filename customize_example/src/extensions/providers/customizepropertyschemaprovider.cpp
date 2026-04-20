@@ -5,12 +5,14 @@
 #include "property_schemas/mathpropertyschemaprovider.h"
 #include "property_schemas/startstoppropertyschemaprovider.h"
 #include "property_schemas/systempropertyschemaprovider.h"
+#include "property_schemas/workflowpropertyschemaprovider.h"
 
 CustomizePropertySchemaProvider::CustomizePropertySchemaProvider()
 {
     m_subProviders.emplace_back(std::make_unique<StartStopPropertySchemaProvider>());
     m_subProviders.emplace_back(std::make_unique<ControlPropertySchemaProvider>());
     m_subProviders.emplace_back(std::make_unique<MathPropertySchemaProvider>());
+    m_subProviders.emplace_back(std::make_unique<WorkflowPropertySchemaProvider>());
     m_subProviders.emplace_back(std::make_unique<SystemPropertySchemaProvider>());
     m_subProviders.emplace_back(std::make_unique<ConnectionPropertySchemaProvider>());
 }

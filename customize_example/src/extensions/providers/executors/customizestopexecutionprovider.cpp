@@ -11,6 +11,12 @@ QStringList CustomizeStopExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeStopExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("endNumber"), QStringLiteral("completed") };
+}
+
 bool CustomizeStopExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -23,7 +29,6 @@ bool CustomizeStopExecutionProvider::executeComponent(
     Q_UNUSED(error);
 
     const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
-    qDebug() << "context" << context;
     QVariantMap out = context;
     const int endNumber = static_cast<int>(customize::executors::resolveNumber(context,
                                                                                 componentSnapshot,
@@ -34,8 +39,8 @@ bool CustomizeStopExecutionProvider::executeComponent(
     out.insert(QStringLiteral("completed"), true);
 
     qInfo().noquote() << QStringLiteral("[Trace][%1] %2 - Stopping execution with endNumber: %3")
-                             .arg(componentType, componentId)
-                             .arg(endNumber);
+                      .arg(componentType, componentId)
+                      .arg(endNumber);
 
     if (outputPayload)
         *outputPayload = out;

@@ -11,6 +11,12 @@ QStringList CustomizeLoopExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeLoopExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("iter"), QStringLiteral("continueLoop"), QStringLiteral("error") };
+}
+
 bool CustomizeLoopExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -72,5 +78,9 @@ bool CustomizeLoopExecutionProvider::executeComponent(
         *outputPayload = out;
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
+
+    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
+                      .arg(componentType, componentId);
+
     return true;
 }

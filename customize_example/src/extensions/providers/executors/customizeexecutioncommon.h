@@ -11,6 +11,16 @@
 
 namespace customize::executors {
 
+inline QString fallbackReferenceSelectionValue()
+{
+    return QStringLiteral("__use_fallback__");
+}
+
+inline bool isFallbackReferenceSelection(const QString &reference)
+{
+    return reference.trimmed() == fallbackReferenceSelectionValue();
+}
+
 enum class BinaryOperation {
     Add,
     Subtract,
@@ -21,11 +31,59 @@ enum class BinaryOperation {
 inline QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &incomingTokens)
 {
     QVariantMap merged;
+    QHash<QString, int> fieldCounts;
     QStringList tokenKeys = incomingTokens.keys();
     std::sort(tokenKeys.begin(), tokenKeys.end());
-    for (const QString &tokenKey : tokenKeys)
-        merged.insert(incomingTokens.value(tokenKey));
+    for (const QString &tokenKey : tokenKeys) {
+        QStringList fieldKeys = incomingTokens.value(tokenKey).keys();
+        std::sort(fieldKeys.begin(), fieldKeys.end());
+        for (const QString &fieldKey : fieldKeys)
+            ++fieldCounts[fieldKey];
+    }
+
+    for (const QString &tokenKey : tokenKeys) {
+        const QVariantMap tokenPayload = incomingTokens.value(tokenKey);
+        QStringList fieldKeys = tokenPayload.keys();
+        std::sort(fieldKeys.begin(), fieldKeys.end());
+        for (const QString &fieldKey : fieldKeys) {
+            if (fieldCounts.value(fieldKey) == 1)
+                merged.insert(fieldKey, tokenPayload.value(fieldKey));
+        }
+    }
     return merged;
+}
+
+inline QVariant resolveUniqueIncomingTokenValue(const cme::execution::IncomingTokens &incomingTokens,
+                                                const QString &fieldKey,
+                                                bool *found = nullptr,
+                                                bool *ambiguous = nullptr)
+{
+    bool resolved = false;
+    bool duplicate = false;
+    QVariant value;
+
+    QStringList tokenKeys = incomingTokens.keys();
+    std::sort(tokenKeys.begin(), tokenKeys.end());
+    for (const QString &tokenKey : tokenKeys) {
+        const QVariantMap tokenPayload = incomingTokens.value(tokenKey);
+        if (!tokenPayload.contains(fieldKey))
+            continue;
+
+        if (resolved) {
+            duplicate = true;
+            value = {};
+            break;
+        }
+
+        value = tokenPayload.value(fieldKey);
+        resolved = true;
+    }
+
+    if (found)
+        *found = resolved && !duplicate;
+    if (ambiguous)
+        *ambiguous = duplicate;
+    return value;
 }
 
 inline bool parseTokenFieldReference(const QString &reference,
@@ -49,14 +107,54 @@ inline bool parseTokenFieldReference(const QString &reference,
     return true;
 }
 
+inline double resolveReferencedNumber(const cme::execution::IncomingTokens &incomingTokens,
+                                     const QVariantMap &componentSnapshot,
+                                     const QString &referenceProperty,
+                                     const QString &fallbackSnapshotKey,
+                                     double fallbackValue,
+                                     bool *ok = nullptr)
+{
+    bool parsed = false;
+    QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    if (isFallbackReferenceSelection(reference))
+        reference.clear();
+    if (!reference.isEmpty()) {
+        QString tokenId;
+        QString fieldKey;
+        if (parseTokenFieldReference(reference, &tokenId, &fieldKey)) {
+            const QVariantMap tokenPayload = incomingTokens.value(tokenId);
+            if (tokenPayload.contains(fieldKey)) {
+                const double value = tokenPayload.value(fieldKey).toDouble(&parsed);
+                if (ok)
+                    *ok = parsed;
+                if (parsed)
+                    return value;
+            }
+        }
+    }
+
+    double value = componentSnapshot.value(fallbackSnapshotKey, fallbackValue).toDouble(&parsed);
+    if (!parsed)
+        value = fallbackValue;
+    if (ok)
+        *ok = parsed;
+    return value;
+}
+
 inline QVariant resolveSelectedContextValue(const cme::execution::IncomingTokens &incomingTokens,
                                             const QVariantMap &context,
                                             const QVariantMap &componentSnapshot,
                                             const QString &referenceProperty,
                                             const QString &keyProperty,
-                                            const QString &fallbackKey)
+                                            const QString &fallbackKey,
+                                            bool *ambiguous = nullptr)
 {
-    const QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    if (ambiguous)
+        *ambiguous = false;
+
+    QString reference = componentSnapshot.value(referenceProperty).toString().trimmed();
+    if (isFallbackReferenceSelection(reference))
+        reference.clear();
     QString tokenId;
     QString fieldKey;
     if (parseTokenFieldReference(reference, &tokenId, &fieldKey)) {
@@ -67,6 +165,20 @@ inline QVariant resolveSelectedContextValue(const cme::execution::IncomingTokens
 
     const QString contextKeyRaw = componentSnapshot.value(keyProperty).toString().trimmed();
     const QString contextKey = contextKeyRaw.isEmpty() ? fallbackKey : contextKeyRaw;
+    bool foundUniqueIncoming = false;
+    bool ambiguousIncoming = false;
+    const QVariant selectedIncoming = resolveUniqueIncomingTokenValue(incomingTokens,
+                                                                      contextKey,
+                                                                      &foundUniqueIncoming,
+                                                                      &ambiguousIncoming);
+    if (ambiguousIncoming) {
+        if (ambiguous)
+            *ambiguous = true;
+        return {};
+    }
+    if (foundUniqueIncoming)
+        return selectedIncoming;
+
     if (context.contains(contextKey))
         return context.value(contextKey);
     if (componentSnapshot.contains(fallbackKey))
@@ -83,16 +195,20 @@ inline double resolveSelectedNumber(const cme::execution::IncomingTokens &incomi
                                     double fallbackValue,
                                     bool *ok = nullptr)
 {
+    bool ambiguous = false;
     bool parsed = false;
     const QVariant selected = resolveSelectedContextValue(incomingTokens,
                                                           context,
                                                           componentSnapshot,
                                                           referenceProperty,
                                                           keyProperty,
-                                                          fallbackSnapshotKey);
+                                                          fallbackSnapshotKey,
+                                                          &ambiguous);
     double value = selected.toDouble(&parsed);
     if (!parsed)
         value = componentSnapshot.value(fallbackSnapshotKey, fallbackValue).toDouble(&parsed);
+    if (ambiguous)
+        parsed = false;
     if (!parsed)
         value = fallbackValue;
     if (ok)

@@ -29,6 +29,7 @@ class GraphExecutionSandbox : public QObject
     Q_PROPERTY(QVariantList timeline READ timeline NOTIFY timelineChanged FINAL)
     Q_PROPERTY(QVariantMap executionState READ executionState NOTIFY executionStateChanged FINAL)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged FINAL)
+    Q_PROPERTY(QVariantMap providerOutputKeyHints READ providerOutputKeyHints NOTIFY providerOutputKeyHintsChanged FINAL)
 
 public:
     explicit GraphExecutionSandbox(QObject *parent = nullptr);
@@ -41,6 +42,8 @@ public:
     QVariantList timeline() const;
     QVariantMap executionState() const;
     QString lastError() const;
+
+    QVariantMap providerOutputKeyHints() const;
 
     void setExecutionSemanticsProviders(const QList<const IExecutionSemanticsProvider *> &providers);
     void rebuildSemanticsFromRegistry(const ExtensionContractRegistry &registry);
@@ -78,6 +81,7 @@ signals:
     void timelineChanged();
     void executionStateChanged();
     void lastErrorChanged();
+    void providerOutputKeyHintsChanged();
 
 private:
     struct ComponentSnapshot {

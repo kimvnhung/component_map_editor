@@ -11,6 +11,12 @@ QStringList CustomizeSubtractExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeSubtractExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("difference"), QStringLiteral("error") };
+}
+
 bool CustomizeSubtractExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -32,22 +38,18 @@ bool CustomizeSubtractExecutionProvider::executeComponent(
 
     bool okA = false;
     bool okB = false;
-    const double a = customize::executors::resolveSelectedNumber(incomingTokens,
-                                                                 context,
-                                                                 componentSnapshot,
-                                                                 QStringLiteral("inputARef"),
-                                                                 QStringLiteral("inputAKey"),
-                                                                 QStringLiteral("a"),
-                                                                 0.0,
-                                                                 &okA);
-    const double b = customize::executors::resolveSelectedNumber(incomingTokens,
-                                                                 context,
-                                                                 componentSnapshot,
-                                                                 QStringLiteral("inputBRef"),
-                                                                 QStringLiteral("inputBKey"),
-                                                                 QStringLiteral("b"),
-                                                                 0.0,
-                                                                 &okB);
+    const double a = customize::executors::resolveReferencedNumber(incomingTokens,
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputARef"),
+                                                                   QStringLiteral("a"),
+                                                                   0.0,
+                                                                   &okA);
+    const double b = customize::executors::resolveReferencedNumber(incomingTokens,
+                                                                   componentSnapshot,
+                                                                   QStringLiteral("inputBRef"),
+                                                                   QStringLiteral("b"),
+                                                                   0.0,
+                                                                   &okB);
 
     if (!okA || !okB) {
         const QString msg = QStringLiteral("Invalid numeric input for operation '%1'.").arg(componentType);
@@ -64,13 +66,16 @@ bool CustomizeSubtractExecutionProvider::executeComponent(
 
     out.insert(outputKey, a - b);
 
-    if (outputPayload)
+    if (outputPayload) {
         *outputPayload = out;
-    if (trace)
+    }
+
+    if (trace) {
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
+    }
 
     qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
-                             .arg(componentType, componentId);
+                      .arg(componentType, componentId);
 
     return true;
 }

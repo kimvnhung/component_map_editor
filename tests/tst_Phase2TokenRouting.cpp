@@ -49,6 +49,8 @@ public:
         };
     }
 
+    QStringList providedOutputKeys(const QString &) const override { return {}; }
+
     bool executeComponent(const QString &componentType,
                             const QString &componentId,
                             const QVariantMap &componentSnapshot,

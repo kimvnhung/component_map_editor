@@ -22,6 +22,12 @@ QStringList ExecutionSemanticsV0Adapter::supportedComponentTypes() const
     return m_legacyProvider->supportedComponentTypes();
 }
 
+QStringList ExecutionSemanticsV0Adapter::providedOutputKeys(const QString &) const
+{
+    // Legacy V0 providers have no declared output key contract.
+    return {};
+}
+
 bool ExecutionSemanticsV0Adapter::executeComponent(const QString &componentType,
                                                    const QString &componentId,
                                                    const QVariantMap &componentSnapshot,

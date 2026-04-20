@@ -112,6 +112,20 @@ QString GraphExecutionSandbox::lastError() const
     return m_lastError;
 }
 
+QVariantMap GraphExecutionSandbox::providerOutputKeyHints() const
+{
+    QVariantMap hints;
+    for (auto it = m_providerByComponentType.constBegin(); it != m_providerByComponentType.constEnd(); ++it) {
+        const IExecutionSemanticsProvider *provider = it.value();
+        if (!provider)
+            continue;
+        const QStringList keys = provider->providedOutputKeys(it.key());
+        if (!keys.isEmpty())
+            hints.insert(it.key(), keys);
+    }
+    return hints;
+}
+
 QVariantMap GraphExecutionSandbox::executionTelemetry() const
 {
     return QVariantMap{
@@ -149,6 +163,7 @@ void GraphExecutionSandbox::setExecutionSemanticsProviders(const QList<const IEx
             m_providerByComponentType.insert(componentType, provider);
         }
     }
+    emit providerOutputKeyHintsChanged();
 }
 
 void GraphExecutionSandbox::rebuildSemanticsFromRegistry(const ExtensionContractRegistry &registry)
@@ -707,6 +722,43 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
             markError(error.isEmpty() ? QStringLiteral("Execution semantics provider returned failure.")
                                       : error);
             return false;
+        }
+        // Validate that outputPayload contains at least one of the provider's
+        // declared output keys. Also accept any keys explicitly configured
+        // in the component's snapshot (e.g. outputKey="mySum"), since those
+        // override the default declared names.
+        const QStringList declared = provider->providedOutputKeys(component.type);
+        if (!declared.isEmpty()) {
+            bool matched = false;
+            for (const QString &key : declared) {
+                if (outputState.contains(key)) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                // Fall back: check any snapshot-level output-key property
+                static const QStringList kOutputKeyProps = {
+                    QStringLiteral("outputKey"),
+                    QStringLiteral("trueRouteKey"),
+                    QStringLiteral("falseRouteKey"),
+                    QStringLiteral("iterKey"),
+                    QStringLiteral("continueKey"),
+                    QStringLiteral("errorKey")
+                };
+                for (const QString &prop : kOutputKeyProps) {
+                    const QString configured = component.attributes.value(prop).toString().trimmed();
+                    if (!configured.isEmpty() && outputState.contains(configured)) {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+            if (!matched) {
+                markError(QStringLiteral("Provider '%1': output payload for type '%2' is missing all declared keys [%3].")
+                              .arg(provider->providerId(), component.type, declared.join(QStringLiteral(", "))));
+                return false;
+            }
         }
     } else {
         trace.insert(QStringLiteral("provider"), QStringLiteral("default"));

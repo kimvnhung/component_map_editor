@@ -75,13 +75,15 @@ Create component types:
 - `math/divide`
 
 Recommended common properties for all arithmetic nodes:
-- `inputAKey` (default `a`)
-- `inputBKey` (default `b`)
+- `inputARef` (pick an exact incoming token field)
+- `inputBRef` (pick an exact incoming token field)
 - `outputKey` (default `result`)
 - `errorKey` (default `error`)
+- `a`, `b` fallback values when no ref is selected
 
 Behavior rules:
-- Read numeric values from execution context via `inputAKey` and `inputBKey`.
+- Read numeric values from exact token refs via `inputARef` and `inputBRef`.
+- If a ref is not selected or cannot be resolved, use the fallback snapshot value for that operand.
 - Write result to `outputKey`.
 - For `math/divide`, fail when denominator is zero and write an error message to `errorKey`.
 

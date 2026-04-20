@@ -17,6 +17,7 @@ Item {
     readonly property int optionsSourceTokenKeys: 1
     readonly property int optionsSourceTokenKeyOptions: 2
     readonly property int optionsSourceCustom: 3
+    readonly property string fallbackSelectionValue: "__use_fallback__"
 
     // [ { id, title, fields:[{...}] } ]
     property var schemaSections: []
@@ -26,6 +27,9 @@ Item {
     property var modelObject: null
     property bool readOnly: false
     property var dynamicOptions: ({})
+    property int renderContextVersion: 0
+    property string expectedModelObjectId: ""
+    property string expectedSchemaTarget: ""
 
     // Optional map for enum side values if a schema uses sourceSide/targetSide.
     // Values must match ConnectionModel::Side: SideAuto=-1, SideTop=0, SideRight=1, SideBottom=2, SideLeft=3
@@ -37,9 +41,53 @@ Item {
         { text: "Left", value: 3 }
     ]
 
-    signal propertyEditRequested(string propertyName, var value)
+    signal propertyEditRequested(string propertyName, var value, var sourceModelObject)
 
     implicitHeight: sectionsColumn.implicitHeight
+
+    function advanceRenderContext(reason) {
+        renderContextVersion += 1
+    }
+
+    function requestPropertyEdit(propertyName, value) {
+        root.propertyEditRequested(propertyName, value, root.modelObject)
+    }
+
+    function isEditorContextCurrent(field) {
+        if (!root.isRendererStateStable())
+            return false
+        return root.isFieldCurrent(field)
+    }
+
+    function modelObjectTarget() {
+        if (!root.modelObject)
+            return ""
+        if (root.modelObject.sourceId !== undefined)
+            return "connection/flow"
+
+        var objectType = root.modelObject.type !== undefined ? String(root.modelObject.type) : ""
+        if (!objectType.length)
+            return ""
+        return "component/" + objectType
+    }
+
+    function isRendererStateStable() {
+        if (!root.modelObject)
+            return false
+
+        if (root.expectedModelObjectId.length > 0) {
+            var objectId = root.modelObject.id !== undefined ? String(root.modelObject.id) : ""
+            if (objectId !== root.expectedModelObjectId)
+                return false
+        }
+
+        if (root.expectedSchemaTarget.length > 0) {
+            if (root.modelObjectTarget() !== root.expectedSchemaTarget)
+                return false
+        }
+
+        return true
+    }
 
     function typedSectionsToLegacyRows() {
         if (!root.schemaSectionModel || root.schemaSectionModel.size === undefined || root.schemaSectionModel.rowAt === undefined)
@@ -66,6 +114,29 @@ Item {
         }
 
         return sections
+    }
+
+    function schemaContainsField(propertyName) {
+        if (!propertyName || !propertyName.length)
+            return false
+
+        var sections = root.typedSectionsToLegacyRows()
+        for (var sectionIndex = 0; sectionIndex < sections.length; ++sectionIndex) {
+            var section = sections[sectionIndex]
+            var fields = section && section.fields ? section.fields : []
+            for (var fieldIndex = 0; fieldIndex < fields.length; ++fieldIndex) {
+                var field = fields[fieldIndex]
+                if (field && field.key === propertyName)
+                    return true
+            }
+        }
+
+        return false
+    }
+
+    function isFieldCurrent(field) {
+        var propertyName = field && field.key ? String(field.key) : ""
+        return root.schemaContainsField(propertyName)
     }
 
     function widgetEnumForField(field) {
@@ -147,15 +218,19 @@ Item {
     }
 
     function enumModelForField(field) {
+        if (!root.isFieldCurrent(field))
+            return []
+
         var optionsSource = root.optionsSourceKeyForField(field)
         if (optionsSource.length > 0) {
             var dynamicModel = root.dynamicOptions ? root.dynamicOptions[optionsSource] : undefined
             if (dynamicModel && dynamicModel.length !== undefined)
-                return dynamicModel
+                return root.decorateEnumModel(field, dynamicModel)
         }
 
-        if (field.options && field.options.length)
-            return field.options
+        if (field.options && field.options.length) {
+            return root.decorateEnumModel(field, field.options)
+        }
         if (field.key === "shape")
             return ["rounded", "rectangle"]
         if (field.key === "sourceSide" || field.key === "targetSide")
@@ -170,6 +245,50 @@ Item {
         return root.enumModelForField(field).length === 0
     }
 
+    function isUnsetValue(value) {
+        return value === undefined || value === null || value === ""
+    }
+
+    function fieldAllowsFallbackChoice(field) {
+        var propertyName = field && field.key ? String(field.key) : ""
+        return root.optionsSourceKeyForField(field) === "tokenKeyOptions"
+            && propertyName.endsWith("Ref")
+    }
+
+    function fallbackOptionForField(field) {
+        var propertyName = field && field.key ? String(field.key) : ""
+        return {
+            text: "Use fallback value",
+            value: root.fallbackSelectionValue,
+            key: propertyName,
+            tokenId: "",
+            sourceId: ""
+        }
+    }
+
+    function decorateEnumModel(field, options) {
+        if (!root.fieldAllowsFallbackChoice(field))
+            return options
+        if (!options || options.length === undefined)
+            return options
+        if (options.length > 0) {
+            var firstOption = options[0]
+            if (typeof firstOption === "object" && firstOption.value === "")
+                return options
+        }
+        return [root.fallbackOptionForField(field)].concat(options)
+    }
+
+    function modelHasPersistedProperty(propertyName) {
+        if (!root.modelObject || !propertyName || !propertyName.length)
+            return false
+
+        if (root.modelObject.hasDynamicProperty !== undefined)
+            return root.modelObject.hasDynamicProperty(propertyName)
+
+        return root.readModelProperty(propertyName) !== undefined
+    }
+
     function enumIndexForValue(options, value) {
         for (var i = 0; i < options.length; ++i) {
             var option = options[i]
@@ -180,7 +299,7 @@ Item {
                 return i
             }
         }
-        return 0
+        return -1
     }
 
     function enumValueAt(options, index) {
@@ -199,6 +318,58 @@ Item {
             return "text"
         return ""
     }
+
+    function preferredAutoInitializeIndex(field, options, preferredValue) {
+        if (!root.isUnsetValue(preferredValue)) {
+            var preferredIndex = root.enumIndexForValue(options, preferredValue)
+            if (preferredIndex >= 0)
+                return preferredIndex
+        }
+
+        if (root.fieldAllowsFallbackChoice(field)) {
+            for (var i = 0; i < options.length; ++i) {
+                if (!root.isUnsetValue(root.enumValueAt(options, i)))
+                    return i
+            }
+        }
+
+        return options.length > 0 ? 0 : -1
+    }
+
+    function autoInitializeDropdownField(field, options) {
+        if (root.readOnly || !field)
+            return undefined
+
+        if (!root.isRendererStateStable())
+            return undefined
+
+        var propertyName = field.key || ""
+        if (!propertyName.length)
+            return undefined
+
+        if (root.modelHasPersistedProperty(propertyName))
+            return undefined
+
+        if (!options || options.length === undefined || options.length === 0)
+            return undefined
+
+        var preferredValue = root.fieldValue(field)
+        var preferredIndex = root.preferredAutoInitializeIndex(field, options, preferredValue)
+        if (preferredIndex < 0)
+            return undefined
+
+        var nextValue = root.enumValueAt(options, preferredIndex)
+        if (nextValue === undefined)
+            return undefined
+
+        root.requestPropertyEdit(propertyName, nextValue)
+        return nextValue
+    }
+
+    onModelObjectChanged: advanceRenderContext("modelObjectChanged")
+
+    onSchemaSectionsChanged: advanceRenderContext("schemaSectionsChanged")
+    onSchemaSectionModelChanged: advanceRenderContext("schemaSectionModelChanged")
 
     ColumnLayout {
         id: sectionsColumn
@@ -327,7 +498,7 @@ Item {
             onEditingFinished: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(fieldData.key || "", text)
+                root.requestPropertyEdit(fieldData.key || "", text)
             }
         }
     }
@@ -349,7 +520,7 @@ Item {
             onEditingFinished: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(fieldData.key || "", text)
+                root.requestPropertyEdit(fieldData.key || "", text)
             }
         }
     }
@@ -361,16 +532,78 @@ Item {
             id: combo
             property var fieldData: ({})
             property var optionsModel: root.enumModelForField(fieldData)
+            property int syncRequestVersion: 0
+            property bool suppressCurrentIndexCommit: false
+
+            function applyDefaultSelectionIfNeeded() {
+                if (!root.isEditorContextCurrent(fieldData))
+                    return
+                root.autoInitializeDropdownField(fieldData, optionsModel)
+            }
+
+            function syncCurrentSelection() {
+                if (!root.isEditorContextCurrent(fieldData)) {
+                    combo.currentIndex = -1
+                    return
+                }
+                var fieldValue = root.fieldValue(fieldData)
+                var nextIndex = root.enumIndexForValue(optionsModel, fieldValue)
+                suppressCurrentIndexCommit = true
+                combo.currentIndex = nextIndex
+                suppressCurrentIndexCommit = false
+            }
+
+            function scheduleSelectionSync() {
+                syncRequestVersion += 1
+                var requestVersion = syncRequestVersion
+                Qt.callLater(function() {
+                    if (requestVersion !== syncRequestVersion)
+                        return
+                    combo.syncCurrentSelection()
+                })
+            }
+
             model: optionsModel
             textRole: root.enumTextRole(optionsModel)
-            currentIndex: root.enumIndexForValue(optionsModel, root.fieldValue(fieldData))
+            currentIndex: -1
             enabled: !root.readOnly
+
+            Component.onCompleted: {
+                applyDefaultSelectionIfNeeded()
+                scheduleSelectionSync()
+            }
+            onFieldDataChanged: scheduleSelectionSync()
+            onOptionsModelChanged: {
+                applyDefaultSelectionIfNeeded()
+                scheduleSelectionSync()
+            }
+
+            onCurrentIndexChanged: {
+                if (suppressCurrentIndexCommit)
+                    return
+                if (root.readOnly)
+                    return
+                if (!root.isEditorContextCurrent(fieldData))
+                    return
+                if (currentIndex < 0)
+                    return
+
+                var propertyName = fieldData && fieldData.key ? String(fieldData.key) : ""
+                if (!propertyName.length)
+                    return
+
+                var next = root.enumValueAt(optionsModel, currentIndex)
+                var rawModelValue = root.readModelProperty(propertyName)
+                if (rawModelValue === next)
+                    return
+                root.requestPropertyEdit(propertyName, next)
+            }
 
             onActivated: function(index) {
                 if (root.readOnly)
                     return
-                var next = root.enumValueAt(optionsModel, index)
-                root.propertyEditRequested(fieldData.key || "", next)
+                if (!root.isEditorContextCurrent(fieldData))
+                    return
             }
         }
     }
@@ -386,7 +619,7 @@ Item {
             onToggled: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(fieldData.key || "", checked)
+                root.requestPropertyEdit(fieldData.key || "", checked)
             }
         }
     }
@@ -406,7 +639,7 @@ Item {
             onValueModified: {
                 if (root.readOnly)
                     return
-                root.propertyEditRequested(fieldData.key || "", value)
+                root.requestPropertyEdit(fieldData.key || "", value)
             }
         }
     }
@@ -429,7 +662,7 @@ Item {
                 onEditingFinished: {
                     if (root.readOnly)
                         return
-                    root.propertyEditRequested(fieldData.key || "", text)
+                    root.requestPropertyEdit(fieldData.key || "", text)
                 }
             }
 

@@ -11,6 +11,12 @@ QStringList CustomizeIfElseExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeIfElseExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("routeTrue"), QStringLiteral("routeFalse"), QStringLiteral("error") };
+}
+
 bool CustomizeIfElseExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -60,5 +66,9 @@ bool CustomizeIfElseExecutionProvider::executeComponent(
         *outputPayload = out;
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
+
+    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
+                      .arg(componentType, componentId);
+
     return true;
 }

@@ -25,6 +25,7 @@ class PersistenceValidationTests : public QObject
 
 private slots:
     void roundTripIsStable();
+    void roundTripPreservesDynamicProperties();
     void importsLegacyTopLeftV2();
     void importsLegacyYUpWithoutCoordinateSystem();
     void componentModelAcceptsDynamicProperties();
@@ -152,6 +153,59 @@ void PersistenceValidationTests::componentModelAcceptsDynamicProperties()
 
     QCOMPARE(component.dynamicPropertyValue(QStringLiteral("inputNumber")).toInt(), 12);
     QCOMPARE(component.dynamicPropertyValue(QStringLiteral("addValue")).toInt(), 9);
+}
+
+void PersistenceValidationTests::roundTripPreservesDynamicProperties()
+{
+    // Verifies that schema-driven properties set via PropertyPanel (stored as Qt
+    // dynamic properties) survive a full export/import round-trip.
+    GraphModel source;
+
+    auto *start = new ComponentModel(QStringLiteral("S1"),
+                                     QStringLiteral("Start"),
+                                     0.0,
+                                     0.0,
+                                     QStringLiteral("#66bb6a"),
+                                     QStringLiteral("start"));
+    start->setProperty("inputNumber", 42);
+    source.addComponent(start);
+
+    auto *process = new ComponentModel(QStringLiteral("P1"),
+                                       QStringLiteral("Process"),
+                                       200.0,
+                                       0.0,
+                                       QStringLiteral("#4fc3f7"),
+                                       QStringLiteral("process"));
+    process->setProperty("addValue", 7);
+    process->setProperty("description", QStringLiteral("applies +7"));
+    source.addComponent(process);
+
+    ExportService persistence;
+    const QString json = persistence.exportToJson(&source);
+
+    // Sanity: the exported JSON must contain the dynamic property values.
+    QVERIFY(json.contains(QStringLiteral("\"properties\"")));
+    QVERIFY(json.contains(QStringLiteral("42")));
+    QVERIFY(json.contains(QStringLiteral("7")));
+    QVERIFY(json.contains(QStringLiteral("applies +7")));
+
+    GraphModel imported;
+    QVERIFY(persistence.importFromJson(&imported, json));
+
+    const ComponentModel *importedStart = imported.componentById(QStringLiteral("S1"));
+    QVERIFY(importedStart != nullptr);
+    QCOMPARE(importedStart->property("inputNumber").toInt(), 42);
+
+    const ComponentModel *importedProcess = imported.componentById(QStringLiteral("P1"));
+    QVERIFY(importedProcess != nullptr);
+    QCOMPARE(importedProcess->property("addValue").toInt(), 7);
+    QCOMPARE(importedProcess->property("description").toString(), QStringLiteral("applies +7"));
+
+    // Round-trip must be idempotent.
+    const QString json2 = persistence.exportToJson(&imported);
+    const QByteArray canonical1 = QJsonDocument::fromJson(json.toUtf8()).toJson(QJsonDocument::Compact);
+    const QByteArray canonical2 = QJsonDocument::fromJson(json2.toUtf8()).toJson(QJsonDocument::Compact);
+    QCOMPARE(canonical1, canonical2);
 }
 
 void PersistenceValidationTests::validationCatchesExpectedSchemaErrors()

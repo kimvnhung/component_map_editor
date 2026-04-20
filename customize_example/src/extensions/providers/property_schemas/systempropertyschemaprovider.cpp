@@ -22,8 +22,8 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     customize::property_schemas::addTarget(&bundle,
               "component/system/error_handler",
               {
-                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 1,
-                                                         kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
+                  customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 1,
+                                                         kTokenKeyHint),
                   customize::property_schemas::makeField("message", SchemaFieldType::String, "Fallback Message", true, QStringLiteral("Unhandled workflow error."), SchemaFieldWidget::TextArea, SchemaFieldSection::Behavior, 2)
               });
 

@@ -11,6 +11,12 @@ QStringList CustomizeStartExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
+
+QStringList CustomizeStartExecutionProvider::providedOutputKeys(const QString &) const
+{
+    return { QStringLiteral("inputNumber") };
+}
+
 bool CustomizeStartExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
@@ -25,11 +31,11 @@ bool CustomizeStartExecutionProvider::executeComponent(
 
     int inputNumber = 0;
     inputNumber = static_cast<int>(customize::executors::resolveNumber(context,
-                                                              componentSnapshot,
-                                                              QStringLiteral("inputNumber"),
-                                                              QStringLiteral("inputNumber"),
-                                                              0.0));
-    out.insert("inputNumber", inputNumber);
+                                                                       componentSnapshot,
+                                                                       QStringLiteral("inputNumber"),
+                                                                       QStringLiteral("inputNumber"),
+                                                                       0.0));
+    out.insert(QStringLiteral("inputNumber"), inputNumber);
 
     if (outputPayload)
         *outputPayload = out;
@@ -37,8 +43,8 @@ bool CustomizeStartExecutionProvider::executeComponent(
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
     qInfo().noquote() << QStringLiteral("[Trace][%1] %2 - input: %3")
-                             .arg(componentType, componentId)
-                             .arg(inputNumber);
+                      .arg(componentType, componentId)
+                      .arg(inputNumber);
 
     return true;
 }

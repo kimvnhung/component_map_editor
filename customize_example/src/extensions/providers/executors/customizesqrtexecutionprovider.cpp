@@ -1,23 +1,25 @@
-#include "customizemodexecutionprovider.h"
+#include "customizesqrtexecutionprovider.h"
+
+#include <QtMath>
 
 #include "customizeexecutioncommon.h"
 
-QString CustomizeModExecutionProvider::providerId() const
+QString CustomizeSqrtExecutionProvider::providerId() const
 {
-    return QStringLiteral("customize.workflow.execution.math.mod");
+    return QStringLiteral("customize.workflow.execution.math.sqrt");
 }
 
-QStringList CustomizeModExecutionProvider::supportedComponentTypes() const
+QStringList CustomizeSqrtExecutionProvider::supportedComponentTypes() const
 {
     return { QString::fromLatin1(TypeId) };
 }
 
-QStringList CustomizeModExecutionProvider::providedOutputKeys(const QString &) const
+QStringList CustomizeSqrtExecutionProvider::providedOutputKeys(const QString &) const
 {
-    return { QStringLiteral("result"), QStringLiteral("error") };
+    return { QStringLiteral("sqrtS"), QStringLiteral("error") };
 }
 
-bool CustomizeModExecutionProvider::executeComponent(
+bool CustomizeSqrtExecutionProvider::executeComponent(
     const QString &componentType,
     const QString &componentId,
     const QVariantMap &componentSnapshot,
@@ -31,27 +33,19 @@ bool CustomizeModExecutionProvider::executeComponent(
 
     const QString outputKey = customize::executors::resolveText(componentSnapshot,
                                                                 QStringLiteral("outputKey"),
-                                                                QStringLiteral("result"));
+                                                                QStringLiteral("sqrtS"));
     const QString errorKey = customize::executors::resolveText(componentSnapshot,
                                                                QStringLiteral("errorKey"),
                                                                QStringLiteral("error"));
 
-    bool okA = false;
-    bool okB = false;
-    const double a = customize::executors::resolveReferencedNumber(incomingTokens,
-                                                                   componentSnapshot,
-                                                                   QStringLiteral("inputARef"),
-                                                                   QStringLiteral("a"),
-                                                                   1.0,
-                                                                   &okA);
-    const double b = customize::executors::resolveReferencedNumber(incomingTokens,
-                                                                   componentSnapshot,
-                                                                   QStringLiteral("inputBRef"),
-                                                                   QStringLiteral("b"),
-                                                                   1.0,
-                                                                   &okB);
-
-    if (!okA || !okB) {
+    bool ok = false;
+    const double radicand = customize::executors::resolveReferencedNumber(incomingTokens,
+                                                                          componentSnapshot,
+                                                                          QStringLiteral("inputRef"),
+                                                                          QStringLiteral("S"),
+                                                                          0.0,
+                                                                          &ok);
+    if (!ok) {
         const QString msg = QStringLiteral("Invalid numeric input for operation '%1'.").arg(componentType);
         return customize::executors::failExecution(componentType,
                                                    componentId,
@@ -64,19 +58,19 @@ bool CustomizeModExecutionProvider::executeComponent(
                                                    error);
     }
 
-    if (qFuzzyIsNull(b)) {
+    if (radicand < 0.0) {
         return customize::executors::failExecution(componentType,
                                                    componentId,
                                                    context,
                                                    out,
                                                    errorKey,
-                                                   QStringLiteral("Modulo by zero is not allowed."),
+                                                   QStringLiteral("Square root is undefined for negative values."),
                                                    outputPayload,
                                                    trace,
                                                    error);
     }
 
-    out.insert(outputKey, std::fmod(a, b));
+    out.insert(outputKey, qSqrt(radicand));
 
     if (outputPayload)
         *outputPayload = out;
