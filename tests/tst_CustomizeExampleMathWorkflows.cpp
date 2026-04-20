@@ -47,6 +47,8 @@ private slots:
 
     void basicComponents_computeAndWriteContext();
     void mathProviders_supportConfigurableOutputAndErrorKeys();
+    void workflowSqrtGraph_reusesCompositeBinding();
+    void workflowRightTriangleLongestEdge_reusesSqrtGraph();
     void controlIfElse_routesTrueAndFalse();
     void controlLoop_stopsByMaxIterAndCondition();
     void divideByZero_reportsError();
@@ -147,6 +149,40 @@ void tst_CustomizeExampleMathWorkflows::mathProviders_supportConfigurableOutputA
     QVERIFY(!ok);
     QCOMPARE(output.value(QStringLiteral("customError")).toString(), error);
     QVERIFY(trace.value(QStringLiteral("outputs")).toMap().contains(QStringLiteral("customError")));
+}
+
+void tst_CustomizeExampleMathWorkflows::workflowSqrtGraph_reusesCompositeBinding()
+{
+    GraphExecutionSandbox sandbox;
+    sandbox.setExecutionSemanticsProviders({ &m_provider });
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSqrtGraph),
+                  QVariantMap{{QStringLiteral("sRef"), QStringLiteral("__graph_input__::S")}},
+                  QVariantMap{{QStringLiteral("S"), 81.0}});
+
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("sqrtS")).toDouble(), 9.0);
+    QCOMPARE(m_provider.providedOutputKeys(QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeSqrtGraph)),
+             QStringList{QStringLiteral("sqrtS")});
+}
+
+void tst_CustomizeExampleMathWorkflows::workflowRightTriangleLongestEdge_reusesSqrtGraph()
+{
+    GraphExecutionSandbox sandbox;
+    sandbox.setExecutionSemanticsProviders({ &m_provider });
+
+    runSingleNode(sandbox,
+                  QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeRightTriangleLongestEdge),
+                  QVariantMap{{QStringLiteral("sideARef"), QStringLiteral("__graph_input__::a")},
+                              {QStringLiteral("sideBRef"), QStringLiteral("__graph_input__::b")}},
+                  QVariantMap{{QStringLiteral("a"), 3.0},
+                              {QStringLiteral("b"), 4.0}});
+
+    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.executionState().value(QStringLiteral("longestEdge")).toDouble(), 5.0);
+    QCOMPARE(m_provider.providedOutputKeys(QString::fromLatin1(CustomizeExecutionSemanticsProvider::TypeRightTriangleLongestEdge)),
+             QStringList{QStringLiteral("longestEdge")});
 }
 
 void tst_CustomizeExampleMathWorkflows::controlIfElse_routesTrueAndFalse()

@@ -103,6 +103,20 @@ namespace
         });
 
         customize::property_schemas::addTarget(&bundle,
+                                               "component/math/sqrt",
+        {
+            customize::property_schemas::makeField("inputRef", SchemaFieldType::String, "Input Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
+                                                   kTokenRefHint,
+            {}, {}, {},
+            SchemaOptionsSource::TokenKeyOptions),
+            customize::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("sqrtS"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
+            kOutputKeyHint),
+            customize::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
+            kErrorKeyHint),
+            customize::property_schemas::makeField("S", SchemaFieldType::Number, "Fallback S", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20)
+        });
+
+        customize::property_schemas::addTarget(&bundle,
                                                "component/math/mod",
         {
             customize::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,

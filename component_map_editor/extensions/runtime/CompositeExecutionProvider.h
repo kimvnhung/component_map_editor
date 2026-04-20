@@ -16,12 +16,17 @@ struct CompositeInputPortMapping {
     QString outerTokenKey;
     QString innerEntryComponentId;
     QString innerPortKey;
+    QString componentRefProperty;
+    QString componentValueProperty;
 };
 
 struct CompositeOutputPortMapping {
     QString innerExitComponentId;
     QString innerPortKey;
     QString outerPayloadKey;
+    QString innerFieldKey;
+    QString componentOutputKeyProperty;
+    bool optional = false;
 };
 
 struct CompositeComponentSpec {
@@ -91,6 +96,7 @@ private:
                               QString *error) const;
     bool executeCompositeComponent(const CompositeGraphDefinition &definition,
                                    const QString &componentId,
+                                   const QVariantMap &componentSnapshot,
                                    const cme::execution::IncomingTokens &incomingTokens,
                                    cme::execution::ExecutionPayload *outputPayload,
                                    QVariantMap *trace,

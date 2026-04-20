@@ -11,6 +11,7 @@
 #include "executors/customizeifelseexecutionprovider.h"
 #include "executors/customizeloopexecutionprovider.h"
 #include "executors/customizemultiplyexecutionprovider.h"
+#include "executors/customizesqrtexecutionprovider.h"
 #include "executors/customizesubtractexecutionprovider.h"
 
 #include "executors/customizelogicandexecutionprovider.h"
@@ -19,9 +20,13 @@
 #include "executors/customizemodexecutionprovider.h"
 #include "executors/customizelessthanexecutionprovider.h"
 
+#include "extensions/runtime/CompositeExecutionProvider.h"
+
 class CustomizeExecutionSemanticsProvider : public IExecutionSemanticsProvider
 {
 public:
+    CustomizeExecutionSemanticsProvider();
+
     static constexpr const char *TypeStart = CustomizeStartExecutionProvider::TypeId;
     static constexpr const char *TypeStop = CustomizeStopExecutionProvider::TypeId;
     static constexpr const char *TypeLoop = CustomizeLoopExecutionProvider::TypeId;
@@ -30,12 +35,15 @@ public:
     static constexpr const char *TypeSubtract = CustomizeSubtractExecutionProvider::TypeId;
     static constexpr const char *TypeMultiply = CustomizeMultiplyExecutionProvider::TypeId;
     static constexpr const char *TypeDivide = CustomizeDivideExecutionProvider::TypeId;
+    static constexpr const char *TypeSqrt = CustomizeSqrtExecutionProvider::TypeId;
     static constexpr const char *TypeErrorHandler = CustomizeErrorHandlerExecutionProvider::TypeId;
     static constexpr const char *TypeMod = CustomizeModExecutionProvider::TypeId;
     static constexpr const char *TypeLessThan = CustomizeLessThanExecutionProvider::TypeId;
     static constexpr const char *TypeLessOrEqual = CustomizeLessOrEqualExecutionProvider::TypeId;
     static constexpr const char *TypeEqual = CustomizeEqualExecutionProvider::TypeId;
     static constexpr const char *TypeLogicAnd = CustomizeLogicAndExecutionProvider::TypeId;
+    static constexpr const char *TypeSqrtGraph = "workflow/sqrt_graph";
+    static constexpr const char *TypeRightTriangleLongestEdge = "workflow/right_triangle_longest_edge";
 
 
     QString providerId() const override;
@@ -59,6 +67,7 @@ private:
     CustomizeSubtractExecutionProvider m_subtractProvider;
     CustomizeMultiplyExecutionProvider m_multiplyProvider;
     CustomizeDivideExecutionProvider m_divideProvider;
+    CustomizeSqrtExecutionProvider m_sqrtProvider;
     CustomizeIfElseExecutionProvider m_ifElseProvider;
     CustomizeLoopExecutionProvider m_loopProvider;
     CustomizeErrorHandlerExecutionProvider m_errorHandlerProvider;
@@ -68,6 +77,7 @@ private:
     CustomizeEqualExecutionProvider m_equalProvider;
     CustomizeLogicAndExecutionProvider m_logicAndProvider;
     CustomizeModExecutionProvider m_modProvider;
+    cme::runtime::CompositeExecutionProvider m_compositeProvider;
 };
 
 #endif // CUSTOMIZEEXECUTIONSEMANTICSPROVIDER_H
