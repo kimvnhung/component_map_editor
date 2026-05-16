@@ -2,6 +2,8 @@
 
 #include "customizeexecutioncommon.h"
 
+#include <base_log.h>
+
 QString CustomizeStopExecutionProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution.stop");
@@ -38,9 +40,7 @@ bool CustomizeStopExecutionProvider::executeComponent(
     out.insert(QStringLiteral("endNumber"), endNumber);
     out.insert(QStringLiteral("completed"), true);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2 - Stopping execution with endNumber: %3")
-                      .arg(componentType, componentId)
-                      .arg(endNumber);
+    INFOF("[Trace][{}] {} - Stopping execution with endNumber: {}", componentType.toStdString(), componentId.toStdString(), endNumber);
 
     if (outputPayload)
         *outputPayload = out;

@@ -1,7 +1,8 @@
 #include <QGuiApplication>
-#include <QDebug>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+
+#include <base_log.h>
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/ExtensionStartupLoader.h"
@@ -37,10 +38,12 @@ int main(int argc, char *argv[])
     RuleBackedValidationProvider compiledValidation(&ruleRegistry);
     QString providerError;
     if (!extensionContracts.registerConnectionPolicyProvider(&compiledConnectionPolicy, &providerError)) {
-        qWarning().noquote() << "[Rules][ERROR] Failed to register compiled connection policy provider:" << providerError;
+        WARNF("[Rules][ERROR] Failed to register compiled connection policy provider: {}",
+              providerError.toStdString());
     }
     if (!extensionContracts.registerValidationProvider(&compiledValidation, &providerError)) {
-        qWarning().noquote() << "[Rules][ERROR] Failed to register compiled validation provider:" << providerError;
+        WARNF("[Rules][ERROR] Failed to register compiled validation provider: {}",
+              providerError.toStdString());
     }
 
     RuleHotReloadService ruleHotReload(&ruleRegistry);
@@ -49,11 +52,12 @@ int main(int argc, char *argv[])
         const QVector<RuleDiagnostic> diagnostics = ruleHotReload.lastDiagnostics();
         if (!diagnostics.isEmpty()) {
             const RuleDiagnostic first = diagnostics.first();
-            qWarning().noquote() << "[Rules][ERROR]" << first.message
-                                 << "file=" << first.location.filePath
-                                 << "jsonPath=" << first.location.jsonPath
-                                 << "line=" << first.location.line
-                                 << "column=" << first.location.column;
+            WARNF("[Rules][ERROR] {} file={} jsonPath={} line={} column={}",
+                  first.message.toStdString(),
+                  first.location.filePath.toStdString(),
+                  first.location.jsonPath.toStdString(),
+                  first.location.line,
+                  first.location.column);
         }
     }
 
@@ -66,13 +70,15 @@ int main(int argc, char *argv[])
     const ExtensionLoadResult loadResult = startupLoader.loadFromDirectory(manifestDir, extensionContracts);
     for (const ExtensionLoadDiagnostic &diag : loadResult.diagnostics) {
         if (diag.severity == ExtensionLoadDiagnostic::Severity::Error) {
-            qWarning().noquote() << "[ExtensionStartupLoader][ERROR]" << diag.message
-                                 << "extensionId=" << diag.extensionId
-                                 << "manifest=" << diag.manifestPath;
+            WARNF("[ExtensionStartupLoader][ERROR] {} extensionId={} manifest={}",
+                  diag.message.toStdString(),
+                  diag.extensionId.toStdString(),
+                  diag.manifestPath.toStdString());
         } else {
-            qInfo().noquote() << "[ExtensionStartupLoader]" << diag.message
-                              << "extensionId=" << diag.extensionId
-                              << "manifest=" << diag.manifestPath;
+            INFOF("[ExtensionStartupLoader] {} extensionId={} manifest={}",
+                  diag.message.toStdString(),
+                  diag.extensionId.toStdString(),
+                  diag.manifestPath.toStdString());
         }
     }
 

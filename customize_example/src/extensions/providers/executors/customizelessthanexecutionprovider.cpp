@@ -2,6 +2,8 @@
 
 #include "customizeexecutioncommon.h"
 
+#include <base_log.h>
+
 QString CustomizeLessThanExecutionProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution.math.less_than");
@@ -64,8 +66,7 @@ bool CustomizeLessThanExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
-                      .arg(componentType, componentId);
+    INFOF("[Trace][{}] {}", componentType.toStdString(), componentId.toStdString());
 
     return true;
 }

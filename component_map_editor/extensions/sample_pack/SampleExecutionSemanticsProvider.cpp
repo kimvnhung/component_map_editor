@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include <QDebug>
+#include <base_log.h>
 
 QString SampleExecutionSemanticsProvider::providerId() const
 {
@@ -76,9 +76,9 @@ bool SampleExecutionSemanticsProvider::executeComponent(const QString &component
         const double finalResult = resolveNumber(state.value(QStringLiteral("workingNumber")), 0.0);
         state.insert(QStringLiteral("finalResult"), finalResult);
         state.insert(QStringLiteral("completed"), true);
-        qInfo().noquote() << QStringLiteral("[SampleWorkflow] Stop '%1' result: %2")
-                                 .arg(componentId)
-                                 .arg(finalResult);
+        INFOF("[SampleWorkflow] Stop '{}' result: {}",
+              componentId.toStdString(),
+              finalResult);
         if (trace)
             trace->insert(QStringLiteral("result"), finalResult);
     }

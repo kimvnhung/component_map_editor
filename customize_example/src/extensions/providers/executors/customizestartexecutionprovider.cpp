@@ -2,6 +2,8 @@
 
 #include "customizeexecutioncommon.h"
 
+#include <base_log.h>
+
 QString CustomizeStartExecutionProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution.start");
@@ -42,9 +44,7 @@ bool CustomizeStartExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2 - input: %3")
-                      .arg(componentType, componentId)
-                      .arg(inputNumber);
+    INFOF("[Trace][{}] {} - input: {}", componentType.toStdString(), componentId.toStdString(), inputNumber);
 
     return true;
 }

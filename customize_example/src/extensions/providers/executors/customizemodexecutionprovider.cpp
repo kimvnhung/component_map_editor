@@ -2,6 +2,8 @@
 
 #include "customizeexecutioncommon.h"
 
+#include <base_log.h>
+
 QString CustomizeModExecutionProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution.math.mod");
@@ -83,8 +85,7 @@ bool CustomizeModExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
-                      .arg(componentType, componentId);
+    INFOF("[Trace][{}] {}", componentType.toStdString(), componentId.toStdString());
 
     return true;
 }

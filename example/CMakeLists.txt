@@ -49,6 +49,7 @@ target_include_directories(example_app
 
 target_compile_definitions(example_app
     PRIVATE
+    LOG_TAG="CMEExampleApp"
         EXAMPLE_EXTENSION_MANIFEST_DIR="${EXAMPLE_EXTENSION_MANIFEST_DIR}"
         EXAMPLE_EXTENSION_RULE_FILE="${EXAMPLE_EXTENSION_RULE_FILE}"
 )
@@ -66,4 +67,9 @@ target_link_libraries(compatibility_checker_tool
 target_include_directories(compatibility_checker_tool
     PRIVATE
         "${CMAKE_SOURCE_DIR}/component_map_editor"
+)
+
+target_compile_definitions(compatibility_checker_tool
+    PRIVATE
+        LOG_TAG="CMECompatibilityChecker"
 )

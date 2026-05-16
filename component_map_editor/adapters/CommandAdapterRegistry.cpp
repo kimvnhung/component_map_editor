@@ -3,7 +3,7 @@
 #include "CommandAdapterRegistry.h"
 #include "CommandAdapter.h"
 
-#include <QDebug>
+#include <base_log.h>
 
 CommandAdapterRegistry::CommandAdapterRegistry()
 {
@@ -18,12 +18,13 @@ bool CommandAdapterRegistry::registerAdapter(const QString &commandType,
                                              std::unique_ptr<cme::adapter::CommandAdapter> adapter)
 {
     if (commandType.isEmpty() || !adapter) {
-        qWarning() << "CommandAdapterRegistry: cannot register with empty command type or null adapter";
+        WARN("CommandAdapterRegistry: cannot register with empty command type or null adapter");
         return false;
     }
 
     if (m_adapters.find(commandType) != m_adapters.end()) {
-        qWarning() << "CommandAdapterRegistry: adapter for command type" << commandType << "is already registered";
+        WARNF("CommandAdapterRegistry: adapter for command type {} is already registered",
+              commandType.toStdString());
         return false;
     }
 

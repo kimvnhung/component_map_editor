@@ -72,6 +72,7 @@ target_link_libraries(customize_example_app
 
 target_compile_definitions(customize_example_app
     PRIVATE
+    LOG_TAG="CMECustomizeExample"
         EXAMPLE_EXTENSION_MANIFEST_DIR="${EXAMPLE_EXTENSION_MANIFEST_DIR}"
         EXAMPLE_EXTENSION_RULE_FILE="${EXAMPLE_EXTENSION_RULE_FILE}"
 )

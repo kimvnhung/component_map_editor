@@ -43,6 +43,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Core
         Qt6::Quick
         cme_proto
+        base_log
     QmlFontAwesome::QmlFontAwesome
 )
 
@@ -60,4 +61,9 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_BINARY_DIR}/proto
+)
+
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+        LOG_TAG="ComponentMapEditor"
 )

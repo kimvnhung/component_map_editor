@@ -4,7 +4,7 @@
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 
-#include <QDebug>
+#include <base_log.h>
 #include <QList>
 #include <QPointF>
 #include <QRectF>
@@ -588,11 +588,9 @@ QVector<QPointF> OrthogonalHeuristicStrategy::compute(const RouteRequest &reques
         fallbackTarget,
         fallbackTargetOffset);
 
-    qWarning().nospace()
-        << "OrthogonalHeuristicStrategy: no valid route for connection '"
-        << connection->id()
-        << "' sourceSide=" << int(fallbackSource)
-        << " targetSide=" << int(fallbackTarget)
-        << "; using deterministic straight fallback.";
+    WARNF("OrthogonalHeuristicStrategy: no valid route for connection '{}' sourceSide={} targetSide={}; using deterministic straight fallback.",
+          connection->id().toStdString(),
+          int(fallbackSource),
+          int(fallbackTarget));
     return simplifyPolyline({ fallbackStart, fallbackEnd });
 }

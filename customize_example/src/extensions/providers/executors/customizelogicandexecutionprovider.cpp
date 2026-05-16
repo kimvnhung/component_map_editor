@@ -2,6 +2,8 @@
 
 #include "customizeexecutioncommon.h"
 
+#include <base_log.h>
+
 QString CustomizeLogicAndExecutionProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution.logic.and");
@@ -69,8 +71,7 @@ bool CustomizeLogicAndExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
-                      .arg(componentType, componentId);
+    INFOF("[Trace][{}] {}", componentType.toStdString(), componentId.toStdString());
 
     return true;
 }

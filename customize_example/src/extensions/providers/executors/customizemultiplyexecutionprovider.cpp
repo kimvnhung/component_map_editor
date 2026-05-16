@@ -2,6 +2,8 @@
 
 #include "customizeexecutioncommon.h"
 
+#include <base_log.h>
+
 QString CustomizeMultiplyExecutionProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution.math.multiply");
@@ -71,8 +73,7 @@ bool CustomizeMultiplyExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qInfo().noquote() << QStringLiteral("[Trace][%1] %2")
-                      .arg(componentType, componentId);
+    INFOF("[Trace][{}] {}", componentType.toStdString(), componentId.toStdString());
 
     return true;
 }

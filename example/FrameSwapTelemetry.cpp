@@ -1,8 +1,9 @@
 #include "FrameSwapTelemetry.h"
 
+#include <base_log.h>
+
 #include <QQuickWindow>
 #include <QtAlgorithms>
-#include <QDebug>
 
 FrameSwapTelemetry::FrameSwapTelemetry(QObject *parent)
     : QObject(parent)
@@ -108,13 +109,13 @@ void FrameSwapTelemetry::report(const QString &tag)
     computeStats();
 
     const QString reportTag = tag.isEmpty() ? QStringLiteral("Baseline Report") : tag;
-    qDebug().noquote() << "=======================================================";
-    qDebug().noquote() << "[FrameSwapTelemetry]" << reportTag;
-    qDebug().noquote() << QStringLiteral("  Frame swap interval   p50=%1 ms   p95=%2 ms   n=%3")
-                              .arg(QString::number(m_p50, 'f', 2),
-                                   QString::number(m_p95, 'f', 2),
-                                   QString::number(m_samplesMs.size()));
-    qDebug().noquote() << "=======================================================";
+    DEBUG("=======================================================");
+    INFOF("[FrameSwapTelemetry] {}", reportTag.toStdString());
+    INFOF("  Frame swap interval   p50={} ms   p95={} ms   n={}",
+          QString::number(m_p50, 'f', 2).toStdString(),
+          QString::number(m_p95, 'f', 2).toStdString(),
+          m_samplesMs.size());
+    DEBUG("=======================================================");
 }
 
 void FrameSwapTelemetry::onFrameSwapped()

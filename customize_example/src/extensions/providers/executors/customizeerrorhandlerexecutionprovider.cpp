@@ -2,6 +2,8 @@
 
 #include "customizeexecutioncommon.h"
 
+#include <base_log.h>
+
 QString CustomizeErrorHandlerExecutionProvider::providerId() const
 {
     return QStringLiteral("customize.workflow.execution.system.error_handler");
@@ -45,7 +47,9 @@ bool CustomizeErrorHandlerExecutionProvider::executeComponent(
     if (trace)
         *trace = customize::executors::makeTracePayload(componentType, componentId, context, out);
 
-    qWarning().noquote() << QStringLiteral("[Trace][%1] %2 handled=%3")
-                         .arg(componentType, componentId, out.value(errorKey).toString());
+    WARNF("[Trace][{}] {} handled={}",
+          componentType.toStdString(),
+          componentId.toStdString(),
+          out.value(errorKey).toString().toStdString());
     return true;
 }

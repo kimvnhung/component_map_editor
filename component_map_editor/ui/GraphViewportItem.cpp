@@ -15,6 +15,8 @@
 #include "routing/RoutingHelpers.h"
 #include "routing/RouteTypes.h"
 
+#include <base_log.h>
+
 #include <QColor>
 #include <QFont>
 #include <QFontMetrics>
@@ -786,12 +788,10 @@ QVector<QPointF> orthogonalRouteForConnection(ConnectionModel *connection,
         fallbackTarget,
         fallbackTargetOffset);
 
-    qWarning().nospace()
-        << "Orthogonal router fallback: no valid route for connection '"
-        << connection->id()
-        << "' sourceSide=" << int(fallbackSource)
-        << " targetSide=" << int(fallbackTarget)
-        << "; using deterministic straight fallback.";
+    WARNF("Orthogonal router fallback: no valid route for connection '{}' sourceSide={} targetSide={}; using deterministic straight fallback.",
+          connection->id().toStdString(),
+          int(fallbackSource),
+          int(fallbackTarget));
     return simplifyPolyline({ fallbackStart, fallbackEnd });
 }
 

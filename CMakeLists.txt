@@ -32,6 +32,7 @@ message(STATUS "protoc           : ${Protobuf_PROTOC_EXECUTABLE}")
 
 add_subdirectory(qml_fontawesome)
 add_subdirectory(proto)
+add_subdirectory(base_log)
 add_subdirectory(component_map_editor)
 
 if(CME_BUILD_EXAMPLES)
