@@ -1,0 +1,236 @@
+{
+    "extensionId": "default",
+    "graphId": "1778596301152558563",
+    "title": "DDemo2",
+    "description": "tewst",
+    "providedOutputKeys": [],
+    "components": [
+        {
+            "id": "8853ec36-4d9b-4496-91a2-c31dc72bb7a3",
+            "title": "Add",
+            "componentType": {
+                "typeId": "math.add",
+                "title": "Add",
+                "category": "Math",
+                "icon": "plus",
+                "defaultColor": "#1E8E3E",
+                "shape": "rectangle",
+                "defaultWidth": 168,
+                "defaultHeight": 72,
+                "execution": {
+                    "mode": "remote_method",
+                    "path": "components/math/add",
+                    "method": {
+                        "name": "Add",
+                        "version": "v1",
+                        "protocol": "grpc"
+                    }
+                },
+                "providedOutputKeys": [
+                    "workingNumber"
+                ],
+                "defaultProperties": {
+                    "addValue": 1,
+                    "workingNumber": 0
+                }
+            },
+            "nestedGraph": null,
+            "properties": {
+                "addValue": 1,
+                "errorKey": "error",
+                "executionPath": "components/math/add",
+                "methodName": "Add",
+                "methodVersion": "v1",
+                "outputKey": "workingNumber",
+                "workingNumber": 0
+            },
+            "positionX": 213,
+            "positionY": 173,
+            "width": 96,
+            "height": 96,
+            "color": "#1E8E3E",
+            "createdAt": "1779285302634",
+            "updatedAt": "1779285302634"
+        },
+        {
+            "id": "6428b7dc-9a8d-453f-9989-9836c467614b",
+            "title": "Subtract",
+            "componentType": {
+                "typeId": "math.subtract",
+                "title": "Subtract",
+                "category": "Math",
+                "icon": "minus",
+                "defaultColor": "#C5221F",
+                "shape": "rectangle",
+                "defaultWidth": 168,
+                "defaultHeight": 72,
+                "execution": {
+                    "mode": "remote_method",
+                    "path": "components/math/subtract",
+                    "method": {
+                        "name": "Subtract",
+                        "version": "v1",
+                        "protocol": "grpc"
+                    }
+                },
+                "providedOutputKeys": [
+                    "workingNumber"
+                ],
+                "defaultProperties": {
+                    "subtractValue": 1,
+                    "workingNumber": 0
+                }
+            },
+            "nestedGraph": null,
+            "properties": {
+                "errorKey": "error",
+                "executionPath": "components/math/subtract",
+                "methodName": "Subtract",
+                "methodVersion": "v1",
+                "outputKey": "workingNumber",
+                "subtractValue": -2,
+                "workingNumber": 0
+            },
+            "positionX": 956,
+            "positionY": 266,
+            "width": 96,
+            "height": 96,
+            "color": "#C5221F",
+            "createdAt": "1779285302636",
+            "updatedAt": "1779285302636"
+        },
+        {
+            "id": "ed5b0de5-32cb-4e7a-970a-d94959971207",
+            "title": "Demo",
+            "componentType": null,
+            "nestedGraph": {
+                "extensionId": "default",
+                "graphId": "1778587340247180106",
+                "title": "Demo",
+                "description": "Updated by customer",
+                "providedOutputKeys": [],
+                "components": [
+                    {
+                        "id": "cmp_math_add_001",
+                        "title": "Add",
+                        "componentType": {
+                            "typeId": "math.add",
+                            "title": "Add",
+                            "category": "Math",
+                            "icon": "plus",
+                            "defaultColor": "#1E8E3E",
+                            "shape": "rectangle",
+                            "defaultWidth": 168,
+                            "defaultHeight": 72,
+                            "execution": {
+                                "mode": "remote_method",
+                                "path": "components/math/add",
+                                "method": {
+                                    "name": "Add",
+                                    "version": "v1",
+                                    "protocol": "grpc"
+                                }
+                            },
+                            "providedOutputKeys": [
+                                "workingNumber"
+                            ],
+                            "defaultProperties": {
+                                "addValue": 1,
+                                "workingNumber": 0
+                            }
+                        },
+                        "nestedGraph": null,
+                        "properties": {
+                            "addValue": 3
+                        },
+                        "positionX": 389,
+                        "positionY": 194,
+                        "width": 168,
+                        "height": 72,
+                        "color": "#1E8E3E",
+                        "createdAt": "1778602740197",
+                        "updatedAt": "1778602740197"
+                    },
+                    {
+                        "id": "f8fefd19-c411-4adf-bb34-de3894742e20",
+                        "title": "Subtract",
+                        "componentType": {
+                            "typeId": "math.subtract",
+                            "title": "Subtract",
+                            "category": "Math",
+                            "icon": "minus",
+                            "defaultColor": "#C5221F",
+                            "shape": "rectangle",
+                            "defaultWidth": 168,
+                            "defaultHeight": 72,
+                            "execution": {
+                                "mode": "remote_method",
+                                "path": "components/math/subtract",
+                                "method": {
+                                    "name": "Subtract",
+                                    "version": "v1",
+                                    "protocol": "grpc"
+                                }
+                            },
+                            "providedOutputKeys": [
+                                "workingNumber"
+                            ],
+                            "defaultProperties": {
+                                "subtractValue": 1,
+                                "workingNumber": 0
+                            }
+                        },
+                        "nestedGraph": null,
+                        "properties": {
+                            "subtractValue": -6
+                        },
+                        "positionX": 885,
+                        "positionY": 328,
+                        "width": 96,
+                        "height": 96,
+                        "color": "#C5221F",
+                        "createdAt": "1778602740197",
+                        "updatedAt": "1778602740197"
+                    }
+                ],
+                "connections": [],
+                "createdAt": "1778587340248",
+                "updatedAt": "1778602740196"
+            },
+            "properties": {},
+            "positionX": 628,
+            "positionY": 529,
+            "width": 96,
+            "height": 96,
+            "color": "#4fc3f7",
+            "createdAt": "1779285302636",
+            "updatedAt": "1779285302636"
+        }
+    ],
+    "connections": [
+        {
+            "connectionId": "conn_ed5b0de5-32cb-4e7a-970a-d94959971207_6428b7dc-9a8d-453f-9989-9836c467614b",
+            "sourceComponentId": "ed5b0de5-32cb-4e7a-970a-d94959971207",
+            "targetComponentId": "6428b7dc-9a8d-453f-9989-9836c467614b",
+            "label": "path A",
+            "tokenKey": "tok.ed5b0de5-32cb-4e7a-970a-d94959971207.6428b7dc-9a8d-453f-9989-9836c467614b",
+            "sourceSide": 1,
+            "targetSide": -1,
+            "createdAt": "0",
+            "updatedAt": "0"
+        },
+        {
+            "connectionId": "conn_ed5b0de5-32cb-4e7a-970a-d94959971207_8853ec36-4d9b-4496-91a2-c31dc72bb7a3",
+            "sourceComponentId": "ed5b0de5-32cb-4e7a-970a-d94959971207",
+            "targetComponentId": "8853ec36-4d9b-4496-91a2-c31dc72bb7a3",
+            "label": "path A",
+            "tokenKey": "tok.ed5b0de5-32cb-4e7a-970a-d94959971207.8853ec36-4d9b-4496-91a2-c31dc72bb7a3",
+            "sourceSide": 3,
+            "targetSide": -1,
+            "createdAt": "0",
+            "updatedAt": "0"
+        }
+    ],
+    "createdAt": "1778596301153",
+    "updatedAt": "1779285302632"
+}

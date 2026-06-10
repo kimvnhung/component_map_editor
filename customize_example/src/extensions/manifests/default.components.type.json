@@ -1,0 +1,56 @@
+{
+    "componentTypes": [
+        {
+            "typeId": "math.add",
+            "title": "Add",
+            "category": "Math",
+            "icon": "plus",
+            "defaultColor": "#1E8E3E",
+            "shape": "rectangle",
+            "defaultWidth": 168,
+            "defaultHeight": 72,
+            "execution": {
+                "mode": "remote_method",
+                "path": "components/math/add",
+                "method": {
+                    "name": "Add",
+                    "version": "v1",
+                    "protocol": "grpc"
+                }
+            },
+            "providedOutputKeys": [
+                "workingNumber"
+            ],
+            "defaultProperties": {
+                "addValue": 1,
+                "workingNumber": 0
+            }
+        },
+        {
+            "typeId": "math.subtract",
+            "title": "Subtract",
+            "category": "Math",
+            "icon": "minus",
+            "defaultColor": "#C5221F",
+            "shape": "rectangle",
+            "defaultWidth": 168,
+            "defaultHeight": 72,
+            "execution": {
+                "mode": "remote_method",
+                "path": "components/math/subtract",
+                "method": {
+                    "name": "Subtract",
+                    "version": "v1",
+                    "protocol": "grpc"
+                }
+            },
+            "providedOutputKeys": [
+                "workingNumber"
+            ],
+            "defaultProperties": {
+                "subtractValue": 1,
+                "workingNumber": 0
+            }
+        }
+    ]
+}
