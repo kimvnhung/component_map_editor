@@ -33,6 +33,14 @@ configure_file(
     COPYONLY
 )
 
+set(COMPONENT_TYPES_DEFINITION_FILE "${CMAKE_CURRENT_BINARY_DIR}/component.types.definition.json")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/component.types.definition.json"
+    "${COMPONENT_TYPES_DEFINITION_FILE}"
+    COPYONLY
+)
+add_definitions(-DCOMPONENT_TYPES_DEFINITION_FILE="${COMPONENT_TYPES_DEFINITION_FILE}")
+
 file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     *.qml
 )

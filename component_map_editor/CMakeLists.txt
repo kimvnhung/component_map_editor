@@ -44,7 +44,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Quick
         cme_proto
         base_log
-    QmlFontAwesome::QmlFontAwesome
+        QmlFontAwesome::QmlFontAwesome
 )
 
 # Copy HEADER_FILES to folder include in build directory

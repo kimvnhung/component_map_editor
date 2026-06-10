@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package cme;
+
+enum ExecutionMode {
+  UNDEFINED_MODE = 0;
+  STATIC_MODE = 1;
+  DYNAMIC_MODE = 2;
+}
+
+message ComponentType {
+  string typeId = 1;
+  string title = 2;
+  string category = 3;
+  string icon = 4;
+  string defaultColor = 5;
+  string shape = 6;
+  int32 defaultWidth = 7;
+  int32 defaultHeight = 8;
+  ExecutionMode executionMode = 9;
+  repeated string providedOutputKeys = 10;
+  map<string, string> defaultProperties = 11;
+}
