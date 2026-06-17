@@ -6,7 +6,7 @@
 #include <QStringList>
 #include <QVector>
 
-#include <functional>
+#include "utils/common.h"
 #include <memory>
 #include <vector>
 
@@ -17,7 +17,8 @@ class ExtensionContractRegistry;
 
 struct ExtensionLoadDiagnostic
 {
-    enum class Severity {
+    enum class Severity
+    {
         Info,
         Warning,
         Error
@@ -42,8 +43,6 @@ struct ExtensionLoadResult
 class ExtensionStartupLoader
 {
 public:
-    using PackFactory = std::function<std::unique_ptr<IExtensionPack>()>;
-
     void registerFactory(const QString &extensionId, PackFactory factory);
     void clearFactories();
 
@@ -56,7 +55,8 @@ public:
     int loadedPackCount() const;
 
 private:
-    struct DiscoveredManifest {
+    struct DiscoveredManifest
+    {
         ExtensionManifest manifest;
         QString path;
     };

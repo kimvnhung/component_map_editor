@@ -2,6 +2,7 @@
 #define COMPONENTMAPEDITORMANAGER_H
 
 #include "extensions/runtime/ExtensionStartupLoader.h"
+#include "extensions/contracts/ExtensionApiVersion.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
 #include "extensions/runtime/TypeRegistry.h"
 #include "extensions/runtime/rules/RuleBackedProviders.h"
@@ -9,6 +10,11 @@
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "services/GraphExecutionSandbox.h"
 #include <QObject>
+#include <QString>
+
+class ExtensionContractRegistry;
+class IComponentTypeProvider;
+class ExtensionPackBuilder;
 
 class ComponentMapEditorManager : public QObject
 {
@@ -17,11 +23,31 @@ class ComponentMapEditorManager : public QObject
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry READ propertySchemaRegistry CONSTANT)
     Q_PROPERTY(GraphExecutionSandbox* executionSandbox READ executionSandbox CONSTANT)
 public:
-    explicit ComponentMapEditorManager(ExtensionStartupLoader::PackFactory extensionPackFactory = nullptr);
+    explicit ComponentMapEditorManager(PackFactory extensionPackFactory = nullptr);
+
+    // Extended constructor used by the builder to inject custom services and configuration.
+    ComponentMapEditorManager(PackFactory extensionPackFactory,
+                              const ExtensionApiVersion &coreApiVersion,
+                              const IComponentTypeProvider *customComponentProvider,
+                              PropertySchemaRegistry *customPropertySchemaRegistry,
+                              GraphExecutionSandbox *customExecutionSandbox,
+                              const QString &ruleFilePath,
+                              const QString &manifestDir);
 
     TypeRegistry *componentTypeRegistry() const { return m_componentTypeRegistry; }
     PropertySchemaRegistry *propertySchemaRegistry() const { return m_propertySchemaRegistry; }
     GraphExecutionSandbox *executionSandbox() const { return m_executionSandbox; }
+
+public:
+    Q_INVOKABLE void reloadComponentTypes();
+
+    // Setter to change the extension pack factory after construction.
+    void setExtensionPackFactory(PackFactory factory);
+
+    // Public setters for runtime replacement (also useful for tests).
+    void setExtensionContractVersion(const ExtensionApiVersion &v);
+    void setRuleFilePath(const QString &path);
+    void setManifestDir(const QString &dir);
 
 private:
     ExtensionContractRegistry *m_extensionContracts = nullptr;
@@ -35,14 +61,33 @@ private:
     TypeRegistry *m_componentTypeRegistry = nullptr;
     PropertySchemaRegistry *m_propertySchemaRegistry = nullptr;
     GraphExecutionSandbox *m_executionSandbox = nullptr;
+
+    QString m_manifestDir;
 };
 
-class ComponentMapEditorBuilder
+
+class ComponentMapEditorManagerBuilder
 {
 public:
-    static std::unique_ptr<ComponentMapEditorManager> build(const QString& extensionId,
-            ExtensionStartupLoader::PackFactory extensionPackFactory);
+    ComponentMapEditorManagerBuilder &withExtensionPackFactory(PackFactory factory);
+    ComponentMapEditorManagerBuilder &withExtensionPackBuilder(const ExtensionPackBuilder &builder);
 
+    ComponentMapEditorManagerBuilder &withExtensionContractVersion(const ExtensionApiVersion &v);
+    ComponentMapEditorManagerBuilder &withRuleFilePath(const QString &path);
+    ComponentMapEditorManagerBuilder &withManifestDir(const QString &dir);
+
+    ComponentMapEditorManager *build();
+private:
+    PackFactory m_packFactory{nullptr};
+    ExtensionApiVersion m_coreVersion{1, 0, 0};
+    ExtensionPackBuilder *m_extensionPackBuilder{nullptr};
+    bool m_hasExtensionPackBuilder{false};
+    QString m_ruleFilePath;
+    QString m_manifestDir;
+    ComponentMapEditorManager *m_manager{nullptr};
+
+    void rebuild();
 };
+
 
 #endif // COMPONENTMAPEDITORMANAGER_H

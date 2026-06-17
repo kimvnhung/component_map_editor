@@ -77,6 +77,10 @@ target_link_libraries(customize_example_app
         libComponentMapEditor
 )
 
+target_include_directories(customize_example_app
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 target_compile_definitions(customize_example_app
     PRIVATE
