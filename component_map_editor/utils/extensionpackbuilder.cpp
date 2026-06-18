@@ -15,10 +15,14 @@ class BuiltExtensionPack : public IExtensionPack
 public:
     BuiltExtensionPack(std::unique_ptr<IComponentTypeProvider> component,
                        std::unique_ptr<IPropertySchemaProvider> propertySchema,
-                       std::unique_ptr<IExecutionSemanticsProvider> execution)
+                       std::unique_ptr<IExecutionSemanticsProvider> execution,
+                       PropertySchemaRegistryFactory propFactory,
+                       ExecutionSandboxFactory sandboxFactory)
         : m_componentProvider(std::move(component))
         , m_propertySchemaProvider(std::move(propertySchema))
         , m_executionSemanticsProvider(std::move(execution))
+        , m_propertySchemaRegistryFactory(std::move(propFactory))
+        , m_executionSandboxFactory(std::move(sandboxFactory))
     {}
 
     bool registerProviders(ExtensionContractRegistry &registry, QString *error = nullptr) override
@@ -76,10 +80,30 @@ public:
         return success;
     }
 
+    void rebuildAuxiliaryRegistries(std::unique_ptr<PropertySchemaRegistry> *outPropRegistry,
+                                   std::unique_ptr<GraphExecutionSandbox> *outSandbox) const override
+    {
+        if (outPropRegistry) {
+            if (m_propertySchemaRegistryFactory)
+                *outPropRegistry = m_propertySchemaRegistryFactory();
+            else
+                *outPropRegistry = nullptr;
+        }
+
+        if (outSandbox) {
+            if (m_executionSandboxFactory)
+                *outSandbox = m_executionSandboxFactory();
+            else
+                *outSandbox = nullptr;
+        }
+    }
+
 private:
     std::unique_ptr<IComponentTypeProvider> m_componentProvider;
     std::unique_ptr<IPropertySchemaProvider> m_propertySchemaProvider;
     std::unique_ptr<IExecutionSemanticsProvider> m_executionSemanticsProvider;
+    PropertySchemaRegistryFactory m_propertySchemaRegistryFactory;
+    ExecutionSandboxFactory m_executionSandboxFactory;
 };
 
 ExtensionPackBuilder &ExtensionPackBuilder::withComponentProviderFactory(ComponentFactory f)
@@ -115,12 +139,12 @@ ExtensionPackBuilder &ExtensionPackBuilder::withExecutionSandboxFactory(Executio
 PackFactory ExtensionPackBuilder::build() const
 {
     return [c = m_componentFactory, p = m_propertySchemaFactory,
-            e = m_executionFactory]() -> std::unique_ptr<IExtensionPack>
+            e = m_executionFactory, pr = m_propertySchemaRegistryFactory, s = m_executionSandboxFactory]() -> std::unique_ptr<IExtensionPack>
     {
         std::unique_ptr<IComponentTypeProvider> comp = c ? c() : nullptr;
         std::unique_ptr<IPropertySchemaProvider> prop = p ? p() : nullptr;
         std::unique_ptr<IExecutionSemanticsProvider> exec = e ? e() : nullptr;
-        return std::make_unique<BuiltExtensionPack>(std::move(comp), std::move(prop), std::move(exec));
+        return std::make_unique<BuiltExtensionPack>(std::move(comp), std::move(prop), std::move(exec), pr, s);
     };
 }
 

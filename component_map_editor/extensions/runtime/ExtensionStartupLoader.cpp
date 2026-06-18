@@ -168,6 +168,18 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
             continue;
         }
 
+        // Allow packs to provide auxiliary registries (created by builder factories)
+        std::unique_ptr<PropertySchemaRegistry> propUp;
+        std::unique_ptr<GraphExecutionSandbox> execUp;
+        pack->rebuildAuxiliaryRegistries(&propUp, &execUp);
+
+        // If a pack returned a non-null auxiliary registry and we don't have one yet,
+        // adopt it for the result so callers (usually ComponentMapEditorManager) can swap.
+        if (!result.propertySchemaRegistry && propUp)
+            result.propertySchemaRegistry = std::move(propUp);
+        if (!result.executionSandbox && execUp)
+            result.executionSandbox = std::move(execUp);
+
         m_loadedPacks.push_back(std::move(pack));
         ++result.loadedPackCount;
         result.loadedExtensionIds.append(extensionId);

@@ -36,6 +36,8 @@ struct ExtensionLoadResult
     int loadedPackCount = 0;
     QStringList loadedExtensionIds;
     QVector<ExtensionLoadDiagnostic> diagnostics;
+    std::unique_ptr<PropertySchemaRegistry> propertySchemaRegistry;
+    std::unique_ptr<GraphExecutionSandbox> executionSandbox;
 
     bool hasErrors() const;
 };
