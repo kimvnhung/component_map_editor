@@ -17,6 +17,7 @@ ComponentMapEditorManager::ComponentMapEditorManager(PackFactory extensionPackFa
     : ComponentMapEditorManager(extensionPackFactory, ExtensionApiVersion{1, 0, 0}, nullptr, nullptr, nullptr,
                                 QString::fromUtf8(EXAMPLE_EXTENSION_RULE_FILE), QString::fromUtf8(EXAMPLE_EXTENSION_MANIFEST_DIR))
 {
+    reloadExtensionPacks();
 }
 
 ComponentMapEditorManager::ComponentMapEditorManager(PackFactory extensionPackFactory,
@@ -93,6 +94,17 @@ void ComponentMapEditorManager::setExtensionPackFactory(PackFactory factory)
 
     m_extensionStartupLoader->clearFactories();
     m_extensionStartupLoader->registerFactory("customize.workflow", factory);
+    reloadExtensionPacks();
+}
+
+void ComponentMapEditorManager::reloadExtensionPacks()
+{
+    if (!m_extensionStartupLoader || !m_extensionContracts)
+    {
+        LOGW("Cannot reload extension packs because the startup loader or contract registry is not initialized.");
+        return;
+    }
+
     // Re-scan manifests using the same manifest directory used at construction.
     m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
 
@@ -111,7 +123,7 @@ void ComponentMapEditorManager::setExtensionContractVersion(const ExtensionApiVe
 
     // Recreate the registry with the new version and reload manifests.
     m_extensionContracts = new ExtensionContractRegistry(v);
-    rebuild();
+    reloadExtensionPacks();
 }
 
 void ComponentMapEditorManager::setRuleFilePath(const QString &path)
@@ -126,13 +138,8 @@ void ComponentMapEditorManager::setManifestDir(const QString &dir)
 {
     m_manifestDir = dir;
 
-    if (m_extensionStartupLoader && m_extensionContracts)
-    {
-        m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
-        m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
-        m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
-        m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
-    }
+    // Immediately reload packs from the new directory.
+    reloadExtensionPacks();
 }
 
 ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensionPackFactory(
@@ -211,20 +218,4 @@ ComponentMapEditorManager *ComponentMapEditorManagerBuilder::build()
     }
 
     return m_manager;
-}
-
-void ComponentMapEditorManagerBuilder::rebuild()
-{
-    if (m_manager)
-    {
-        QString providerError;
-        m_extensionContracts->registerConnectionPolicyProvider(m_connectionPolicyProvider, &providerError);
-        m_extensionContracts->registerValidationProvider(m_validationProvider, &providerError);
-
-        m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
-
-        m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
-        m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
-        m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
-    }
 }

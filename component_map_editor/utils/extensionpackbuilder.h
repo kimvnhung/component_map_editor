@@ -10,11 +10,11 @@ class ExtensionPackBuilder
 public:
     ExtensionPackBuilder() = default;
 
-    ExtensionPackBuilder &withComponentProviderFactory(ComponentFactory f) { m_componentFactory = std::move(f); return *this; }
-    ExtensionPackBuilder &withPropertySchemaProviderFactory(PropertySchemaFactory f) { m_propertySchemaFactory = std::move(f); return *this; }
-    ExtensionPackBuilder &withExecutionSemanticsFactory(ExecutionSemanticsFactory f) { m_executionFactory = std::move(f); return *this; }
-    ExtensionPackBuilder &withPropertySchemaRegistryFactory(PropertySchemaRegistryFactory f) { m_propertySchemaRegistryFactory = std::move(f); return *this; }
-    ExtensionPackBuilder &withExecutionSandboxFactory(ExecutionSandboxFactory f) { m_executionSandboxFactory = std::move(f); return *this; }
+    ExtensionPackBuilder &withComponentProviderFactory(ComponentFactory f);
+    ExtensionPackBuilder &withPropertySchemaProviderFactory(PropertySchemaFactory f);
+    ExtensionPackBuilder &withExecutionSemanticsFactory(ExecutionSemanticsFactory f);
+    ExtensionPackBuilder &withPropertySchemaRegistryFactory(PropertySchemaRegistryFactory f);
+    ExtensionPackBuilder &withExecutionSandboxFactory(ExecutionSandboxFactory f);
 
     // Returns a PackFactory compatible with ExtensionStartupLoader::registerFactory
     PackFactory build() const;

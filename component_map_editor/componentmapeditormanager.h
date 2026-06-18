@@ -48,7 +48,8 @@ public:
     void setExtensionContractVersion(const ExtensionApiVersion &v);
     void setRuleFilePath(const QString &path);
     void setManifestDir(const QString &dir);
-
+private:
+    void reloadExtensionPacks();
 private:
     ExtensionContractRegistry *m_extensionContracts = nullptr;
     ExtensionStartupLoader *m_extensionStartupLoader = nullptr;

@@ -82,6 +82,36 @@ private:
     std::unique_ptr<IExecutionSemanticsProvider> m_executionSemanticsProvider;
 };
 
+ExtensionPackBuilder &ExtensionPackBuilder::withComponentProviderFactory(ComponentFactory f)
+{
+    m_componentFactory = std::move(f);
+    return *this;
+}
+
+ExtensionPackBuilder &ExtensionPackBuilder::withPropertySchemaProviderFactory(PropertySchemaFactory f)
+{
+    m_propertySchemaFactory = std::move(f);
+    return *this;
+}
+
+ExtensionPackBuilder &ExtensionPackBuilder::withExecutionSemanticsFactory(ExecutionSemanticsFactory f)
+{
+    m_executionFactory = std::move(f);
+    return *this;
+}
+
+ExtensionPackBuilder &ExtensionPackBuilder::withPropertySchemaRegistryFactory(PropertySchemaRegistryFactory f)
+{
+    m_propertySchemaRegistryFactory = std::move(f);
+    return *this;
+}
+
+ExtensionPackBuilder &ExtensionPackBuilder::withExecutionSandboxFactory(ExecutionSandboxFactory f)
+{
+    m_executionSandboxFactory = std::move(f);
+    return *this;
+}
+
 PackFactory ExtensionPackBuilder::build() const
 {
     return [c = m_componentFactory, p = m_propertySchemaFactory,
