@@ -66,8 +66,22 @@ ComponentMapEditorManager::ComponentMapEditorManager(PackFactory extensionPackFa
     }
 
     m_extensionStartupLoader->registerFactory("customize.workflow", extensionPackFactory);
-    m_extensionStartupLoader->loadFromDirectory(manifestDir, *m_extensionContracts);
+    const ExtensionLoadResult loadResult = m_extensionStartupLoader->loadFromDirectory(manifestDir, *m_extensionContracts);
 
+    // If the loader returned auxiliary registries produced by builder factories,
+    // adopt them (first non-null wins).
+    if (loadResult.propertySchemaRegistry) {
+        if (m_propertySchemaRegistry)
+            delete m_propertySchemaRegistry;
+        m_propertySchemaRegistry = loadResult.propertySchemaRegistry.release();
+    }
+    if (loadResult.executionSandbox) {
+        if (m_executionSandbox)
+            delete m_executionSandbox;
+        m_executionSandbox = loadResult.executionSandbox.release();
+    }
+
+    // Rebuild registries to reflect newly-registered providers.
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
@@ -106,7 +120,19 @@ void ComponentMapEditorManager::reloadExtensionPacks()
     }
 
     // Re-scan manifests using the same manifest directory used at construction.
-    m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
+    const ExtensionLoadResult loadResult = m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
+
+    // Adopt any auxiliary registries provided by the packs (if any).
+    if (loadResult.propertySchemaRegistry) {
+        if (m_propertySchemaRegistry)
+            delete m_propertySchemaRegistry;
+        m_propertySchemaRegistry = loadResult.propertySchemaRegistry.release();
+    }
+    if (loadResult.executionSandbox) {
+        if (m_executionSandbox)
+            delete m_executionSandbox;
+        m_executionSandbox = loadResult.executionSandbox.release();
+    }
 
     // Rebuild registries to reflect newly-registered providers.
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
