@@ -11,6 +11,7 @@
 #include <QVariantList>
 #include <qqmlintegration.h>
 
+
 class FontAwesome : public QObject
 {
     Q_OBJECT
@@ -18,7 +19,8 @@ class FontAwesome : public QObject
     QML_SINGLETON
 
 public:
-    enum Style {
+    enum Style
+    {
         Solid = 0,
         Regular = 1,
         Brands = 2
@@ -52,7 +54,8 @@ public:
     static int weightForCpp(Style style = Solid);
 
 private:
-    struct SharedData {
+    struct SharedData
+    {
         bool loaded = false;
         QHash<QString, QHash<QString, QString>> glyphByStyle;
         QHash<QString, QString> familyByStyle;
