@@ -4,7 +4,9 @@
 #include <QQmlContext>
 #include <componentmapeditormanager.h>
 #include <extensionpackbuilder.h>
-#include <extensions/providers/customizecomponenttypeprovider.h>
+#include "extensions/providers/customizecomponenttypeprovider.h"
+#include "extensions/providers/customizepropertyschemaprovider.h"
+#include "extensions/providers/customizeexecutionsanticsprovider.h"
 
 #include <services/ExecutionMigrationFlags.h>
 
@@ -15,12 +17,18 @@ int main(int argc, char *argv[])
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
     ComponentMapEditorManager *manager = ComponentMapEditorManagerBuilder()
-                                         .withExtensionPackFactory(
+                                         .withExtensionPackBuilder(
                                                  ExtensionPackBuilder()
                                                  .withComponentProviderFactory(
                                                          utils::makeFactory<CustomizeComponentTypeProvider>()
                                                  )
-                                                 .build())
+                                                 .withPropertySchemaProviderFactory(
+                                                         utils::makeFactory<CustomizePropertySchemaProvider>()
+                                                 )
+                                                 .withExecutionSemanticsFactory(
+                                                         utils::makeFactory<CustomizeExecutionSemanticsProvider>()
+                                                 )
+                                         )
                                          .build();
 
     QQmlApplicationEngine engine;

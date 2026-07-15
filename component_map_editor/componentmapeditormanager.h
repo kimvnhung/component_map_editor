@@ -23,14 +23,10 @@ class ComponentMapEditorManager : public QObject
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry READ propertySchemaRegistry CONSTANT)
     Q_PROPERTY(GraphExecutionSandbox* executionSandbox READ executionSandbox CONSTANT)
 public:
-    explicit ComponentMapEditorManager(PackFactory extensionPackFactory = nullptr);
-
     // Extended constructor used by the builder to inject custom services and configuration.
-    ComponentMapEditorManager(PackFactory extensionPackFactory,
-                              const ExtensionApiVersion &coreApiVersion,
-                              const IComponentTypeProvider *customComponentProvider,
-                              PropertySchemaRegistry *customPropertySchemaRegistry,
-                              GraphExecutionSandbox *customExecutionSandbox,
+    ComponentMapEditorManager(const ExtensionApiVersion &coreApiVersion,
+                              //Other parameters can be added here as needed for more granular control over initialization.
+                              PackFactory extensionPackFactory,
                               const QString &ruleFilePath,
                               const QString &manifestDir);
 
@@ -48,7 +44,6 @@ public:
     void setExtensionContractVersion(const ExtensionApiVersion &v);
     void setRuleFilePath(const QString &path);
     void setManifestDir(const QString &dir);
-private:
     void reloadExtensionPacks();
 private:
     ExtensionContractRegistry *m_extensionContracts = nullptr;
@@ -82,12 +77,9 @@ private:
     PackFactory m_packFactory{nullptr};
     ExtensionApiVersion m_coreVersion{1, 0, 0};
     ExtensionPackBuilder *m_extensionPackBuilder{nullptr};
-    bool m_hasExtensionPackBuilder{false};
     QString m_ruleFilePath;
     QString m_manifestDir;
     ComponentMapEditorManager *m_manager{nullptr};
-
-    void rebuild();
 };
 
 

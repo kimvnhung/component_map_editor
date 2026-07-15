@@ -13,20 +13,11 @@
     #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
 #endif
 
-ComponentMapEditorManager::ComponentMapEditorManager(PackFactory extensionPackFactory)
-    : ComponentMapEditorManager(extensionPackFactory, ExtensionApiVersion{1, 0, 0}, nullptr, nullptr, nullptr,
-                                QString::fromUtf8(EXAMPLE_EXTENSION_RULE_FILE), QString::fromUtf8(EXAMPLE_EXTENSION_MANIFEST_DIR))
-{
-    reloadExtensionPacks();
-}
-
-ComponentMapEditorManager::ComponentMapEditorManager(PackFactory extensionPackFactory,
-        const ExtensionApiVersion &coreApiVersion,
-        const IComponentTypeProvider *customComponentProvider,
-        PropertySchemaRegistry *customPropertySchemaRegistry,
-        GraphExecutionSandbox *customExecutionSandbox,
-        const QString &ruleFilePath,
-        const QString &manifestDir)
+ComponentMapEditorManager::ComponentMapEditorManager(
+    const ExtensionApiVersion &coreApiVersion,
+    PackFactory extensionPackFactory,
+    const QString &ruleFilePath,
+    const QString &manifestDir)
     : QObject{nullptr}
     , m_extensionContracts(new ExtensionContractRegistry(coreApiVersion))
     , m_extensionStartupLoader(new ExtensionStartupLoader())
@@ -35,26 +26,43 @@ ComponentMapEditorManager::ComponentMapEditorManager(PackFactory extensionPackFa
     , m_validationProvider(new RuleBackedValidationProvider(m_ruleRegistry))
     , m_ruleHotReloadService(new RuleHotReloadService(m_ruleRegistry))
     , m_componentTypeRegistry(new TypeRegistry())
-    , m_propertySchemaRegistry(customPropertySchemaRegistry ? customPropertySchemaRegistry : new PropertySchemaRegistry())
-    , m_executionSandbox(customExecutionSandbox ? customExecutionSandbox : new GraphExecutionSandbox())
+    , m_propertySchemaRegistry(new PropertySchemaRegistry())
+    , m_executionSandbox(new GraphExecutionSandbox())
+    , m_manifestDir(manifestDir)
 {
     // 1. Set up the extension contract registry and register any built-in providers.
     QString providerError;
-    m_extensionContracts->registerConnectionPolicyProvider(m_connectionPolicyProvider, &providerError);
-    m_extensionContracts->registerValidationProvider(m_validationProvider, &providerError);
 
-    // If a custom component provider is supplied, register it so TypeRegistry picks it up.
-    if (customComponentProvider)
+    if (!m_extensionContracts->registerConnectionPolicyProvider(m_connectionPolicyProvider, &providerError))
     {
-        m_extensionContracts->registerComponentTypeProvider(customComponentProvider, &providerError);
+        LOGWF("[Rules][ERROR] Failed to register compiled connection policy provider: {}",
+              providerError.toStdString());
+    }
+
+    if (!m_extensionContracts->registerValidationProvider(m_validationProvider, &providerError))
+    {
+        LOGWF("[Rules][ERROR] Failed to register compiled validation provider: {}",
+              providerError.toStdString());
     }
 
     // 2. Start watching the rule file – changes are picked up without restart.
-    m_ruleHotReloadService->startWatchingFile(ruleFilePath);
+    if (!m_ruleHotReloadService->startWatchingFile(ruleFilePath))
+    {
+        const QVector<RuleDiagnostic> diagnostics = m_ruleHotReloadService->lastDiagnostics();
+
+        if (!diagnostics.isEmpty())
+        {
+            const RuleDiagnostic first = diagnostics.first();
+            LOGWF("[Rules][ERROR] {} file={} jsonPath={} line={} column={}",
+                  first.message.toStdString(),
+                  first.location.filePath.toStdString(),
+                  first.location.jsonPath.toStdString(),
+                  first.location.line,
+                  first.location.column);
+        }
+    }
 
     // 3. Discover and load extension packs from the manifest directory.
-    m_manifestDir = manifestDir;
-
     // If caller didn't provide a factory, fall back to the built-in sample pack and warn.
     if (!extensionPackFactory)
     {
@@ -66,25 +74,7 @@ ComponentMapEditorManager::ComponentMapEditorManager(PackFactory extensionPackFa
     }
 
     m_extensionStartupLoader->registerFactory("customize.workflow", extensionPackFactory);
-    const ExtensionLoadResult loadResult = m_extensionStartupLoader->loadFromDirectory(manifestDir, *m_extensionContracts);
-
-    // If the loader returned auxiliary registries produced by builder factories,
-    // adopt them (first non-null wins).
-    if (loadResult.propertySchemaRegistry) {
-        if (m_propertySchemaRegistry)
-            delete m_propertySchemaRegistry;
-        m_propertySchemaRegistry = loadResult.propertySchemaRegistry.release();
-    }
-    if (loadResult.executionSandbox) {
-        if (m_executionSandbox)
-            delete m_executionSandbox;
-        m_executionSandbox = loadResult.executionSandbox.release();
-    }
-
-    // Rebuild registries to reflect newly-registered providers.
-    m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
-    m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
-    m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
+    reloadExtensionPacks();
 }
 
 void ComponentMapEditorManager::reloadComponentTypes()
@@ -120,19 +110,7 @@ void ComponentMapEditorManager::reloadExtensionPacks()
     }
 
     // Re-scan manifests using the same manifest directory used at construction.
-    const ExtensionLoadResult loadResult = m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
-
-    // Adopt any auxiliary registries provided by the packs (if any).
-    if (loadResult.propertySchemaRegistry) {
-        if (m_propertySchemaRegistry)
-            delete m_propertySchemaRegistry;
-        m_propertySchemaRegistry = loadResult.propertySchemaRegistry.release();
-    }
-    if (loadResult.executionSandbox) {
-        if (m_executionSandbox)
-            delete m_executionSandbox;
-        m_executionSandbox = loadResult.executionSandbox.release();
-    }
+    m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
 
     // Rebuild registries to reflect newly-registered providers.
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
@@ -163,9 +141,6 @@ void ComponentMapEditorManager::setRuleFilePath(const QString &path)
 void ComponentMapEditorManager::setManifestDir(const QString &dir)
 {
     m_manifestDir = dir;
-
-    // Immediately reload packs from the new directory.
-    reloadExtensionPacks();
 }
 
 ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensionPackFactory(
@@ -185,7 +160,6 @@ ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensio
     }
 
     m_extensionPackBuilder = new ExtensionPackBuilder(builder);
-    m_hasExtensionPackBuilder = true;
     return *this;
 }
 
@@ -212,36 +186,15 @@ ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withManifest
 
 ComponentMapEditorManager *ComponentMapEditorManagerBuilder::build()
 {
-    if (!m_manager)
+    if (m_manager)
     {
-        // If an ExtensionPackBuilder was provided, use it to create the pack factory
-        // and produce runtime registries/sandbox to hand to the manager.
-        PropertySchemaRegistry *propRegistry = nullptr;
-        GraphExecutionSandbox *execSandbox = nullptr;
-
-        if (m_hasExtensionPackBuilder && m_extensionPackBuilder)
-        {
-            // adopt the pack factory produced by the extension pack builder
-            m_packFactory = m_extensionPackBuilder->build();
-
-            // create instances using the builder and release ownership to manager
-            auto propUp = m_extensionPackBuilder->createPropertySchemaRegistry();
-
-            if (propUp) { propRegistry = propUp.release(); }
-
-            auto execUp = m_extensionPackBuilder->createExecutionSandbox();
-
-            if (execUp) { execSandbox = execUp.release(); }
-        }
-
-        m_manager = new ComponentMapEditorManager(m_packFactory,
-            m_coreVersion,
-            nullptr,
-            propRegistry,
-            execSandbox,
-            m_ruleFilePath,
-            m_manifestDir);
+        delete m_manager;
     }
+
+    m_manager = new ComponentMapEditorManager(m_coreVersion,
+        m_packFactory ? m_packFactory :
+        (m_extensionPackBuilder ? m_extensionPackBuilder->build() : nullptr),
+        m_ruleFilePath, m_manifestDir);
 
     return m_manager;
 }
