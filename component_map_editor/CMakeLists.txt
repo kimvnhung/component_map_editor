@@ -44,6 +44,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Quick
         cme_proto
         base_log
+    PRIVATE
         QmlFontAwesome::QmlFontAwesome
 )
 
