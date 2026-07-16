@@ -203,6 +203,17 @@ Rectangle {
             bottomPadding: 4
         }
 
+        // Show text if no component types are registered in the palette.
+        Text {
+            text: "No component types registered."
+            visible: root.componentTypes.length === 0
+            font.pixelSize: 12
+            color: "#888888"
+            horizontalAlignment: Text.AlignHCenter
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+        }
+
         Repeater {
             model: root.componentTypes
 
