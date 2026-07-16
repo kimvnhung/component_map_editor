@@ -43,7 +43,7 @@ struct ExtensionLoadResult
 class ExtensionStartupLoader
 {
 public:
-    void registerFactory(const QString &extensionId, PackFactory factory);
+    void registerFactory(PackFactoryEntry entry);
     void clearFactories();
 
     // Discovers *.json manifests under manifestDirectory recursively.

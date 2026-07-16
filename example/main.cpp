@@ -70,9 +70,14 @@ int main(int argc, char *argv[])
     }
 
     ExtensionStartupLoader startupLoader;
-    startupLoader.registerFactory(QStringLiteral("sample.workflow"), []()
+    // startupLoader.registerFactory(QStringLiteral("sample.workflow"), []()
+    // {
+    //     return std::make_unique<SampleExtensionPack>();
+    // });
+    startupLoader.registerFactory(
     {
-        return std::make_unique<SampleExtensionPack>();
+        "sample.workflow",
+        utils::makeFactory<SampleExtensionPack>()
     });
 
     const QString manifestDir = QString::fromUtf8(EXAMPLE_EXTENSION_MANIFEST_DIR);

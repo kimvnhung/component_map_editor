@@ -17,6 +17,12 @@ using ExecutionSemanticsFactory = std::function<std::unique_ptr<IExecutionSemant
 using PropertySchemaRegistryFactory = std::function<std::unique_ptr<PropertySchemaRegistry>()>;
 using ExecutionSandboxFactory = std::function<std::unique_ptr<GraphExecutionSandbox>()>;
 
+struct PackFactoryEntry
+{
+    QString extensionId;
+    PackFactory factory;
+};
+
 namespace utils
 {
     template<typename T, typename... Args>
@@ -38,5 +44,41 @@ namespace utils
     }
 
 } // namespace utils
+
+
+class ComponentMissingException : public std::runtime_error
+{
+public:
+    explicit ComponentMissingException(const std::string &message)
+        : std::runtime_error(message) {}
+};
+
+class PackFactoryMissingException : public std::runtime_error
+{
+public:
+    explicit PackFactoryMissingException()
+        : std::runtime_error("PackFactory is missing. Please provide a valid PackFactory to build the ComponentMapEditorManager.") {}
+};
+
+class ExtensionContractRegistryMissingException : public std::runtime_error
+{
+public:
+    explicit ExtensionContractRegistryMissingException()
+        : std::runtime_error("ExtensionContractRegistry is missing. Please provide a valid ExtensionContractRegistry to build the ComponentMapEditorManager.") {}
+};
+
+class InvalidRuleFileException : public std::runtime_error
+{
+public:
+    explicit InvalidRuleFileException(const std::string &path)
+        : std::runtime_error("Invalid rule file: " + path) {}
+};
+
+class InvalidManifestDirectoryException : public std::runtime_error
+{
+public:
+    explicit InvalidManifestDirectoryException(const std::string &path)
+        : std::runtime_error("Invalid manifest directory: " + path) {}
+};
 
 #endif // COMMON_H
