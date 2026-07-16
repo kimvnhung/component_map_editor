@@ -8,6 +8,7 @@
 #include "extensions/sample_pack/SampleComponentTypeProvider.h"
 #include "extensions/sample_pack/SamplePropertySchemaProvider.h"
 #include "extensions/sample_pack/SampleExecutionSemanticsProvider.h"
+#include "extensions/common.h"
 
 
 
@@ -16,73 +17,168 @@
 class BuiltExtensionPack : public IExtensionPack
 {
 public:
-    BuiltExtensionPack(std::unique_ptr<IComponentTypeProvider> component,
-                       std::unique_ptr<IPropertySchemaProvider> propertySchema,
-                       std::unique_ptr<IExecutionSemanticsProvider> execution)
-        : m_componentProvider(std::move(component))
-        , m_propertySchemaProvider(std::move(propertySchema))
-        , m_executionSemanticsProvider(std::move(execution))
-    {}
-
-    bool registerProviders(ExtensionContractRegistry &registry, QString *error = nullptr) override
+    BuiltExtensionPack()
     {
-        bool success = true;
-        QString componentError, propertyError, executionError;
+        m_manifest.extensionId      = QStringLiteral("built.extension.pack");
+        m_manifest.displayName      = QStringLiteral("Built Extension Pack");
+        m_manifest.extensionVersion = QStringLiteral("1.0.0");
+        m_manifest.minCoreApi       = { 1, 0, 0 };
+        m_manifest.maxCoreApi       = { 1, 99, 99 };
+        m_manifest.capabilities     = extensions::Capability_All;
+    }
 
-        if (m_componentProvider)
+    const ExtensionManifest &manifest() const
+    {
+        return m_manifest;
+    }
+
+    void setExtensionId(const QString &id)
+    {
+        m_manifest.extensionId = id;
+    }
+
+    void setDisplayName(const QString &name)
+    {
+        m_manifest.displayName = name;
+    }
+
+    void setExtensionVersion(const QString &version)
+    {
+        m_manifest.extensionVersion = version;
+    }
+
+    void setMinCoreApi(int major, int minor, int patch)
+    {
+        m_manifest.minCoreApi = { major, minor, patch };
+    }
+
+    void setMaxCoreApi(int major, int minor, int patch)
+    {
+        m_manifest.maxCoreApi = { major, minor, patch };
+    }
+
+    void setCapabilities(const extensions::Capability &capabilities)
+    {
+        m_manifest.capabilities = capabilities;
+    }
+
+    void append(ComponentFactory f) { m_componentFactories.push_back(std::move(f)); }
+    void append(PropertySchemaFactory f) { m_propertySchemaFactories.push_back(std::move(f)); }
+    void append(ExecutionSemanticsFactory f) { m_executionFactories.push_back(std::move(f)); }
+    void append(ConnectionPolicyFactory f) { m_connectionPolicyFactories.push_back(std::move(f)); }
+    void append(ValidationFactory f) { m_validationFactories.push_back(std::move(f)); }
+    void append(ActionFactory f) { m_actionFactories.push_back(std::move(f)); }
+
+    bool registerProviders(ExtensionContractRegistry &registry, QString *error) override
+    {
+        // Register the manifest first, then register each provider created by the factories.
+        if (!registry.registerManifest(m_manifest, error))
         {
-            success &= registry.registerComponentTypeProvider(m_componentProvider.get(), &componentError);
-        }
-        else
-        {
-            LOGW("No component type provider supplied by extension pack");
+            return false;
         }
 
-        if (m_propertySchemaProvider)
+        for (const auto &factory : m_componentFactories)
         {
-            success &= registry.registerPropertySchemaProvider(m_propertySchemaProvider.get(), &propertyError);
-        }
-        else
-        {
-            LOGW("No property schema provider supplied by extension pack");
-        }
+            auto provider = factory();
 
-        if (m_executionSemanticsProvider)
-        {
-            success &= registry.registerExecutionSemanticsProvider(m_executionSemanticsProvider.get(), &executionError);
-        }
-        else
-        {
-            LOGW("No execution semantics provider supplied by extension pack");
-        }
-
-        if (!success && error)
-        {
-            *error = "Failed to register providers:";
-
-            if (!componentError.isEmpty())
+            if (!provider)
             {
-                *error += "\nComponentTypeProvider: " + componentError;
+                continue;
             }
 
-            if (!propertyError.isEmpty())
+            if (!registry.registerComponentTypeProvider(provider.get(), error))
             {
-                *error += "\nPropertySchemaProvider: " + propertyError;
-            }
-
-            if (!executionError.isEmpty())
-            {
-                *error += "\nExecutionSemanticsProvider: " + executionError;
+                return false;
             }
         }
 
-        return success;
+        for (const auto &factory : m_propertySchemaFactories)
+        {
+            auto provider = factory();
+
+            if (!provider)
+            {
+                continue;
+            }
+
+            if (!registry.registerPropertySchemaProvider(provider.get(), error))
+            {
+                return false;
+            }
+        }
+
+        for (const auto &factory : m_executionFactories)
+        {
+            auto provider = factory();
+
+            if (!provider)
+            {
+                continue;
+            }
+
+            if (!registry.registerExecutionSemanticsProvider(provider.get(), error))
+            {
+                return false;
+            }
+        }
+
+        for (const auto &factory : m_connectionPolicyFactories)
+        {
+            auto provider = factory();
+
+            if (!provider)
+            {
+                continue;
+            }
+
+            if (!registry.registerConnectionPolicyProvider(provider.get(), error))
+            {
+                return false;
+            }
+        }
+
+        for (const auto &factory : m_validationFactories)
+        {
+            auto provider = factory();
+
+            if (!provider)
+            {
+                continue;
+            }
+
+            if (!registry.registerValidationProvider(provider.get(), error))
+            {
+                return false;
+            }
+        }
+
+        for (const auto &factory : m_actionFactories)
+        {
+            auto provider = factory();
+
+            if (!provider)
+            {
+                continue;
+            }
+
+            if (!registry.registerActionProvider(provider.get(), error))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 private:
-    std::unique_ptr<IComponentTypeProvider> m_componentProvider;
-    std::unique_ptr<IPropertySchemaProvider> m_propertySchemaProvider;
-    std::unique_ptr<IExecutionSemanticsProvider> m_executionSemanticsProvider;
+    ExtensionManifest m_manifest;
+    std::vector<ComponentFactory> m_componentFactories;
+    std::vector<PropertySchemaFactory> m_propertySchemaFactories;
+    std::vector<ExecutionSemanticsFactory> m_executionFactories;
+    std::vector<ConnectionPolicyFactory> m_connectionPolicyFactories;
+    std::vector<ValidationFactory> m_validationFactories;
+    std::vector<ActionFactory> m_actionFactories;
+
 };
 
 ExtensionPackBuilder &ExtensionPackBuilder::withComponentProviderFactory(ComponentFactory f)
@@ -103,19 +199,7 @@ ExtensionPackBuilder &ExtensionPackBuilder::withExecutionSemanticsFactory(Execut
     return *this;
 }
 
-ExtensionPackBuilder &ExtensionPackBuilder::withPropertySchemaRegistryFactory(PropertySchemaRegistryFactory f)
-{
-    m_propertySchemaRegistryFactory = std::move(f);
-    return *this;
-}
-
-ExtensionPackBuilder &ExtensionPackBuilder::withExecutionSandboxFactory(ExecutionSandboxFactory f)
-{
-    m_executionSandboxFactory = std::move(f);
-    return *this;
-}
-
-PackFactory ExtensionPackBuilder::build() const
+PackFactoryEntry ExtensionPackBuilder::build() const
 {
     // Return a factory that constructs an IExtensionPack with providers created by the builder's factories.
     auto componentProvider = m_componentFactory ? m_componentFactory() :
@@ -125,10 +209,11 @@ PackFactory ExtensionPackBuilder::build() const
     auto executionSemanticsProvider = m_executionFactory ? m_executionFactory() :
                                       std::make_unique<SampleExecutionSemanticsProvider>();
 
-    return utils::makeFactory<BuiltExtensionPack>(
-               std::move(componentProvider),
-               std::move(propertySchemaProvider),
-               std::move(executionSemanticsProvider));
+    return
+    {
+        "",
+        utils::makeFactory<BuiltExtensionPack>()
+    };
 }
 
 std::unique_ptr<PropertySchemaRegistry> ExtensionPackBuilder::createPropertySchemaRegistry() const

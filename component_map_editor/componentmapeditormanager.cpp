@@ -1,80 +1,38 @@
 #include "componentmapeditormanager.h"
 
-#include "extensionpackbuilder.h"
 
 #include <base_log.h>
-#include "extensions/sample_pack/SampleExtensionPack.h"
+#include "extensions/contracts/ExtensionContractRegistry.h"
 
-#ifndef EXAMPLE_EXTENSION_RULE_FILE
-    #define EXAMPLE_EXTENSION_RULE_FILE ""
-#endif
+#define DEFAULT_EXTENSION_MANIFEST_DIR ""
+#define DEFAULT_EXTENSION_RULE_FILE ""
 
-#ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
-    #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
-#endif
-
-ComponentMapEditorManager::ComponentMapEditorManager(
-    const ExtensionApiVersion &coreApiVersion,
-    PackFactory extensionPackFactory,
-    const QString &ruleFilePath,
-    const QString &manifestDir)
-    : QObject{nullptr}
-    , m_extensionContracts(new ExtensionContractRegistry(coreApiVersion))
-    , m_extensionStartupLoader(new ExtensionStartupLoader())
-    , m_ruleRegistry(new RuleRuntimeRegistry())
-    , m_connectionPolicyProvider(new RuleBackedConnectionPolicyProvider(m_ruleRegistry))
-    , m_validationProvider(new RuleBackedValidationProvider(m_ruleRegistry))
-    , m_ruleHotReloadService(new RuleHotReloadService(m_ruleRegistry))
-    , m_componentTypeRegistry(new TypeRegistry())
-    , m_propertySchemaRegistry(new PropertySchemaRegistry())
-    , m_executionSandbox(new GraphExecutionSandbox())
-    , m_manifestDir(manifestDir)
+ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
+    : QObject(parent)
+    , m_extensionContracts(new ExtensionContractRegistry({0, 0, 1}))
+, m_extensionStartupLoader(new ExtensionStartupLoader())
+, m_componentTypeRegistry(new TypeRegistry())
+, m_propertySchemaRegistry(new PropertySchemaRegistry())
+, m_executionSandbox(new GraphExecutionSandbox())
+, m_validationService(new ValidationService())
 {
-    // 1. Set up the extension contract registry and register any built-in providers.
-    QString providerError;
+}
 
-    if (!m_extensionContracts->registerConnectionPolicyProvider(m_connectionPolicyProvider, &providerError))
-    {
-        LOGWF("[Rules][ERROR] Failed to register compiled connection policy provider: {}",
-              providerError.toStdString());
-    }
+ComponentMapEditorManager::~ComponentMapEditorManager()
+{
+    delete m_extensionContracts;
+    delete m_extensionStartupLoader;
+    delete m_componentTypeRegistry;
+    delete m_propertySchemaRegistry;
+    delete m_executionSandbox;
+    delete m_validationService;
 
-    if (!m_extensionContracts->registerValidationProvider(m_validationProvider, &providerError))
-    {
-        LOGWF("[Rules][ERROR] Failed to register compiled validation provider: {}",
-              providerError.toStdString());
-    }
-
-    // 2. Start watching the rule file – changes are picked up without restart.
-    if (!m_ruleHotReloadService->startWatchingFile(ruleFilePath))
-    {
-        const QVector<RuleDiagnostic> diagnostics = m_ruleHotReloadService->lastDiagnostics();
-
-        if (!diagnostics.isEmpty())
-        {
-            const RuleDiagnostic first = diagnostics.first();
-            LOGWF("[Rules][ERROR] {} file={} jsonPath={} line={} column={}",
-                  first.message.toStdString(),
-                  first.location.filePath.toStdString(),
-                  first.location.jsonPath.toStdString(),
-                  first.location.line,
-                  first.location.column);
-        }
-    }
-
-    // 3. Discover and load extension packs from the manifest directory.
-    // If caller didn't provide a factory, fall back to the built-in sample pack and warn.
-    if (!extensionPackFactory)
-    {
-        LOGW("No extension pack factory provided, falling back to SampleExtensionPack");
-        extensionPackFactory = []() -> std::unique_ptr<IExtensionPack>
-        {
-            return std::make_unique<SampleExtensionPack>();
-        };
-    }
-
-    m_extensionStartupLoader->registerFactory("customize.workflow", extensionPackFactory);
-    reloadExtensionPacks();
+    m_extensionContracts = nullptr;
+    m_extensionStartupLoader = nullptr;
+    m_componentTypeRegistry = nullptr;
+    m_propertySchemaRegistry = nullptr;
+    m_executionSandbox = nullptr;
+    m_validationService = nullptr;
 }
 
 void ComponentMapEditorManager::reloadComponentTypes()
@@ -83,118 +41,151 @@ void ComponentMapEditorManager::reloadComponentTypes()
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
 }
 
-void ComponentMapEditorManager::setExtensionPackFactory(PackFactory factory)
+void ComponentMapEditorManager::setExtensionContractRegistry(ExtensionContractRegistry *registry)
 {
-    if (!m_extensionStartupLoader)
+    if (!registry)
     {
+        LOGW("Attempted to set a null extension contract registry; ignoring.");
         return;
     }
 
-    if (!factory)
+    delete m_extensionContracts;
+    m_extensionContracts = registry;
+
+    const ExtensionLoadResult result = m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
+
+    for (const ExtensionLoadDiagnostic &diag : result.diagnostics)
     {
-        LOGW("Attempted to set a null extension pack factory; ignoring.");
-        return;
+        if (diag.severity == ExtensionLoadDiagnostic::Severity::Error)
+        {
+            LOGWF("[ExtensionStartupLoader][ERROR] {} extensionId={} manifest={}",
+                  diag.message.toStdString(),
+                  diag.extensionId.toStdString(),
+                  diag.manifestPath.toStdString());
+        }
+        else
+        {
+            LOGIF("[ExtensionStartupLoader] {} extensionId={} manifest={}",
+                  diag.message.toStdString(),
+                  diag.extensionId.toStdString(),
+                  diag.manifestPath.toStdString());
+        }
     }
 
-    m_extensionStartupLoader->clearFactories();
-    m_extensionStartupLoader->registerFactory("customize.workflow", factory);
-    reloadExtensionPacks();
-}
 
-void ComponentMapEditorManager::reloadExtensionPacks()
-{
-    if (!m_extensionStartupLoader || !m_extensionContracts)
-    {
-        LOGW("Cannot reload extension packs because the startup loader or contract registry is not initialized.");
-        return;
-    }
-
-    // Re-scan manifests using the same manifest directory used at construction.
-    m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
-
-    // Rebuild registries to reflect newly-registered providers.
+    // Rebuild registries to reflect the new contract registry.
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
+    m_validationService->rebuildValidationFromRegistry(*m_extensionContracts);
 }
 
-void ComponentMapEditorManager::setExtensionContractVersion(const ExtensionApiVersion &v)
+void ComponentMapEditorManager::setRuleFilePath(const QString &filePath)
 {
-    if (!m_extensionContracts)
+    if (filePath.isEmpty())
     {
+        LOGW("Attempted to set an empty rule file path; ignoring.");
         return;
     }
 
-    // Recreate the registry with the new version and reload manifests.
-    m_extensionContracts = new ExtensionContractRegistry(v);
-    reloadExtensionPacks();
-}
+    m_ruleFilePath = filePath;
 
-void ComponentMapEditorManager::setRuleFilePath(const QString &path)
-{
-    if (m_ruleHotReloadService)
+    if (!m_ruleHotReloadService)
     {
-        m_ruleHotReloadService->startWatchingFile(path);
+        m_ruleHotReloadService = new RuleHotReloadService(&ruleRegistry);
+    }
+
+    if (!m_ruleHotReloadService->startWatchingFile(m_ruleFilePath))
+    {
+        const QVector<RuleDiagnostic> diagnostics = m_ruleHotReloadService->lastDiagnostics();
+
+        if (!diagnostics.isEmpty())
+        {
+            const RuleDiagnostic first = diagnostics.first();
+            WARNF("[Rules][ERROR] {} file={} jsonPath={} line={} column={}",
+                  first.message.toStdString(),
+                  first.location.filePath.toStdString(),
+                  first.location.jsonPath.toStdString(),
+                  first.location.line,
+                  first.location.column);
+        }
+
     }
 }
 
-void ComponentMapEditorManager::setManifestDir(const QString &dir)
-{
-    m_manifestDir = dir;
-}
 
-ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensionPackFactory(
-    PackFactory factory)
+void ComponentMapEditorManager::setManifestDirectory(const QString &dirPath)
 {
-    m_packFactory = factory;
-    return *this;
-}
-
-ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensionPackBuilder(
-    const ExtensionPackBuilder &builder)
-{
-    // store a heap copy so builder lifetime extends until build()
-    if (m_extensionPackBuilder)
+    if (dirPath.isEmpty())
     {
-        delete m_extensionPackBuilder;
+        LOGW("Attempted to set an empty manifest directory path; ignoring.");
+        return;
     }
 
-    m_extensionPackBuilder = new ExtensionPackBuilder(builder);
-    return *this;
+    m_manifestDir = dirPath;
+
+    const ExtensionLoadResult result = m_extensionStartupLoader->loadFromDirectory(m_manifestDir, *m_extensionContracts);
+
+    for (const ExtensionLoadDiagnostic &diag : result.diagnostics)
+    {
+        if (diag.severity == ExtensionLoadDiagnostic::Severity::Error)
+        {
+            LOGWF("[ExtensionStartupLoader][ERROR] {} extensionId={} manifest={}",
+                  diag.message.toStdString(),
+                  diag.extensionId.toStdString(),
+                  diag.manifestPath.toStdString());
+        }
+        else
+        {
+            LOGIF("[ExtensionStartupLoader] {} extensionId={} manifest={}",
+                  diag.message.toStdString(),
+                  diag.extensionId.toStdString(),
+                  diag.manifestPath.toStdString());
+        }
+    }
+
+    // Rebuild registries to reflect the new contract registry.
+    m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
+    m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
+    m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
+    m_validationService->rebuildValidationFromRegistry(*m_extensionContracts);
 }
 
-// (Custom providers are constructed via ExtensionPackBuilder; no-op here.)
-
-ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensionContractVersion(
-    const ExtensionApiVersion &v)
+ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensionContractRegistry(
+    ExtensionContractRegistry *registry)
 {
-    m_coreVersion = v;
-    return *this;
-}
-
-ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withRuleFilePath(const QString &path)
-{
-    m_ruleFilePath = path;
-    return *this;
-}
-
-ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withManifestDir(const QString &dir)
-{
-    m_manifestDir = dir;
+    m_extensionContracts = registry;
     return *this;
 }
 
 ComponentMapEditorManager *ComponentMapEditorManagerBuilder::build()
 {
-    if (m_manager)
+    // Verify components
+    std::string err;
+
+    if (m_extensionContracts == nullptr)
+    {
+        throw new ExtensionContractRegistryMissingException();
+    }
+
+    if (m_ruleFilePath.isEmpty())
+    {
+        m_ruleFilePath = DEFAULT_EXTENSION_RULE_FILE;
+        LOGW("No rule file path provided; using default: {}", m_ruleFilePath.toStdString());
+    }
+
+    if (m_manifestDir.isEmpty())
+    {
+        m_manifestDir = DEFAULT_EXTENSION_MANIFEST_DIR;
+        LOGW("No manifest directory provided; using default: {}", m_manifestDir.toStdString());
+    }
+
+    if (m_manager != nullptr)
     {
         delete m_manager;
     }
 
-    m_manager = new ComponentMapEditorManager(m_coreVersion,
-        m_packFactory ? m_packFactory :
-        (m_extensionPackBuilder ? m_extensionPackBuilder->build() : nullptr),
-        m_ruleFilePath, m_manifestDir);
-
+    m_manager = new ComponentMapEditorManager();
+    m_manager->setExtensionContractRegistry(m_extensionContracts);
     return m_manager;
 }

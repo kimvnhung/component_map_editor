@@ -8,6 +8,7 @@
 #include "extensions/runtime/rules/RuleBackedProviders.h"
 #include "extensions/runtime/rules/RuleHotReloadService.h"
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
+#include "services/ValidationService.h"
 #include "services/GraphExecutionSandbox.h"
 #include <QObject>
 #include <QString>
@@ -22,63 +23,51 @@ class ComponentMapEditorManager : public QObject
     Q_PROPERTY(TypeRegistry* componentTypeRegistry READ componentTypeRegistry CONSTANT)
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry READ propertySchemaRegistry CONSTANT)
     Q_PROPERTY(GraphExecutionSandbox* executionSandbox READ executionSandbox CONSTANT)
+    Q_PROPERTY(ValidationService* validationService READ validationService CONSTANT)
 public:
-    // Extended constructor used by the builder to inject custom services and configuration.
-    ComponentMapEditorManager(const ExtensionApiVersion &coreApiVersion,
-                              //Other parameters can be added here as needed for more granular control over initialization.
-                              PackFactory extensionPackFactory,
-                              const QString &ruleFilePath,
-                              const QString &manifestDir);
+    ComponentMapEditorManager(QObject *parent = nullptr);
+
+    ~ComponentMapEditorManager();
 
     TypeRegistry *componentTypeRegistry() const { return m_componentTypeRegistry; }
     PropertySchemaRegistry *propertySchemaRegistry() const { return m_propertySchemaRegistry; }
     GraphExecutionSandbox *executionSandbox() const { return m_executionSandbox; }
+    ValidationService *validationService() const { return m_validationService; }
 
 public:
     Q_INVOKABLE void reloadComponentTypes();
 
-    // Setter to change the extension pack factory after construction.
-    void setExtensionPackFactory(PackFactory factory);
 
-    // Public setters for runtime replacement (also useful for tests).
-    void setExtensionContractVersion(const ExtensionApiVersion &v);
-    void setRuleFilePath(const QString &path);
-    void setManifestDir(const QString &dir);
-    void reloadExtensionPacks();
+    void setExtensionContractRegistry(ExtensionContractRegistry *registry);
+    void setRuleFilePath(const QString &filePath);
+    void setManifestDirectory(const QString &dirPath);
+
 private:
     ExtensionContractRegistry *m_extensionContracts = nullptr;
     ExtensionStartupLoader *m_extensionStartupLoader = nullptr;
 
-    RuleRuntimeRegistry *m_ruleRegistry = nullptr;
-    RuleBackedConnectionPolicyProvider *m_connectionPolicyProvider = nullptr;
-    RuleBackedValidationProvider *m_validationProvider = nullptr;
-    RuleHotReloadService *m_ruleHotReloadService = nullptr;
-
     TypeRegistry *m_componentTypeRegistry = nullptr;
     PropertySchemaRegistry *m_propertySchemaRegistry = nullptr;
     GraphExecutionSandbox *m_executionSandbox = nullptr;
+    ValidationService *m_validationService = nullptr;
 
     QString m_manifestDir;
+    QString m_ruleFilePath;
+    RuleHotReloadService *m_ruleHotReloadService = nullptr;
+    RuleRuntimeRegistry ruleRegistry;
 };
 
 
 class ComponentMapEditorManagerBuilder
 {
 public:
-    ComponentMapEditorManagerBuilder &withExtensionPackFactory(PackFactory factory);
-    ComponentMapEditorManagerBuilder &withExtensionPackBuilder(const ExtensionPackBuilder &builder);
-
-    ComponentMapEditorManagerBuilder &withExtensionContractVersion(const ExtensionApiVersion &v);
-    ComponentMapEditorManagerBuilder &withRuleFilePath(const QString &path);
-    ComponentMapEditorManagerBuilder &withManifestDir(const QString &dir);
+    ComponentMapEditorManagerBuilder &withExtensionContractRegistry(ExtensionContractRegistry *registry);
 
     ComponentMapEditorManager *build();
 private:
-    PackFactory m_packFactory{nullptr};
-    ExtensionApiVersion m_coreVersion{1, 0, 0};
-    ExtensionPackBuilder *m_extensionPackBuilder{nullptr};
-    QString m_ruleFilePath;
-    QString m_manifestDir;
+    ExtensionContractRegistry *m_extensionContracts{nullptr};
+    QString m_ruleFilePath{""};
+    QString m_manifestDir{""};
     ComponentMapEditorManager *m_manager{nullptr};
 };
 

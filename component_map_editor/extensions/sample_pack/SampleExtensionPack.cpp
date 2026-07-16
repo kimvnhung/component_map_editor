@@ -7,12 +7,7 @@ SampleExtensionPack::SampleExtensionPack()
     m_manifest.extensionVersion = QString::fromLatin1(ExtensionVersion);
     m_manifest.minCoreApi       = { MinApiMajor, MinApiMinor, MinApiPatch };
     m_manifest.maxCoreApi       = { MaxApiMajor, MaxApiMinor, MaxApiPatch };
-    m_manifest.capabilities     = { QStringLiteral("componentTypes"),
-                                    QStringLiteral("connectionPolicy"),
-                                    QStringLiteral("propertySchema"),
-                                    QStringLiteral("validation"),
-                                    QStringLiteral("actions"),
-                                    QStringLiteral("executionSemantics") };
+    m_manifest.capabilities     = extensions::Capability_All;
 }
 
 const ExtensionManifest &SampleExtensionPack::manifest() const
@@ -23,23 +18,44 @@ const ExtensionManifest &SampleExtensionPack::manifest() const
 bool SampleExtensionPack::registerAll(ExtensionContractRegistry &registry, QString *error)
 {
     if (!registry.registerManifest(m_manifest, error))
+    {
         return false;
+    }
+
     return registerProviders(registry, error);
 }
 
 bool SampleExtensionPack::registerProviders(ExtensionContractRegistry &registry, QString *error)
 {
     if (!registry.registerComponentTypeProvider(&m_componentTypeProvider, error))
+    {
         return false;
+    }
+
     if (!registry.registerConnectionPolicyProvider(&m_connectionPolicyProvider, error))
+    {
         return false;
+    }
+
     if (!registry.registerPropertySchemaProvider(&m_propertySchemaProvider, error))
+    {
         return false;
+    }
+
     if (!registry.registerValidationProvider(&m_workflowValidationProvider, error))
+    {
         return false;
+    }
+
     if (!registry.registerActionProvider(&m_actionProvider, error))
+    {
         return false;
+    }
+
     if (!registry.registerExecutionSemanticsProvider(&m_executionSemanticsProvider, error))
+    {
         return false;
+    }
+
     return true;
 }

@@ -70,10 +70,6 @@ int main(int argc, char *argv[])
     }
 
     ExtensionStartupLoader startupLoader;
-    // startupLoader.registerFactory(QStringLiteral("sample.workflow"), []()
-    // {
-    //     return std::make_unique<SampleExtensionPack>();
-    // });
     startupLoader.registerFactory(
     {
         "sample.workflow",

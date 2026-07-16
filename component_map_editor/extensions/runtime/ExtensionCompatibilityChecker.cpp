@@ -5,30 +5,34 @@
 
 #include "extensions/runtime/ExtensionManifestJson.h"
 
-namespace {
+namespace
+{
 
 // Phase 8: Converts ApiChangeSeverity enum to its QML-facing legacy string.
 // String literals for severity are confined to this adapter helper.
-QString apiChangeSeverityToString(ApiChangeSeverity severity)
-{
-    switch (severity) {
-    case ApiChangeSeverity::Breaking:   return QStringLiteral("breaking");
-    case ApiChangeSeverity::Deprecated: return QStringLiteral("deprecated");
-    }
-    return {};
-}
+    QString apiChangeSeverityToString(ApiChangeSeverity severity)
+    {
+        switch (severity)
+        {
+            case ApiChangeSeverity::Breaking:   return QStringLiteral("breaking");
 
-QVariantMap changeToVariant(const ApiChangeItem &item)
-{
-    QVariantMap v;
-    v.insert(QStringLiteral("id"), item.id);
-    v.insert(QStringLiteral("contract"), item.contract);
-    v.insert(QStringLiteral("severity"), apiChangeSeverityToString(item.severity));
-    v.insert(QStringLiteral("minContractVersion"), item.minContractVersion);
-    v.insert(QStringLiteral("description"), item.description);
-    v.insert(QStringLiteral("migration"), item.migration);
-    return v;
-}
+            case ApiChangeSeverity::Deprecated: return QStringLiteral("deprecated");
+        }
+
+        return {};
+    }
+
+    QVariantMap changeToVariant(const ApiChangeItem &item)
+    {
+        QVariantMap v;
+        v.insert(QStringLiteral("id"), item.id);
+        v.insert(QStringLiteral("contract"), item.contract);
+        v.insert(QStringLiteral("severity"), apiChangeSeverityToString(item.severity));
+        v.insert(QStringLiteral("minContractVersion"), item.minContractVersion);
+        v.insert(QStringLiteral("description"), item.description);
+        v.insert(QStringLiteral("migration"), item.migration);
+        return v;
+    }
 
 } // namespace
 
@@ -38,10 +42,11 @@ ExtensionCompatibilityChecker::ExtensionCompatibilityChecker(const ExtensionApiV
 
 QList<ApiChangeItem> ExtensionCompatibilityChecker::catalog()
 {
-    return {
+    return
+    {
         {
             QStringLiteral("EXT-EXEC-001"),
-            QStringLiteral("executionSemantics"),
+            extensions::Capability_ExecutionSemantics,
             ApiChangeSeverity::Breaking,
             1,
             QStringLiteral("Execution semantics contract v1 introduces trace output requirements."),
@@ -49,7 +54,7 @@ QList<ApiChangeItem> ExtensionCompatibilityChecker::catalog()
         },
         {
             QStringLiteral("EXT-ACTION-DEP-001"),
-            QStringLiteral("actions"),
+            extensions::Capability_Actions,
             ApiChangeSeverity::Deprecated,
             1,
             QStringLiteral("Action descriptor key 'iconName' is deprecated; use 'icon'."),
@@ -57,7 +62,7 @@ QList<ApiChangeItem> ExtensionCompatibilityChecker::catalog()
         },
         {
             QStringLiteral("EXT-SCHEMA-DEP-001"),
-            QStringLiteral("propertySchema"),
+            extensions::Capability_PropertySchema,
             ApiChangeSeverity::Deprecated,
             1,
             QStringLiteral("Property schema key 'widget' is deprecated; use 'editor'."),
@@ -69,25 +74,39 @@ QList<ApiChangeItem> ExtensionCompatibilityChecker::catalog()
 QStringList ExtensionCompatibilityChecker::intentionalBreakingChangeIds()
 {
     QStringList ids;
-    for (const ApiChangeItem &item : catalog()) {
+
+    for (const ApiChangeItem &item : catalog())
+    {
         if (item.severity == ApiChangeSeverity::Breaking)
+        {
             ids.append(item.id);
+        }
     }
+
     return ids;
 }
 
 int ExtensionCompatibilityChecker::contractVersionFromManifest(const ExtensionManifest &manifest,
-                                                               const QString &contract,
-                                                               int defaultVersion) const
+        const extensions::Capability &contract,
+        int defaultVersion) const
 {
     const QVariantMap metadata = manifest.metadata;
     const QVariantMap contractVersions = metadata.value(QStringLiteral("contractVersions")).toMap();
-    if (!contractVersions.contains(contract))
+    QString contractKey = extensions::capabilityToString(contract);
+
+    if (!contractVersions.contains(contractKey))
+    {
         return defaultVersion;
+    }
+
     bool ok = false;
-    const int version = contractVersions.value(contract).toInt(&ok);
+    const int version = contractVersions.value(contractKey).toInt(&ok);
+
     if (!ok)
+    {
         return defaultVersion;
+    }
+
     return version;
 }
 
@@ -98,19 +117,28 @@ QVariantMap ExtensionCompatibilityChecker::analyzeManifest(const ExtensionManife
     QVariantList deprecations;
 
     ExtensionCompatibilityReport apiRangeReport = evaluateCompatibility(
-        m_coreApiVersion, manifest.minCoreApi, manifest.maxCoreApi);
+            m_coreApiVersion, manifest.minCoreApi, manifest.maxCoreApi);
 
-    for (const ApiChangeItem &item : catalog()) {
+    for (const ApiChangeItem &item : catalog())
+    {
         // Only check contract entries for capabilities declared by the pack.
-        if (!manifest.capabilities.contains(item.contract))
+        if (!hasCapability(item.contract, manifest.capabilities))
+        {
             continue;
+        }
 
         const int version = contractVersionFromManifest(manifest, item.contract, 1);
-        if (version < item.minContractVersion) {
+
+        if (version < item.minContractVersion)
+        {
             if (item.severity == ApiChangeSeverity::Breaking)
+            {
                 breakings.append(changeToVariant(item));
+            }
             else
+            {
                 deprecations.append(changeToVariant(item));
+            }
         }
     }
 
@@ -130,20 +158,29 @@ QVariantMap ExtensionCompatibilityChecker::analyzeManifest(const ExtensionManife
 }
 
 bool ExtensionCompatibilityChecker::analyzeManifestFile(const QString &manifestPath,
-                                                        QVariantMap *report,
-                                                        QString *error) const
+        QVariantMap *report,
+        QString *error) const
 {
-    if (!report) {
+    if (!report)
+    {
         if (error)
+        {
             *error = QStringLiteral("Report output pointer is null.");
+        }
+
         return false;
     }
 
     ExtensionManifest manifest;
     QString parseError;
-    if (!ExtensionManifestJson::parseFile(manifestPath, &manifest, &parseError)) {
+
+    if (!ExtensionManifestJson::parseFile(manifestPath, &manifest, &parseError))
+    {
         if (error)
+        {
             *error = parseError;
+        }
+
         return false;
     }
 

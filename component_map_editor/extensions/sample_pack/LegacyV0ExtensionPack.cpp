@@ -7,7 +7,7 @@ LegacyV0ExtensionPack::LegacyV0ExtensionPack()
     m_manifest.extensionVersion = QStringLiteral("0.9.0");
     m_manifest.minCoreApi = {1, 0, 0};
     m_manifest.maxCoreApi = {1, 99, 99};
-    m_manifest.capabilities = { QStringLiteral("executionSemantics") };
+    m_manifest.capabilities = extensions::Capability_ExecutionSemantics;
 
     QVariantMap contractVersions;
     contractVersions.insert(QStringLiteral("executionSemantics"), 0);
@@ -22,7 +22,10 @@ const ExtensionManifest &LegacyV0ExtensionPack::manifest() const
 bool LegacyV0ExtensionPack::registerAll(ExtensionContractRegistry &registry, QString *error)
 {
     if (!registry.registerManifest(m_manifest, error))
+    {
         return false;
+    }
+
     return registerProviders(registry, error);
 }
 

@@ -6,6 +6,7 @@
 #include <QVariantMap>
 
 #include "ExtensionApiVersion.h"
+#include "extensions/common.h"
 
 struct ExtensionManifest
 {
@@ -16,7 +17,7 @@ struct ExtensionManifest
     ExtensionApiVersion minCoreApi;
     ExtensionApiVersion maxCoreApi;
 
-    QStringList capabilities;
+    extensions::Capability capabilities;
     QStringList dependencies;
     QVariantMap metadata;
 

@@ -4,9 +4,7 @@
 #include <QQmlContext>
 #include <componentmapeditormanager.h>
 #include <extensionpackbuilder.h>
-#include "extensions/providers/customizecomponenttypeprovider.h"
-#include "extensions/providers/customizepropertyschemaprovider.h"
-#include "extensions/providers/customizeexecutionsanticsprovider.h"
+#include <utils/extensioncontractregistrybuilder.h>
 
 #include <services/ExecutionMigrationFlags.h>
 
@@ -16,20 +14,22 @@ int main(int argc, char *argv[])
 
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
-    ComponentMapEditorManager *manager = ComponentMapEditorManagerBuilder()
-                                         .withExtensionPackBuilder(
-                                                 ExtensionPackBuilder()
-                                                 .withComponentProviderFactory(
-                                                         utils::makeFactory<CustomizeComponentTypeProvider>()
-                                                 )
-                                                 .withPropertySchemaProviderFactory(
-                                                         utils::makeFactory<CustomizePropertySchemaProvider>()
-                                                 )
-                                                 .withExecutionSemanticsFactory(
-                                                         utils::makeFactory<CustomizeExecutionSemanticsProvider>()
-                                                 )
-                                         )
-                                         .build();
+    ComponentMapEditorManager *manager = nullptr;
+
+    try
+    {
+        manager = ComponentMapEditorManagerBuilder()
+                  .withExtensionContractRegistry(
+                      ExtensionContractRegistryBuilder()
+                      .build()
+                  )
+                  .build();
+    }
+    catch (std::runtime_error &e)
+    {
+        qCritical() << "Failed to initialize ComponentMapEditorManager:" << e.what();
+        return -1;
+    }
 
     QQmlApplicationEngine engine;
 

@@ -13,11 +13,21 @@ public:
     ExtensionPackBuilder &withComponentProviderFactory(ComponentFactory f);
     ExtensionPackBuilder &withPropertySchemaProviderFactory(PropertySchemaFactory f);
     ExtensionPackBuilder &withExecutionSemanticsFactory(ExecutionSemanticsFactory f);
-    ExtensionPackBuilder &withPropertySchemaRegistryFactory(PropertySchemaRegistryFactory f);
-    ExtensionPackBuilder &withExecutionSandboxFactory(ExecutionSandboxFactory f);
+    ExtensionPackBuilder &withConnectionPolicyProviderFactory(ConnectionPolicyFactory f);
+    ExtensionPackBuilder &withValidationProviderFactory(ValidationFactory f);
+    ExtensionPackBuilder &withActionProviderFactory(ActionFactory f);
+
+    // Setup manifest
+    ExtensionPackBuilder &withManifest(const ExtensionManifest &manifest);
+    ExtensionPackBuilder &withExtensionId(const QString &id);
+    ExtensionPackBuilder &withDisplayName(const QString &name);
+    ExtensionPackBuilder &withExtensionVersion(const QString &version);
+    ExtensionPackBuilder &withMinCoreApi(int major, int minor, int patch);
+    ExtensionPackBuilder &withMaxCoreApi(int major, int minor, int patch);
+    ExtensionPackBuilder &withCapabilities(const QStringList &capabilities);
 
     // Returns a PackFactory compatible with ExtensionStartupLoader::registerFactory
-    PackFactory build() const;
+    PackFactoryEntry build() const;
     std::unique_ptr<PropertySchemaRegistry> createPropertySchemaRegistry() const;
     std::unique_ptr<GraphExecutionSandbox> createExecutionSandbox() const;
 
