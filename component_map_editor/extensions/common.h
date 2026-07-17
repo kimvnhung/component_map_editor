@@ -14,6 +14,7 @@ namespace extensions
         Capability_Validation = 0x001000,
         Capability_Actions = 0x010000,
         Capability_ExecutionSemantics = 0x100000,
+        // All capabilities, include ComponentTypes, ConnectionPolicy, PropertySchema, Validation, Actions, and ExecutionSemantics
         Capability_All = 0x111111
     };
 

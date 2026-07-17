@@ -53,6 +53,7 @@ public:
                                           ExtensionContractRegistry &registry);
 
     int loadedPackCount() const;
+    int registeredFactoryCount() const { return m_factories.size(); }
 
 private:
     struct DiscoveredManifest

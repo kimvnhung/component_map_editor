@@ -41,6 +41,11 @@ public:
     void setExtensionContractRegistry(ExtensionContractRegistry *registry);
     void setRuleFilePath(const QString &filePath);
     void setManifestDirectory(const QString &dirPath);
+    /**
+     * @brief registerPackFactoryEntry: Registers a pack factory entry with the extension startup loader
+     * @param entry
+     */
+    void registerPackFactoryEntry(PackFactoryEntry entry);
 
 private:
     ExtensionContractRegistry *m_extensionContracts = nullptr;
@@ -62,12 +67,17 @@ class ComponentMapEditorManagerBuilder
 {
 public:
     ComponentMapEditorManagerBuilder &withExtensionContractRegistry(ExtensionContractRegistry *registry);
+    ComponentMapEditorManagerBuilder &withRuleFilePath(const QString &filePath);
+    ComponentMapEditorManagerBuilder &withManifestDirectory(const QString &dirPath);
+    ComponentMapEditorManagerBuilder &withPackFactoryEntry(std::unique_ptr<PackFactoryEntry> entry);
+
 
     ComponentMapEditorManager *build();
 private:
     ExtensionContractRegistry *m_extensionContracts{nullptr};
     QString m_ruleFilePath{""};
     QString m_manifestDir{""};
+    std::vector<std::unique_ptr<PackFactoryEntry>> m_packFactoryEntries;
     ComponentMapEditorManager *m_manager{nullptr};
 };
 

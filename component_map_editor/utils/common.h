@@ -52,7 +52,7 @@ namespace utils
 class ComponentMissingException : public std::runtime_error
 {
 public:
-    explicit ComponentMissingException(const std::string &message)
+    explicit ComponentMissingException(const std::string & message)
         : std::runtime_error(message) {}
 };
 
@@ -73,14 +73,14 @@ public:
 class InvalidRuleFileException : public std::runtime_error
 {
 public:
-    explicit InvalidRuleFileException(const std::string &path)
+    explicit InvalidRuleFileException(const std::string & path)
         : std::runtime_error("Invalid rule file: " + path) {}
 };
 
 class InvalidManifestDirectoryException : public std::runtime_error
 {
 public:
-    explicit InvalidManifestDirectoryException(const std::string &path)
+    explicit InvalidManifestDirectoryException(const std::string & path)
         : std::runtime_error("Invalid manifest directory: " + path) {}
 };
 

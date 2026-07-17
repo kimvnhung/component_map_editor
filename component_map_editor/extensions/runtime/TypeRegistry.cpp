@@ -29,6 +29,9 @@ void TypeRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry
         }
 
         validProviderFound = true;
+        // Print pointer value:
+        LOGIF("Registering component type provider: {}", QString::number(reinterpret_cast<quintptr>(provider)).toStdString());
+
         const QStringList typeIds = provider->componentTypeIds();
 
         for (const QString &typeId : typeIds)
