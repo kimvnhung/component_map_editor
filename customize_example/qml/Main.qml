@@ -186,7 +186,7 @@ ApplicationWindow {
 
         Palette {
             id: palettePanel
-            Layout.preferredWidth: 150
+            Layout.preferredWidth: 250
             Layout.fillHeight: true
             graph: graph
             canvas: canvas

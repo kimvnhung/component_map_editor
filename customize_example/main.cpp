@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
-    ComponentMapEditorManager *manager = nullptr;
+    std::unique_ptr<ComponentMapEditorManager> manager;
 
     try
     {
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    engine.rootContext()->setContextProperty(QStringLiteral("editorManager"), manager);
+    engine.rootContext()->setContextProperty(QStringLiteral("editorManager"), manager.get());
 
     QObject::connect(
         &engine,

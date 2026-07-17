@@ -1,9 +1,15 @@
 #include "extensioncontractregistrybuilder.h"
 
 ExtensionContractRegistryBuilder::ExtensionContractRegistryBuilder()
+    : m_registry(std::make_unique<ExtensionContractRegistry>(ExtensionApiVersion{1, 0, 0}))
 {}
 
-ExtensionContractRegistry *ExtensionContractRegistryBuilder::build()
+std::unique_ptr<ExtensionContractRegistry> ExtensionContractRegistryBuilder::build()
 {
-    return new ExtensionContractRegistry({1, 0, 0});
+    if (!m_registry)
+    {
+        throw std::runtime_error("ExtensionContractRegistryBuilder: registry is null.");
+    }
+
+    return std::move(m_registry);
 }

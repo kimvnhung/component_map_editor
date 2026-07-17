@@ -20,6 +20,13 @@ using ActionFactory = std::function<std::unique_ptr<IActionProvider>()>;
 using PropertySchemaRegistryFactory = std::function<std::unique_ptr<PropertySchemaRegistry>()>;
 using ExecutionSandboxFactory = std::function<std::unique_ptr<GraphExecutionSandbox>()>;
 
+using ComponentProviderPtr = std::unique_ptr<IComponentTypeProvider>;
+using PropertySchemaProviderPtr = std::unique_ptr<IPropertySchemaProvider>;
+using ExecutionSemanticsProviderPtr = std::unique_ptr<IExecutionSemanticsProvider>;
+using ConnectionPolicyProviderPtr = std::unique_ptr<IConnectionPolicyProvider>;
+using ValidationProviderPtr = std::unique_ptr<IValidationProvider>;
+using ActionProviderPtr = std::unique_ptr<IActionProvider>;
+
 struct PackFactoryEntry
 {
     QString extensionId;

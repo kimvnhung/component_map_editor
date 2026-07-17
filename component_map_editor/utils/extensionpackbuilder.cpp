@@ -23,24 +23,17 @@ public:
         m_manifest.minCoreApi       = { 1, 0, 0 };
         m_manifest.maxCoreApi       = { 1, 99, 99 };
         m_manifest.capabilities     = extensions::Capability_All;
-        LOGIF("BuiltExtensionPack constructed at pointer : {}", static_cast<const void *>(this));
     }
 
-    BuiltExtensionPack(const BuiltExtensionPack &other)
-        : m_manifest(other.m_manifest),
-          m_componentProviders(other.m_componentProviders),
-          m_propertySchemaProviders(other.m_propertySchemaProviders),
-          m_executionProviders(other.m_executionProviders),
-          m_connectionPolicyProviders(other.m_connectionPolicyProviders),
-          m_validationProviders(other.m_validationProviders),
-          m_actionProviders(other.m_actionProviders)
+    BuiltExtensionPack(BuiltExtensionPack &&other) noexcept
+        : m_manifest(std::move(other.m_manifest)),
+          m_componentProviders(std::move(other.m_componentProviders)),
+          m_propertySchemaProviders(std::move(other.m_propertySchemaProviders)),
+          m_executionProviders(std::move(other.m_executionProviders)),
+          m_connectionPolicyProviders(std::move(other.m_connectionPolicyProviders)),
+          m_validationProviders(std::move(other.m_validationProviders)),
+          m_actionProviders(std::move(other.m_actionProviders))
     {
-        LOGIF("BuiltExtensionPack copy-constructed at pointer : {}", static_cast<const void *>(this));
-    }
-
-    ~BuiltExtensionPack()
-    {
-        LOGIF("Deleting BuiltExtensionPack pointer : {}", static_cast<const void *>(this));
     }
 
     const ExtensionManifest &manifest() const
@@ -84,7 +77,7 @@ public:
 
         if (provider)
         {
-            m_componentProviders.push_back(provider.get());
+            m_componentProviders.push_back(std::move(provider));
         }
     }
 
@@ -94,7 +87,7 @@ public:
 
         if (provider)
         {
-            m_propertySchemaProviders.push_back(provider.get());
+            m_propertySchemaProviders.push_back(std::move(provider));
         }
     }
 
@@ -104,7 +97,7 @@ public:
 
         if (provider)
         {
-            m_executionProviders.push_back(provider.get());
+            m_executionProviders.push_back(std::move(provider));
         }
     }
 
@@ -114,7 +107,7 @@ public:
 
         if (provider)
         {
-            m_connectionPolicyProviders.push_back(provider.get());
+            m_connectionPolicyProviders.push_back(std::move(provider));
         }
     }
 
@@ -124,7 +117,7 @@ public:
 
         if (provider)
         {
-            m_validationProviders.push_back(provider.get());
+            m_validationProviders.push_back(std::move(provider));
         }
     }
 
@@ -134,7 +127,7 @@ public:
 
         if (provider)
         {
-            m_actionProviders.push_back(provider.get());
+            m_actionProviders.push_back(std::move(provider));
         }
     }
 
@@ -143,7 +136,7 @@ public:
     {
         for (const auto &provider : m_componentProviders)
         {
-            if (!registry.registerComponentTypeProvider(provider, error))
+            if (!registry.registerComponentTypeProvider(provider.get(), error))
             {
                 return false;
             }
@@ -151,7 +144,7 @@ public:
 
         for (const auto &provider : m_propertySchemaProviders)
         {
-            if (!registry.registerPropertySchemaProvider(provider, error))
+            if (!registry.registerPropertySchemaProvider(provider.get(), error))
             {
                 return false;
             }
@@ -159,7 +152,7 @@ public:
 
         for (const auto &provider : m_executionProviders)
         {
-            if (!registry.registerExecutionSemanticsProvider(provider, error))
+            if (!registry.registerExecutionSemanticsProvider(provider.get(), error))
             {
                 return false;
             }
@@ -167,7 +160,7 @@ public:
 
         for (const auto &provider : m_connectionPolicyProviders)
         {
-            if (!registry.registerConnectionPolicyProvider(provider, error))
+            if (!registry.registerConnectionPolicyProvider(provider.get(), error))
             {
                 return false;
             }
@@ -175,7 +168,7 @@ public:
 
         for (const auto &provider : m_validationProviders)
         {
-            if (!registry.registerValidationProvider(provider, error))
+            if (!registry.registerValidationProvider(provider.get(), error))
             {
                 return false;
             }
@@ -183,7 +176,7 @@ public:
 
         for (const auto &provider : m_actionProviders)
         {
-            if (!registry.registerActionProvider(provider, error))
+            if (!registry.registerActionProvider(provider.get(), error))
             {
                 return false;
             }
@@ -224,12 +217,12 @@ public:
 
 private:
     ExtensionManifest m_manifest;
-    std::vector<IComponentTypeProvider *> m_componentProviders;
-    std::vector<IPropertySchemaProvider *> m_propertySchemaProviders;
-    std::vector<IExecutionSemanticsProvider *> m_executionProviders;
-    std::vector<IConnectionPolicyProvider *> m_connectionPolicyProviders;
-    std::vector<IValidationProvider *> m_validationProviders;
-    std::vector<IActionProvider *> m_actionProviders;
+    std::vector<ComponentProviderPtr> m_componentProviders;
+    std::vector<PropertySchemaProviderPtr> m_propertySchemaProviders;
+    std::vector<ExecutionSemanticsProviderPtr> m_executionProviders;
+    std::vector<ConnectionPolicyProviderPtr> m_connectionPolicyProviders;
+    std::vector<ValidationProviderPtr> m_validationProviders;
+    std::vector<ActionProviderPtr> m_actionProviders;
 
 };
 

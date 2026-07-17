@@ -14,25 +14,20 @@ ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
     , m_componentTypeRegistry(new TypeRegistry())
     , m_propertySchemaRegistry(new PropertySchemaRegistry())
     , m_executionSandbox(new GraphExecutionSandbox())
-    , m_validationService(new ValidationService())
 {
 }
 
 ComponentMapEditorManager::~ComponentMapEditorManager()
 {
-    delete m_extensionContracts;
     delete m_extensionStartupLoader;
     delete m_componentTypeRegistry;
     delete m_propertySchemaRegistry;
     delete m_executionSandbox;
-    delete m_validationService;
 
-    m_extensionContracts = nullptr;
     m_extensionStartupLoader = nullptr;
     m_componentTypeRegistry = nullptr;
     m_propertySchemaRegistry = nullptr;
     m_executionSandbox = nullptr;
-    m_validationService = nullptr;
 }
 
 void ComponentMapEditorManager::reloadComponentTypes()
@@ -41,7 +36,7 @@ void ComponentMapEditorManager::reloadComponentTypes()
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
 }
 
-void ComponentMapEditorManager::setExtensionContractRegistry(ExtensionContractRegistry *registry)
+void ComponentMapEditorManager::setExtensionContractRegistry(std::unique_ptr<ExtensionContractRegistry> registry)
 {
     if (!registry)
     {
@@ -49,8 +44,7 @@ void ComponentMapEditorManager::setExtensionContractRegistry(ExtensionContractRe
         return;
     }
 
-    delete m_extensionContracts;
-    m_extensionContracts = registry;
+    m_extensionContracts = std::move(registry);
 
     if (!m_extensionStartupLoader)
     {
@@ -89,7 +83,6 @@ void ComponentMapEditorManager::setExtensionContractRegistry(ExtensionContractRe
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
-    m_validationService->rebuildValidationFromRegistry(*m_extensionContracts);
 }
 
 void ComponentMapEditorManager::setRuleFilePath(const QString &filePath)
@@ -172,7 +165,6 @@ void ComponentMapEditorManager::setManifestDirectory(const QString &dirPath)
         m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
         m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
         m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
-        m_validationService->rebuildValidationFromRegistry(*m_extensionContracts);
     }
     else
     {
@@ -180,15 +172,22 @@ void ComponentMapEditorManager::setManifestDirectory(const QString &dirPath)
     }
 }
 
+ComponentMapEditorManagerBuilder::ComponentMapEditorManagerBuilder()
+    : m_manager(std::make_unique<ComponentMapEditorManager>())
+{
+}
+
+ComponentMapEditorManagerBuilder::~ComponentMapEditorManagerBuilder() = default;
+
 ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withExtensionContractRegistry(
-    ExtensionContractRegistry *registry)
+    std::unique_ptr<ExtensionContractRegistry> registry)
 {
     if (m_extensionContracts != nullptr)
     {
         throw std::runtime_error("Extension contract registry has already been set; cannot set it again.");
     }
 
-    m_extensionContracts = registry;
+    m_extensionContracts = std::move(registry);
     return *this;
 }
 
@@ -221,12 +220,12 @@ ComponentMapEditorManagerBuilder &ComponentMapEditorManagerBuilder::withPackFact
     return *this;
 }
 
-ComponentMapEditorManager *ComponentMapEditorManagerBuilder::build()
+std::unique_ptr<ComponentMapEditorManager> ComponentMapEditorManagerBuilder::build()
 {
     // Verify components
     std::string err;
 
-    if (m_extensionContracts == nullptr)
+    if (!m_extensionContracts)
     {
         throw new ExtensionContractRegistryMissingException();
     }
@@ -245,12 +244,6 @@ ComponentMapEditorManager *ComponentMapEditorManagerBuilder::build()
         LOGI("No manifest directory provided; using default: {}", m_manifestDir.toStdString());
     }
 
-    if (m_manager != nullptr)
-    {
-        delete m_manager;
-    }
-
-    m_manager = new ComponentMapEditorManager();
     m_manager->setRuleFilePath(m_ruleFilePath);
     m_manager->setManifestDirectory(m_manifestDir);
 
@@ -262,9 +255,9 @@ ComponentMapEditorManager *ComponentMapEditorManagerBuilder::build()
         }
     }
 
-    m_manager->setExtensionContractRegistry(m_extensionContracts);
+    m_manager->setExtensionContractRegistry(std::move(m_extensionContracts));
 
 
 
-    return m_manager;
+    return std::move(m_manager);
 }
