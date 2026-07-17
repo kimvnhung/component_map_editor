@@ -46,6 +46,44 @@ void ComponentMapEditorManager::setExtensionContractRegistry(std::unique_ptr<Ext
 
     m_extensionContracts = std::move(registry);
 
+    // With ruleruntime
+    if (!m_ruleHotReloadService)
+    {
+        m_ruleHotReloadService = new RuleHotReloadService(&ruleRegistry);
+    }
+
+    QString providerError;
+
+    if (!m_extensionContracts->registerConnectionPolicyProvider(&compiledConnectionPolicy, &providerError))
+    {
+        LOGWF("[Rules][ERROR] Failed to register compiled connection policy provider: {}",
+              providerError.toStdString());
+    }
+
+    if (!m_extensionContracts->registerValidationProvider(&compiledValidation, &providerError))
+    {
+        LOGWF("[Rules][ERROR] Failed to register compiled validation provider: {}",
+              providerError.toStdString());
+    }
+
+    if (!m_ruleHotReloadService->startWatchingFile(m_ruleFilePath))
+    {
+        const QVector<RuleDiagnostic> diagnostics = m_ruleHotReloadService->lastDiagnostics();
+
+        if (!diagnostics.isEmpty())
+        {
+            const RuleDiagnostic first = diagnostics.first();
+            WARNF("[Rules][ERROR] {} file={} jsonPath={} line={} column={}",
+                  first.message.toStdString(),
+                  first.location.filePath.toStdString(),
+                  first.location.jsonPath.toStdString(),
+                  first.location.line,
+                  first.location.column);
+        }
+    }
+
+
+    // Load extensions from the manifest directory
     if (!m_extensionStartupLoader)
     {
         LOGW("Extension startup loader is not initialized; cannot load extensions.");
@@ -78,11 +116,12 @@ void ComponentMapEditorManager::setExtensionContractRegistry(std::unique_ptr<Ext
         }
     }
 
-
     // Rebuild registries to reflect the new contract registry.
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
+
+
 }
 
 void ComponentMapEditorManager::setRuleFilePath(const QString &filePath)

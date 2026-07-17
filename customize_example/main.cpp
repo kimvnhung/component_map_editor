@@ -4,7 +4,8 @@
 #include <QQmlContext>
 #include <componentmapeditormanager.h>
 #include <extensionpackbuilder.h>
-#include <utils/extensioncontractregistrybuilder.h>
+#include <extensions/contracts/builders/ExtensionPackBuilder.h>
+#include <extensions/contracts/builders/ExtensionContractRegistryBuilder.h>
 #include <extensions/sample_pack/SampleComponentTypeProvider.h>
 
 #include "extensions/providers/customizecomponenttypeprovider.h"

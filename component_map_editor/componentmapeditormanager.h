@@ -4,6 +4,7 @@
 #include "extensions/runtime/ExtensionStartupLoader.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
 #include "extensions/runtime/TypeRegistry.h"
+#include "extensions/runtime/rules/RuleBackedProviders.h"
 #include "extensions/runtime/rules/RuleHotReloadService.h"
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "services/ValidationService.h"
@@ -44,6 +45,7 @@ public:
 
 private:
     std::unique_ptr<ExtensionContractRegistry> m_extensionContracts{nullptr};
+
     ExtensionStartupLoader *m_extensionStartupLoader = nullptr;
 
     TypeRegistry *m_componentTypeRegistry = nullptr;
@@ -54,6 +56,8 @@ private:
     QString m_ruleFilePath;
     RuleHotReloadService *m_ruleHotReloadService = nullptr;
     RuleRuntimeRegistry ruleRegistry;
+    RuleBackedConnectionPolicyProvider compiledConnectionPolicy{&ruleRegistry};
+    RuleBackedValidationProvider compiledValidation{&ruleRegistry};
 };
 
 

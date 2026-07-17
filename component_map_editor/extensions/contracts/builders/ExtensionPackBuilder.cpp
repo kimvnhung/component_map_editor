@@ -27,12 +27,12 @@ public:
 
     BuiltExtensionPack(BuiltExtensionPack &&other) noexcept
         : m_manifest(std::move(other.m_manifest)),
-          m_componentProviders(std::move(other.m_componentProviders)),
-          m_propertySchemaProviders(std::move(other.m_propertySchemaProviders)),
-          m_executionProviders(std::move(other.m_executionProviders)),
-          m_connectionPolicyProviders(std::move(other.m_connectionPolicyProviders)),
-          m_validationProviders(std::move(other.m_validationProviders)),
-          m_actionProviders(std::move(other.m_actionProviders))
+        m_componentProviders(std::move(other.m_componentProviders)),
+        m_propertySchemaProviders(std::move(other.m_propertySchemaProviders)),
+        m_executionProviders(std::move(other.m_executionProviders)),
+        m_connectionPolicyProviders(std::move(other.m_connectionPolicyProviders)),
+        m_validationProviders(std::move(other.m_validationProviders)),
+        m_actionProviders(std::move(other.m_actionProviders))
     {
     }
 
@@ -325,44 +325,44 @@ std::unique_ptr<PackFactoryEntry> ExtensionPackBuilder::build() const
 
     // Verify that the capabilities are set correctly in the manifest, and the Provider size is not zero for each capability
     if (hasCapability(Capability_ComponentTypes, m_builtPack->manifest().capabilities) &&
-            m_builtPack->componentProvidersCount() == 0)
+        m_builtPack->componentProvidersCount() == 0)
     {
         throw std::runtime_error("Capability_ComponentTypes is set, but no component providers were added.");
     }
 
     if (hasCapability(Capability_PropertySchema, m_builtPack->manifest().capabilities) &&
-            m_builtPack->propertySchemaProvidersCount() == 0)
+        m_builtPack->propertySchemaProvidersCount() == 0)
     {
         throw std::runtime_error("Capability_PropertySchema is set, but no property schema providers were added.");
     }
 
     if (hasCapability(Capability_ExecutionSemantics, m_builtPack->manifest().capabilities) &&
-            m_builtPack->executionProvidersCount() == 0)
+        m_builtPack->executionProvidersCount() == 0)
     {
         throw std::runtime_error("Capability_ExecutionSemantics is set, but no execution semantics providers were added.");
     }
 
     if (hasCapability(Capability_ConnectionPolicy, m_builtPack->manifest().capabilities) &&
-            m_builtPack->connectionPolicyProvidersCount() == 0)
+        m_builtPack->connectionPolicyProvidersCount() == 0)
     {
         throw std::runtime_error("Capability_ConnectionPolicy is set, but no connection policy providers were added.");
     }
 
     if (hasCapability(Capability_Validation, m_builtPack->manifest().capabilities) &&
-            m_builtPack->validationProvidersCount() == 0)
+        m_builtPack->validationProvidersCount() == 0)
     {
         throw std::runtime_error("Capability_Validation is set, but no validation providers were added.");
     }
 
     if (hasCapability(Capability_Actions, m_builtPack->manifest().capabilities) &&
-            m_builtPack->actionProvidersCount() == 0)
+        m_builtPack->actionProvidersCount() == 0)
     {
         throw std::runtime_error("Capability_Actions is set, but no action providers were added.");
     }
 
     return std::make_unique<PackFactoryEntry>(PackFactoryEntry
-    {
-        m_builtPack->manifest().extensionId,
-        utils::makeFactory<BuiltExtensionPack>(std::move(*m_builtPack))
-    });
+                                              {
+                                                  m_builtPack->manifest().extensionId,
+                                                  utils::makeFactory<BuiltExtensionPack>(std::move(*m_builtPack))
+                                              });
 }
