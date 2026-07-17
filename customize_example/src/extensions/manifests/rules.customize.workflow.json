@@ -1,10 +1,10 @@
 {
-  "defaultConnectionAllow": false,
+  "defaultConnectionAllow": true,
   "connections": [
     {
       "source": "start",
       "target": "process",
-      "allow": true
+      "allow": false
     },
     {
       "source": "process",
