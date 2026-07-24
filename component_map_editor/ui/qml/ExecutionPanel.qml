@@ -147,21 +147,9 @@ ColumnLayout {
         panelText: selectedExecutionStateText()
     }
 
-    Label {
-        Layout.fillWidth: true
-        text: "Timeline"
-        font.bold: true
-    }
-
     TimelinePanel {
         Layout.fillWidth: true
-        Layout.preferredHeight: 220
+        Layout.preferredHeight: 250
         model: executionSandbox ? executionSandbox.timeline : []
-        onModelChanged: {
-            console.log("Timeline model changed, new length: " + count);
-            console.log("executionSandbox = " + executionSandbox);
-            console.log("executionSandbox.timeline = " + (executionSandbox ? executionSandbox.timeline : "null"));
-            console.log("executionSandbox.timeline.length = " + (executionSandbox ? executionSandbox.timeline.length : "null"));
-        }
     }
 }
