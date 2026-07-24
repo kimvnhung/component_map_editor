@@ -1,5 +1,8 @@
 #include "TimelineModel.h"
 
+#include <QJsonObject>
+#include <QRegularExpression>
+
 #define MAX_VISIBLE_ROWS 1000
 
 void TimelineStorage::append(TimelineEventEntry &&entry)
@@ -20,6 +23,49 @@ size_t TimelineStorage::size() const
 TimelineModel::TimelineModel(QObject *parent)
     : QAbstractListModel(parent)
 {
+}
+
+QString TimelineModel::regexFilter() const
+{
+    return m_regexFilter;
+}
+
+void TimelineModel::setRegexFilter(const QString &regex)
+{
+    if (m_regexFilter == regex)
+    {
+        return;
+    }
+
+    m_regexFilter = regex;
+    emit regexFilterChanged();
+
+    beginResetModel();
+    m_visibleRows.clear();
+
+    QRegularExpression regexObj(m_regexFilter);
+
+    for (size_t i = 0; i < m_storage->size(); ++i)
+    {
+        const auto &item = m_storage->at(i);
+        QJsonObject obj = QJsonObject::fromVariantMap(item.payload);
+        QJsonDocument doc(obj);
+        QString payload = doc.toJson(QJsonDocument::Compact);
+
+        QRegularExpressionMatch match = regexObj.match(payload);
+
+        if (match.hasMatch())
+        {
+            m_visibleRows.push_back(i);
+
+            if (m_visibleRows.size() > MAX_VISIBLE_ROWS)
+            {
+                m_visibleRows.erase(m_visibleRows.begin());
+            }
+        }
+    }
+
+    endResetModel();
 }
 
 int TimelineModel::rowCount(const QModelIndex &) const
@@ -73,11 +119,22 @@ void TimelineModel::append(const TimelineEventEntry& entry)
 {
     beginInsertRows(QModelIndex(), m_visibleRows.size(), m_visibleRows.size());
     m_storage->append(TimelineEventEntry(entry));
-    m_visibleRows.push_back(m_storage->size() - 1);
+    QJsonObject obj = QJsonObject::fromVariantMap(entry.payload);
 
-    if (m_visibleRows.size() > MAX_VISIBLE_ROWS)
+    QJsonDocument doc(obj);
+
+    QString payload = doc.toJson(QJsonDocument::Compact);
+    QRegularExpression regex(m_regexFilter);
+    QRegularExpressionMatch match = regex.match(payload);
+
+    if (match.hasMatch())
     {
-        m_visibleRows.erase(m_visibleRows.begin());
+        m_visibleRows.push_back(m_storage->size() - 1);
+
+        if (m_visibleRows.size() > MAX_VISIBLE_ROWS)
+        {
+            m_visibleRows.erase(m_visibleRows.begin());
+        }
     }
 
     endInsertRows();
@@ -105,11 +162,22 @@ void TimelineModel::append(TimelineEventEntry && entry)
 {
     beginInsertRows(QModelIndex(), m_visibleRows.size(), m_visibleRows.size());
     m_storage->append(std::move(entry));
-    m_visibleRows.push_back(m_storage->size() - 1);
+    QJsonObject obj = QJsonObject::fromVariantMap(entry.payload);
 
-    if (m_visibleRows.size() > MAX_VISIBLE_ROWS)
+    QJsonDocument doc(obj);
+
+    QString payload = doc.toJson(QJsonDocument::Compact);
+    QRegularExpression regex(m_regexFilter);
+    QRegularExpressionMatch match = regex.match(payload);
+
+    if (match.hasMatch())
     {
-        m_visibleRows.erase(m_visibleRows.begin());
+        m_visibleRows.push_back(m_storage->size() - 1);
+
+        if (m_visibleRows.size() > MAX_VISIBLE_ROWS)
+        {
+            m_visibleRows.erase(m_visibleRows.begin());
+        }
     }
 
     endInsertRows();

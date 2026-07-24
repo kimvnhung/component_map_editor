@@ -31,6 +31,7 @@ private:
 class TimelineModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(QString regexFilter READ regexFilter WRITE setRegexFilter NOTIFY regexFilterChanged FINAL)
 public:
     enum Roles
     {
@@ -41,12 +42,17 @@ public:
 
     explicit TimelineModel(QObject* parent = nullptr);
 
+    QString regexFilter() const;
+    void setRegexFilter(const QString& regex);
+
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
 
     QVariant data(const QModelIndex& index,
                   int role) const override;
 
     QHash<int, QByteArray> roleNames() const override;
+signals:
+    void regexFilterChanged();
 public:
 
     void append(const TimelineEventEntry& entry);
@@ -60,7 +66,7 @@ public:
 private:
 
     TimelineStorage *m_storage;
-
+    QString m_regexFilter;
     std::vector<size_t> m_visibleRows;
 };
 
