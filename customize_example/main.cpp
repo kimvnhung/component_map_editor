@@ -34,11 +34,6 @@ int main(int argc, char *argv[])
     {
         manager = ComponentMapEditorManagerBuilder()
                   .withPackFactoryEntry(ExtensionPackBuilder()
-                                        .withExtensionId("built.extension.pack")
-                                        .withCapabilities(extensions::Capability_ComponentTypes)
-                                        .withComponentProviderFactory(utils::makeFactory<SampleComponentTypeProvider>())
-                                        .build())
-                  .withPackFactoryEntry(ExtensionPackBuilder()
                                         .withExtensionId("customize.workflow")
                                         .withCapabilities(
                                             static_cast<extensions::Capability>(
