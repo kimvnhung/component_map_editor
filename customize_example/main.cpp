@@ -9,6 +9,8 @@
 #include <extensions/sample_pack/SampleComponentTypeProvider.h>
 
 #include "extensions/providers/customizecomponenttypeprovider.h"
+#include "extensions/providers/customizepropertyschemaprovider.h"
+#include "extensions/providers/customizeexecutionsanticsprovider.h"
 
 #include <services/ExecutionMigrationFlags.h>
 
@@ -40,8 +42,11 @@ int main(int argc, char *argv[])
                                         .withExtensionId("customize.workflow")
                                         .withCapabilities(
                                             static_cast<extensions::Capability>(
-                                                extensions::Capability_ComponentTypes))
+                                                extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema |
+                                                extensions::Capability_ExecutionSemantics))
                                         .withComponentProviderFactory(utils::makeFactory<CustomizeComponentTypeProvider>())
+                                        .withPropertySchemaProviderFactory(utils::makeFactory<CustomizePropertySchemaProvider>())
+                                        .withExecutionSemanticsFactory(utils::makeFactory<CustomizeExecutionSemanticsProvider>())
                                         .build())
                   .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
                   .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
