@@ -1,4 +1,4 @@
-#include "extensioncontractregistrybuilder.h"
+#include "ExtensionContractRegistryBuilder.h"
 
 ExtensionContractRegistryBuilder::ExtensionContractRegistryBuilder()
     : m_registry(std::make_unique<ExtensionContractRegistry>(ExtensionApiVersion{1, 0, 0}))
