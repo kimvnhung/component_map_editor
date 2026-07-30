@@ -15,37 +15,40 @@
 #include "AdapterCommon.h"
 #include "graph.pb.h"
 
-namespace cme::adapter {
+namespace cme::adapter
+{
 
 // ── QVariantMap -> Protobuf ────────────────────────────────────────────────
 
-ConversionError variantMapToComponentData(
-    const QVariantMap &variant,
-    cme::ComponentData &proto_out
-);
+    ConversionError variantMapToComponentData(
+        const QVariantMap &variant,
+        cme::ComponentData &proto_out
+    );
 
-ConversionError variantMapToConnectionData(
-    const QVariantMap &variant,
-    cme::ConnectionData &proto_out
-);
+    ConversionError variantMapToConnectionData(
+        const QVariantMap &variant,
+        cme::ConnectionData &proto_out
+    );
 
-ConversionError variantMapToGraphSnapshot(
-    const QVariantMap &variant,
-    cme::GraphSnapshot &proto_out
-);
+    ConversionError variantMapToGraphSnapshot(
+        const QVariantMap &variant,
+        cme::GraphSnapshot &proto_out
+    );
 
 // ── Protobuf -> QVariantMap ────────────────────────────────────────────────
 
-QVariantMap componentDataToVariantMap(
-    const cme::ComponentData &proto
-);
+    QVariantMap componentSnapshot(const cme::ComponentData &proto);
 
-QVariantMap connectionDataToVariantMap(
-    const cme::ConnectionData &proto
-);
+    QVariantMap componentDataToVariantMap(
+        const cme::ComponentData &proto
+    );
 
-QVariantMap graphSnapshotToVariantMap(
-    const cme::GraphSnapshot &proto
-);
+    QVariantMap connectionDataToVariantMap(
+        const cme::ConnectionData &proto
+    );
+
+    QVariantMap graphSnapshotToVariantMap(
+        const cme::GraphSnapshot &proto
+    );
 
 } // namespace cme::adapter

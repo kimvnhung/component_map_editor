@@ -1019,7 +1019,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
         if (!provider->executeComponent(QString::fromStdString(component.type_id()),
                                         QString::fromStdString(component.id()),
-                                        cme::adapter::componentDataToVariantMap(component),
+                                        cme::adapter::componentSnapshot(component),
                                         incomingTokens,
                                         &outputState,
                                         &trace,
@@ -1217,7 +1217,3 @@ void GraphExecutionSandbox::enqueueReadyComponent(const QString & componentId)
     m_readyQueueSet.insert(componentId);
 }
 
-QVariantMap GraphExecutionSandbox::toComponentSnapshotMap(const ComponentSnapshot & component) const
-{
-    return component.attributes;
-}
