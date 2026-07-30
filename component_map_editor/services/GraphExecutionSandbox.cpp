@@ -1,6 +1,7 @@
 #include "GraphExecutionSandbox.h"
 
 #include <algorithm>
+#include <base_log.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -8,9 +9,11 @@
 #include <QJsonValue>
 
 #include "adapters/ExecutionAdapter.h"
+#include "adapters/GraphAdapter.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/PublicApiContractAdapter.h"
 #include "services/ExecutionMigrationFlags.h"
+#include "utils/GraphHelper.h"
 
 namespace
 {
@@ -236,7 +239,7 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
     appendTimelineEvent(TimelineEventKind::SimulationStarted,
                         QVariantMap
     {
-        { QStringLiteral("componentCount"), m_componentsById.size() },
+        { QStringLiteral("componentCount"), cme::helper::getComponentCount(m_graphSnapshot) },
         { QStringLiteral("inputKeys"), inputSnapshot.keys() },
         {
             QStringLiteral("tokenTransportEnabled"),
@@ -419,9 +422,9 @@ QVariantMap GraphExecutionSandbox::snapshotSummary() const
 {
     return QVariantMap
     {
-        { QStringLiteral("componentCount"), m_componentsById.size() },
+        { QStringLiteral("componentCount"), cme::helper::getComponentCount(m_graphSnapshot) },
         { QStringLiteral("executedCount"), m_executed.size() },
-        { QStringLiteral("pendingCount"), m_componentsById.size() - m_executed.size() },
+        { QStringLiteral("pendingCount"), cme::helper::getComponentCount(m_graphSnapshot) - m_executed.size() },
         { QStringLiteral("readyQueue"), m_readyQueue },
         { QStringLiteral("breakpoints"), breakpoints() },
         {
@@ -437,7 +440,7 @@ QVariantMap GraphExecutionSandbox::debugSnapshot() const
     int redactedCount = 0;
 
     QVariantList components;
-    QStringList componentIds = m_componentsById.keys();
+    QStringList componentIds = cme::helper::getComponentIds(m_graphSnapshot);
     std::sort(componentIds.begin(), componentIds.end());
 
     for (const QString &componentId : componentIds)
@@ -446,7 +449,7 @@ QVariantMap GraphExecutionSandbox::debugSnapshot() const
         QVariantMap entry
         {
             { QStringLiteral("componentId"), componentId },
-            { QStringLiteral("type"), m_componentsById.value(componentId).type },
+            { QStringLiteral("type"), QString::fromStdString(cme::helper::getComponentById(m_graphSnapshot, componentId).type_id()) },
             { QStringLiteral("consumedIncomingTokenIds"), state.value(QStringLiteral("consumedIncomingTokenIds")) },
             { QStringLiteral("producedOutgoingConnectionIds"), state.value(QStringLiteral("producedOutgoingConnectionIds")) },
             {
@@ -457,33 +460,35 @@ QVariantMap GraphExecutionSandbox::debugSnapshot() const
         components.append(entry);
     }
 
-    QList<ConnectionSnapshot> allEdges;
+    QList<cme::ConnectionData> allEdges;
+    auto outgoingMap = cme::helper::getOutgoingConnectionsBySourceId(m_graphSnapshot);
 
-    for (auto it = m_outgoingBySource.constBegin(); it != m_outgoingBySource.constEnd(); ++it)
+    for (auto it = outgoingMap.constBegin(); it != outgoingMap.constEnd(); ++it)
     {
-        for (const ConnectionSnapshot &edge : it.value())
+        for (const cme::ConnectionData &edge : it.value())
         {
             allEdges.append(edge);
         }
     }
 
-    std::sort(allEdges.begin(), allEdges.end(), [](const ConnectionSnapshot & a, const ConnectionSnapshot & b)
+    std::sort(allEdges.begin(), allEdges.end(), [](const cme::ConnectionData & a, const cme::ConnectionData & b)
     {
-        return a.id < b.id;
+        return a.id() < b.id();
     });
 
     QVariantList connections;
 
-    for (const ConnectionSnapshot &edge : allEdges)
+    for (const cme::ConnectionData &edge : allEdges)
     {
-        const QVariantMap payload = m_connectionTokens.value(edge.id);
+        const QVariantMap payload = cme::helper::getConnectionPayloadById(m_graphSnapshot,
+                                    QString::fromStdString(edge.id()));
         const QVariantMap redactedPayload = redactVariant(payload, m_sensitiveDebugKeys, &redactedCount).toMap();
         connections.append(QVariantMap
         {
-            { QStringLiteral("connectionId"), edge.id },
-            { QStringLiteral("sourceId"), edge.sourceId },
-            { QStringLiteral("targetId"), edge.targetId },
-            { QStringLiteral("label"), edge.label },
+            { QStringLiteral("connectionId"), QString::fromStdString(edge.id()) },
+            { QStringLiteral("sourceId"), QString::fromStdString(edge.source_id()) },
+            { QStringLiteral("targetId"), QString::fromStdString(edge.target_id()) },
+            { QStringLiteral("label"), QString::fromStdString(edge.label()) },
             { QStringLiteral("payloadBytes"), estimatePayloadBytes(payload) },
             { QStringLiteral("payloadSummary"), redactedPayload }
         });
@@ -604,7 +609,7 @@ void GraphExecutionSandbox::setStatus(RunStatus status)
     emit statusChanged();
 }
 
-void GraphExecutionSandbox::appendTimelineEvent(TimelineEventKind kind, const QVariantMap &payload)
+void GraphExecutionSandbox::appendTimelineEvent(TimelineEventKind kind, const QVariantMap & payload)
 {
     cme::TimelineEvent typedEvent;
     typedEvent.set_type(timelineKindToProtoType(kind));
@@ -654,7 +659,7 @@ void GraphExecutionSandbox::flushTimelineChanged()
     emit timelineChanged();
 }
 
-void GraphExecutionSandbox::markError(const QString &message)
+void GraphExecutionSandbox::markError(const QString & message)
 {
     m_lastError = message;
     emit lastErrorChanged();
@@ -674,10 +679,12 @@ void GraphExecutionSandbox::clearSimulationData()
     m_inputSnapshot.clear();
     m_executionState.clear();
     m_componentStates.clear();
+
     if (m_timeline)
     {
         m_timeline->clear();
     }
+
     m_typedTimeline.clear();
     m_lastError.clear();
     emit executionStateChanged();
@@ -692,10 +699,7 @@ void GraphExecutionSandbox::clearSimulationData()
     m_tokenWriteCount = 0;
     m_redactedFieldCount = 0;
 
-    m_componentsById.clear();
-    m_outgoingBySource.clear();
-    m_incomingByTarget.clear();
-    m_connectionTokens.clear();
+    m_graphSnapshot.Clear();
     m_pendingInDegree.clear();
     m_executed.clear();
     m_readyQueue.clear();
@@ -726,22 +730,34 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
             continue;
         }
 
-        ComponentSnapshot snap;
-        snap.id = componentId;
-        snap.type = component->type();
-        snap.title = component->title();
-        snap.attributes = QVariantMap
-        {
-            { QStringLiteral("id"), snap.id },
-            { QStringLiteral("type"), snap.type },
-            { QStringLiteral("title"), snap.title },
-            { QStringLiteral("x"), component->x() },
-            { QStringLiteral("y"), component->y() },
-            { QStringLiteral("width"), component->width() },
-            { QStringLiteral("height"), component->height() },
-            { QStringLiteral("color"), component->color() },
-            { QStringLiteral("shape"), component->shape() }
-        };
+        // ComponentSnapshot snap;
+        // snap.id = componentId;
+        // snap.type = component->type();
+        // snap.title = component->title();
+        // snap.attributes = QVariantMap
+        // {
+        //     { QStringLiteral("id"), snap.id },
+        //     { QStringLiteral("type"), snap.type },
+        //     { QStringLiteral("title"), snap.title },
+        //     { QStringLiteral("x"), component->x() },
+        //     { QStringLiteral("y"), component->y() },
+        //     { QStringLiteral("width"), component->width() },
+        //     { QStringLiteral("height"), component->height() },
+        //     { QStringLiteral("color"), component->color() },
+        //     { QStringLiteral("shape"), component->shape() }
+        // };
+        cme::ComponentData *snap = m_graphSnapshot.add_components();
+        snap->set_id(componentId.toStdString());
+        snap->set_type_id(component->type().toStdString());
+        snap->set_title(component->title().toStdString());
+        // Set properties
+        auto *properties = snap->mutable_properties();
+        (*properties)["x"] = QString::number(component->x()).toStdString();
+        (*properties)["y"] = QString::number(component->y()).toStdString();
+        (*properties)["width"] = QString::number(component->width()).toStdString();
+        (*properties)["height"] = QString::number(component->height()).toStdString();
+        (*properties)["color"] = component->color().toStdString();
+        (*properties)["shape"] = component->shape().toStdString();
 
         // Capture dynamic QML properties so extension execution semantics can
         // consume schema-defined fields (for example inputNumber/addValue).
@@ -756,15 +772,13 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
                 continue;
             }
 
-            snap.attributes.insert(key, component->property(propName.constData()));
+            (*properties)[key.toStdString()] = component->property(propName.constData()).toString().toStdString();
         }
-
-        m_componentsById.insert(snap.id, snap);
     }
 
-    for (auto it = m_componentsById.constBegin(); it != m_componentsById.constEnd(); ++it)
+    for (auto it = m_graphSnapshot.components().begin(); it != m_graphSnapshot.components().end(); ++it)
     {
-        m_pendingInDegree.insert(it.key(), 0);
+        m_pendingInDegree.insert(it->id(), 0);
     }
 
     const QList<ConnectionModel *> connections = m_graph->connectionList();
@@ -776,64 +790,135 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
             continue;
         }
 
-        ConnectionSnapshot conn;
-        conn.id = connection->id();
-        conn.sourceId = connection->sourceId();
-        conn.targetId = connection->targetId();
-        conn.label = connection->label();
+        cme::ConnectionData conn;
+        conn.set_id(connection->id().toStdString());
+        conn.set_source_id(connection->sourceId().toStdString());
+        conn.set_target_id(connection->targetId().toStdString());
+        conn.set_label(connection->label().toStdString());
 
-        if (!m_componentsById.contains(conn.sourceId) || !m_componentsById.contains(conn.targetId))
+        // Check if source and target components exist in the graph snapshot
+        if (!m_pendingInDegree.contains(conn.source_id()) ||
+                !m_pendingInDegree.contains(conn.target_id()))
         {
-            continue;
+            markError(QStringLiteral("Connection '%1' references non-existent source or target component.").arg(
+                          QString::fromStdString(conn.id())));
+            return false;
         }
 
-        QList<ConnectionSnapshot> &out = m_outgoingBySource[conn.sourceId];
-        out.append(conn);
-        QList<ConnectionSnapshot> &in = m_incomingByTarget[conn.targetId];
-        in.append(conn);
-        m_pendingInDegree[conn.targetId] = m_pendingInDegree.value(conn.targetId, 0) + 1;
+        m_pendingInDegree[conn.target_id()] = m_pendingInDegree.value(conn.target_id(), 0) + 1;
+        m_graphSnapshot.mutable_connections()->Add(std::move(conn));
     }
 
-    for (auto it = m_outgoingBySource.begin(); it != m_outgoingBySource.end(); ++it)
+    auto outgoingMap = cme::helper::getOutgoingConnectionsBySourceId(m_graphSnapshot);
+
+    for (auto it = outgoingMap.begin(); it != outgoingMap.end(); ++it)
     {
-        QList<ConnectionSnapshot> &edges = it.value();
-        std::sort(edges.begin(), edges.end(), [](const ConnectionSnapshot & a, const ConnectionSnapshot & b)
+        QList<cme::ConnectionData> &edges = it.value();
+        std::sort(edges.begin(), edges.end(), [](const cme::ConnectionData & a, const cme::ConnectionData & b)
         {
-            if (a.targetId != b.targetId)
+            if (a.target_id() != b.target_id())
             {
-                return a.targetId < b.targetId;
+                return a.target_id() < b.target_id();
             }
 
-            return a.id < b.id;
+            return a.id() < b.id();
         });
     }
 
-    for (auto it = m_incomingByTarget.begin(); it != m_incomingByTarget.end(); ++it)
+    auto incomingMap = cme::helper::getIncomingConnectionsByTargetId(m_graphSnapshot);
+
+    for (auto it = incomingMap.begin(); it != incomingMap.end(); ++it)
     {
-        QList<ConnectionSnapshot> &edges = it.value();
-        std::sort(edges.begin(), edges.end(), [](const ConnectionSnapshot & a, const ConnectionSnapshot & b)
+        QList<cme::ConnectionData> &edges = it.value();
+        std::sort(edges.begin(), edges.end(), [](const cme::ConnectionData & a, const cme::ConnectionData & b)
         {
-            if (a.sourceId != b.sourceId)
+            if (a.source_id() != b.source_id())
             {
-                return a.sourceId < b.sourceId;
+                return a.source_id() < b.source_id();
             }
 
-            return a.id < b.id;
+            return a.id() < b.id();
         });
     }
 
-    QStringList componentIds = m_componentsById.keys();
+    QStringList componentIds = cme::helper::getComponentIds(m_graphSnapshot);
     std::sort(componentIds.begin(), componentIds.end(), idComparator);
 
     for (const QString &componentId : componentIds)
     {
-        if (m_pendingInDegree.value(componentId, 0) == 0)
+        if (m_pendingInDegree.value(componentId.toStdString(), 0) == 0)
         {
             enqueueReadyComponent(componentId);
         }
     }
 
     return true;
+}
+
+QList<QVariantMap> GraphExecutionSandbox::collectIncomingTokens(const cme::GraphSnapshot & graph,
+        const QString & componentId, const RunStatus & status)
+{
+    Q_UNUSED(graph);
+    Q_UNUSED(status);
+    const bool tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
+    const QList<cme::ConnectionData> incoming = cme::helper::getConnectionsByTargetId(m_graphSnapshot, componentId);
+    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, componentId);
+
+    QVariantMap trace;
+    QVariantMap outputState = m_executionState;
+    cme::execution::IncomingTokens incomingTokens;
+    QVariantMap inputStateForState;
+    QVariantMap incomingTokenPayloads;
+    QStringList incomingTokenIds;
+    QStringList outgoingConnectionIds;
+    outgoingConnectionIds.reserve(outgoing.size());
+
+    for (const cme::ConnectionData &edge : outgoing)
+    {
+        outgoingConnectionIds.append(QString::fromStdString(edge.id()));
+    }
+
+    std::sort(outgoingConnectionIds.begin(), outgoingConnectionIds.end());
+
+    if (tokenRoutingEnabled)
+    {
+
+        for (const cme::ConnectionData &edge : incoming)
+        {
+            auto tokenPayload = cme::helper::getConnectionPayloadById(m_graphSnapshot, QString::fromStdString(edge.id()));
+            incomingTokens.insert(QString::fromStdString(edge.id()), tokenPayload);
+        }
+
+        if (incomingTokens.isEmpty() && !m_inputSnapshot.isEmpty())
+        {
+            incomingTokens.insert(QStringLiteral("__graph_input__"), m_inputSnapshot);
+        }
+
+        inputStateForState = mergeIncomingTokens(incomingTokens);
+    }
+    else
+    {
+        incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
+        inputStateForState = m_executionState;
+    }
+
+    incomingTokenIds = incomingTokens.keys();
+    std::sort(incomingTokenIds.begin(), incomingTokenIds.end());
+
+    for (const QString &tokenId : incomingTokenIds)
+    {
+        incomingTokenPayloads.insert(tokenId, incomingTokens.value(tokenId));
+    }
+
+    for (const QString &tokenId : incomingTokenIds)
+    {
+        ++m_tokenReadCount;
+        const qint64 bytes = estimatePayloadBytes(incomingTokens.value(tokenId));
+        m_payloadBytesRead += bytes;
+        m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
+    }
+
+    return incomingTokens.values();
 }
 
 bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
@@ -866,10 +951,10 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
     m_readyQueue.removeFirst();
     m_readyQueueSet.remove(componentId);
-    const ComponentSnapshot component = m_componentsById.value(componentId);
+    cme::ComponentData component = cme::helper::getComponentById(m_graphSnapshot, componentId);
     const bool tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
-    const QList<ConnectionSnapshot> incoming = m_incomingByTarget.value(component.id);
-    const QList<ConnectionSnapshot> outgoing = m_outgoingBySource.value(component.id);
+    const QList<cme::ConnectionData> incoming = cme::helper::getConnectionsByTargetId(m_graphSnapshot, componentId);
+    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, componentId);
 
     QVariantMap trace;
     QVariantMap outputState = m_executionState;
@@ -880,18 +965,20 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     QStringList outgoingConnectionIds;
     outgoingConnectionIds.reserve(outgoing.size());
 
-    for (const ConnectionSnapshot &edge : outgoing)
+    for (const cme::ConnectionData &edge : outgoing)
     {
-        outgoingConnectionIds.append(edge.id);
+        outgoingConnectionIds.append(QString::fromStdString(edge.id()));
     }
 
     std::sort(outgoingConnectionIds.begin(), outgoingConnectionIds.end());
 
     if (tokenRoutingEnabled)
     {
-        for (const ConnectionSnapshot &edge : incoming)
+
+        for (const cme::ConnectionData &edge : incoming)
         {
-            incomingTokens.insert(edge.id, m_connectionTokens.value(edge.id));
+            auto tokenPayload = cme::helper::getConnectionPayloadById(m_graphSnapshot, QString::fromStdString(edge.id()));
+            incomingTokens.insert(QString::fromStdString(edge.id()), tokenPayload);
         }
 
         if (incomingTokens.isEmpty() && !m_inputSnapshot.isEmpty())
@@ -923,15 +1010,16 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
         m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
     }
 
-    const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(component.type, nullptr);
+    const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(QString::fromStdString(
+            component.type_id()), nullptr);
 
     if (provider)
     {
         QString error;
 
-        if (!provider->executeComponent(component.type,
-                                        component.id,
-                                        toComponentSnapshotMap(component),
+        if (!provider->executeComponent(QString::fromStdString(component.type_id()),
+                                        QString::fromStdString(component.id()),
+                                        cme::adapter::componentDataToVariantMap(component),
                                         incomingTokens,
                                         &outputState,
                                         &trace,
@@ -946,7 +1034,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
         // declared output keys. Also accept any keys explicitly configured
         // in the component's snapshot (e.g. outputKey="mySum"), since those
         // override the default declared names.
-        const QStringList declared = provider->providedOutputKeys(component.type);
+        const QStringList declared = provider->providedOutputKeys(QString::fromStdString(component.type_id()));
 
         if (!declared.isEmpty())
         {
@@ -976,7 +1064,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
                 for (const QString &prop : kOutputKeyProps)
                 {
-                    const QString configured = component.attributes.value(prop).toString().trimmed();
+                    const QString configured = QString::fromStdString(component.properties().find(prop.toStdString())->second).trimmed();
 
                     if (!configured.isEmpty() && outputState.contains(configured))
                     {
@@ -989,7 +1077,7 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
             if (!matched)
             {
                 markError(QStringLiteral("Provider '%1': output payload for type '%2' is missing all declared keys [%3].")
-                          .arg(provider->providerId(), component.type, declared.join(QStringLiteral(", "))));
+                          .arg(provider->providerId(), component.type_id(), declared.join(QStringLiteral(", "))));
                 return false;
             }
         }
@@ -1003,24 +1091,26 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
         {
             QVariantMap mergedIncoming;
 
-            for (const ConnectionSnapshot &edge : incoming)
+            for (const cme::ConnectionData &edge : incoming)
             {
-                mergedIncoming.insert(m_connectionTokens.value(edge.id));
+                // mergedIncoming.insert(m_connectionTokens.value(edge.id));
+                mergedIncoming.insert(QString::fromStdString(edge.id()), cme::helper::getConnectionPayloadById(m_graphSnapshot,
+                                      QString::fromStdString(edge.id())));
             }
 
             outputState = mergedIncoming;
         }
 
-        outputState.insert(QStringLiteral("lastExecutedComponentId"), component.id);
+        outputState.insert(QStringLiteral("lastExecutedComponentId"), QString::fromStdString(component.id()));
     }
 
     m_executionState = outputState;
     emit executionStateChanged();
 
-    QVariantMap state = m_componentStates.value(component.id).toMap();
+    QVariantMap state = m_componentStates.value(QString::fromStdString(component.id())).toMap();
     state.insert(QStringLiteral("status"), QStringLiteral("executed"));
     state.insert(QStringLiteral("tick"), m_tick);
-    state.insert(QStringLiteral("type"), component.type);
+    state.insert(QStringLiteral("type"), QString::fromStdString(component.type_id()));
     state.insert(QStringLiteral("inputState"), inputStateForState);
     state.insert(QStringLiteral("incomingTokenPayloads"), incomingTokenPayloads);
     state.insert(QStringLiteral("outputState"), outputState);
@@ -1032,9 +1122,9 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
         state.insert(QStringLiteral("trace"), trace);
     }
 
-    m_componentStates.insert(component.id, state);
+    m_componentStates.insert(QString::fromStdString(component.id()), state);
 
-    m_executed.insert(component.id);
+    m_executed.insert(QString::fromStdString(component.id()));
 
     int stepRedactedCount = 0;
     const QVariant redactedOutputSummary = redactVariant(outputState, m_sensitiveDebugKeys, &stepRedactedCount);
@@ -1043,8 +1133,8 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
     appendTimelineEvent(TimelineEventKind::StepExecuted,
                         QVariantMap
     {
-        { QStringLiteral("componentId"), component.id },
-        { QStringLiteral("componentType"), component.type },
+        { QStringLiteral("componentId"), QString::fromStdString(component.id()) },
+        { QStringLiteral("componentType"), QString::fromStdString(component.type_id()) },
         { QStringLiteral("incomingTokenCount"), incomingTokens.size() },
         { QStringLiteral("incomingTokenIds"), incomingTokenIds },
         { QStringLiteral("outgoingConnectionIds"), outgoingConnectionIds },
@@ -1055,9 +1145,9 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
 
     if (tokenRoutingEnabled)
     {
-        for (const ConnectionSnapshot &edge : outgoing)
+        for (const cme::ConnectionData &edge : outgoing)
         {
-            m_connectionTokens.insert(edge.id, outputState);
+            cme::helper::setPayload(m_graphSnapshot, QString::fromStdString(edge.id()), outputState);
             ++m_tokenWriteCount;
             const qint64 bytes = estimatePayloadBytes(outputState);
             m_payloadBytesWritten += bytes;
@@ -1065,15 +1155,15 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
         }
     }
 
-    for (const ConnectionSnapshot &edge : outgoing)
+    for (const cme::ConnectionData &edge : outgoing)
     {
-        const QString targetId = edge.targetId;
+        const std::string targetId = edge.target_id();
         const int updatedInDegree = m_pendingInDegree.value(targetId, 0) - 1;
         m_pendingInDegree[targetId] = updatedInDegree;
 
         if (updatedInDegree == 0)
         {
-            enqueueReadyComponent(targetId);
+            enqueueReadyComponent(QString::fromStdString(targetId));
         }
     }
 
@@ -1090,7 +1180,9 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
         return;
     }
 
-    if (m_executed.size() == m_componentsById.size())
+    int componentCount = cme::helper::getComponentCount(m_graphSnapshot);
+
+    if (m_executed.size() == componentCount)
     {
         appendTimelineEvent(TimelineEventKind::SimulationCompleted,
                             QVariantMap
@@ -1107,13 +1199,13 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
                             QVariantMap
         {
             { QStringLiteral("executedCount"), m_executed.size() },
-            { QStringLiteral("remainingCount"), m_componentsById.size() - m_executed.size() }
+            { QStringLiteral("remainingCount"), componentCount - m_executed.size() }
         });
         setStatus(RunStatus::Completed);
     }
 }
 
-void GraphExecutionSandbox::enqueueReadyComponent(const QString &componentId)
+void GraphExecutionSandbox::enqueueReadyComponent(const QString & componentId)
 {
     if (componentId.isEmpty() || m_executed.contains(componentId) || m_readyQueueSet.contains(componentId))
     {
@@ -1125,7 +1217,7 @@ void GraphExecutionSandbox::enqueueReadyComponent(const QString &componentId)
     m_readyQueueSet.insert(componentId);
 }
 
-QVariantMap GraphExecutionSandbox::toComponentSnapshotMap(const ComponentSnapshot &component) const
+QVariantMap GraphExecutionSandbox::toComponentSnapshotMap(const ComponentSnapshot & component) const
 {
     return component.attributes;
 }
