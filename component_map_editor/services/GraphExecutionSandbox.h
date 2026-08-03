@@ -33,6 +33,7 @@ class GraphExecutionSandbox : public QObject
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged FINAL)
     Q_PROPERTY(QVariantMap providerOutputKeyHints READ providerOutputKeyHints NOTIFY providerOutputKeyHintsChanged FINAL)
 
+
 public:
     explicit GraphExecutionSandbox(QObject *parent = nullptr);
 
@@ -137,26 +138,40 @@ private:
     {
         QString componentId;
         QString componentType;
-        QList<QVariantMap> incomingTokens;
-        QVariantMap runMetadata;
+        bool tokenRoutingEnabled;
+        cme::execution::IncomingTokens incomingTokens;
+        QVariantMap stepState;
+        QVariantMap trace;
     };
-    QList<QVariantMap> collectIncomingTokens(const cme::GraphSnapshot& graph, const QString& componentId,
-            const RunStatus& run);
-    // ExecutionContext buildExecutionContext(const ComponentSnapshot& compSnap, const QList<QVariantMap> &incomingTokens,
-    //                                        const RunMetadata& meta);
-    // ExecuteResult invokeProvider(const ExecutionContext& ctx);
-    // ValidationResult validateOutput(const ExecuteResult& result, const ComponentSchema& schema);
-    // void routeOutputs(const ExecuteResult& result, const ComponentSnapshot& compSnap, RoutingState& state);
-    // void commitState(const ComponentSnapshot& compSnap, const RoutingState& state, GraphMutableState& g);
-    // void recordTimelineEvent(const QString& componentId, const ExecuteResult& result, Timeline& timeline);
-    QVariantMap normalizeTrace(const QVariantMap& rawTrace, const QString& providerId);
-    QMap<QString, QVariantMap> parseNamedTokens(const QVariantMap& output);
+    struct ExecuteResult
+    {
+        enum Status { Ok, Rejected, Error } status;
+        QVariantMap output; // default token payload
+        QString providerId;
+        cme::ComponentData componentData;
+        QStringList requiredOutputKeys; // list of keys that must be present in the output
+        QVariantMap trace; // { providerId, durationMs, status, details }
+        QString errorMessage;
+    };
+
+    /**
+     * @brief dequeNextComponent : Dequeues the next component from the ready queue.
+     * @return The ID of the next component to execute, or an empty string if the queue is empty.
+     */
+    QString dequeNextComponent();
+    void prepareIncomingTokens(const QString& componentId, ExecutionContext& ctx);
+    ExecuteResult invokeProvider(const ExecutionContext& ctx);
+    bool validateExecutionResult(const ExecuteResult& result, QString& message);
+    void routeOutgoingTokens(const ExecutionContext& ctx, const ExecuteResult& result);
+    void commitExecutionState(const ExecutionContext& ctx, const ExecuteResult& result);
+    void recordTimelineEvent(const ExecutionContext& ctx, const ExecuteResult& result);
+
     //
     void finalizeIfNoReadyComponents();
     void flushTimelineChanged();
 
     void enqueueReadyComponent(const QString &componentId);
-
+private:
     QPointer<GraphModel> m_graph;
     RunStatus m_status = RunStatus::Idle;
     int m_tick = 0;

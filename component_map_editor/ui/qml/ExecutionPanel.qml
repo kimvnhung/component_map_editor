@@ -4,7 +4,9 @@ import QtQuick.Controls
 import ComponentMapEditor
 
 ColumnLayout {
+    id: root
     property var executionSandbox: editorManager.executionSandbox
+    property string selectedComponentId: ""
 
     Layout.fillWidth: true
     spacing: 10
@@ -144,12 +146,21 @@ ColumnLayout {
 
     ReadOnlyPlainText {
         preferredHeight: 140
-        panelText: selectedExecutionStateText()
+        panelText: selectedComponentState()
     }
 
     TimelinePanel {
         Layout.fillWidth: true
         Layout.preferredHeight: 250
         model: executionSandbox ? executionSandbox.timeline : []
+    }
+
+    function selectedComponentState() {
+        if (!selectedComponentId || selectedComponentId.length === 0)
+            return "Select a component to inspect its execution state.";
+        var state = executionSandbox.componentState(root.selectedComponentId);
+        if (!state || Object.keys(state).length === 0)
+            return "No execution state for '" + root.selectedComponentId + "'.";
+        return prettyJson(state);
     }
 }
