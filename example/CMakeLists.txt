@@ -73,3 +73,5 @@ target_compile_definitions(compatibility_checker_tool
     PRIVATE
         LOG_TAG="CMECompatibilityChecker"
 )
+
+add_subdirectory(actor_mailbox_example)
