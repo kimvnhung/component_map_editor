@@ -28,7 +28,12 @@ void ActorScheduler::scheduleTask(ActorTask task)
     {
         try
         {
-            task.taskFunction();
+            auto result = task.taskFunction();
+
+            if (task.finishCallback)
+            {
+                task.finishCallback(result);
+            }
         }
         catch (const std::exception &e)
         {

@@ -5,6 +5,8 @@
 
 #include <functional>
 
+class Message;
+
 struct ActorTaskResult
 {
     enum class Status
@@ -14,13 +16,14 @@ struct ActorTaskResult
         Cancelled
     } status;
 
-    std::string message;
+    Message *outputMessage;
+    std::string error;
 };
 
 using TaskFinishCallback = std::function<void(const ActorTaskResult &)>;
 struct ActorTask
 {
-    std::function<void()> taskFunction;
+    std::function<ActorTaskResult()> taskFunction;
     TaskFinishCallback finishCallback;
 };
 

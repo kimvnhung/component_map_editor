@@ -1,30 +1,35 @@
 #include "Message.h"
 
-Message::Message(const std::unordered_map<std::string, std::string> &payload)
-    : m_payload(payload) {}
+Message::Message(const std::unordered_map<std::string, std::string> &tokens,
+                 const std::unordered_map<std::string, std::string> &componentSnapshot)
+    : m_tokens(tokens), m_componentSnapshot(componentSnapshot) {}
 
-void Message::setPayload(const std::unordered_map<std::string, std::string> &payload)
+void Message::setActorId(const std::string &actorId)
 {
-    m_payload = payload;
+    m_actorId = actorId;
 }
 
-void Message::addPayloadField(const std::string &key, const std::string &value)
+std::string Message::getActorId() const
 {
-    m_payload[key] = value;
+    return m_actorId;
 }
 
-void Message::removePayloadField(const std::string &key)
+void Message::setTokens(const std::unordered_map<std::string, std::string> &tokens)
 {
-    m_payload.erase(key);
+    m_tokens = tokens;
 }
 
-std::unordered_map<std::string, std::string> Message::getPayload() const
+void Message::setComponentSnapshot(const std::unordered_map<std::string, std::string> &snapshot)
 {
-    return m_payload;
+    m_componentSnapshot = snapshot;
 }
 
-std::string Message::getPayloadField(const std::string &key) const
+std::unordered_map<std::string, std::string> Message::getTokens() const
 {
-    auto it = m_payload.find(key);
-    return (it != m_payload.end()) ? it->second : "";
+    return m_tokens;
+}
+
+std::unordered_map<std::string, std::string> Message::getComponentSnapshot() const
+{
+    return m_componentSnapshot;
 }
