@@ -27,6 +27,7 @@ public:
     void addProperty(const std::string &key, const std::string &value);
     void removeProperty(const std::string &key);
     std::string getProperty(const std::string &key) const;
+    Tokens snapshot() const { return m_properties; }
 private:
     std::string m_id{};
     std::string m_type{};
@@ -58,8 +59,6 @@ class ClockComponent : public Component
 public:
     ClockComponent(const std::string &id);
     bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
-private:
-    int m_tickCount{};
 };
 
 class PrinterComponent : public Component

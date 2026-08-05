@@ -45,12 +45,20 @@ std::string Connection::getProperty(const std::string &key) const
 }
 
 ClockComponent::ClockComponent(const std::string &id)
-    : Component(id, "Clock"), m_tickCount(0) {}
+    : Component(id, "Clock") {}
 
 bool ClockComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
 {
-    m_tickCount++;
+    int tick = 0;
+
+    if (inputTokens.find("tick") != inputTokens.end())
+    {
+        std::string tickValue = inputTokens.at("tick");
+        tick = std::stoi(tickValue);
+    }
+
     QThread::msleep(1000); // Simulate a clock tick every second
+    outputTokens["tick"] = std::to_string(tick + 1);
     return true;
 }
 
@@ -59,16 +67,13 @@ PrinterComponent::PrinterComponent(const std::string &id)
 
 bool PrinterComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
 {
-    std::string message = getProperty("message");
-
-    if (!message.empty())
+    if (inputTokens.find("tick") != inputTokens.end())
     {
-        LOGD("PrinterComponent: {}", message);
+        std::string tickValue = inputTokens.at("tick");
+        LOGDF("PrinterComponent received tick: {}", tickValue);
+        outputTokens["printed"] = "Printed tick: " + tickValue;
+        outputTokens["tick"] = tickValue;
         return true;
-    }
-    else
-    {
-        LOGD("PrinterComponent: No message to print.");
     }
 
     return false;
@@ -259,7 +264,7 @@ void GraphExecutionSandboxSim::routeTokens(const ActorTaskResult &result)
 
             if (targetComponent)
             {
-                m_actorSystem->send(targetComponent->getId(), new Message(outputTokens));
+                m_actorSystem->send(targetComponent->getId(), new Message(outputTokens, targetComponent->snapshot()));
             }
             else
             {
