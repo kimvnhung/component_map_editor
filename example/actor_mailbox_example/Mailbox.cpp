@@ -1,23 +1,23 @@
 #include "Mailbox.h"
 
-bool Mailbox::hasMessages() const
+bool Mailbox::hasNextMessage() const
 {
     return !m_messages.empty();
 }
 
-Message Mailbox::nextMessage()
+bool Mailbox::nextMessage(Message& message)
 {
-    if (m_messages.empty())
+    if (!m_messages.empty())
     {
-        return Message();
+        message = std::move(m_messages.front());
+        m_messages.pop();
+        return true;
     }
 
-    Message message = m_messages.front();
-    m_messages.pop();
-    return message;
+    return false;
 }
 
-void Mailbox::enqueueMessage(const Message &message)
+void Mailbox::enqueueMessage(Message&& msg)
 {
-    m_messages.push(message);
+    m_messages.push(std::move(msg));
 }

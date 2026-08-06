@@ -7,77 +7,7 @@
 #include "ActorSystem.h"
 #include "Message.h"
 
-std::string new_id(GraphItemType type)
-{
-    static int componentCounter = 0;
-    static int connectionCounter = 0;
-    return std::to_string(static_cast<int>(type)) + "_" + std::to_string((type == Component_Type ? componentCounter++ :
-            connectionCounter++));
-}
 
-Component::Component(const std::string &id, const std::string &type)
-    : m_id(id), m_type(type) {}
-
-std::string Component::getId() const { return m_id; }
-std::string Component::getType() const { return m_type; }
-void Component::addProperty(const std::string &key, const std::string &value) { m_properties[key] = value; }
-void Component::removeProperty(const std::string &key) { m_properties.erase(key); }
-std::string Component::getProperty(const std::string &key) const
-{
-    auto it = m_properties.find(key);
-    return (it != m_properties.end()) ? it->second : "";
-}
-
-Connection::Connection(const std::string &id, const std::string &sourceComponentId,
-                       const std::string &targetComponentId)
-    : m_id(id), m_sourceComponentId(sourceComponentId), m_targetComponentId(targetComponentId) {}
-std::string Connection::getId() const { return m_id; }
-std::string Connection::getSourceComponentId() const { return m_sourceComponentId; }
-std::string Connection::getTargetComponentId() const { return m_targetComponentId; }
-void Connection::setSourceComponentId(const std::string &sourceComponentId) { m_sourceComponentId = sourceComponentId; }
-void Connection::setTargetComponentId(const std::string &targetComponentId) { m_targetComponentId = targetComponentId; }
-void Connection::addProperty(const std::string &key, const std::string &value) { m_properties[key] = value; }
-void Connection::removeProperty(const std::string &key) { m_properties.erase(key); }
-std::string Connection::getProperty(const std::string &key) const
-{
-    auto it = m_properties.find(key);
-    return (it != m_properties.end()) ? it->second : "";
-}
-
-ClockComponent::ClockComponent(const std::string &id)
-    : Component(id, "Clock") {}
-
-bool ClockComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
-{
-    int tick = 0;
-
-    if (inputTokens.find("tick") != inputTokens.end())
-    {
-        std::string tickValue = inputTokens.at("tick");
-        tick = std::stoi(tickValue);
-    }
-
-    QThread::msleep(1000); // Simulate a clock tick every second
-    outputTokens["tick"] = std::to_string(tick + 1);
-    return true;
-}
-
-PrinterComponent::PrinterComponent(const std::string &id)
-    : Component(id, "Printer") {}
-
-bool PrinterComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
-{
-    if (inputTokens.find("tick") != inputTokens.end())
-    {
-        std::string tickValue = inputTokens.at("tick");
-        LOGDF("PrinterComponent received tick: {}", tickValue);
-        outputTokens["printed"] = "Printed tick: " + tickValue;
-        outputTokens["tick"] = tickValue;
-        return true;
-    }
-
-    return false;
-}
 
 GraphExecutionSandboxSim::GraphExecutionSandboxSim()
     : m_actorSystem(new ActorSystem())
@@ -162,7 +92,7 @@ void GraphExecutionSandboxSim::addComponent(Component *component)
 
     if (m_actorSystem->registerActor(component))
     {
-        LOGD("Registered actor for component ID: {}", component->getId());
+        LOGDF("Registered actor for component ID: {}", component->getId());
     }
     else
     {
@@ -216,7 +146,7 @@ bool GraphExecutionSandboxSim::configureStartupComponent(const std::string &comp
     }
 
 
-    m_actorSystem->send(componentId, new Message(properties)); // Send initial properties to the startup component
+    m_actorSystem->send(componentId, Message(properties)); // Send initial properties to the startup component
     return true;
 }
 
@@ -252,10 +182,10 @@ void GraphExecutionSandboxSim::stop()
 
 void GraphExecutionSandboxSim::routeTokens(const ActorTaskResult &result)
 {
-    if (result.status == ActorTaskResult::Status::Success && result.outputMessage)
+    if (result.status == ActorTaskResult::Status::Success)
     {
-        std::string actorId = result.outputMessage->getActorId();
-        Tokens outputTokens = result.outputMessage->getTokens();
+        std::string actorId = result.outputMessage.getActorId();
+        Tokens outputTokens = result.outputMessage.getTokens();
 
         // Route tokens to outgoing connections
         for (Connection *connection : getOutgoingConnections(actorId))
@@ -264,7 +194,8 @@ void GraphExecutionSandboxSim::routeTokens(const ActorTaskResult &result)
 
             if (targetComponent)
             {
-                m_actorSystem->send(targetComponent->getId(), new Message(outputTokens, targetComponent->snapshot()));
+                Message message(outputTokens, targetComponent->snapshot());
+                m_actorSystem->send(targetComponent->getId(), std::move(message));
             }
             else
             {
@@ -278,8 +209,6 @@ void GraphExecutionSandboxSim::routeTokens(const ActorTaskResult &result)
         LOGWF("[GraphExecutionSandboxSim][ERROR] Task failed: {}", result.error);
         stop();
     }
-
-    delete result.outputMessage; // Clean up the output message
 }
 
 bool GraphExecutionSandboxSim::isRunning() const

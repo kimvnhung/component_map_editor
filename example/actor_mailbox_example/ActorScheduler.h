@@ -4,8 +4,7 @@
 #include <QThreadPool>
 
 #include <functional>
-
-class Message;
+#include "Message.h"
 
 struct ActorTaskResult
 {
@@ -16,7 +15,7 @@ struct ActorTaskResult
         Cancelled
     } status;
 
-    Message *outputMessage;
+    Message outputMessage;
     std::string error;
 };
 

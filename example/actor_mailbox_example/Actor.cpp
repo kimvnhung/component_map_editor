@@ -9,33 +9,37 @@ Actor::Actor(ActorSystem *system, const Component *component)
     , m_component(const_cast<Component *>(component))
     , m_mailbox(new Mailbox()) {}
 
+bool Actor::hasNextMessage() const
+{
+    return m_mailbox->hasNextMessage();
+}
+
 ActorTaskResult Actor::ProcessNextMessage()
 {
-    if (m_mailbox->hasMessages())
+    Message message;
+
+    if (m_mailbox->nextMessage(message))
     {
-        Message message = m_mailbox->nextMessage();
         // Process the message here
         // For example, you can call the component's execute method with the message payload
         Tokens outputTokens;
         bool result = m_component->execute(outputTokens, message.getTokens(), message.getComponentSnapshot());
-        Message responseMessage;
-        responseMessage.setActorId(m_component->getId());
-        responseMessage.setTokens(outputTokens);
         ActorTaskResult taskResult;
         taskResult.status = result ? ActorTaskResult::Status::Success : ActorTaskResult::Status::Failure;
-        taskResult.outputMessage = new Message(responseMessage);
+        taskResult.outputMessage.setActorId(m_component->getId());
+        taskResult.outputMessage.setTokens(outputTokens);
         return taskResult;
     }
 
-    return ActorTaskResult{ActorTaskResult::Status::Failure, nullptr, "No messages to process."};
+    return ActorTaskResult{ActorTaskResult::Status::Failure, {}, "No messages to process."};
 }
 
-void Actor::enqueueMessage(const Message &message)
+std::string Actor::getActorId() const
 {
-    m_mailbox->enqueueMessage(message);
+    return m_component->getId();
 }
 
-bool Actor::hasMessages() const
+void Actor::enqueueMessage(Message&& message)
 {
-    return m_mailbox->hasMessages();
+    m_mailbox->enqueueMessage(std::move(message));
 }

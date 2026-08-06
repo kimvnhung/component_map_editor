@@ -7,10 +7,9 @@
 class Mailbox
 {
 public:
-    bool hasMessages() const;
-    Message nextMessage() ;
-
-    void enqueueMessage(const Message &message);
+    bool hasNextMessage() const;
+    bool nextMessage(Message& message) ;
+    void enqueueMessage(Message&& msg);
 private:
     std::queue<Message> m_messages;
 };

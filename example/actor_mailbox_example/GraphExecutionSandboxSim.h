@@ -1,74 +1,12 @@
 #ifndef GRAPHEXECUTIONSANDBOXSIM_H
 #define GRAPHEXECUTIONSANDBOXSIM_H
 
-#include <vector>
 #include <string>
 #include <unordered_map>
 #include <QThreadPool>
 #include "ActorScheduler.h"
+#include "Component.h"
 
-using Tokens = std::unordered_map<std::string, std::string>;
-
-enum GraphItemType
-{
-    Component_Type,
-    Connection_Type
-};
-
-class Component
-{
-public:
-    Component(const std::string &id, const std::string &type);
-    virtual bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {})
-        = 0;
-    std::string getId() const;
-    std::string getType() const;
-
-    void addProperty(const std::string &key, const std::string &value);
-    void removeProperty(const std::string &key);
-    std::string getProperty(const std::string &key) const;
-    Tokens snapshot() const { return m_properties; }
-private:
-    std::string m_id{};
-    std::string m_type{};
-    std::unordered_map<std::string, std::string> m_properties{};
-};
-
-class Connection
-{
-public:
-    Connection(const std::string &id, const std::string &sourceComponentId, const std::string &targetComponentId);
-    std::string getId() const;
-    std::string getSourceComponentId() const;
-    std::string getTargetComponentId() const;
-
-    void setSourceComponentId(const std::string &sourceComponentId);
-    void setTargetComponentId(const std::string &targetComponentId);
-    void addProperty(const std::string &key, const std::string &value);
-    void removeProperty(const std::string &key);
-    std::string getProperty(const std::string &key) const;
-private:
-    std::string m_id{};
-    std::string m_sourceComponentId{};
-    std::string m_targetComponentId{};
-    std::unordered_map<std::string, std::string> m_properties{};
-};
-
-class ClockComponent : public Component
-{
-public:
-    ClockComponent(const std::string &id);
-    bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
-};
-
-class PrinterComponent : public Component
-{
-public:
-    PrinterComponent(const std::string &id);
-    bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
-};
-
-std::string new_id(GraphItemType type);
 
 class ActorSystem;
 class GraphExecutionSandboxSim: public QObject

@@ -20,7 +20,7 @@ public:
 
     Actor *nextReadyActor();
 
-    void send(const std::string& actorId, Message* message);
+    void send(const std::string& actorId, Message&& message);
     void stop();
 private:
     std::mutex m_mutex;
@@ -29,6 +29,7 @@ private:
 
     std::vector<std::shared_ptr<Actor>> actors;
     std::queue<std::shared_ptr<Actor>> readyActors;
+    std::vector<std::string> readyActorIds;
     std::vector<std::string> actorIds;
 private:
     void enqueReadyActor(std::shared_ptr<Actor> actor);
