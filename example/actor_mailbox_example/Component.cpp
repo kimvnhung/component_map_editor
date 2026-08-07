@@ -391,6 +391,7 @@ bool ManagerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens
         {
             LOGDF("ManagerComponent {} has insufficient capital: {} to buy from producer: {}", getId(),
                   m_capital, producerId);
+            return false;
         }
     }
     else if (inputTokens.find("init_budget") != inputTokens.end())

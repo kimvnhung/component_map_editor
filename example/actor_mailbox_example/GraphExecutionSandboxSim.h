@@ -17,8 +17,6 @@ class GraphExecutionSandboxSim: public QObject
 public:
     GraphExecutionSandboxSim();
 
-    bool isValid() const;
-
     std::vector<Component *> getComponents() const;
     std::vector<Connection *> getConnections() const;
 
@@ -56,9 +54,6 @@ private:
     std::unordered_map<std::string, std::string> m_startupProperties;
 private:
     bool captureState();
-    void prepareExecution();
-    void executeComponent(Component *component);
-    void commitState();
     void setRunning(bool running);
 };
 
