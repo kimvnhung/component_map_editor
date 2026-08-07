@@ -1,6 +1,8 @@
 #ifndef ACTOR_H
 #define ACTOR_H
 
+#include <QStringList>
+
 #include "Mailbox.h"
 #include "Component.h"
 #include <atomic>
@@ -11,7 +13,7 @@ class ActorScheduler;  // forward decl
 class IActor
 {
 public:
-    IActor(const std::string& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler);
+    IActor(const QString& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler);
     virtual ~IActor() = default;
 
     // Process one message (called by scheduler worker)
@@ -21,7 +23,7 @@ public:
     bool hasWork() const;
 
     // Get actor ID
-    std::string getId() const;
+    QString getId() const;
 
 
     // Atomically check if actor is already enqueued; if not, mark as enqueued and return true
@@ -36,7 +38,7 @@ public:
     IMailbox &getMailbox();
     ActorScheduler *getScheduler() const;
 private:
-    std::string id_;
+    QString id_;
     std::unique_ptr<IMailbox> mailbox_;
     ActorScheduler *scheduler_;  // not owned; can be null (no auto-schedule)
     std::atomic_bool enqueued_{false};  // atomic flag: is actor already in run-queue?
@@ -46,10 +48,10 @@ private:
 class ComponentActor : public IActor
 {
 public:
-    ComponentActor(const std::string& id,
+    ComponentActor(const QString& id,
                    Component* component,
                    ActorScheduler* scheduler = nullptr,
-                   std::vector<std::string> targetActorIds = {});
+                   QMap<QString, QStringList> connectionRoutingTable = {});
 
     ~ComponentActor() = default;
 
@@ -61,7 +63,7 @@ public:
 
 private:
     Component *component_{nullptr};  // not owned
-    std::vector<std::string> targetActorIds_;  // IDs of actors to send output messages to
+    QMap<QString, QStringList> connectionRoutingTable_;  // maps output token keys to list of target actor IDs
 };
 
 #endif // ACTOR_H

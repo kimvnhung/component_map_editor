@@ -19,7 +19,7 @@ std::vector<Connection *> GraphExecutionSandboxSim::getConnections() const
     return m_connections;
 }
 
-Component *GraphExecutionSandboxSim::getComponentById(const std::string &id) const
+Component *GraphExecutionSandboxSim::getComponentById(const QString &id) const
 {
     for (Component *component : m_components)
     {
@@ -32,7 +32,7 @@ Component *GraphExecutionSandboxSim::getComponentById(const std::string &id) con
     return nullptr;
 }
 
-Connection *GraphExecutionSandboxSim::getConnectionById(const std::string &id) const
+Connection *GraphExecutionSandboxSim::getConnectionById(const QString &id) const
 {
     for (Connection *connection : m_connections)
     {
@@ -46,7 +46,7 @@ Connection *GraphExecutionSandboxSim::getConnectionById(const std::string &id) c
 }
 
 
-std::vector<Connection *> GraphExecutionSandboxSim::getIncomingConnections(const std::string &componentId) const
+std::vector<Connection *> GraphExecutionSandboxSim::getIncomingConnections(const QString &componentId) const
 {
     std::vector<Connection *> incomingConnections;
 
@@ -61,7 +61,7 @@ std::vector<Connection *> GraphExecutionSandboxSim::getIncomingConnections(const
     return incomingConnections;
 }
 
-std::vector<Connection *> GraphExecutionSandboxSim::getOutgoingConnections(const std::string &componentId) const
+std::vector<Connection *> GraphExecutionSandboxSim::getOutgoingConnections(const QString &componentId) const
 {
     std::vector<Connection *> outgoingConnections;
 
@@ -81,7 +81,7 @@ void GraphExecutionSandboxSim::addComponent(Component *component)
     m_components.push_back(component);
 }
 
-void GraphExecutionSandboxSim::removeComponent(const std::string &id)
+void GraphExecutionSandboxSim::removeComponent(const QString &id)
 {
     // Verify id exists
     auto it = std::find_if(m_components.begin(), m_components.end(),
@@ -107,15 +107,15 @@ void GraphExecutionSandboxSim::addConnection(Connection *connection)
     m_connections.push_back(connection);
 }
 
-void GraphExecutionSandboxSim::removeConnection(const std::string &id)
+void GraphExecutionSandboxSim::removeConnection(const QString &id)
 {
     m_connections.erase(std::remove_if(m_connections.begin(), m_connections.end(),
     [&id](Connection * connection) { return connection->getId() == id; }),
     m_connections.end());
 }
 
-bool GraphExecutionSandboxSim::configureStartupComponent(const std::string &componentId,
-        const std::unordered_map<std::string, std::string> &properties)
+bool GraphExecutionSandboxSim::configureStartupComponent(const QString &componentId,
+        const QVariantMap &properties)
 {
     Component *component = getComponentById(componentId);
 
@@ -158,18 +158,18 @@ bool GraphExecutionSandboxSim::captureState()
             return false;
         }
 
-        std::vector<std::string> targetActorIds;
+        QMap<QString, QStringList> connectionRoutingTable;
 
         for (Connection *connection : m_connections)
         {
             if (connection->getSourceComponentId() == component->getId())
             {
-                targetActorIds.push_back(connection->getTargetComponentId());
+                connectionRoutingTable[connection->getId()].append(connection->getTargetComponentId());
             }
         }
 
         m_scheduler->registerActor(component->getId(), std::make_shared<ComponentActor>(component->getId(), component,
-                                   m_scheduler, targetActorIds));
+                                   m_scheduler, connectionRoutingTable));
     }
 
     return true;
@@ -208,7 +208,7 @@ void GraphExecutionSandboxSim::execute()
 
     if (!startupComponent)
     {
-        LOGW("[GraphExecutionSandboxSim][ERROR] Startup component with ID {} not found.", m_startupComponentId);
+        LOGW("[GraphExecutionSandboxSim][ERROR] Startup component with ID {} not found.", m_startupComponentId.toStdString());
         setRunning(false);
         return;
     }

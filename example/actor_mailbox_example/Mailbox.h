@@ -1,9 +1,10 @@
 #ifndef MAILBOX_H
 #define MAILBOX_H
 
+#include <QString>
+#include <QVariantMap>
+
 #include <cstdint>
-#include <string>
-#include <unordered_map>
 #include <deque>
 #include <vector>
 #include <mutex>
@@ -11,9 +12,9 @@
 struct Message
 {
     uint64_t id;
-    std::string actorId;
-    std::unordered_map<std::string, std::string> tokens;
-    std::unordered_map<std::string, std::string> componentSnapshot;
+    QString actorId;
+    QVariantMap tokens;
+    QVariantMap componentSnapshot;
 };
 
 enum class BackpressurePolicy
