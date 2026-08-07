@@ -1,6 +1,7 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
+#include <atomic>
 #include <string>
 #include <unordered_map>
 
@@ -13,6 +14,7 @@ enum GraphItemType
 };
 
 std::string new_id(GraphItemType type);
+std::string token2string(const Tokens &tokens);
 
 class Component
 {
@@ -73,11 +75,14 @@ class FruitProducerComponent: public Component
 {
 public:
     FruitProducerComponent(const std::string &id, const std::string title, int price,
-                           double productionRate/*number per second*/);
+                           double productionRate/*number per second*/, int buySizePerTime = 2);
     bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
 private:
     int m_price;
     double m_productionRate;
+    int m_buySizePerTime;
+    int m_waitingBuyAmount;
+    std::atomic_bool m_inProducing{false};
 };
 
 class StoreComponent: public Component

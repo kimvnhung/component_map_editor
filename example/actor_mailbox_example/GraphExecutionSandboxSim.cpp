@@ -4,14 +4,9 @@
 #include <base_log.h>
 
 #include "Actor.h"
-#include "ActorSystem.h"
-#include "Message.h"
-
-
 
 GraphExecutionSandboxSim::GraphExecutionSandboxSim()
-    : m_actorSystem(new ActorSystem())
-    , m_scheduler(new ActorScheduler())
+    : m_scheduler(new ActorScheduler())
 {}
 
 bool GraphExecutionSandboxSim::isValid() const
@@ -89,15 +84,6 @@ std::vector<Connection *> GraphExecutionSandboxSim::getOutgoingConnections(const
 void GraphExecutionSandboxSim::addComponent(Component *component)
 {
     m_components.push_back(component);
-
-    if (m_actorSystem->registerActor(component))
-    {
-        LOGDF("Registered actor for component ID: {}", component->getId());
-    }
-    else
-    {
-        LOGWF("[GraphExecutionSandboxSim][ERROR] Failed to register actor for component ID: {}", component->getId());
-    }
 }
 
 void GraphExecutionSandboxSim::removeComponent(const std::string &id)
@@ -114,7 +100,6 @@ void GraphExecutionSandboxSim::removeComponent(const std::string &id)
         [&id](Connection * connection) { return connection->getSourceComponentId() == id || connection->getTargetComponentId() == id; }),
         m_connections.end());
 
-        m_actorSystem->unregisterActor(id);
     }
     else
     {
@@ -145,8 +130,8 @@ bool GraphExecutionSandboxSim::configureStartupComponent(const std::string &comp
         return false;
     }
 
-
-    m_actorSystem->send(componentId, Message(properties)); // Send initial properties to the startup component
+    m_startupComponentId = componentId;
+    m_startupProperties = properties;
     return true;
 }
 
@@ -164,10 +149,32 @@ bool GraphExecutionSandboxSim::captureState()
         return false;
     }
 
-    if (!m_connections.empty())
+    if (m_connections.empty())
     {
-        LOGW("[GraphExecutionSandboxSim][ERROR] Connections should be empty when capturing state.");
+        LOGW("[GraphExecutionSandboxSim][ERROR] No connections to capture state from.");
         return false;
+    }
+
+    for (Component *component : m_components)
+    {
+        if (!component)
+        {
+            LOGW("[GraphExecutionSandboxSim][ERROR] Null component encountered during state capture.");
+            return false;
+        }
+
+        std::vector<std::string> targetActorIds;
+
+        for (Connection *connection : m_connections)
+        {
+            if (connection->getSourceComponentId() == component->getId())
+            {
+                targetActorIds.push_back(connection->getTargetComponentId());
+            }
+        }
+
+        m_scheduler->registerActor(component->getId(), std::make_shared<ComponentActor>(component->getId(), component,
+                                   m_scheduler, targetActorIds));
     }
 
     return true;
@@ -176,39 +183,8 @@ bool GraphExecutionSandboxSim::captureState()
 void GraphExecutionSandboxSim::stop()
 {
     setRunning(false);
-    m_actorSystem->stop();
+    m_scheduler->shutdown();
     LOGD("[GraphExecutionSandboxSim] Execution stopped.");
-}
-
-void GraphExecutionSandboxSim::routeTokens(const ActorTaskResult &result)
-{
-    if (result.status == ActorTaskResult::Status::Success)
-    {
-        std::string actorId = result.outputMessage.getActorId();
-        Tokens outputTokens = result.outputMessage.getTokens();
-
-        // Route tokens to outgoing connections
-        for (Connection *connection : getOutgoingConnections(actorId))
-        {
-            Component *targetComponent = getComponentById(connection->getTargetComponentId());
-
-            if (targetComponent)
-            {
-                Message message(outputTokens, targetComponent->snapshot());
-                m_actorSystem->send(targetComponent->getId(), std::move(message));
-            }
-            else
-            {
-                LOGWF("[GraphExecutionSandboxSim][ERROR] Target component with ID {} not found for connection {}.",
-                      connection->getTargetComponentId(), connection->getId());
-            }
-        }
-    }
-    else if (result.status == ActorTaskResult::Status::Failure)
-    {
-        LOGWF("[GraphExecutionSandboxSim][ERROR] Task failed: {}", result.error);
-        stop();
-    }
 }
 
 bool GraphExecutionSandboxSim::isRunning() const
@@ -224,29 +200,27 @@ QStringList GraphExecutionSandboxSim::getTimeline() const
 void GraphExecutionSandboxSim::execute()
 {
     setRunning(true);
-    QThreadPool::globalInstance()->start([this]()
+
+    if (!captureState())
     {
-        while (m_isRunning)
-        {
-            Actor *nextActor = m_actorSystem->nextReadyActor();
+        LOGW("[GraphExecutionSandboxSim][ERROR] Failed to capture state. Execution aborted.");
+        setRunning(false);
+        return;
+    }
 
-            if (nextActor)
-            {
-                ActorTask task =
-                {
-                    std::bind(&Actor::ProcessNextMessage, nextActor),
-                    std::bind(&GraphExecutionSandboxSim::routeTokens, this, std::placeholders::_1)
-                };
-                m_scheduler->scheduleTask(task);
-            }
-            else
-            {
-                LOGD("[GraphExecutionSandboxSim] No ready actors. Waiting for messages...");
-            }
-        }
+    // Send initial message to the startup component
+    Component *startupComponent = getComponentById(m_startupComponentId);
 
-        LOGD("[GraphExecutionSandboxSim] Execution completed.");
-    });
+    if (!startupComponent)
+    {
+        LOGW("[GraphExecutionSandboxSim][ERROR] Startup component with ID {} not found.", m_startupComponentId);
+        setRunning(false);
+        return;
+    }
+
+    Message initialMessage{0, m_startupComponentId, m_startupProperties, startupComponent->snapshot()};
+    m_scheduler->routeMessage(m_startupComponentId, std::move(initialMessage));
+    m_scheduler->start();
 }
 
 void GraphExecutionSandboxSim::setRunning(bool running)
