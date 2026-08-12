@@ -1,20 +1,52 @@
 #ifndef GRAPHEXECUTIONSANDBOXSIM_H
 #define GRAPHEXECUTIONSANDBOXSIM_H
 
-#include <string>
-#include <unordered_map>
 #include <QThreadPool>
+#include <deque>
+
+#include "ExecutionStateCapture.h"
 #include "ActorScheduler.h"
 #include "Component.h"
 
+// Orchestrator-level tracking (separate from actors):
+class ExecutionOrchestrator
+{
+    std::unordered_map<std::string, int> pendingInDegree_;  // Component → in-degree count
+    std::deque<std::string> readyQueue_;                     // Components with pending == 0
+
+    void onExecutionComplete(const std::string& componentId)
+    {
+        // for (auto& target : targets)
+        // {
+        //     pendingInDegree_[target]--;
+
+        //     if (pendingInDegree_[target] == 0)
+        //     {
+        //         readyQueue_.push_back(target);
+        //         // Trigger initial message to target actor
+        //     }
+        // }
+    }
+};
 
 class ActorSystem;
 class GraphExecutionSandboxSim: public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(bool isRunning READ isRunning NOTIFY isRunningChanged)
+    Q_PROPERTY(ExecutionStatus executionStatus READ getExecutionStatus NOTIFY executionStatusChanged)
     Q_PROPERTY(QStringList timeLine READ getTimeline NOTIFY timelineChanged)
 public:
+    enum class ExecutionStatus
+    {
+        NOT_STARTED,
+        RUNNING,
+        PAUSED,
+        STEPPING,
+        COMPLETED,
+        ERROR,
+    };
+    Q_ENUM(ExecutionStatus)
+
     GraphExecutionSandboxSim();
 
     std::vector<Component *> getComponents() const;
@@ -34,27 +66,41 @@ public:
     bool configureStartupComponent(const QString &componentId,
                                    const QVariantMap &properties = {});
 
+
     void clear();
-    Q_INVOKABLE void stop();
-    Q_INVOKABLE void execute();
-    bool isRunning() const;
+    Q_INVOKABLE void start();
+    Q_INVOKABLE void step();
+    Q_INVOKABLE void run();
+    Q_INVOKABLE void pause();
+    Q_INVOKABLE void reset();
+
+
+    ExecutionStatus getExecutionStatus() const;
     QStringList getTimeline() const;
 signals:
-    void isRunningChanged();
+    void executionStatusChanged();
     void timelineChanged();
 private:
 
     std::vector<Component *> m_components;
     std::vector<Connection *> m_connections;
     ActorScheduler *m_scheduler{nullptr};
-    bool m_isRunning{false};
+    ExecutionStatus m_executionStatus{ExecutionStatus::NOT_STARTED};
     QStringList m_timeline;
 
     QString m_startupComponentId;
     QVariantMap m_startupProperties;
+
+    ExecutionContext m_lastCtx;
+    ExecuteResult m_lastResult;
+
+    ExecutionStateCapture *m_stateCapture{nullptr};
 private:
     bool captureState();
-    void setRunning(bool running);
+    QVariantMap componentSnapshot(const QString& componentId) const;
+    void setExecutionStatus(ExecutionStatus status);
+
+    void onStepCompleted(const ExecutionContext& ctx, const ExecuteResult& result);
 };
 
 #endif // GRAPHEXECUTIONSANDBOXSIM_H

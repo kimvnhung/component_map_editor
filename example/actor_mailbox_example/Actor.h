@@ -63,7 +63,6 @@ public:
 
 private:
     Component *component_{nullptr};  // not owned
-    QMap<QString, QStringList> connectionRoutingTable_;  // maps output token keys to list of target actor IDs
 };
 
 #endif // ACTOR_H

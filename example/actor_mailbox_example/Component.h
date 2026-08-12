@@ -5,8 +5,6 @@
 #include <QVariantMap>
 
 #include <atomic>
-#include <string>
-#include <unordered_map>
 
 using Tokens = QVariantMap;
 
@@ -96,29 +94,29 @@ public:
 private:
     int m_washAmount;
     int m_sellAmount;
-    std::unordered_map<QString, int> m_rawMaterials;
-    std::unordered_map<QString, int> m_products;
+    QMap<QString, int> m_rawMaterials;
+    QMap<QString, int> m_products;
 };
 
 class EmployeeComponent: public Component
 {
 public:
     EmployeeComponent(const QString &id, const QString title,
-                      std::unordered_map<QString, double> performanceMetrics);
+                      QMap<QString, double> performanceMetrics);
     bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
 private:
-    std::unordered_map<QString, double> m_performanceMetrics;
+    QMap<QString, double> m_performanceMetrics;
 };
 
 class SellerComponent: public Component
 {
 public:
     SellerComponent(const QString &id, const QString title,
-                    std::unordered_map<QString, double> performanceMetrics, std::unordered_map<QString, double> pricingStrategy);
+                    QMap<QString, double> performanceMetrics, QMap<QString, double> pricingStrategy);
     bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
 private:
-    std::unordered_map<QString, double> m_performanceMetrics;
-    std::unordered_map<QString, double> m_pricingStrategy;
+    QMap<QString, double> m_performanceMetrics;
+    QMap<QString, double> m_pricingStrategy;
 };
 
 class ManagerComponent: public Component

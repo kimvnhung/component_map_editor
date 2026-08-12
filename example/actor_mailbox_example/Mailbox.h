@@ -12,9 +12,8 @@
 struct Message
 {
     uint64_t id;
-    QString actorId;
+    QString sourceId;
     QVariantMap tokens;
-    QVariantMap componentSnapshot;
 };
 
 enum class BackpressurePolicy

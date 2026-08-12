@@ -11,14 +11,14 @@ void ActorRegistry::registerActor(const QString& id, std::shared_ptr<IActor> act
 void ActorRegistry::deregisterActor(const QString& id)
 {
     std::lock_guard<std::mutex> lock(mu_);
-    actors_.erase(id);
+    actors_.remove(id);
 }
 
 std::shared_ptr<IActor> ActorRegistry::getActor(const QString& id) const
 {
     std::lock_guard<std::mutex> lock(mu_);
     auto it = actors_.find(id);
-    return (it != actors_.end()) ? it->second : nullptr;
+    return (it != actors_.end()) ? it.value() : nullptr;
 }
 
 std::vector<std::shared_ptr<IActor>> ActorRegistry::getAllActors() const
@@ -26,9 +26,9 @@ std::vector<std::shared_ptr<IActor>> ActorRegistry::getAllActors() const
     std::lock_guard<std::mutex> lock(mu_);
     std::vector<std::shared_ptr<IActor>> allActors;
 
-    for (const auto& pair : actors_)
+    for (const auto& actor : actors_.values())
     {
-        allActors.push_back(pair.second);
+        allActors.push_back(actor);
     }
 
     return allActors;

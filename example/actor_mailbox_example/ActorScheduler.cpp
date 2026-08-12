@@ -1,9 +1,12 @@
 #include "ActorScheduler.h"
 
 #include <base_log.h>
+#include "ExecutionStateCapture.h"
 
-ActorScheduler::ActorScheduler(size_t workerCount)
+ActorScheduler::ActorScheduler(ActorProcessingMessageFinishedEvent callback, size_t workerCount)
     : workers_(workerCount)
+    , tokenRouter_(std::make_unique<TokenRouter>())
+    , externalCallback_(callback)
 {
 
 }
@@ -13,9 +16,10 @@ ActorScheduler::~ActorScheduler()
     shutdown();
 }
 
-void ActorScheduler::start()
+void ActorScheduler::start(std::unique_ptr<ConnectionRoutingTable> routingTable)
 {
     LOGDF("[ActorScheduler] Starting {} worker threads.", workers_.size());
+    routingTable_ = std::move(routingTable);
 
     for (size_t i = 0; i < workers_.size(); ++i)
     {
@@ -37,6 +41,12 @@ void ActorScheduler::shutdown()
     }
 }
 
+void ActorScheduler::setExecutionMode(ExecutionMode mode)
+{
+    executionMode_ = mode;
+    workAvailable_.notify_all(); // Wake up workers to re-evaluate execution mode
+}
+
 void ActorScheduler::registerActor(const QString& id, std::shared_ptr<IActor> actor)
 {
     registry_.registerActor(id, actor);
@@ -51,17 +61,60 @@ void ActorScheduler::enqueueActorWork(IActor* actor)
     workAvailable_.notify_one();
 }
 
-void ActorScheduler::routeMessage(const QString& targetActorId, Message&& msg)
+void ActorScheduler::routeMessageToActor(const QString& targetId, Message&& msg)
 {
-    auto actor = registry_.getActor(targetActorId);
+    auto targetActor = registry_.getActor(targetId);
 
-    if (actor)
+    if (targetActor)
     {
-        actor->enqueueMessage(std::move(msg));
+        targetActor->enqueueMessage(std::move(msg));
     }
     else
     {
-        LOGWF("[ActorScheduler] Actor with ID {} not found for routing message.", targetActorId.toStdString());
+        LOGWF("[ActorScheduler] No actor found for target ID {}. Message dropped.", targetId.toStdString());
+    }
+}
+
+void ActorScheduler::routeMessage(Message&& msg)
+{
+    QString sourceId = msg.sourceId;
+
+    if (routingTable_)
+    {
+        QStringList targetIds = routingTable_->lookup(sourceId);
+
+        if (!targetIds.isEmpty())
+        {
+            for (const QString& targetId : targetIds)
+            {
+                routeMessageToActor(targetId, Message{msg.id, sourceId, msg.tokens});
+            }
+        }
+        else
+        {
+            LOGWF("[ActorScheduler] No routing targets found for source ID {}. Message dropped.", sourceId.toStdString());
+        }
+    }
+    else
+    {
+        LOGWF("[ActorScheduler] Routing table is not initialized. Message from {} dropped.", sourceId.toStdString());
+    }
+}
+
+void ActorScheduler::handleActorProcessFinished(const ExecutionContext& ctx, ExecuteResult& result)
+{
+    if (tokenRouter_)
+    {
+        tokenRouter_->onTokenProduced(ctx.componentId, result.outputState,
+                                      routingTable_ ? *routingTable_ : ConnectionRoutingTable());
+    }
+
+    if (externalCallback_)
+    {
+        // Call the callback to notify that the actor has finished processing
+        // Merge the output state with the consumed tokens from the TokenRouter
+        result.outputState = tokenRouter_->consumeTokensFor(ctx.componentId);
+        externalCallback_(ctx, result);
     }
 }
 
@@ -70,6 +123,11 @@ ActorScheduler::Metrics ActorScheduler::getMetrics() const
     Metrics metrics;
     // Implement metrics collection logic here if needed
     return metrics;
+}
+
+TokenRouter *ActorScheduler::getTokenRouter() const
+{
+    return tokenRouter_.get();
 }
 
 void ActorScheduler::workerLoop(size_t workerIdx)
@@ -81,7 +139,23 @@ void ActorScheduler::workerLoop(size_t workerIdx)
         {
             std::unique_lock<std::mutex> lock(runQueueMu_);
             LOGDF("[ActorScheduler][Worker {}] runQueue_.size={}", workerIdx, runQueue_.size());
-            workAvailable_.wait(lock, [this] { return shutdown_ || !runQueue_.empty(); });
+            workAvailable_.wait(lock, [this, workerIdx]
+            {
+                if (shutdown_)
+                {
+                    return true;
+                }
+
+                if (executionMode_ == ExecutionMode::SEQUENTIAL)
+                {
+                    // In SEQUENTIAL mode, only the first worker (workerIdx == 0) should process actors
+                    return !runQueue_.empty() && workerIdx == 0;
+                }
+                else // PARALLEL
+                {
+                    return !runQueue_.empty();
+                }
+            });
 
             if (shutdown_)
             {

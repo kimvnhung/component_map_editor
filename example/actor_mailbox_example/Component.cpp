@@ -2,14 +2,14 @@
 
 #include <QThread>
 #include <base_log.h>
+#include <QMap>
 
 QString new_id(GraphItemType type)
 {
     static int componentCounter = 0;
     static int connectionCounter = 0;
-    return QString((type == Component_Type ? "component" : "connection")) + "_" + std::to_string((
-                type == Component_Type ? componentCounter++ :
-                connectionCounter++));
+    return QString("%1_%2").arg(type == Component_Type ? "component" : "connection")
+           .arg(type == Component_Type ? ++componentCounter : ++connectionCounter);
 }
 
 QString token2string(const Tokens &tokens)
@@ -195,10 +195,9 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
         int total = 0;
         bool isSent = false;
 
-        for (const auto &pair : m_rawMaterials)
+        for (const auto fruitType : m_rawMaterials.keys())
         {
-            const QString &fruitType = pair.first;
-            int rawAmount = pair.second;
+            int rawAmount = m_rawMaterials[fruitType];
             total += rawAmount;
 
             if (rawAmount >= m_washAmount)
@@ -218,10 +217,9 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
         {
             if (total > 0)
             {
-                for (const auto &pair : m_rawMaterials)
+                for (const auto fruitType : m_rawMaterials.keys())
                 {
-                    const QString &fruitType = pair.first;
-                    int rawAmount = pair.second;
+                    int rawAmount = m_rawMaterials[fruitType];
 
                     if (rawAmount > 0)
                     {
@@ -243,10 +241,9 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
         int total = 0;
         bool isSent = false;
 
-        for (const auto &pair : m_products)
+        for (const auto &fruitType : m_products.keys())
         {
-            const QString &fruitType = pair.first;
-            int productAmount = pair.second;
+            int productAmount = m_products[fruitType];
             total += productAmount;
 
             if (productAmount >= m_sellAmount)
@@ -266,10 +263,9 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
         {
             if (total > 0)
             {
-                for (const auto &pair : m_products)
+                for (const auto &fruitType : m_products.keys())
                 {
-                    const QString &fruitType = pair.first;
-                    int productAmount = pair.second;
+                    int productAmount = m_products[fruitType];
 
                     if (productAmount > 0)
                     {
@@ -290,7 +286,7 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
 }
 
 EmployeeComponent::EmployeeComponent(const QString & id, const QString title,
-                                     std::unordered_map<QString, double> performanceMetrics)
+                                     QMap<QString, double> performanceMetrics)
     : Component(id, "employee", title)
     , m_performanceMetrics(performanceMetrics)
 {
@@ -325,8 +321,8 @@ bool EmployeeComponent::execute(Tokens & outputTokens, const Tokens & inputToken
 }
 
 SellerComponent::SellerComponent(const QString & id, const QString title,
-                                 std::unordered_map<QString, double> performanceMetrics,
-                                 std::unordered_map<QString, double> pricingStrategy)
+                                 QMap<QString, double> performanceMetrics,
+                                 QMap<QString, double> pricingStrategy)
     : Component(id, "seller", title)
     , m_performanceMetrics(performanceMetrics)
     , m_pricingStrategy(pricingStrategy)

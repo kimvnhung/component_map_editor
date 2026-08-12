@@ -2,9 +2,8 @@
 #define ACTORREGISTRY_H
 
 #include <QString>
+#include <QMap>
 
-#include <string>
-#include <unordered_map>
 #include <mutex>
 #include <memory>
 #include <vector>
@@ -21,7 +20,7 @@ public:
 
 private:
     mutable std::mutex mu_;
-    std::unordered_map<QString, std::shared_ptr<IActor>> actors_;
+    QMap<QString, std::shared_ptr<IActor>> actors_;
 };
 
 #endif // ACTORREGISTRY_H
