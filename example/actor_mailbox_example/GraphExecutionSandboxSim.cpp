@@ -8,7 +8,6 @@
 GraphExecutionSandboxSim::GraphExecutionSandboxSim()
     : m_scheduler(new ActorScheduler(std::bind(&GraphExecutionSandboxSim::onStepCompleted, this, std::placeholders::_1,
                                      std::placeholders::_2)))
-    , m_stateCapture(new ExecutionStateCapture())
 {}
 
 std::vector<Component *> GraphExecutionSandboxSim::getComponents() const
@@ -148,19 +147,16 @@ void GraphExecutionSandboxSim::onStepCompleted(const ExecutionContext& ctx, cons
         if (getExecutionStatus() == ExecutionStatus::STEPPING)
         {
             LOGD("[GraphExecutionSandboxSim] Execution is in STEPPING mode. Storing last context and result for next step.");
-            m_lastCtx = ctx;
-            m_lastResult = result;
+            m_lastStepComponentId = ctx.componentId;
         }
         else
         {
             // Clear last context and result after successful execution in RUNNING mode
-            m_lastCtx = {};
-            m_lastResult = {};
+            m_lastStepComponentId.clear();
 
             if (getExecutionStatus() == ExecutionStatus::RUNNING)
             {
-                Message msg{0, ctx.componentId, result.outputState};
-                m_scheduler->routeMessage(std::move(msg));
+                m_scheduler->routeMessageFrom(ctx.componentId);
             }
             else if (getExecutionStatus() == ExecutionStatus::STEPPING)
             {
@@ -247,26 +243,28 @@ void GraphExecutionSandboxSim::step()
 {
     setExecutionStatus(ExecutionStatus::STEPPING);
     static uint64_t stepCounter = 0;
+    LOGDF("============================== BEGIN OF STEP {} ==============================", stepCounter);
     m_scheduler->setExecutionMode(ActorScheduler::ExecutionMode::SEQUENTIAL);
 
     if (stepCounter == 0)
     {
-        Message initialMessage{stepCounter++, "", m_startupProperties};
+        Message initialMessage{stepCounter, "", m_startupProperties};
         m_scheduler->routeMessageToActor(m_startupComponentId, std::move(initialMessage));
     }
-    else if (m_lastCtx.componentId != "")
+    else if (!m_lastStepComponentId.isEmpty())
     {
-        Message msg{stepCounter++, m_lastCtx.componentId, m_lastResult.outputState};
-        m_scheduler->routeMessage(std::move(msg));
+        LOGDF("[GraphExecutionSandboxSim] Routing message from last executed component: {}",
+              m_lastStepComponentId.toStdString());
+        m_scheduler->routeMessageFrom(m_lastStepComponentId);
     }
     else
     {
-        LOGW("[GraphExecutionSandboxSim][ERROR] No last context available for stepping.");
-        setExecutionStatus(ExecutionStatus::ERROR);
+        LOGW("[GraphExecutionSandboxSim][ERROR] No last executed component to route from. Execution may have completed or encountered an error.");
     }
 
     LOGDF("[GraphExecutionSandboxSim] Step {} executed. Current execution status: {}", stepCounter,
           static_cast<int>(getExecutionStatus()));
+    LOGDF("============================== END OF STEP {} ==============================\n", stepCounter++);
 }
 
 

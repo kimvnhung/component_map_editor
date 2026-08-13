@@ -6,6 +6,7 @@
 #include <condition_variable>
 
 #include "ActorRegistry.h"
+#include "ExecutionStateCapture.h"
 #include "Actor.h"
 
 #define DEFAULT_MAX_THREADS 4
@@ -84,8 +85,7 @@ private:
     std::deque<PendingToken> tokenQueue_;
 };
 
-class ExecuteResult;
-class ExecutionContext;
+
 using ActorProcessingMessageFinishedEvent =
     std::function<void(const ExecutionContext& ctx, const ExecuteResult& result)>;
 class ActorScheduler
@@ -109,7 +109,7 @@ public:
 
     // Enqueue actor for processing (called by ComponentActor when message arrives)
     void enqueueActorWork(IActor* actor);
-    void routeMessage(Message&& msg);
+    void routeMessageFrom(const QString& fromComponentId);
     void routeMessageToActor(const QString& targetId, Message&& msg);
     void handleActorProcessFinished(const ExecutionContext& ctx, ExecuteResult& result);
 
@@ -130,7 +130,7 @@ public:
     Metrics getMetrics() const;
 
     TokenRouter *getTokenRouter() const;
-
+    ExecutionSnapshot globalSnapshot() const;  // optional: capture global state for debugging
 private:
     void workerLoop(size_t workerIdx);
 
@@ -146,6 +146,7 @@ private:
     ActorProcessingMessageFinishedEvent externalCallback_;
     std::unique_ptr<TokenRouter> tokenRouter_;
     std::unique_ptr<ConnectionRoutingTable> routingTable_;
+    ExecutionSnapshot globalSnapshot_;
 };
 
 #endif // ACTORSCHEDULER_H

@@ -22,7 +22,7 @@ struct ExecuteResult
     QString message;
 };
 
-class ExecutionSnapshot
+struct ExecutionSnapshot
 {
     QVariantMap componentSnapshot;  // Input state before execution
     QVariantMap inputTokens;        // Merged tokens
@@ -32,22 +32,6 @@ class ExecutionSnapshot
     Timestamp resultCommittedAt;
 };
 
-class ExecutionStateCapture
-{
-    struct Snapshot
-    {
-        QString componentId;
-        QVariantMap componentState;    // Before execution
-        QVariantMap inputTokens;       // Merged inputs
-        ExecuteResult result;          // After execution
-        QVariantMap outputTokens;      // Produced outputs
-        Timestamp executeAt;
-        Duration duration;
-    };
 
-    void captureSnapshot(const Snapshot& snap);
-    QVector<Snapshot> recentSnapshots(int count = 100);
-    QVariantMap currentGraphState();
-};
 
 #endif // EXECUTIONSTATECAPTURE_H

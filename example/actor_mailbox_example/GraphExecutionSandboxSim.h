@@ -91,16 +91,15 @@ private:
     QString m_startupComponentId;
     QVariantMap m_startupProperties;
 
-    ExecutionContext m_lastCtx;
-    ExecuteResult m_lastResult;
-
-    ExecutionStateCapture *m_stateCapture{nullptr};
+    QString m_lastStepComponentId{};
 private:
     bool captureState();
     QVariantMap componentSnapshot(const QString& componentId) const;
     void setExecutionStatus(ExecutionStatus status);
 
     void onStepCompleted(const ExecutionContext& ctx, const ExecuteResult& result);
+
+
 };
 
 #endif // GRAPHEXECUTIONSANDBOXSIM_H
