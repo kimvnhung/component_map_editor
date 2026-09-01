@@ -15,18 +15,18 @@ Item {
         if (!snapshot)
             return {};
 
-        console.log("snapshotToJson called with snapshot:", JSON.stringify(snapshot));
-
         return {
             "componentId": snapshot.componentId,
             "componentSnapshot": snapshot.componentSnapshot,
+            "executedAt": snapshot.executedAtStr,
             "inputTokens": snapshot.inputTokens,
             "result": {
                 "success": snapshot.result.success,
                 "outputState": snapshot.result.outputState,
                 "message": snapshot.result.message
             },
-            "outputTokens": snapshot.outputTokens
+            "outputTokens": snapshot.outputTokens,
+            "resultCommittedAt": snapshot.resultCommittedAtStr
         };
     }
 

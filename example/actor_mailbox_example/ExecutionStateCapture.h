@@ -2,6 +2,7 @@
 #define EXECUTIONSTATECAPTURE_H
 
 #include <QVariantMap>
+#include <QDateTime>
 #include <chrono>
 
 using Timestamp = std::chrono::steady_clock::time_point;
@@ -43,6 +44,8 @@ class  ExecutionSnapshot
     Q_PROPERTY(QVariantMap inputTokens MEMBER inputTokens)
     Q_PROPERTY(ExecuteResult result MEMBER result)
     Q_PROPERTY(QVariantMap outputTokens MEMBER outputTokens)
+    Q_PROPERTY(QString executedAtStr READ executedAtStr)
+    Q_PROPERTY(QString resultCommittedAtStr READ resultCommittedAtStr)
 
 public:
     QString componentId;
@@ -52,6 +55,21 @@ public:
     ExecuteResult result;           // Output result
     QVariantMap outputTokens;       // Routed outputs
     Timestamp resultCommittedAt;
+
+    QString executedAtStr() const
+    {
+        // Convert to yyyy-MM-dd HH:mm:ss.mmm format
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(executedAt.time_since_epoch()).count();
+        QDateTime dt = QDateTime::fromMSecsSinceEpoch(ms);
+        return dt.toString("yyyy-MM-dd HH:mm:ss.zzz");
+    }
+
+    QString resultCommittedAtStr() const
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(resultCommittedAt.time_since_epoch()).count();
+        QDateTime dt = QDateTime::fromMSecsSinceEpoch(ms);
+        return dt.toString("yyyy-MM-dd HH:mm:ss.zzz");
+    }
 
 };
 

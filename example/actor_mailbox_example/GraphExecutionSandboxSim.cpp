@@ -8,6 +8,7 @@
 GraphExecutionSandboxSim::GraphExecutionSandboxSim()
     : m_scheduler(new ActorScheduler(std::bind(&GraphExecutionSandboxSim::onStepCompleted, this, std::placeholders::_1,
                                      std::placeholders::_2)))
+    , m_timeline(new TimelineModel(this))
 {}
 
 std::vector<Component *> GraphExecutionSandboxSim::getComponents() const
@@ -285,13 +286,12 @@ void GraphExecutionSandboxSim::pause()
 void GraphExecutionSandboxSim::step()
 {
     setExecutionStatus(ExecutionStatus::STEPPING);
-    static uint64_t stepCounter = 0;
-    LOGDF("============================== BEGIN OF STEP {} ==============================", stepCounter);
+    LOGDF("============================== BEGIN OF STEP {} ==============================", m_stepCounter);
     m_scheduler->setExecutionMode(ActorScheduler::ExecutionMode::SEQUENTIAL);
 
-    if (stepCounter == 0)
+    if (m_stepCounter == 0)
     {
-        Message initialMessage{stepCounter, "", m_startupProperties};
+        Message initialMessage{m_stepCounter, "", m_startupProperties};
         m_scheduler->routeMessageToActor(m_startupComponentId, std::move(initialMessage));
     }
     else if (!m_lastStepComponentId.isEmpty())
@@ -305,9 +305,9 @@ void GraphExecutionSandboxSim::step()
         LOGW("[GraphExecutionSandboxSim][ERROR] No last executed component to route from. Execution may have completed or encountered an error.");
     }
 
-    LOGDF("[GraphExecutionSandboxSim] Step {} executed. Current execution status: {}", stepCounter,
+    LOGDF("[GraphExecutionSandboxSim] Step {} executed. Current execution status: {}", m_stepCounter,
           static_cast<int>(getExecutionStatus()));
-    LOGDF("============================== END OF STEP {} ==============================\n", stepCounter++);
+    LOGDF("============================== END OF STEP {} ==============================\n", m_stepCounter++);
 }
 
 
@@ -323,10 +323,13 @@ QList<ExecutionSnapshot> GraphExecutionSandboxSim::getStates() const
 
 void GraphExecutionSandboxSim::reset()
 {
-    m_timeline->clear();
     setExecutionStatus(ExecutionStatus::COMPLETED);
+    m_timeline->clear();
     m_scheduler->shutdown();
+    m_states.clear();
+    m_stepCounter = 0;
     LOGD("[GraphExecutionSandboxSim] Execution state reset.");
+    emit timelineChanged();
 }
 
 void GraphExecutionSandboxSim::run()
@@ -344,6 +347,9 @@ void GraphExecutionSandboxSim::start()
         setExecutionStatus(ExecutionStatus::ERROR);
         return;
     }
+
+    // Reset step counter and last executed component ID
+    m_stepCounter = 0;
 
     // Send initial message to the startup component
     Component *startupComponent = getComponentById(m_startupComponentId);

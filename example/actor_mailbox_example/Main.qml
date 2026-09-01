@@ -77,6 +77,12 @@ Window {
                     }
                 }
             }
+
+            // showing step counter
+            Text {
+                text: "Step: " + sandbox.stepCounter
+                font.pixelSize: 20
+            }
         }
     }
 

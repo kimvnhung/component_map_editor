@@ -9,6 +9,7 @@ void ActorStateHistory::recordState(const ExecutionContext& ctx, const ExecuteRe
                                     const QVariantMap& outputTokens)
 {
     ExecutionSnapshot snapshot;
+    snapshot.componentId = ctx.componentId;
     snapshot.componentSnapshot = ctx.componentSnapshot;
     snapshot.inputTokens = ctx.inputTokens;
     snapshot.executedAt = std::chrono::steady_clock::now();
