@@ -133,7 +133,7 @@ void ActorScheduler::handleActorProcessFinished(const ExecutionContext& ctx, Exe
 {
     if (tokenRouter_)
     {
-        tokenRouter_->onTokenProduced(ctx.componentId, result.outputState,
+        tokenRouter_->onTokenProduced(ctx.componentId, result.output,
                                       routingTable_ ? *routingTable_ : ConnectionRoutingTable());
     }
 
