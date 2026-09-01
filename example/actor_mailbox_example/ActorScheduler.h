@@ -72,10 +72,23 @@ public:
     {
         QVariantMap merged;
 
-        while (!tokenQueue_.empty() && tokenQueue_.front().targetComponentId == componentId)
+        for (auto it = tokenQueue_.begin(); it != tokenQueue_.end();)
         {
-            merged.insert(tokenQueue_.front().payload);  // Merge payloads
-            tokenQueue_.pop_front();
+            if (it->targetComponentId == componentId)
+            {
+                // Merge payload into merged
+                for (auto payloadIt = it->payload.constBegin(); payloadIt != it->payload.constEnd(); ++payloadIt)
+                {
+                    merged[payloadIt.key()] = payloadIt.value();
+                }
+
+                // Remove from queue
+                it = tokenQueue_.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
         }
 
         return merged;

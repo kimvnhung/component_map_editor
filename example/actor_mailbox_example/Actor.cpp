@@ -153,6 +153,9 @@ void ComponentActor::onMessage(Message && msg)
         result.message = "No component associated with this actor.";
     }
 
+    // Record history
+    stateHistory()->recordState(ctx, result, result.outputState);
+
     // Route output tokens to connected components
     auto scheduler = getScheduler();
 
@@ -165,7 +168,6 @@ void ComponentActor::onMessage(Message && msg)
         LOGWF("[ComponentActor][{}] Scheduler not available for routing tokens.", getId().toStdString());
     }
 
-    // Record history
-    stateHistory()->recordState(ctx, result, result.outputState);
+
 }
 
