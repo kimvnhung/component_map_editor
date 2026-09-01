@@ -3,8 +3,12 @@
 
 #include "MailBox.h"
 class ActorScheduler;
-class ActorStateHistory;
 class IExecutionSematicsProvider;
+
+class ActorStateHistory
+{
+
+};
 
 class IActor
 {
