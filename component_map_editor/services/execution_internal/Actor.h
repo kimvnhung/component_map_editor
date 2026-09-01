@@ -1,0 +1,66 @@
+#ifndef ACTOR_H
+#define ACTOR_H
+
+#include "MailBox.h"
+class ActorScheduler;
+class ActorStateHistory;
+class IExecutionSematicsProvider;
+
+class IActor
+{
+public:
+    IActor(const QString& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler);
+    virtual ~IActor() = default;
+
+    // Process one message (called by scheduler worker)
+    virtual void onMessage(Message&& msg) = 0;
+
+    // Query: does this actor have pending work?
+    bool hasWork() const;
+
+    // Get actor ID
+    QString getId() const;
+
+
+    // Atomically check if actor is already enqueued; if not, mark as enqueued and return true
+    bool enqueuedIfNot();
+
+    void markNotEnqueued();
+
+    // Enqueue a message (convenience; delegates to mailbox + scheduler)
+    void enqueueMessage(Message&& msg);
+
+    // Get mailbox (for scheduler and testing)
+    IMailbox &getMailbox();
+    ActorScheduler *getScheduler() const;
+    ActorStateHistory *stateHistory() const;
+
+private:
+    QString id_;
+    std::unique_ptr<IMailbox> mailbox_;
+    ActorScheduler *scheduler_;  // not owned; can be null (no auto-schedule)
+    std::atomic_bool enqueued_{false};  // atomic flag: is actor already in run-queue?
+    std::unique_ptr<ActorStateHistory> stateHistory_;
+};
+
+// Concrete impl: Component-based actor
+class ComponentActor : public IActor
+{
+public:
+    ComponentActor(const QString& id,
+                   IExecutionSematicsProvider* component,
+                   ActorScheduler* scheduler = nullptr,
+                   QMap<QString, QStringList> connectionRoutingTable = {});
+
+    ~ComponentActor() = default;
+
+    // IActor impl
+    void onMessage(Message&& msg) override;
+
+    // Access component (for testing/debugging)
+    IExecutionSematicsProvider *getComponent() const { return component_; }
+
+private:
+    IExecutionSematicsProvider *component_{nullptr};  // not owned
+};
+#endif // ACTOR_H
