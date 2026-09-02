@@ -181,11 +181,32 @@ TimelineModel::at(int row) const
 }
 
 
-void TimelineModel::append(TimelineEventEntry && entry)
+void TimelineModel::append(TimelineEventEntry &&entry)
 {
-    beginInsertRows(QModelIndex(), m_visibleRows.size(), m_visibleRows.size());
+    if (!m_storage)
+        m_storage = new TimelineStorage();
+
+    const QVariantMap payloadMap = entry.payload;
     m_storage->append(std::move(entry));
-    QJsonObject obj = QJsonObject::fromVariantMap(entry.payload);
+
+    const QJsonObject obj = QJsonObject::fromVariantMap(payloadMap);
+    const QString payload = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+
+    const QRegularExpression regex(m_regexFilter);
+    if (!regex.match(payload).hasMatch())
+        return;
+
+    if (m_visibleRows.size() >= MAX_VISIBLE_ROWS) {
+        beginRemoveRows(QModelIndex(), 0, 0);
+        m_visibleRows.erase(m_visibleRows.begin());
+        endRemoveRows();
+    }
+
+    const int newRow = static_cast<int>(m_visibleRows.size());
+    beginInsertRows(QModelIndex(), newRow, newRow);
+    m_visibleRows.push_back(m_storage->size() - 1);
+    endInsertRows();
+}
 
     QJsonDocument doc(obj);
 
