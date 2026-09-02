@@ -35,7 +35,11 @@ ComponentMapEditorManager::~ComponentMapEditorManager()
 
 void ComponentMapEditorManager::reloadComponentTypes()
 {
-    LOGD("");
+    if (!m_extensionContracts) {
+        LOGW("Cannot reload component types: extension contract registry is not set.");
+        return;
+    }
+
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
 }
 
