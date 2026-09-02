@@ -40,11 +40,21 @@ struct PackFactoryEntry
 
 namespace utils
 {
-    template<typename T, typename... Args>
-    std::function<std::unique_ptr<T>()> makeFactory(Args&&... args)
+template<typename T, typename... Args>
+std::function<std::unique_ptr<T>()> makeFactory(Args&&... args)
+{
+    auto params = std::make_tuple(std::forward<Args>(args)...);
+
+    return [params = std::move(params)]() -> std::unique_ptr<T>
     {
-        auto params = std::make_tuple(std::forward<Args>(args)...);
-        auto paramsPtr = std::make_shared<decltype(params)>(std::move(params));
+        return std::apply(
+            [](const auto&... args)
+            {
+                return std::make_unique<T>(args...);
+            },
+            params);
+    };
+}
 
         return [paramsPtr]() mutable -> std::unique_ptr<T>
         {
