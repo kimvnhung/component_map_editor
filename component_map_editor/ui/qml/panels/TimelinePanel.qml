@@ -25,7 +25,8 @@ Item {
                 Layout.fillWidth: true
                 placeholderText: "Enter regex pattern"
                 onTextChanged: {
-                    executionSandbox.timeline.regexFilter = text;
+                    if (listview.model && listview.model.regexFilter !== undefined)
+                        listview.model.regexFilter = text;
                 }
             }
         }
