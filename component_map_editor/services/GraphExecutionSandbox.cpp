@@ -976,14 +976,21 @@ bool GraphExecutionSandbox::validateExecutionResult(const ExecuteResult &result,
                 QStringLiteral("errorKey")
             };
 
+            const auto& properties = result.componentData.properties();
+
             for (const QString &prop : kOutputKeyProps)
             {
-                const QString configured = QString::fromStdString(result.componentData.properties().find(prop.toStdString())->second);
+                auto it = properties.find(prop.toStdString());
 
-                if (!configured.isEmpty() && result.output.contains(configured))
+                if (it != properties.end())
                 {
-                    matched = true;
-                    break;
+                    const QString configured = QString::fromStdString(it->second);
+
+                    if (!configured.isEmpty() && result.output.contains(configured))
+                    {
+                        matched = true;
+                        break;
+                    }
                 }
             }
         }
