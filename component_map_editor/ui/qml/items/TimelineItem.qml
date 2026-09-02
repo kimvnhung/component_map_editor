@@ -87,28 +87,35 @@ Item {
 
                     spacing: 12
 
-                    Text {
-
+                    TextEdit {
                         text: tick
-
                         color: "#AAAAAA"
+                        readOnly: true
+
+                        selectByMouse: true
+
+                        wrapMode: TextEdit.Wrap
                     }
 
-                    Text {
-
+                    TextEdit {
                         text: event
-
                         font.bold: true
+                        readOnly: true
+
+                        selectByMouse: true
+
+                        wrapMode: TextEdit.Wrap
                     }
                 }
 
-                Text {
-
+                TextEdit {
                     width: parent.width
-
-                    wrapMode: Text.WordWrap
-
                     text: JSON.stringify(payload, null, 2)
+                    readOnly: true
+
+                    selectByMouse: true
+
+                    wrapMode: TextEdit.Wrap
                 }
             }
         }
