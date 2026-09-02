@@ -266,7 +266,7 @@ std::unique_ptr<ComponentMapEditorManager> ComponentMapEditorManagerBuilder::bui
 
     if (!m_extensionContracts)
     {
-        throw new ExtensionContractRegistryMissingException();
+        throw ExtensionContractRegistryMissingException();
     }
 
     if (m_ruleFilePath.isEmpty())
