@@ -70,14 +70,17 @@ ComponentTypeProviderBuilder &ComponentTypeProviderBuilder::withComponentTypePro
         throw std::runtime_error("ComponentFactory did not return a BuiltComponentTypeProvider.");
     }
 
-    m_builtProvider = std::unique_ptr<BuiltComponentTypeProvider>(builtProvider);
+    provider.release();
+    m_builtProvider.reset(builtProvider);
     return *this;
 }
 
 ComponentFactory ComponentTypeProviderBuilder::build() const
 {
-    return [provider = m_builtProvider.get()]() -> std::unique_ptr<IComponentTypeProvider>
+    const BuiltComponentTypeProvider snapshot = *m_builtProvider;
+
+    return [snapshot]() -> std::unique_ptr<IComponentTypeProvider>
     {
-        return std::unique_ptr<IComponentTypeProvider>(new BuiltComponentTypeProvider(*provider));
+        return std::unique_ptr<IComponentTypeProvider>(new BuiltComponentTypeProvider(snapshot));
     };
 }
