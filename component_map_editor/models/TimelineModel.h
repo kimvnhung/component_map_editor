@@ -5,7 +5,7 @@
 #include <QVariantMap>
 #include <QAbstractListModel>
 #include <deque>
-
+#include <vector>
 struct TimelineEventEntry
 {
     QString event;

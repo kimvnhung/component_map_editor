@@ -19,6 +19,9 @@ ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
 
 ComponentMapEditorManager::~ComponentMapEditorManager()
 {
+    delete m_ruleHotReloadService;
+    m_ruleHotReloadService = nullptr;
+
     delete m_extensionStartupLoader;
     delete m_componentTypeRegistry;
     delete m_propertySchemaRegistry;
@@ -32,7 +35,11 @@ ComponentMapEditorManager::~ComponentMapEditorManager()
 
 void ComponentMapEditorManager::reloadComponentTypes()
 {
-    LOGD("");
+    if (!m_extensionContracts) {
+        LOGW("Cannot reload component types: extension contract registry is not set.");
+        return;
+    }
+
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
 }
 
