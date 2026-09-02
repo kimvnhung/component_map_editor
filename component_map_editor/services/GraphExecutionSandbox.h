@@ -16,6 +16,7 @@
 #include "models/GraphModel.h"
 #include "models/TimelineModel.h"
 #include "execution.pb.h"
+#include <graph.pb.h>
 
 class ExtensionContractRegistry;
 
@@ -131,6 +132,26 @@ private:
     void clearSimulationData();
     bool captureGraphSnapshot();
     bool executeOneStep(bool bypassBreakpoint);
+    // Functions for making executionOneStep more clearly
+    struct ExecutionContext
+    {
+        QString componentId;
+        QString componentType;
+        QList<QVariantMap> incomingTokens;
+        QVariantMap runMetadata;
+    };
+    QList<QVariantMap> collectIncomingTokens(const cme::GraphSnapshot& graph, const QString& componentId,
+            const RunStatus& run);
+    // ExecutionContext buildExecutionContext(const ComponentSnapshot& compSnap, const QList<QVariantMap> &incomingTokens,
+    //                                        const RunMetadata& meta);
+    // ExecuteResult invokeProvider(const ExecutionContext& ctx);
+    // ValidationResult validateOutput(const ExecuteResult& result, const ComponentSchema& schema);
+    // void routeOutputs(const ExecuteResult& result, const ComponentSnapshot& compSnap, RoutingState& state);
+    // void commitState(const ComponentSnapshot& compSnap, const RoutingState& state, GraphMutableState& g);
+    // void recordTimelineEvent(const QString& componentId, const ExecuteResult& result, Timeline& timeline);
+    QVariantMap normalizeTrace(const QVariantMap& rawTrace, const QString& providerId);
+    QMap<QString, QVariantMap> parseNamedTokens(const QVariantMap& output);
+    //
     void finalizeIfNoReadyComponents();
     void flushTimelineChanged();
 
@@ -148,14 +169,17 @@ private:
     QList<cme::TimelineEvent> m_typedTimeline;
     QString m_lastError;
 
-    QHash<QString, ComponentSnapshot> m_componentsById;
-    QHash<QString, QList<ConnectionSnapshot>> m_outgoingBySource;
-    QHash<QString, QList<ConnectionSnapshot>> m_incomingByTarget;
-    QHash<QString, cme::execution::ExecutionPayload> m_connectionTokens;
-    QHash<QString, int> m_pendingInDegree;
+    // QHash<QString, ComponentSnapshot> m_componentsById;
+    // QHash<QString, QList<ConnectionSnapshot>> m_outgoingBySource;
+    // QHash<QString, QList<ConnectionSnapshot>> m_incomingByTarget;
+    // QHash<QString, cme::execution::ExecutionPayload> m_connectionTokens;
+    QHash<std::string, int> m_pendingInDegree;
     QSet<QString> m_executed;
     QStringList m_readyQueue;
     QSet<QString> m_readyQueueSet;
+    // For refactor using only proto message
+    cme::GraphSnapshot m_graphSnapshot;
+    //
 
     bool m_deferTimelineSignal = false;
     bool m_timelineDirty = false;
