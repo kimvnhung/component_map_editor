@@ -166,6 +166,7 @@ void TimelineModel::clear()
 {
     beginResetModel();
 
+    delete m_storage;
     m_storage = new TimelineStorage();
     m_visibleRows.clear();
 
