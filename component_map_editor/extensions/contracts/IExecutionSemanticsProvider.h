@@ -8,11 +8,11 @@
 #include <QtPlugin>
 #include <QVariantMap>
 
-namespace cme::execution {
+namespace cme::execution
+{
 
-using ExecutionPayload = QVariantMap;
-using IncomingTokens = QHash<QString, ExecutionPayload>;
-
+    using ExecutionPayload = QVariantMap;
+    using IncomingTokens = QHash<QString, ExecutionPayload>;
 } // namespace cme::execution
 
 class IExecutionSemanticsProvider

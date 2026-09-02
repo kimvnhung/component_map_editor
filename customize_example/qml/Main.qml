@@ -40,15 +40,6 @@ ApplicationWindow {
         return lines.join("\n");
     }
 
-    function selectedExecutionStateText() {
-        if (!executionSandbox || !propertyPanel.component)
-            return "Select a component to inspect its execution state.";
-        var state = executionSandbox.componentState(propertyPanel.component.id);
-        if (!state || Object.keys(state).length === 0)
-            return "No execution state for '" + propertyPanel.component.id + "'.";
-        return prettyJson(state);
-    }
-
     Component.onCompleted: {
         if (executionSandbox) {
             executionSandbox.graph = graph;
@@ -240,6 +231,7 @@ ApplicationWindow {
                         id: executionPanel
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        selectedComponentId: canvas ? (canvas.selectedComponent ? canvas.selectedComponent.id : "") : ""
                     }
                 }
             }

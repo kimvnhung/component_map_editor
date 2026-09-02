@@ -730,22 +730,6 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
             continue;
         }
 
-        // ComponentSnapshot snap;
-        // snap.id = componentId;
-        // snap.type = component->type();
-        // snap.title = component->title();
-        // snap.attributes = QVariantMap
-        // {
-        //     { QStringLiteral("id"), snap.id },
-        //     { QStringLiteral("type"), snap.type },
-        //     { QStringLiteral("title"), snap.title },
-        //     { QStringLiteral("x"), component->x() },
-        //     { QStringLiteral("y"), component->y() },
-        //     { QStringLiteral("width"), component->width() },
-        //     { QStringLiteral("height"), component->height() },
-        //     { QStringLiteral("color"), component->color() },
-        //     { QStringLiteral("shape"), component->shape() }
-        // };
         cme::ComponentData *snap = m_graphSnapshot.add_components();
         snap->set_id(componentId.toStdString());
         snap->set_type_id(component->type().toStdString());
@@ -855,70 +839,276 @@ bool GraphExecutionSandbox::captureGraphSnapshot()
     return true;
 }
 
-QList<QVariantMap> GraphExecutionSandbox::collectIncomingTokens(const cme::GraphSnapshot & graph,
-        const QString & componentId, const RunStatus & status)
+QString GraphExecutionSandbox::dequeNextComponent()
 {
-    Q_UNUSED(graph);
-    Q_UNUSED(status);
-    const bool tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
+    if (m_readyQueue.isEmpty())
+    {
+        return QString();
+    }
+
+    const QString componentId = m_readyQueue.first();
+    m_readyQueue.removeFirst();
+    m_readyQueueSet.remove(componentId);
+    return componentId;
+}
+
+void GraphExecutionSandbox::prepareIncomingTokens(const QString &componentId, ExecutionContext &ctx)
+{
     const QList<cme::ConnectionData> incoming = cme::helper::getConnectionsByTargetId(m_graphSnapshot, componentId);
-    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, componentId);
 
-    QVariantMap trace;
-    QVariantMap outputState = m_executionState;
-    cme::execution::IncomingTokens incomingTokens;
-    QVariantMap inputStateForState;
-    QVariantMap incomingTokenPayloads;
-    QStringList incomingTokenIds;
-    QStringList outgoingConnectionIds;
-    outgoingConnectionIds.reserve(outgoing.size());
+    const bool tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
 
+    if (tokenRoutingEnabled)
+    {
+        for (const cme::ConnectionData &edge : incoming)
+        {
+            auto tokenPayload = cme::helper::getConnectionPayloadById(m_graphSnapshot, QString::fromStdString(edge.id()));
+            ctx.incomingTokens.insert(QString::fromStdString(edge.id()), tokenPayload);
+        }
+
+        if (ctx.incomingTokens.isEmpty() && !m_inputSnapshot.isEmpty())
+        {
+            ctx.incomingTokens.insert(QStringLiteral("__graph_input__"), m_inputSnapshot);
+        }
+
+        ctx.stepState = mergeIncomingTokens(ctx.incomingTokens);
+    }
+    else
+    {
+        ctx.incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
+        ctx.stepState = m_executionState;
+    }
+
+    QStringList incomingTokenIds = ctx.incomingTokens.keys();
+    std::sort(incomingTokenIds.begin(), incomingTokenIds.end());
+
+    for (const QString &tokenId : std::as_const(incomingTokenIds))
+    {
+        ++m_tokenReadCount;
+        const qint64 bytes = estimatePayloadBytes(ctx.incomingTokens.value(tokenId));
+        m_payloadBytesRead += bytes;
+        m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
+    }
+}
+
+GraphExecutionSandbox::ExecuteResult GraphExecutionSandbox::invokeProvider(const ExecutionContext &ctx)
+{
+    ExecuteResult output;
+    output.componentData = cme::helper::getComponentById(m_graphSnapshot,
+                           ctx.componentId);
+    const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(ctx.componentType, nullptr);
+
+    if (provider)
+    {
+        QString error;
+        output.providerId = provider->providerId();
+
+        QVariantMap componentSnapshot = cme::adapter::componentSnapshot(output.componentData);
+
+        if (!provider->executeComponent(ctx.componentType,
+                                        ctx.componentId,
+                                        componentSnapshot,
+                                        ctx.incomingTokens,
+                                        &output.output,
+                                        &output.trace,
+                                        &error))
+        {
+            output.status = ExecuteResult::Status::Error;
+            output.errorMessage = error;
+            return output;
+        }
+
+        output.status = ExecuteResult::Status::Ok;
+    }
+    else
+    {
+        output.trace.insert(QStringLiteral("provider"), QStringLiteral("default"));
+        output.trace.insert(QStringLiteral("note"),
+                            QStringLiteral("No execution semantics provider registered for component type."));
+
+        if (ctx.tokenRoutingEnabled)
+        {
+            QList<cme::ConnectionData> incoming = cme::helper::getConnectionsByTargetId(m_graphSnapshot, ctx.componentId);
+
+            for (const cme::ConnectionData &edge : incoming)
+            {
+                output.output.insert(QString::fromStdString(edge.id()), ctx.incomingTokens.value(QString::fromStdString(edge.id())));
+            }
+        }
+
+        output.output.insert(QStringLiteral("lastExecutedComponentId"), ctx.componentId);
+    }
+
+    return output;
+}
+
+bool GraphExecutionSandbox::validateExecutionResult(const ExecuteResult &result, QString &message)
+{
+    // Validate that outputPayload contains at least one of the provider's
+    // declared output keys. Also accept any keys explicitly configured
+    // in the component's snapshot (e.g. outputKey="mySum"), since those
+    // override the default declared names.
+    const QStringList declared = result.requiredOutputKeys;
+
+    if (!declared.isEmpty())
+    {
+        bool matched = false;
+
+        for (const QString &key : declared)
+        {
+            if (result.output.contains(key))
+            {
+                matched = true;
+                break;
+            }
+        }
+
+        if (!matched)
+        {
+            // Fall back: check any snapshot-level output-key property
+            static const QStringList kOutputKeyProps =
+            {
+                QStringLiteral("outputKey"),
+                QStringLiteral("trueRouteKey"),
+                QStringLiteral("falseRouteKey"),
+                QStringLiteral("iterKey"),
+                QStringLiteral("continueKey"),
+                QStringLiteral("errorKey")
+            };
+
+            for (const QString &prop : kOutputKeyProps)
+            {
+                const QString configured = QString::fromStdString(result.componentData.properties().find(prop.toStdString())->second);
+
+                if (!configured.isEmpty() && result.output.contains(configured))
+                {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (!matched)
+        {
+            // markError(QStringLiteral("Provider '%1': output payload for type '%2' is missing all declared keys [%3].")
+            //           .arg(result.providerId.toStdString(), resu, declared.join(QStringLiteral(", "))));
+            // return false;
+            message = QString("Provider '%1': output payload for type '%2' is missing all declared keys [%3].")
+                      .arg(result.providerId, result.componentData.type_id().c_str(), declared.join(QStringLiteral(", ")));
+        }
+
+        return matched;
+    }
+
+    return true;
+}
+
+void GraphExecutionSandbox::routeOutgoingTokens(const ExecutionContext& ctx, const ExecuteResult &result)
+{
+    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, ctx.componentId);
+
+    // Route tokens to outgoing connections
     for (const cme::ConnectionData &edge : outgoing)
+    {
+        const QString connectionId = QString::fromStdString(edge.id());
+        const QVariantMap payload = result.output;
+
+        if (ctx.tokenRoutingEnabled)
+        {
+            // Store the payload in the graph snapshot for the outgoing connection
+            cme::helper::setPayload(m_graphSnapshot, connectionId, payload);
+        }
+
+        ++m_tokenWriteCount;
+        const qint64 bytes = estimatePayloadBytes(payload);
+        m_payloadBytesWritten += bytes;
+        m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
+    }
+
+}
+
+void GraphExecutionSandbox::commitExecutionState(const ExecutionContext &ctx, const ExecuteResult &result)
+{
+    QVariantMap state = componentState(ctx.componentId);
+    state.insert(QStringLiteral("status"), QStringLiteral("executed"));
+    state.insert(QStringLiteral("tick"), m_tick);
+    state.insert(QStringLiteral("type"), ctx.componentType);
+    state.insert(QStringLiteral("inputState"), ctx.stepState);
+    auto incomingTokenPayloads = QVariantMap();
+
+    for (const QString &tokenId : ctx.incomingTokens.keys())
+    {
+        incomingTokenPayloads.insert(tokenId, ctx.incomingTokens.value(tokenId));
+    }
+
+    state.insert(QStringLiteral("incomingTokenPayloads"), incomingTokenPayloads);
+    state.insert(QStringLiteral("outputState"), result.output);
+    auto incomingTokenIds = ctx.incomingTokens.keys();
+    state.insert(QStringLiteral("consumedIncomingTokenIds"), incomingTokenIds);
+    auto outgoingConnections = cme::helper::getConnectionsBySourceId(m_graphSnapshot, ctx.componentId);
+    auto outgoingConnectionIds = QStringList();
+
+    for (const cme::ConnectionData &edge : outgoingConnections)
     {
         outgoingConnectionIds.append(QString::fromStdString(edge.id()));
     }
 
-    std::sort(outgoingConnectionIds.begin(), outgoingConnectionIds.end());
+    state.insert(QStringLiteral("producedOutgoingConnectionIds"), outgoingConnectionIds);
 
-    if (tokenRoutingEnabled)
+    if (!result.trace.isEmpty())
     {
+        state.insert(QStringLiteral("trace"), result.trace);
+    }
 
-        for (const cme::ConnectionData &edge : incoming)
+    m_componentStates.insert(ctx.componentId, state);
+
+    m_executed.insert(ctx.componentId);
+    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, ctx.componentId);
+
+    for (const cme::ConnectionData &edge : outgoing)
+    {
+        const std::string targetId = edge.target_id();
+        const int updatedInDegree = m_pendingInDegree.value(targetId, 0) - 1;
+        m_pendingInDegree[targetId] = updatedInDegree;
+
+        if (updatedInDegree == 0)
         {
-            auto tokenPayload = cme::helper::getConnectionPayloadById(m_graphSnapshot, QString::fromStdString(edge.id()));
-            incomingTokens.insert(QString::fromStdString(edge.id()), tokenPayload);
+            enqueueReadyComponent(QString::fromStdString(targetId));
         }
-
-        if (incomingTokens.isEmpty() && !m_inputSnapshot.isEmpty())
-        {
-            incomingTokens.insert(QStringLiteral("__graph_input__"), m_inputSnapshot);
-        }
-
-        inputStateForState = mergeIncomingTokens(incomingTokens);
     }
-    else
+
+    ++m_tick;
+    emit currentTickChanged();
+    finalizeIfNoReadyComponents();
+}
+
+void GraphExecutionSandbox::recordTimelineEvent(const ExecutionContext &ctx, const ExecuteResult &result)
+{
+    int stepRedactedCount = 0;
+    const QVariant redactedOutputSummary = redactVariant(result.output, m_sensitiveDebugKeys, &stepRedactedCount);
+    m_redactedFieldCount += stepRedactedCount;
+
+    auto incomingTokenIds = ctx.incomingTokens.keys();
+    auto outgoingConnections = cme::helper::getConnectionsBySourceId(m_graphSnapshot, ctx.componentId);
+    auto outgoingConnectionIds = QStringList();
+
+    for (const cme::ConnectionData &edge : outgoingConnections)
     {
-        incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
-        inputStateForState = m_executionState;
+        outgoingConnectionIds.append(QString::fromStdString(edge.id()));
     }
 
-    incomingTokenIds = incomingTokens.keys();
-    std::sort(incomingTokenIds.begin(), incomingTokenIds.end());
-
-    for (const QString &tokenId : incomingTokenIds)
+    appendTimelineEvent(TimelineEventKind::StepExecuted,
+                        QVariantMap
     {
-        incomingTokenPayloads.insert(tokenId, incomingTokens.value(tokenId));
-    }
-
-    for (const QString &tokenId : incomingTokenIds)
-    {
-        ++m_tokenReadCount;
-        const qint64 bytes = estimatePayloadBytes(incomingTokens.value(tokenId));
-        m_payloadBytesRead += bytes;
-        m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
-    }
-
-    return incomingTokens.values();
+        { QStringLiteral("componentId"), ctx.componentId},
+        { QStringLiteral("componentType"), ctx.componentType },
+        { QStringLiteral("incomingTokenCount"), ctx.incomingTokens.size()},
+        { QStringLiteral("incomingTokenIds"), incomingTokenIds },
+        { QStringLiteral("outgoingConnectionIds"), outgoingConnectionIds },
+        { QStringLiteral("outputPayloadBytes"), estimatePayloadBytes(result.output) },
+        { QStringLiteral("outputPayloadSummary"), redactedOutputSummary },
+        { QStringLiteral("trace"), result.trace }
+    });
 }
 
 bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
@@ -929,8 +1119,9 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
         return m_status != RunStatus::Error;
     }
 
-    const QString componentId = m_readyQueue.first();
+    const QString componentId = dequeNextComponent();
 
+    // TODO: need to review if we really need breakpoint feature
     if (!bypassBreakpoint && m_breakpoints.contains(componentId))
     {
         appendTimelineEvent(TimelineEventKind::BreakpointHit,
@@ -949,227 +1140,49 @@ bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
         return true;
     }
 
-    m_readyQueue.removeFirst();
-    m_readyQueueSet.remove(componentId);
     cme::ComponentData component = cme::helper::getComponentById(m_graphSnapshot, componentId);
-    const bool tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
-    const QList<cme::ConnectionData> incoming = cme::helper::getConnectionsByTargetId(m_graphSnapshot, componentId);
-    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, componentId);
+    ExecutionContext context;
+    context.componentId = componentId;
+    context.tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
+    context.stepState = m_executionState;
+    prepareIncomingTokens(componentId, context);
+    context.componentType = QString::fromStdString(component.type_id());
+    ExecuteResult result = invokeProvider(context);
 
-    QVariantMap trace;
-    QVariantMap outputState = m_executionState;
-    cme::execution::IncomingTokens incomingTokens;
-    QVariantMap inputStateForState;
-    QVariantMap incomingTokenPayloads;
-    QStringList incomingTokenIds;
-    QStringList outgoingConnectionIds;
-    outgoingConnectionIds.reserve(outgoing.size());
-
-    for (const cme::ConnectionData &edge : outgoing)
+    if (result.status == ExecuteResult::Status::Error)
     {
-        outgoingConnectionIds.append(QString::fromStdString(edge.id()));
+        markError(result.errorMessage);
+        return false;
     }
 
-    std::sort(outgoingConnectionIds.begin(), outgoingConnectionIds.end());
-
-    if (tokenRoutingEnabled)
+    if (result.status == ExecuteResult::Status::Rejected)
     {
-
-        for (const cme::ConnectionData &edge : incoming)
+        appendTimelineEvent(TimelineEventKind::SimulationBlocked,
+                            QVariantMap
         {
-            auto tokenPayload = cme::helper::getConnectionPayloadById(m_graphSnapshot, QString::fromStdString(edge.id()));
-            incomingTokens.insert(QString::fromStdString(edge.id()), tokenPayload);
-        }
-
-        if (incomingTokens.isEmpty() && !m_inputSnapshot.isEmpty())
-        {
-            incomingTokens.insert(QStringLiteral("__graph_input__"), m_inputSnapshot);
-        }
-
-        inputStateForState = mergeIncomingTokens(incomingTokens);
-    }
-    else
-    {
-        incomingTokens.insert(QStringLiteral("__legacy_global_state__"), m_executionState);
-        inputStateForState = m_executionState;
+            { QStringLiteral("componentId"), componentId },
+            { QStringLiteral("tick"), m_tick },
+            { QStringLiteral("reason"), QStringLiteral("rejected") }
+        });
+        setStatus(RunStatus::Paused);
+        return true;
     }
 
-    incomingTokenIds = incomingTokens.keys();
-    std::sort(incomingTokenIds.begin(), incomingTokenIds.end());
+    QString validateMessage;
+    bool valid = validateExecutionResult(result, validateMessage);
 
-    for (const QString &tokenId : incomingTokenIds)
-    {
-        incomingTokenPayloads.insert(tokenId, incomingTokens.value(tokenId));
-    }
-
-    for (const QString &tokenId : incomingTokenIds)
-    {
-        ++m_tokenReadCount;
-        const qint64 bytes = estimatePayloadBytes(incomingTokens.value(tokenId));
-        m_payloadBytesRead += bytes;
-        m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
-    }
-
-    const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(QString::fromStdString(
-            component.type_id()), nullptr);
-
-    if (provider)
-    {
-        QString error;
-
-        if (!provider->executeComponent(QString::fromStdString(component.type_id()),
-                                        QString::fromStdString(component.id()),
-                                        cme::adapter::componentSnapshot(component),
-                                        incomingTokens,
-                                        &outputState,
-                                        &trace,
-                                        &error))
-        {
-            markError(error.isEmpty() ? QStringLiteral("Execution semantics provider returned failure.")
-                      : error);
-            return false;
-        }
-
-        // Validate that outputPayload contains at least one of the provider's
-        // declared output keys. Also accept any keys explicitly configured
-        // in the component's snapshot (e.g. outputKey="mySum"), since those
-        // override the default declared names.
-        const QStringList declared = provider->providedOutputKeys(QString::fromStdString(component.type_id()));
-
-        if (!declared.isEmpty())
-        {
-            bool matched = false;
-
-            for (const QString &key : declared)
-            {
-                if (outputState.contains(key))
-                {
-                    matched = true;
-                    break;
-                }
-            }
-
-            if (!matched)
-            {
-                // Fall back: check any snapshot-level output-key property
-                static const QStringList kOutputKeyProps =
-                {
-                    QStringLiteral("outputKey"),
-                    QStringLiteral("trueRouteKey"),
-                    QStringLiteral("falseRouteKey"),
-                    QStringLiteral("iterKey"),
-                    QStringLiteral("continueKey"),
-                    QStringLiteral("errorKey")
-                };
-
-                for (const QString &prop : kOutputKeyProps)
-                {
-                    const QString configured = QString::fromStdString(component.properties().find(prop.toStdString())->second).trimmed();
-
-                    if (!configured.isEmpty() && outputState.contains(configured))
-                    {
-                        matched = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!matched)
-            {
-                markError(QStringLiteral("Provider '%1': output payload for type '%2' is missing all declared keys [%3].")
-                          .arg(provider->providerId(), component.type_id(), declared.join(QStringLiteral(", "))));
-                return false;
-            }
-        }
-    }
-    else
-    {
-        trace.insert(QStringLiteral("provider"), QStringLiteral("default"));
-        trace.insert(QStringLiteral("note"), QStringLiteral("No execution semantics provider registered for component type."));
-
-        if (tokenRoutingEnabled)
-        {
-            QVariantMap mergedIncoming;
-
-            for (const cme::ConnectionData &edge : incoming)
-            {
-                // mergedIncoming.insert(m_connectionTokens.value(edge.id));
-                mergedIncoming.insert(QString::fromStdString(edge.id()), cme::helper::getConnectionPayloadById(m_graphSnapshot,
-                                      QString::fromStdString(edge.id())));
-            }
-
-            outputState = mergedIncoming;
-        }
-
-        outputState.insert(QStringLiteral("lastExecutedComponentId"), QString::fromStdString(component.id()));
-    }
-
-    m_executionState = outputState;
+    m_executionState = result.output;
     emit executionStateChanged();
 
-    QVariantMap state = m_componentStates.value(QString::fromStdString(component.id())).toMap();
-    state.insert(QStringLiteral("status"), QStringLiteral("executed"));
-    state.insert(QStringLiteral("tick"), m_tick);
-    state.insert(QStringLiteral("type"), QString::fromStdString(component.type_id()));
-    state.insert(QStringLiteral("inputState"), inputStateForState);
-    state.insert(QStringLiteral("incomingTokenPayloads"), incomingTokenPayloads);
-    state.insert(QStringLiteral("outputState"), outputState);
-    state.insert(QStringLiteral("consumedIncomingTokenIds"), incomingTokenIds);
-    state.insert(QStringLiteral("producedOutgoingConnectionIds"), outgoingConnectionIds);
-
-    if (!trace.isEmpty())
+    if (!valid)
     {
-        state.insert(QStringLiteral("trace"), trace);
+        markError(validateMessage);
+        return false;
     }
 
-    m_componentStates.insert(QString::fromStdString(component.id()), state);
-
-    m_executed.insert(QString::fromStdString(component.id()));
-
-    int stepRedactedCount = 0;
-    const QVariant redactedOutputSummary = redactVariant(outputState, m_sensitiveDebugKeys, &stepRedactedCount);
-    m_redactedFieldCount += stepRedactedCount;
-
-    appendTimelineEvent(TimelineEventKind::StepExecuted,
-                        QVariantMap
-    {
-        { QStringLiteral("componentId"), QString::fromStdString(component.id()) },
-        { QStringLiteral("componentType"), QString::fromStdString(component.type_id()) },
-        { QStringLiteral("incomingTokenCount"), incomingTokens.size() },
-        { QStringLiteral("incomingTokenIds"), incomingTokenIds },
-        { QStringLiteral("outgoingConnectionIds"), outgoingConnectionIds },
-        { QStringLiteral("outputPayloadBytes"), estimatePayloadBytes(outputState) },
-        { QStringLiteral("outputPayloadSummary"), redactedOutputSummary },
-        { QStringLiteral("trace"), trace }
-    });
-
-    if (tokenRoutingEnabled)
-    {
-        for (const cme::ConnectionData &edge : outgoing)
-        {
-            cme::helper::setPayload(m_graphSnapshot, QString::fromStdString(edge.id()), outputState);
-            ++m_tokenWriteCount;
-            const qint64 bytes = estimatePayloadBytes(outputState);
-            m_payloadBytesWritten += bytes;
-            m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
-        }
-    }
-
-    for (const cme::ConnectionData &edge : outgoing)
-    {
-        const std::string targetId = edge.target_id();
-        const int updatedInDegree = m_pendingInDegree.value(targetId, 0) - 1;
-        m_pendingInDegree[targetId] = updatedInDegree;
-
-        if (updatedInDegree == 0)
-        {
-            enqueueReadyComponent(QString::fromStdString(targetId));
-        }
-    }
-
-    ++m_tick;
-    emit currentTickChanged();
-    finalizeIfNoReadyComponents();
+    routeOutgoingTokens(context, result);
+    recordTimelineEvent(context, result);
+    commitExecutionState(context, result);
     return true;
 }
 
