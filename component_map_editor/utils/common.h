@@ -1,6 +1,11 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <functional>
+#include <memory>
+#include <tuple>
+#include <utility>
+
 #include "extensions/contracts/IComponentTypeProvider.h"
 #include "extensions/contracts/IPropertySchemaProvider.h"
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
