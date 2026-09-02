@@ -13,7 +13,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     title: "My Graph Editor"
 
-    property var executionSandbox: customizeExecutionSandbox
+    property var executionSandbox: editorManager.executionSandbox
     property int inspectorTabIndex: 0
 
     function prettyJson(value) {
@@ -47,25 +47,6 @@ ApplicationWindow {
         if (!state || Object.keys(state).length === 0)
             return "No execution state for '" + propertyPanel.component.id + "'.";
         return prettyJson(state);
-    }
-
-    component ReadOnlyPlainTextPanel: ScrollView {
-        id: plainTextPanel
-        property string panelText: ""
-        property int preferredHeight: 120
-
-        Layout.fillWidth: true
-        Layout.preferredHeight: preferredHeight
-        clip: true
-
-        TextArea {
-            text: plainTextPanel.panelText || ""
-            readOnly: true
-            wrapMode: TextArea.NoWrap
-            selectByMouse: true
-            font.family: "monospace"
-            font.pixelSize: 12
-        }
     }
 
     Component.onCompleted: {
@@ -160,6 +141,13 @@ ApplicationWindow {
                 }
             }
 
+            ToolButton {
+                text: "Reload Component Types"
+                onClicked: {
+                    editorManager.reloadComponentTypes();
+                }
+            }
+
             Item {
                 Layout.fillWidth: true
             }
@@ -179,11 +167,11 @@ ApplicationWindow {
 
         Palette {
             id: palettePanel
-            Layout.preferredWidth: 150
+            Layout.preferredWidth: 250
             Layout.fillHeight: true
             graph: graph
             canvas: canvas
-            componentTypeRegistry: customizeComponentTypeRegistry
+            componentTypeRegistry: editorManager.componentTypeRegistry
         }
 
         // Thin separator
@@ -198,7 +186,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             graph: graph
-            componentTypeRegistry: customizeComponentTypeRegistry
+            componentTypeRegistry: editorManager.componentTypeRegistry
         }
 
         // Thin separator
@@ -242,172 +230,16 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         graph: graph
-                        item: canvas
-                            ? (canvas.selectedConnection !== null
-                                ? canvas.selectedConnection
-                                : canvas.selectedComponent)
-                            : null
+                        item: canvas ? (canvas.selectedConnection !== null ? canvas.selectedConnection : canvas.selectedComponent) : null
                         undoStack: canvas ? canvas.undoStack : null
-                        propertySchemaRegistry: customizePropertySchemaRegistry
+                        propertySchemaRegistry: editorManager.propertySchemaRegistry
                         providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
                     }
 
-                    ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-                            Layout.margins: 10
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "Graph Execution"
-                                font.bold: true
-                                font.pixelSize: 13
-                                horizontalAlignment: Text.AlignHCenter
-                                topPadding: 10
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                wrapMode: Text.WordWrap
-                                color: "#666"
-                                text: "Step through the graph using the loaded execution semantics.\nStart → Step nodes one by one, or Run to complete all at once."
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 4
-
-                                Button {
-                                    text: "Start"
-                                    onClicked: {
-                                        if (!executionSandbox)
-                                            return;
-                                        if (executionSandbox.start()) {
-                                            statusLabel.text = "Sandbox initialized";
-                                            statusLabel.color = "#1565c0";
-                                        } else {
-                                            statusLabel.text = "Start failed: " + executionSandbox.lastError;
-                                            statusLabel.color = "#c62828";
-                                        }
-                                    }
-                                }
-
-                                Button {
-                                    text: "Step"
-                                    enabled: executionSandbox && executionSandbox.status !== "completed" && executionSandbox.status !== "error"
-                                    onClicked: {
-                                        if (!executionSandbox)
-                                            return;
-                                        if (executionSandbox.status === "idle")
-                                            executionSandbox.start();
-                                        executionSandbox.step();
-                                    }
-                                }
-
-                                Button {
-                                    text: "Run"
-                                    enabled: executionSandbox && executionSandbox.status !== "completed" && executionSandbox.status !== "error"
-                                    onClicked: {
-                                        if (!executionSandbox)
-                                            return;
-                                        if (executionSandbox.status === "idle") {
-                                            if (!executionSandbox.start())
-                                                return;
-                                        }
-                                        executionSandbox.run();
-                                    }
-                                }
-
-                                Button {
-                                    text: "Reset"
-                                    onClicked: {
-                                        if (executionSandbox)
-                                            executionSandbox.reset();
-                                    }
-                                }
-                            }
-
-                            GridLayout {
-                                Layout.fillWidth: true
-                                columns: 2
-                                columnSpacing: 8
-                                rowSpacing: 4
-
-                                Label {
-                                    text: "Status"
-                                    font.bold: true
-                                }
-                                Label {
-                                    text: executionSandbox ? executionSandbox.status : "unavailable"
-                                }
-
-                                Label {
-                                    text: "Tick"
-                                    font.bold: true
-                                }
-                                Label {
-                                    text: executionSandbox ? String(executionSandbox.currentTick) : "0"
-                                }
-
-                                Label {
-                                    text: "Summary"
-                                    font.bold: true
-                                }
-                                ReadOnlyPlainTextPanel {
-                                    preferredHeight: 96
-                                    panelText: executionSandbox ? prettyJson(executionSandbox.snapshotSummary()) : "{}"
-                                }
-
-                                Label {
-                                    text: "Last Error"
-                                    font.bold: true
-                                    visible: executionSandbox && executionSandbox.lastError.length > 0
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    wrapMode: Text.WordWrap
-                                    color: "#c62828"
-                                    visible: executionSandbox && executionSandbox.lastError.length > 0
-                                    text: executionSandbox ? executionSandbox.lastError : ""
-                                }
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "Execution State"
-                                font.bold: true
-                            }
-
-                            ReadOnlyPlainTextPanel {
-                                preferredHeight: 140
-                                panelText: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "Selected Component State"
-                                font.bold: true
-                            }
-
-                            ReadOnlyPlainTextPanel {
-                                preferredHeight: 140
-                                panelText: selectedExecutionStateText()
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "Timeline"
-                                font.bold: true
-                            }
-
-                            TextArea {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 220
-                                readOnly: true
-                                wrapMode: TextArea.WrapAnywhere
-                                font.family: "monospace"
-                                text: executionSandbox ? timelineText(executionSandbox.timeline) : "Sandbox unavailable."
-                            }
+                    ExecutionPanel {
+                        id: executionPanel
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                 }
             }

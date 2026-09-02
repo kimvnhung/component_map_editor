@@ -14,6 +14,7 @@
 
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "models/GraphModel.h"
+#include "models/TimelineModel.h"
 #include "execution.pb.h"
 
 class ExtensionContractRegistry;
@@ -26,7 +27,7 @@ class GraphExecutionSandbox : public QObject
     Q_PROPERTY(GraphModel *graph READ graph WRITE setGraph NOTIFY graphChanged FINAL)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged FINAL)
     Q_PROPERTY(int currentTick READ currentTick NOTIFY currentTickChanged FINAL)
-    Q_PROPERTY(QVariantList timeline READ timeline NOTIFY timelineChanged FINAL)
+    Q_PROPERTY(TimelineModel *timeline READ timeline CONSTANT FINAL)
     Q_PROPERTY(QVariantMap executionState READ executionState NOTIFY executionStateChanged FINAL)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged FINAL)
     Q_PROPERTY(QVariantMap providerOutputKeyHints READ providerOutputKeyHints NOTIFY providerOutputKeyHintsChanged FINAL)
@@ -39,7 +40,7 @@ public:
 
     QString status() const;
     int currentTick() const;
-    QVariantList timeline() const;
+    TimelineModel *timeline() const;
     QVariantMap executionState() const;
     QString lastError() const;
 
@@ -84,21 +85,24 @@ signals:
     void providerOutputKeyHintsChanged();
 
 private:
-    struct ComponentSnapshot {
+    struct ComponentSnapshot
+    {
         QString id;
         QString type;
         QString title;
         QVariantMap attributes;
     };
 
-    struct ConnectionSnapshot {
+    struct ConnectionSnapshot
+    {
         QString id;
         QString sourceId;
         QString targetId;
         QString label;
     };
 
-    enum class RunStatus {
+    enum class RunStatus
+    {
         Idle,
         Running,
         Paused,
@@ -106,7 +110,8 @@ private:
         Error
     };
 
-    enum class TimelineEventKind {
+    enum class TimelineEventKind
+    {
         SimulationStarted,
         StepExecuted,
         SimulationPaused,
@@ -139,7 +144,7 @@ private:
     QVariantMap m_inputSnapshot;
     QVariantMap m_executionState;
     QVariantMap m_componentStates;
-    QVariantList m_timeline;
+    TimelineModel *m_timeline;
     QList<cme::TimelineEvent> m_typedTimeline;
     QString m_lastError;
 

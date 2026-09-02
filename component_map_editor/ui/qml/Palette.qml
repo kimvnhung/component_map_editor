@@ -26,14 +26,7 @@ Rectangle {
     border.color: "#e0e0e0"
     border.width: 1
 
-    property var componentTypes: []
-    onComponentTypeRegistryChanged: {
-        if (componentTypeRegistry) {
-            root.componentTypes = componentTypeRegistry.componentTypeDescriptors;
-        } else {
-            root.componentTypes = [];
-        }
-    }
+    property var componentTypes: root.componentTypeRegistry ? root.componentTypeRegistry.componentTypeDescriptors : []
 
     // Tracks next auto-generated id suffix
     property int _idCounter: 1
@@ -91,14 +84,7 @@ Rectangle {
         }
 
         var componentId = root._runAction(function () {
-            return root.graphEditorController.createPaletteComponent(type,
-                                                                     title,
-                                                                     icon,
-                                                                     color,
-                                                                     worldX,
-                                                                     worldY,
-                                                                     defaultWidth,
-                                                                     defaultHeight);
+            return root.graphEditorController.createPaletteComponent(type, title, icon, color, worldX, worldY, defaultWidth, defaultHeight);
         });
         if (!componentId || componentId.length === 0)
             return false;
@@ -215,6 +201,17 @@ Rectangle {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
             bottomPadding: 4
+        }
+
+        // Show text if no component types are registered in the palette.
+        Text {
+            text: "No component types registered."
+            visible: root.componentTypes.length === 0
+            font.pixelSize: 12
+            color: "#888888"
+            horizontalAlignment: Text.AlignHCenter
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
         }
 
         Repeater {

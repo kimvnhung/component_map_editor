@@ -14,9 +14,9 @@ struct ConversionError {
     QString error_message;
 
     ConversionError() = default;
-    ConversionError(const QString &msg) : has_error(true), error_message(msg) {}
+    ConversionError(const QString &msg);
 
-    explicit operator bool() const { return has_error; }
+    explicit operator bool() const;
 };
 
 } // namespace cme::adapter

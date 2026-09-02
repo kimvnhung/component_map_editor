@@ -849,6 +849,7 @@ qt_add_executable(tst_CustomizeExampleMathWorkflows
     ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelessthanexecutionprovider.cpp
     ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelogicandexecutionprovider.cpp
     ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizemodexecutionprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizesqrtexecutionprovider.cpp
 )
 
 target_link_libraries(tst_CustomizeExampleMathWorkflows

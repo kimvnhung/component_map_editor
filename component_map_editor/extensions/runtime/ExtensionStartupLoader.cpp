@@ -11,17 +11,20 @@
 
 bool ExtensionLoadResult::hasErrors() const
 {
-    for (const ExtensionLoadDiagnostic &d : diagnostics) {
-        if (d.severity == ExtensionLoadDiagnostic::Severity::Error) {
+    for (const ExtensionLoadDiagnostic &d : diagnostics)
+    {
+        if (d.severity == ExtensionLoadDiagnostic::Severity::Error)
+        {
             return true;
         }
     }
+
     return false;
 }
 
-void ExtensionStartupLoader::registerFactory(const QString &extensionId, PackFactory factory)
+void ExtensionStartupLoader::registerFactory(PackFactoryEntry entry)
 {
-    m_factories.insert(extensionId.trimmed(), std::move(factory));
+    m_factories.insert(entry.extensionId.trimmed(), std::move(entry.factory));
 }
 
 void ExtensionStartupLoader::clearFactories()
@@ -35,7 +38,7 @@ int ExtensionStartupLoader::loadedPackCount() const
 }
 
 ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &manifestDirectory,
-                                                              ExtensionContractRegistry &registry)
+        ExtensionContractRegistry &registry)
 {
     ExtensionLoadResult result;
 
@@ -46,7 +49,8 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
                     QDir::Files,
                     QDirIterator::Subdirectories);
 
-    while (it.hasNext()) {
+    while (it.hasNext())
+    {
         const QString path = it.next();
         const QFileInfo fileInfo(path);
         const QString baseName = fileInfo.fileName();
@@ -54,14 +58,19 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
         // Rule DSL files can live beside manifests in development builds.
         // They are not extension manifests and should not be parsed here.
         if (baseName.startsWith(QStringLiteral("rules."), Qt::CaseInsensitive))
+        {
             continue;
+        }
 
         ++result.discoveredManifestCount;
 
         ExtensionManifest manifest;
         QString parseError;
-        if (!ExtensionManifestJson::parseFile(path, &manifest, &parseError)) {
-            result.diagnostics.append({
+
+        if (!ExtensionManifestJson::parseFile(path, &manifest, &parseError))
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 QString(),
                 path,
@@ -70,13 +79,15 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
             continue;
         }
 
-        if (manifests.contains(manifest.extensionId)) {
-            result.diagnostics.append({
+        if (manifests.contains(manifest.extensionId))
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 manifest.extensionId,
                 path,
                 QStringLiteral("Duplicate extensionId '%1' discovered in manifests.")
-                    .arg(manifest.extensionId)
+                .arg(manifest.extensionId)
             });
             continue;
         }
@@ -85,14 +96,18 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
     }
 
     const QVector<QString> orderedIds = dependencyOrder(manifests, &result.diagnostics);
-    for (const QString &extensionId : orderedIds) {
+
+    for (const QString &extensionId : orderedIds)
+    {
         const DiscoveredManifest discovered = manifests.value(extensionId);
         QString registrationError;
 
         // Preflight manifest validation before provider registration so
         // incompatible packs cannot partially mutate the registry.
-        if (!discovered.manifest.isValid(&registrationError)) {
-            result.diagnostics.append({
+        if (!discovered.manifest.isValid(&registrationError))
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 extensionId,
                 discovered.path,
@@ -102,9 +117,12 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
         }
 
         const ExtensionCompatibilityReport compatibility = evaluateCompatibility(
-            registry.coreApiVersion(), discovered.manifest.minCoreApi, discovered.manifest.maxCoreApi);
-        if (!compatibility.compatible()) {
-            result.diagnostics.append({
+                registry.coreApiVersion(), discovered.manifest.minCoreApi, discovered.manifest.maxCoreApi);
+
+        if (!compatibility.compatible())
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 extensionId,
                 discovered.path,
@@ -113,43 +131,53 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
             continue;
         }
 
-        if (registry.hasManifest(extensionId)) {
-            result.diagnostics.append({
+        if (registry.hasManifest(extensionId))
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 extensionId,
                 discovered.path,
                 QStringLiteral("Manifest rejected: Duplicate manifest extensionId: %1")
-                    .arg(extensionId)
+                .arg(extensionId)
             });
             continue;
         }
 
         const auto factoryIt = m_factories.constFind(extensionId);
-        if (factoryIt == m_factories.constEnd()) {
-            result.diagnostics.append({
+
+        if (factoryIt == m_factories.constEnd())
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 extensionId,
                 discovered.path,
                 QStringLiteral("No pack factory registered for extensionId '%1'.")
-                    .arg(extensionId)
+                .arg(extensionId)
             });
             continue;
         }
 
         std::unique_ptr<IExtensionPack> pack = (*factoryIt)();
-        if (!pack) {
-            result.diagnostics.append({
+
+        if (!pack)
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 extensionId,
                 discovered.path,
                 QStringLiteral("Pack factory returned null instance for '%1'.")
-                    .arg(extensionId)
+                .arg(extensionId)
             });
             continue;
         }
 
-        if (!pack->registerProviders(registry, &registrationError)) {
-            result.diagnostics.append({
+        if (!pack->registerProviders(registry, &registrationError))
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 extensionId,
                 discovered.path,
@@ -158,8 +186,10 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
             continue;
         }
 
-        if (!registry.registerManifest(discovered.manifest, &registrationError)) {
-            result.diagnostics.append({
+        if (!registry.registerManifest(discovered.manifest, &registrationError))
+        {
+            result.diagnostics.append(
+            {
                 ExtensionLoadDiagnostic::Severity::Error,
                 extensionId,
                 discovered.path,
@@ -171,7 +201,8 @@ ExtensionLoadResult ExtensionStartupLoader::loadFromDirectory(const QString &man
         m_loadedPacks.push_back(std::move(pack));
         ++result.loadedPackCount;
         result.loadedExtensionIds.append(extensionId);
-        result.diagnostics.append({
+        result.diagnostics.append(
+        {
             ExtensionLoadDiagnostic::Severity::Info,
             extensionId,
             discovered.path,
@@ -190,27 +221,35 @@ QVector<QString> ExtensionStartupLoader::dependencyOrder(
     QHash<QString, QStringList> edges;
     QSet<QString> blockedIds;
 
-    for (auto it = manifests.constBegin(); it != manifests.constEnd(); ++it) {
+    for (auto it = manifests.constBegin(); it != manifests.constEnd(); ++it)
+    {
         const QString id = it.key();
         indegree.insert(id, 0);
     }
 
-    for (auto it = manifests.constBegin(); it != manifests.constEnd(); ++it) {
+    for (auto it = manifests.constBegin(); it != manifests.constEnd(); ++it)
+    {
         const QString id = it.key();
         const DiscoveredManifest discovered = it.value();
 
-        for (const QString &depId : discovered.manifest.dependencies) {
-            if (!manifests.contains(depId)) {
+        for (const QString &depId : discovered.manifest.dependencies)
+        {
+            if (!manifests.contains(depId))
+            {
                 blockedIds.insert(id);
-                if (diagnostics) {
-                    diagnostics->append({
+
+                if (diagnostics)
+                {
+                    diagnostics->append(
+                    {
                         ExtensionLoadDiagnostic::Severity::Error,
                         id,
                         discovered.path,
                         QStringLiteral("Missing dependency '%1' for extension '%2'.")
-                            .arg(depId, id)
+                        .arg(depId, id)
                     });
                 }
+
                 continue;
             }
 
@@ -220,35 +259,48 @@ QVector<QString> ExtensionStartupLoader::dependencyOrder(
     }
 
     QQueue<QString> queue;
-    for (auto it = indegree.constBegin(); it != indegree.constEnd(); ++it) {
-        if (it.value() == 0 && !blockedIds.contains(it.key())) {
+
+    for (auto it = indegree.constBegin(); it != indegree.constEnd(); ++it)
+    {
+        if (it.value() == 0 && !blockedIds.contains(it.key()))
+        {
             queue.enqueue(it.key());
         }
     }
 
     QVector<QString> ordered;
-    while (!queue.isEmpty()) {
+
+    while (!queue.isEmpty())
+    {
         const QString current = queue.dequeue();
         ordered.append(current);
 
-        for (const QString &next : edges.value(current)) {
+        for (const QString &next : edges.value(current))
+        {
             indegree[next] = indegree.value(next) - 1;
-            if (indegree[next] == 0 && !blockedIds.contains(next)) {
+
+            if (indegree[next] == 0 && !blockedIds.contains(next))
+            {
                 queue.enqueue(next);
             }
         }
     }
 
-    for (auto it = indegree.constBegin(); it != indegree.constEnd(); ++it) {
+    for (auto it = indegree.constBegin(); it != indegree.constEnd(); ++it)
+    {
         const QString id = it.key();
-        if (it.value() > 0 && !blockedIds.contains(id)) {
-            if (diagnostics) {
-                diagnostics->append({
+
+        if (it.value() > 0 && !blockedIds.contains(id))
+        {
+            if (diagnostics)
+            {
+                diagnostics->append(
+                {
                     ExtensionLoadDiagnostic::Severity::Error,
                     id,
                     manifests.value(id).path,
                     QStringLiteral("Dependency cycle detected involving '%1'.")
-                        .arg(id)
+                    .arg(id)
                 });
             }
         }

@@ -17,17 +17,23 @@ option(CME_BUILD_EXAMPLES "Build example applications" OFF)
 option(CME_BUILD_TESTS "Build test targets" OFF)
 
 # ── Protobuf ────────────────────────────────────────────────────────────────
-# Prefer the system protoc that matches libprotobuf-dev (3.21.12).
-# /usr/local/bin/protoc ships an older 3.6.1 build; pin to /usr/bin/protoc.
-find_program(Protobuf_PROTOC_EXECUTABLE
-    NAMES protoc
-    PATHS /usr/bin
-    NO_DEFAULT_PATH
-    DOC "protoc compiler matched to libprotobuf-dev 3.21.12"
+find_package(protobuf CONFIG REQUIRED)
+
+if(TARGET protobuf::protoc)
+    message(STATUS "Found protobuf::protoc")
+else()
+    message(FATAL_ERROR "protobuf::protoc not found")
+endif()
+get_target_property(
+    Protobuf_PROTOC_EXECUTABLE
+    protobuf::protoc
+    IMPORTED_LOCATION
 )
-find_package(Protobuf REQUIRED)
-message(STATUS "Protobuf version : ${Protobuf_VERSION}")
-message(STATUS "protoc           : ${Protobuf_PROTOC_EXECUTABLE}")
+if(NOT Protobuf_PROTOC_EXECUTABLE)
+    message(FATAL_ERROR "Could not find protoc executable")
+else()
+    message(STATUS "Found protoc executable: ${Protobuf_PROTOC_EXECUTABLE}")
+endif()
 # ────────────────────────────────────────────────────────────────────────────
 
 add_subdirectory(qml_fontawesome)

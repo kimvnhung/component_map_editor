@@ -4,22 +4,17 @@
 
 cmake_minimum_required(VERSION 3.21)
 
-set(PROTO_FILES
-    command.proto
-    graph.proto
-    validation.proto
-    execution.proto
-    policy.proto
-    public_api.proto
-    provider_templates.proto
-)
-
-# generate *.pb.cc / *.pb.h pairs into CMAKE_CURRENT_BINARY_DIR
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+file(GLOB_RECURSE PROTO_FILES CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
 
 add_library(cme_proto STATIC
     ${PROTO_SRCS}
     ${PROTO_HDRS}
+)
+
+# generate *.pb.cc / *.pb.h pairs into CMAKE_CURRENT_BINARY_DIR
+protobuf_generate(
+    TARGET cme_proto
+    PROTOS ${PROTO_FILES}
 )
 
 # Enable Position Independent Code for linking into shared libraries

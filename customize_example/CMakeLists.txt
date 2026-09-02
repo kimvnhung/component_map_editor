@@ -18,11 +18,21 @@ qt_add_executable(customize_example_app
 
 set(EXAMPLE_EXTENSION_MANIFEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/extensions")
 file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_MANIFEST_DIR}")
-configure_file(
+set(MANIFEST_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/built.extension.pack.json"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/manifest.customize.workflow.json"
-    "${EXAMPLE_EXTENSION_MANIFEST_DIR}/manifest.customize.workflow.json"
-    COPYONLY
 )
+# Loop through the manifest files and copy them to the build directory
+foreach(MANIFEST_FILE ${MANIFEST_FILES})
+    get_filename_component(MANIFEST_FILE_NAME ${MANIFEST_FILE} NAME)
+    set(DESTINATION_FILE "${EXAMPLE_EXTENSION_MANIFEST_DIR}/${MANIFEST_FILE_NAME}")
+    configure_file(
+        "${MANIFEST_FILE}"
+        "${DESTINATION_FILE}"
+        COPYONLY
+    )
+endforeach()
+add_definitions(-DEXAMPLE_EXTENSION_MANIFEST_DIR="${EXAMPLE_EXTENSION_MANIFEST_DIR}")
 
 set(EXAMPLE_EXTENSION_RULE_DIR "${CMAKE_CURRENT_BINARY_DIR}/rules")
 file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_RULE_DIR}")
@@ -32,6 +42,15 @@ configure_file(
     "${EXAMPLE_EXTENSION_RULE_FILE}"
     COPYONLY
 )
+add_definitions(-DEXAMPLE_EXTENSION_RULE_FILE="${EXAMPLE_EXTENSION_RULE_FILE}")
+
+set(COMPONENT_TYPES_DEFINITION_FILE "${CMAKE_CURRENT_BINARY_DIR}/component.types.definition.json")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/component.types.definition.json"
+    "${COMPONENT_TYPES_DEFINITION_FILE}"
+    COPYONLY
+)
+add_definitions(-DCOMPONENT_TYPES_DEFINITION_FILE="${COMPONENT_TYPES_DEFINITION_FILE}")
 
 file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     *.qml
@@ -69,6 +88,10 @@ target_link_libraries(customize_example_app
         libComponentMapEditor
 )
 
+target_include_directories(customize_example_app
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 target_compile_definitions(customize_example_app
     PRIVATE

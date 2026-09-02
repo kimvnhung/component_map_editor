@@ -1,76 +1,71 @@
-#include "src/extensions/providers/customizeextensionpack.h"
+
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <componentmapeditormanager.h>
+#include <extensions/contracts/builders/ExtensionPackBuilder.h>
+#include <extensions/contracts/builders/ExtensionContractRegistryBuilder.h>
+#include <extensions/sample_pack/SampleComponentTypeProvider.h>
 
-#include <extensions/contracts/ExtensionContractRegistry.h>
+#include "extensions/providers/customizecomponenttypeprovider.h"
+#include "extensions/providers/customizepropertyschemaprovider.h"
+#include "extensions/providers/customizeexecutionsanticsprovider.h"
 
-#include <extensions/runtime/rules/RuleBackedProviders.h>
-#include <extensions/runtime/rules/RuleHotReloadService.h>
-#include <extensions/runtime/rules/RuleRuntimeRegistry.h>
-
-#include <extensions/runtime/ExtensionStartupLoader.h>
-#include <extensions/runtime/PropertySchemaRegistry.h>
-#include <extensions/runtime/TypeRegistry.h>
 #include <services/ExecutionMigrationFlags.h>
-#include <services/GraphExecutionSandbox.h>
+
+#ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
+    #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
+#endif
+
+#ifndef EXAMPLE_EXTENSION_RULE_FILE
+    #define EXAMPLE_EXTENSION_RULE_FILE ""
+#endif
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    // Phase 6 canary: keep Design B explicitly enabled in customize startup.
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
-    // 1. Create the contract registry with the current core API version.
-    ExtensionContractRegistry extensionContracts({1, 0, 0});
+    std::unique_ptr<ComponentMapEditorManager> manager;
 
-    // 2. Set up the rule-backed providers (connection policy + validation)
-    //    that read their logic from a JSON rule file at runtime.
-    RuleRuntimeRegistry ruleRegistry;
-    RuleBackedConnectionPolicyProvider compiledConnectionPolicy(&ruleRegistry);
-    RuleBackedValidationProvider       compiledValidation(&ruleRegistry);
-
-    QString providerError;
-    extensionContracts.registerConnectionPolicyProvider(&compiledConnectionPolicy, &providerError);
-    extensionContracts.registerValidationProvider(&compiledValidation, &providerError);
-
-    // 3. Start watching the rule file – changes are picked up without restart.
-    const QString ruleFilePath = QString::fromUtf8(EXAMPLE_EXTENSION_RULE_FILE);
-    RuleHotReloadService ruleHotReload(&ruleRegistry);
-    ruleHotReload.startWatchingFile(ruleFilePath);
-
-    // 4. Discover and load extension packs from the manifest directory.
-    const QString manifestDir = QString::fromUtf8(EXAMPLE_EXTENSION_MANIFEST_DIR);
-    ExtensionStartupLoader startupLoader;
-    startupLoader.registerFactory("customize.workflow", []() {
-        return std::make_unique<CustomizeExtensionPack>();
-    });
-    startupLoader.loadFromDirectory(manifestDir, extensionContracts);
+    try
+    {
+        manager = ComponentMapEditorManagerBuilder()
+                  .withPackFactoryEntry(ExtensionPackBuilder()
+                                        .withExtensionId("customize.workflow")
+                                        .withCapabilities(
+                                            static_cast<extensions::Capability>(
+                                                extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema |
+                                                extensions::Capability_ExecutionSemantics))
+                                        .withComponentProviderFactory(utils::makeFactory<CustomizeComponentTypeProvider>())
+                                        .withPropertySchemaProviderFactory(utils::makeFactory<CustomizePropertySchemaProvider>())
+                                        .withExecutionSemanticsFactory(utils::makeFactory<CustomizeExecutionSemanticsProvider>())
+                                        .build())
+                  .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
+                  .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
+                  .withExtensionContractRegistry(
+                      ExtensionContractRegistryBuilder()
+                      .build()
+                  )
+                  .build();
+    }
+    catch (std::runtime_error &e)
+    {
+        qCritical() << "Failed to initialize ComponentMapEditorManager:" << e.what();
+        return -1;
+    }
 
     QQmlApplicationEngine engine;
 
-    TypeRegistry typeRegistry;
-    typeRegistry.rebuildFromRegistry(extensionContracts);
-    engine.rootContext()->setContextProperty(QStringLiteral("customizeComponentTypeRegistry"),
-                                             &typeRegistry);
-
-    PropertySchemaRegistry propertySchemas;
-    propertySchemas.rebuildFromRegistry(extensionContracts);
-    engine.rootContext()->setContextProperty(QStringLiteral("customizePropertySchemaRegistry"),
-                                             &propertySchemas);
-
-    GraphExecutionSandbox executionSandbox;
-    executionSandbox.rebuildSemanticsFromRegistry(extensionContracts);
-    engine.rootContext()->setContextProperty(QStringLiteral("customizeExecutionSandbox"), &executionSandbox);
-
+    engine.rootContext()->setContextProperty(QStringLiteral("editorManager"), manager.get());
 
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,
         &app,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
+    []() { QCoreApplication::exit(-1); },
+    Qt::QueuedConnection);
     engine.loadFromModule("customize_example", "Main");
 
     return QCoreApplication::exec();

@@ -9,47 +9,15 @@
 class RuleBackedConnectionPolicyProvider : public IConnectionPolicyProvider
 {
 public:
-    explicit RuleBackedConnectionPolicyProvider(RuleRuntimeRegistry *registry)
-        : m_registry(registry)
-    {}
+    explicit RuleBackedConnectionPolicyProvider(RuleRuntimeRegistry *registry);
 
-    QString providerId() const override
-    {
-        return QStringLiteral("compiled.rules.connectionPolicy");
-    }
+    QString providerId() const override;
 
     bool canConnect(const cme::ConnectionPolicyContext &context,
-                    QString *reason) const override
-    {
-        if (!m_registry)
-            return true;
-
-        const QString sourceTypeId = QString::fromStdString(context.source_type_id());
-        const QString targetTypeId = QString::fromStdString(context.target_type_id());
-
-        RuleRuntimeEngine engine;
-        engine.setDescriptor(&m_registry->descriptor());
-        return engine.canConnect(sourceTypeId, targetTypeId, reason);
-    }
+                    QString *reason) const override;
 
     QVariantMap normalizeConnectionProperties(const cme::ConnectionPolicyContext &context,
-                                              const QVariantMap &rawProperties) const override
-    {
-        Q_UNUSED(context)
-
-        if (!m_registry)
-            return rawProperties;
-
-        QString connectionType = rawProperties.value(QStringLiteral("type")).toString();
-        if (connectionType.isEmpty())
-            connectionType = QStringLiteral("flow");
-
-        const QString targetId = QStringLiteral("connection/%1").arg(connectionType);
-
-        RuleRuntimeEngine engine;
-        engine.setDescriptor(&m_registry->descriptor());
-        return engine.normalizePropertiesForTarget(targetId, rawProperties);
-    }
+                                              const QVariantMap &rawProperties) const override;
 
 private:
     RuleRuntimeRegistry *m_registry = nullptr;
@@ -58,65 +26,13 @@ private:
 class RuleBackedValidationProvider : public IValidationProvider
 {
 public:
-    explicit RuleBackedValidationProvider(RuleRuntimeRegistry *registry)
-        : m_registry(registry)
-    {}
+    explicit RuleBackedValidationProvider(RuleRuntimeRegistry *registry);
 
-    QString providerId() const override
-    {
-        return QStringLiteral("compiled.rules.validation");
-    }
+    QString providerId() const override;
 
     bool validateGraph(const cme::GraphSnapshot &graphSnapshot,
                        cme::GraphValidationResult *outResult,
-                       QString *error) const override
-    {
-        if (!outResult) {
-            if (error)
-                *error = QStringLiteral("outResult is null");
-            return false;
-        }
-
-        outResult->Clear();
-        if (!m_registry) {
-            outResult->set_is_valid(true);
-            return true;
-        }
-
-        const QVariantMap graphSnapshotMap =
-            cme::adapter::graphSnapshotForValidationToVariantMap(graphSnapshot);
-
-        RuleRuntimeEngine engine;
-        engine.setDescriptor(&m_registry->descriptor());
-        const QVariantList issues = engine.validateGraph(graphSnapshotMap);
-
-        bool hasError = false;
-        for (const QVariant &issueValue : issues) {
-            const QVariantMap issueMap = issueValue.toMap();
-            if (issueMap.isEmpty())
-                continue;
-
-            cme::ValidationIssue issueProto;
-            const cme::adapter::ConversionError conversionErr =
-                cme::adapter::variantMapToValidationIssue(issueMap, issueProto);
-            if (conversionErr.has_error) {
-                if (error) {
-                    *error = QStringLiteral("Failed to convert rule issue: %1")
-                                 .arg(conversionErr.error_message);
-                }
-                return false;
-            }
-
-            if (issueProto.severity() == cme::VALIDATION_SEVERITY_ERROR
-                || issueProto.severity() == cme::VALIDATION_SEVERITY_UNSPECIFIED) {
-                hasError = true;
-            }
-            *outResult->add_issues() = issueProto;
-        }
-
-        outResult->set_is_valid(!hasError);
-        return true;
-    }
+                       QString *error) const override;
 
 private:
     RuleRuntimeRegistry *m_registry = nullptr;

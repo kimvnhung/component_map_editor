@@ -17,11 +17,11 @@
 #include "services/ValidationService.h"
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
-#define EXAMPLE_EXTENSION_MANIFEST_DIR ""
+    #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
 #endif
 
 #ifndef EXAMPLE_EXTENSION_RULE_FILE
-#define EXAMPLE_EXTENSION_RULE_FILE ""
+    #define EXAMPLE_EXTENSION_RULE_FILE ""
 #endif
 
 int main(int argc, char *argv[])
@@ -37,20 +37,28 @@ int main(int argc, char *argv[])
     RuleBackedConnectionPolicyProvider compiledConnectionPolicy(&ruleRegistry);
     RuleBackedValidationProvider compiledValidation(&ruleRegistry);
     QString providerError;
-    if (!extensionContracts.registerConnectionPolicyProvider(&compiledConnectionPolicy, &providerError)) {
-        WARNF("[Rules][ERROR] Failed to register compiled connection policy provider: {}",
+
+    if (!extensionContracts.registerConnectionPolicyProvider(&compiledConnectionPolicy, &providerError))
+    {
+        LOGWF("[Rules][ERROR] Failed to register compiled connection policy provider: {}",
               providerError.toStdString());
     }
-    if (!extensionContracts.registerValidationProvider(&compiledValidation, &providerError)) {
-        WARNF("[Rules][ERROR] Failed to register compiled validation provider: {}",
+
+    if (!extensionContracts.registerValidationProvider(&compiledValidation, &providerError))
+    {
+        LOGWF("[Rules][ERROR] Failed to register compiled validation provider: {}",
               providerError.toStdString());
     }
 
     RuleHotReloadService ruleHotReload(&ruleRegistry);
     const QString ruleFilePath = QString::fromUtf8(EXAMPLE_EXTENSION_RULE_FILE);
-    if (!ruleHotReload.startWatchingFile(ruleFilePath)) {
+
+    if (!ruleHotReload.startWatchingFile(ruleFilePath))
+    {
         const QVector<RuleDiagnostic> diagnostics = ruleHotReload.lastDiagnostics();
-        if (!diagnostics.isEmpty()) {
+
+        if (!diagnostics.isEmpty())
+        {
             const RuleDiagnostic first = diagnostics.first();
             WARNF("[Rules][ERROR] {} file={} jsonPath={} line={} column={}",
                   first.message.toStdString(),
@@ -62,19 +70,26 @@ int main(int argc, char *argv[])
     }
 
     ExtensionStartupLoader startupLoader;
-    startupLoader.registerFactory(QStringLiteral("sample.workflow"), []() {
-        return std::make_unique<SampleExtensionPack>();
+    startupLoader.registerFactory(
+    {
+        "sample.workflow",
+        utils::makeFactory<SampleExtensionPack>()
     });
 
     const QString manifestDir = QString::fromUtf8(EXAMPLE_EXTENSION_MANIFEST_DIR);
     const ExtensionLoadResult loadResult = startupLoader.loadFromDirectory(manifestDir, extensionContracts);
-    for (const ExtensionLoadDiagnostic &diag : loadResult.diagnostics) {
-        if (diag.severity == ExtensionLoadDiagnostic::Severity::Error) {
+
+    for (const ExtensionLoadDiagnostic &diag : loadResult.diagnostics)
+    {
+        if (diag.severity == ExtensionLoadDiagnostic::Severity::Error)
+        {
             WARNF("[ExtensionStartupLoader][ERROR] {} extensionId={} manifest={}",
                   diag.message.toStdString(),
                   diag.extensionId.toStdString(),
                   diag.manifestPath.toStdString());
-        } else {
+        }
+        else
+        {
             INFOF("[ExtensionStartupLoader] {} extensionId={} manifest={}",
                   diag.message.toStdString(),
                   diag.extensionId.toStdString(),
@@ -96,27 +111,27 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("startupPropertySchemaRegistry"),
-                                             &propertySchemas);
+            &propertySchemas);
     engine.rootContext()->setContextProperty(QStringLiteral("startupComponentTypeRegistry"),
-                                             &typeRegistry);
+            &typeRegistry);
     engine.rootContext()->setContextProperty(QStringLiteral("startupExecutionSandbox"),
-                                             &executionSandbox);
+            &executionSandbox);
     engine.rootContext()->setContextProperty(QStringLiteral("startupValidationService"),
-                                             &validationService);
+            &validationService);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,
         &app,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    []() { QCoreApplication::exit(-1); },
+    Qt::QueuedConnection);
+    #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     // DO NOT CHANGE THIS LINE - MODULE_NAME AND STARTUP_FILE ARE DEFINED IN CMAKE
     engine.loadFromModule("ExampleApp", "Main");
-#else
+    #else
     // Load QML main file
     const QUrl url(QStringLiteral("qrc:/qt/qml/plugin_manager/Main.qml"));
     engine.load(url);
-#endif
+    #endif
 
     return app.exec();
 }

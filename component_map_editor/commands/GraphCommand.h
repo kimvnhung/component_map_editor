@@ -11,21 +11,21 @@
 class GraphCommand
 {
 public:
-    explicit GraphCommand(const QString &text = QString()) : m_text(text) {}
+    explicit GraphCommand(const QString &text = QString());
     virtual ~GraphCommand() = default;
 
     virtual void redo() = 0;
     virtual void undo() = 0;
 
-    virtual QString text() const { return m_text; }
+    virtual QString text() const;
 
     // Return a non-negative id to enable merging of successive commands of the
     // same type (e.g. continuous component-drag moves).  Default -1 = no merging.
-    virtual int id() const { return -1; }
+    virtual int id() const;
 
     // Called on the *older* command when a newer command with the same id() is
     // pushed.  Returns true when merged (the newer command is discarded).
-    virtual bool mergeWith(const GraphCommand * /*newer*/) { return false; }
+    virtual bool mergeWith(const GraphCommand *newer);
 
 private:
     QString m_text;
