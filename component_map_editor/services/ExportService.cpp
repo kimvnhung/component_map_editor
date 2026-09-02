@@ -3,6 +3,7 @@
 #include "GraphJsonMigration.h"
 #include "GraphSchema.h"
 
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -14,15 +15,23 @@ ExportService::ExportService(QObject *parent)
 QString ExportService::exportToJson(GraphModel *graph)
 {
     if (!graph)
+    {
         return QStringLiteral("{}");
+    }
 
     QJsonArray componentsArray;
+
     for (const ComponentModel *component : graph->componentList())
+    {
         componentsArray.append(GraphSchema::componentToJson(component));
+    }
 
     QJsonArray connectionsArray;
+
     for (const ConnectionModel *connection : graph->connectionList())
+    {
         connectionsArray.append(GraphSchema::connectionToJson(connection));
+    }
 
     QJsonObject root;
     // Geometry contract v3:
@@ -38,12 +47,17 @@ QString ExportService::exportToJson(GraphModel *graph)
 bool ExportService::importFromJson(GraphModel *graph, const QString &json)
 {
     if (!graph)
+    {
         return false;
+    }
 
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &err);
+
     if (err.error != QJsonParseError::NoError || !doc.isObject())
+    {
         return false;
+    }
 
     const GraphJsonMigration::CanonicalDocument canonical =
         GraphJsonMigration::migrateToCurrentSchema(doc.object());
@@ -51,12 +65,14 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
     graph->clear();
     graph->beginBatchUpdate();
 
-    for (const QJsonValue &v : canonical.components) {
+    for (const QJsonValue &v : canonical.components)
+    {
         auto *component = GraphSchema::componentFromCanonicalJson(v.toObject());
         graph->addComponent(component);
     }
 
-    for (const QJsonValue &v : canonical.connections) {
+    for (const QJsonValue &v : canonical.connections)
+    {
         auto *connection = GraphSchema::connectionFromCanonicalJson(v.toObject());
         graph->addConnection(connection);
     }
@@ -64,4 +80,48 @@ bool ExportService::importFromJson(GraphModel *graph, const QString &json)
     graph->endBatchUpdate();
 
     return true;
+}
+
+bool ExportService::exportToJsonFile(GraphModel *graph, const QString &filePath)
+{
+    if (!graph)
+    {
+        return false;
+    }
+
+    // Convert format file:/// to absolute path
+    QFile file(QUrl(filePath).toLocalFile());
+
+    // Auto create new or replace existing file
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+    {
+        return false;
+    }
+
+    const QString json = exportToJson(graph);
+    file.write(json.toUtf8());
+    file.close();
+
+    return true;
+}
+
+bool ExportService::importFromJsonFile(GraphModel *graph, const QString &filePath)
+{
+    if (!graph)
+    {
+        return false;
+    }
+
+    // Convert format file:/// to absolute path
+    QFile file(QUrl(filePath).toLocalFile());
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        return false;
+    }
+
+    const QString json = QString::fromUtf8(file.readAll());
+    file.close();
+
+    return importFromJson(graph, json);
 }
