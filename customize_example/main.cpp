@@ -3,7 +3,6 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <componentmapeditormanager.h>
-#include <extensionpackbuilder.h>
 #include <extensions/contracts/builders/ExtensionPackBuilder.h>
 #include <extensions/contracts/builders/ExtensionContractRegistryBuilder.h>
 #include <extensions/sample_pack/SampleComponentTypeProvider.h>

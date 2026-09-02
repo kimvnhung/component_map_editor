@@ -68,5 +68,6 @@ private:
     TimelineStorage *m_storage = nullptr;
     QString m_regexFilter;
     std::vector<size_t> m_visibleRows;
+};
 
 #endif // TIMELINEMODEL_H
