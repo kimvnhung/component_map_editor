@@ -156,7 +156,6 @@ private:
     void flushTimelineChanged();
 
     void enqueueReadyComponent(const QString &componentId);
-    QVariantMap toComponentSnapshotMap(const ComponentSnapshot &component) const;
 
     QPointer<GraphModel> m_graph;
     RunStatus m_status = RunStatus::Idle;
