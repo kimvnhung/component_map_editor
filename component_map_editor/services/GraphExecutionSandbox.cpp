@@ -902,6 +902,7 @@ GraphExecutionSandbox::ExecuteResult GraphExecutionSandbox::invokeProvider(const
     {
         QString error;
         output.providerId = provider->providerId();
+        output.requiredOutputKeys = provider->providedOutputKeys(ctx.componentType);
 
         QVariantMap componentSnapshot = cme::adapter::componentSnapshot(output.componentData);
 
