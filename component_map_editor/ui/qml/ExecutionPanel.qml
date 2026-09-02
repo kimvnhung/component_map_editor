@@ -10,6 +10,12 @@ ColumnLayout {
     spacing: 10
     Layout.margins: 10
 
+    function prettyJson(value) {
+        if (value === undefined || value === null)
+            return "{}";
+        return JSON.stringify(value, null, 2);
+    }
+
     Label {
         Layout.fillWidth: true
         text: "Graph Execution"
