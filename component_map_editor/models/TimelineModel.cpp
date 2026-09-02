@@ -22,6 +22,7 @@ size_t TimelineStorage::size() const
 
 TimelineModel::TimelineModel(QObject *parent)
     : QAbstractListModel(parent)
+    , m_storage(new TimelineStorage())
 {
 }
 
