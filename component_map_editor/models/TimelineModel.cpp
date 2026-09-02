@@ -1,5 +1,6 @@
 #include "TimelineModel.h"
 
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
 
