@@ -19,6 +19,9 @@ ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
 
 ComponentMapEditorManager::~ComponentMapEditorManager()
 {
+    delete m_ruleHotReloadService;
+    m_ruleHotReloadService = nullptr;
+
     delete m_extensionStartupLoader;
     delete m_componentTypeRegistry;
     delete m_propertySchemaRegistry;
