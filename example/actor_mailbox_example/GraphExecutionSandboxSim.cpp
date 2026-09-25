@@ -9,11 +9,6 @@ GraphExecutionSandboxSim::GraphExecutionSandboxSim()
     : m_scheduler(new ActorScheduler())
 {}
 
-bool GraphExecutionSandboxSim::isValid() const
-{
-    return !m_components.empty();
-}
-
 std::vector<Component *> GraphExecutionSandboxSim::getComponents() const
 {
     return m_components;
@@ -230,26 +225,4 @@ void GraphExecutionSandboxSim::setRunning(bool running)
         m_isRunning = running;
         emit isRunningChanged();
     }
-}
-void GraphExecutionSandboxSim::prepareExecution()
-{
-    // TODO: Implement preparation logic before executing the graph simulation.
-}
-
-void GraphExecutionSandboxSim::commitState()
-{
-    // TODO: Implement logic to commit the state after executing the graph simulation.
-}
-
-void GraphExecutionSandboxSim::executeComponent(Component * component)
-{
-    if (!component)
-    {
-        LOGW("[GraphExecutionSandboxSim][ERROR] Cannot execute a null component.");
-        return;
-    }
-
-    LOGD("Executing component: ID={}, Type={}", component->getId(), component->getType());
-    Tokens output;
-    component->execute(output);
 }
