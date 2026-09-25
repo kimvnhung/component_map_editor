@@ -7,9 +7,9 @@
 #include <extensions/contracts/builders/ExtensionContractRegistryBuilder.h>
 #include <extensions/sample_pack/SampleComponentTypeProvider.h>
 
-#include "extensions/providers/customizecomponenttypeprovider.h"
-#include "extensions/providers/customizepropertyschemaprovider.h"
-#include "extensions/providers/customizeexecutionsanticsprovider.h"
+#include "extensions/factory_pack/providers/FactoryComponentTypeProvider.h"
+#include "extensions/factory_pack/providers/FactoryPropertySchemaProvider.h"
+#include "extensions/factory_pack/providers/FactoryExecutionSemanticsProvider.h"
 
 #include <services/ExecutionMigrationFlags.h>
 
@@ -33,14 +33,14 @@ int main(int argc, char *argv[])
     {
         manager = ComponentMapEditorManagerBuilder()
                   .withPackFactoryEntry(ExtensionPackBuilder()
-                                        .withExtensionId("customize.workflow")
+                                        .withExtensionId("manifest.factory.pack")
                                         .withCapabilities(
                                             static_cast<extensions::Capability>(
                                                 extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema |
                                                 extensions::Capability_ExecutionSemantics))
-                                        .withComponentProviderFactory(utils::makeFactory<CustomizeComponentTypeProvider>())
-                                        .withPropertySchemaProviderFactory(utils::makeFactory<CustomizePropertySchemaProvider>())
-                                        .withExecutionSemanticsFactory(utils::makeFactory<CustomizeExecutionSemanticsProvider>())
+                                        .withComponentProviderFactory(utils::makeFactory<FactoryComponentTypeProvider>())
+                                        .withPropertySchemaProviderFactory(utils::makeFactory<FactoryPropertySchemaProvider>())
+                                        .withExecutionSemanticsFactory(utils::makeFactory<FactoryExecutionSemanticsProvider>())
                                         .build())
                   .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
                   .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
