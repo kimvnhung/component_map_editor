@@ -120,7 +120,9 @@ QHash<int, QByteArray> TimelineModel::roleNames() const
 void TimelineModel::append(const TimelineEventEntry &entry)
 {
     if (!m_storage)
+    {
         m_storage = new TimelineStorage();
+    }
 
     m_storage->append(TimelineEventEntry(entry));
 
@@ -128,10 +130,14 @@ void TimelineModel::append(const TimelineEventEntry &entry)
     const QString payload = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
 
     const QRegularExpression regex(m_regexFilter);
-    if (!regex.match(payload).hasMatch())
-        return;
 
-    if (m_visibleRows.size() >= MAX_VISIBLE_ROWS) {
+    if (!regex.match(payload).hasMatch())
+    {
+        return;
+    }
+
+    if (m_visibleRows.size() >= MAX_VISIBLE_ROWS)
+    {
         beginRemoveRows(QModelIndex(), 0, 0);
         m_visibleRows.erase(m_visibleRows.begin());
         endRemoveRows();
@@ -140,25 +146,6 @@ void TimelineModel::append(const TimelineEventEntry &entry)
     const int newRow = static_cast<int>(m_visibleRows.size());
     beginInsertRows(QModelIndex(), newRow, newRow);
     m_visibleRows.push_back(m_storage->size() - 1);
-    endInsertRows();
-}
-
-    QJsonDocument doc(obj);
-
-    QString payload = doc.toJson(QJsonDocument::Compact);
-    QRegularExpression regex(m_regexFilter);
-    QRegularExpressionMatch match = regex.match(payload);
-
-    if (match.hasMatch())
-    {
-        m_visibleRows.push_back(m_storage->size() - 1);
-
-        if (m_visibleRows.size() > MAX_VISIBLE_ROWS)
-        {
-            m_visibleRows.erase(m_visibleRows.begin());
-        }
-    }
-
     endInsertRows();
 }
 
@@ -184,7 +171,9 @@ TimelineModel::at(int row) const
 void TimelineModel::append(TimelineEventEntry &&entry)
 {
     if (!m_storage)
+    {
         m_storage = new TimelineStorage();
+    }
 
     const QVariantMap payloadMap = entry.payload;
     m_storage->append(std::move(entry));
@@ -193,10 +182,14 @@ void TimelineModel::append(TimelineEventEntry &&entry)
     const QString payload = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
 
     const QRegularExpression regex(m_regexFilter);
-    if (!regex.match(payload).hasMatch())
-        return;
 
-    if (m_visibleRows.size() >= MAX_VISIBLE_ROWS) {
+    if (!regex.match(payload).hasMatch())
+    {
+        return;
+    }
+
+    if (m_visibleRows.size() >= MAX_VISIBLE_ROWS)
+    {
         beginRemoveRows(QModelIndex(), 0, 0);
         m_visibleRows.erase(m_visibleRows.begin());
         endRemoveRows();
@@ -205,24 +198,5 @@ void TimelineModel::append(TimelineEventEntry &&entry)
     const int newRow = static_cast<int>(m_visibleRows.size());
     beginInsertRows(QModelIndex(), newRow, newRow);
     m_visibleRows.push_back(m_storage->size() - 1);
-    endInsertRows();
-}
-
-    QJsonDocument doc(obj);
-
-    QString payload = doc.toJson(QJsonDocument::Compact);
-    QRegularExpression regex(m_regexFilter);
-    QRegularExpressionMatch match = regex.match(payload);
-
-    if (match.hasMatch())
-    {
-        m_visibleRows.push_back(m_storage->size() - 1);
-
-        if (m_visibleRows.size() > MAX_VISIBLE_ROWS)
-        {
-            m_visibleRows.erase(m_visibleRows.begin());
-        }
-    }
-
     endInsertRows();
 }

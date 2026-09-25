@@ -1,7 +1,8 @@
 #include "ManagerExecutor.h"
 
+#include <extensions/runtime/templates/customizeexecutioncommon.h>
+
 #include "extensions/factory_pack/providers/FactoryComponentTypeProvider.h"
-#include "extensions/providers/executors/customizeexecutioncommon.h"
 
 QString ManagerExecutor::providerId() const
 {
