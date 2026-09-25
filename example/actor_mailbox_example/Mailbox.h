@@ -8,7 +8,7 @@ class Mailbox
 {
 public:
     bool hasMessages() const;
-    Message nextMessage() const;
+    Message nextMessage() ;
 
     void enqueueMessage(const Message &message);
 private:

@@ -4,6 +4,10 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <QThreadPool>
+#include "ActorScheduler.h"
+
+using Tokens = std::unordered_map<std::string, std::string>;
 
 enum GraphItemType
 {
@@ -15,7 +19,8 @@ class Component
 {
 public:
     Component(const std::string &id, const std::string &type);
-    virtual void execute() = 0;
+    virtual void execute(const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}, const Tokens &outputTokens = {})
+        = 0;
     std::string getId() const;
     std::string getType() const;
 
@@ -52,7 +57,8 @@ class ClockComponent : public Component
 {
 public:
     ClockComponent(const std::string &id);
-    void execute() override;
+    void execute(const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}, const Tokens &outputTokens = {})
+    override;
 private:
     int m_tickCount{};
 };
@@ -61,13 +67,18 @@ class PrinterComponent : public Component
 {
 public:
     PrinterComponent(const std::string &id);
-    void execute() override;
+    void execute(const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}, const Tokens &outputTokens = {})
+    override;
 };
 
 std::string new_id(GraphItemType type);
 
-class GraphExecutionSandboxSim
+class ActorSystem;
+class GraphExecutionSandboxSim: public QObject
 {
+    Q_OBJECT
+    Q_PROPERTY(bool isRunning READ isRunning NOTIFY isRunningChanged)
+    Q_PROPERTY(QStringList timeLine READ getTimeline NOTIFY timelineChanged)
 public:
     GraphExecutionSandboxSim();
 
@@ -91,19 +102,28 @@ public:
                                    const std::unordered_map<std::string, std::string> &properties = {});
 
     void clear();
-
-    void execute();
+    Q_INVOKABLE void stop();
+    Q_INVOKABLE void execute();
+    bool isRunning() const;
+    QStringList getTimeline() const;
+signals:
+    void isRunningChanged();
+    void timelineChanged();
 private:
-    std::string m_startupComponentId{};
-    std::unordered_map<std::string, std::string> m_startupComponentProperties{};
 
     std::vector<Component *> m_components;
     std::vector<Connection *> m_connections;
-    std::unordered_map<std::string, int> m_pendingComponents;
+    ActorSystem *m_actorSystem{nullptr};
+    ActorScheduler *m_scheduler{nullptr};
+    bool m_isRunning{false};
+    QStringList m_timeline;
 private:
+    bool captureState();
     void prepareExecution();
     void executeComponent(Component *component);
     void commitState();
+
+    void routeTokens(const ActorTaskResult& result);
 };
 
 #endif // GRAPHEXECUTIONSANDBOXSIM_H
