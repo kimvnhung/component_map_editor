@@ -2,39 +2,19 @@
 #define GRAPHEXECUTIONSANDBOXSIM_H
 
 #include <QThreadPool>
-#include <deque>
 
 #include "ExecutionStateCapture.h"
 #include "ActorScheduler.h"
 #include "Component.h"
-
-// Orchestrator-level tracking (separate from actors):
-class ExecutionOrchestrator
-{
-    std::unordered_map<std::string, int> pendingInDegree_;  // Component → in-degree count
-    std::deque<std::string> readyQueue_;                     // Components with pending == 0
-
-    void onExecutionComplete(const std::string& componentId)
-    {
-        // for (auto& target : targets)
-        // {
-        //     pendingInDegree_[target]--;
-
-        //     if (pendingInDegree_[target] == 0)
-        //     {
-        //         readyQueue_.push_back(target);
-        //         // Trigger initial message to target actor
-        //     }
-        // }
-    }
-};
+#include "TimelineModel.h"
 
 class ActorSystem;
 class GraphExecutionSandboxSim: public QObject
 {
     Q_OBJECT
     Q_PROPERTY(ExecutionStatus executionStatus READ getExecutionStatus NOTIFY executionStatusChanged)
-    Q_PROPERTY(QStringList timeLine READ getTimeline NOTIFY timelineChanged)
+    Q_PROPERTY(TimelineModel* timeLine READ getTimeline NOTIFY timelineChanged)
+    Q_PROPERTY(QList<ExecutionSnapshot> states READ getStates NOTIFY timelineChanged)
 public:
     enum class ExecutionStatus
     {
@@ -76,7 +56,8 @@ public:
 
 
     ExecutionStatus getExecutionStatus() const;
-    QStringList getTimeline() const;
+    TimelineModel *getTimeline() const;
+    QList<ExecutionSnapshot> getStates() const;
 signals:
     void executionStatusChanged();
     void timelineChanged();
@@ -86,7 +67,8 @@ private:
     std::vector<Connection *> m_connections;
     ActorScheduler *m_scheduler{nullptr};
     ExecutionStatus m_executionStatus{ExecutionStatus::NOT_STARTED};
-    QStringList m_timeline;
+    TimelineModel *m_timeline{nullptr};
+    QList<ExecutionSnapshot> m_states;
 
     QString m_startupComponentId;
     QVariantMap m_startupProperties;

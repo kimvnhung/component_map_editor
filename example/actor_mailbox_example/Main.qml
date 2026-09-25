@@ -43,12 +43,39 @@ Window {
             }
         }
 
-        ListView {
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            model: sandbox.timeline
-            delegate: Text {
-                text: modelData
+        RowLayout {
+            spacing: 10
+            ColumnLayout {
+                spacing: 10
+                Label {
+                    text: "Component state"
+                    font.pixelSize: 20
+                }
+                ListView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    model: sandbox.states
+                    delegate: ExecutionSnapshotViewer {
+                        snapshot: modelData
+                    }
+                }
+            }
+
+            ColumnLayout {
+                spacing: 10
+                Label {
+                    text: "Timeline Events"
+                    font.pixelSize: 20
+                }
+                ListView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    model: sandbox.timeLine
+                    delegate: JsonViewer {
+                        title: title
+                        value: value
+                    }
+                }
             }
         }
     }

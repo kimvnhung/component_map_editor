@@ -175,6 +175,49 @@ void GraphExecutionSandboxSim::onStepCompleted(const ExecutionContext& ctx, cons
         LOGWF("[GraphExecutionSandboxSim] Step failed for component {}.", ctx.componentId.toStdString());
         // TODO: Need handle more
     }
+
+    // update last state
+    bool existedState = false;
+
+    for (ExecutionSnapshot &snapshot : m_states)
+    {
+        if (snapshot.componentId == ctx.componentId)
+        {
+            // Update existing snapshot by copying the last state of actor
+            auto actor = m_scheduler->getRegistry().getActor(ctx.componentId);
+
+            if (!actor->stateHistory()->recentHistory().empty())
+            {
+                auto latest = actor->stateHistory()->recentHistory().back();
+                snapshot = latest;
+                emit timelineChanged();
+            }
+            else
+            {
+                LOGWF("[GraphExecutionSandboxSim] No recent history found for component {}.", ctx.componentId.toStdString());
+            }
+
+            existedState = true;
+            break;
+        }
+    }
+
+    if (!existedState)
+    {
+        // Add new snapshot
+        auto actor = m_scheduler->getRegistry().getActor(ctx.componentId);
+
+        if (!actor->stateHistory()->recentHistory().empty())
+        {
+            auto latest = actor->stateHistory()->recentHistory().back();
+            m_states.push_back(latest);
+            emit timelineChanged();
+        }
+        else
+        {
+            LOGWF("[GraphExecutionSandboxSim] No recent history found for component {}.", ctx.componentId.toStdString());
+        }
+    }
 }
 
 QVariantMap GraphExecutionSandboxSim::componentSnapshot(const QString &componentId) const
@@ -268,14 +311,19 @@ void GraphExecutionSandboxSim::step()
 }
 
 
-QStringList GraphExecutionSandboxSim::getTimeline() const
+TimelineModel *GraphExecutionSandboxSim::getTimeline() const
 {
     return m_timeline;
 }
 
+QList<ExecutionSnapshot> GraphExecutionSandboxSim::getStates() const
+{
+    return m_states;
+}
+
 void GraphExecutionSandboxSim::reset()
 {
-    m_timeline.clear();
+    m_timeline->clear();
     setExecutionStatus(ExecutionStatus::COMPLETED);
     m_scheduler->shutdown();
     LOGD("[GraphExecutionSandboxSim] Execution state reset.");
