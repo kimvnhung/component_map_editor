@@ -12,6 +12,18 @@ std::string new_id(GraphItemType type)
                 connectionCounter++));
 }
 
+std::string token2string(const Tokens &tokens)
+{
+    std::string result;
+
+    for (const auto &pair : tokens)
+    {
+        result += pair.first + ": " + pair.second + "; ";
+    }
+
+    return result;
+}
+
 Component::Component(const std::string &id, const std::string &title, const std::string &type)
     : m_id(id)
     , m_type(type)
@@ -81,16 +93,20 @@ bool PrinterComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, 
 }
 
 FruitProducerComponent::FruitProducerComponent(const std::string &id, const std::string title, int price,
-        double productionRate)
+        double productionRate, int buySizePerTime)
     : Component(id, "fruit_producer", title)
     , m_price(price)
     , m_productionRate(productionRate)
+    , m_buySizePerTime(buySizePerTime)
+    , m_waitingBuyAmount(0)
 {
 
 }
 
-bool FruitProducerComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
+bool FruitProducerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens,
+                                     const Tokens & componentSnapshot)
 {
+    LOGDF("FruitProducerComponent {} received input tokens: {}", getId(), token2string(inputTokens));
     int buy = 0;
 
     if (inputTokens.find("buy") != inputTokens.end())
@@ -103,31 +119,53 @@ bool FruitProducerComponent::execute(Tokens &outputTokens, const Tokens &inputTo
             {
                 buy = std::stoi(inputTokens.at("buy"));
                 LOGDF("FruitProducerComponent {} received buy request: {}", getId(), buy);
-                int produced = static_cast<int>(buy / m_price);
-                outputTokens["produced"] = std::to_string(produced);
-                outputTokens["fruit_type"] = getTitle();
-                QThread::msleep(static_cast<int>(produced / m_productionRate * 1000));
-                LOGDF("FruitProducerComponent {} produced: {} for fruit type: {}", getId(), produced, getTitle());
+
+                if (m_inProducing)
+                {
+                    m_waitingBuyAmount += buy;
+                    LOGDF("FruitProducerComponent {} is currently producing. Accumulated waiting buy amount: {}", getId(),
+                          m_waitingBuyAmount);
+                }
+                else
+                {
+                    m_inProducing.store(true);
+                    int totalBuy = buy + m_waitingBuyAmount;
+                    int produceAmount = std::min(totalBuy, m_buySizePerTime);
+                    int remainingBuy = totalBuy - produceAmount;
+
+                    // Simulate production time based on production rate
+                    int productionTimeMs = static_cast<int>((produceAmount / m_productionRate) * 1000);
+                    LOGDF("FruitProducerComponent {} producing: {} of fruit type: {}. Estimated production time: {} ms", getId(),
+                          produceAmount, getTitle(), productionTimeMs);
+                    QThread::msleep(productionTimeMs);
+
+                    outputTokens["produced"] = std::to_string(produceAmount);
+                    outputTokens["fruit_type"] = getTitle();
+                    LOGDF("FruitProducerComponent {} produced: {} of fruit type: {}. Remaining buy amount: {}", getId(),
+                          produceAmount, getTitle(), remainingBuy);
+
+                    m_waitingBuyAmount = remainingBuy;
+                    m_inProducing.store(false);
+                }
             }
         }
     }
     else
     {
-        // Trigger to buy
         outputTokens["request_buy"] = getId();
     }
 
     return true;
 }
 
-StoreComponent::StoreComponent(const std::string &id, const std::string title, int washAmount, int sellAmount)
+StoreComponent::StoreComponent(const std::string & id, const std::string title, int washAmount, int sellAmount)
     : Component(id, "store", title)
     , m_washAmount(washAmount)
     , m_sellAmount(sellAmount)
 {
 }
 
-bool StoreComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
+bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, const Tokens & componentSnapshot)
 {
     // Check if request from EmployeeComponent
     if (inputTokens.find("washed") != inputTokens.end())
@@ -251,14 +289,14 @@ bool StoreComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, co
     return true;
 }
 
-EmployeeComponent::EmployeeComponent(const std::string &id, const std::string title,
+EmployeeComponent::EmployeeComponent(const std::string & id, const std::string title,
                                      std::unordered_map<std::string, double> performanceMetrics)
     : Component(id, "employee", title)
     , m_performanceMetrics(performanceMetrics)
 {
 }
 
-bool EmployeeComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
+bool EmployeeComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, const Tokens & componentSnapshot)
 {
     if (inputTokens.find("wash") != inputTokens.end())
     {
@@ -286,7 +324,7 @@ bool EmployeeComponent::execute(Tokens &outputTokens, const Tokens &inputTokens,
     return true;
 }
 
-SellerComponent::SellerComponent(const std::string &id, const std::string title,
+SellerComponent::SellerComponent(const std::string & id, const std::string title,
                                  std::unordered_map<std::string, double> performanceMetrics,
                                  std::unordered_map<std::string, double> pricingStrategy)
     : Component(id, "seller", title)
@@ -295,7 +333,7 @@ SellerComponent::SellerComponent(const std::string &id, const std::string title,
 {
 }
 
-bool SellerComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
+bool SellerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, const Tokens & componentSnapshot)
 {
     if (inputTokens.find("sell") != inputTokens.end())
     {
@@ -323,13 +361,13 @@ bool SellerComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, c
     return true;
 }
 
-ManagerComponent::ManagerComponent(const std::string &id, const std::string title, int buyAmount)
+ManagerComponent::ManagerComponent(const std::string & id, const std::string title, int buyAmount)
     : Component(id, "manager", title)
     , m_buyAmount(buyAmount)
 {
 }
 
-bool ManagerComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
+bool ManagerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, const Tokens & componentSnapshot)
 {
     if (inputTokens.find("revenue") != inputTokens.end())
     {

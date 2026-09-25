@@ -46,8 +46,11 @@ int main(int argc, char *argv[])
     auto manager = new ManagerComponent(new_id(Component_Type), "Manager");
 
     auto manager2apple = new Connection(new_id(Connection_Type), manager->getId(), appleProducer->getId());
+    auto apple2manager = new Connection(new_id(Connection_Type), appleProducer->getId(), manager->getId());
     auto manager2banana = new Connection(new_id(Connection_Type), manager->getId(), bananaProducer->getId());
+    auto banana2manager = new Connection(new_id(Connection_Type), bananaProducer->getId(), manager->getId());
     auto manager2orange = new Connection(new_id(Connection_Type), manager->getId(), orangeProducer->getId());
+    auto orange2manager = new Connection(new_id(Connection_Type), orangeProducer->getId(), manager->getId());
     auto apple2store = new Connection(new_id(Connection_Type), appleProducer->getId(), store->getId());
     auto banana2store = new Connection(new_id(Connection_Type), bananaProducer->getId(), store->getId());
     auto orange2store = new Connection(new_id(Connection_Type), orangeProducer->getId(), store->getId());
@@ -61,29 +64,30 @@ int main(int argc, char *argv[])
     auto seller2manager = new Connection(new_id(Connection_Type), seller->getId(), manager->getId());
 
     sim.addComponent(appleProducer);
-    sim.addComponent(bananaProducer);
-    sim.addComponent(orangeProducer);
-    sim.addComponent(store);
-    sim.addComponent(empl1);
-    sim.addComponent(empl2);
-    sim.addComponent(empl3);
-    sim.addComponent(seller);
+    // sim.addComponent(bananaProducer);
+    // sim.addComponent(orangeProducer);
+    // sim.addComponent(store);
+    // sim.addComponent(empl1);
+    // sim.addComponent(empl2);
+    // sim.addComponent(empl3);
+    // sim.addComponent(seller);
     sim.addComponent(manager);
 
     sim.addConnection(manager2apple);
-    sim.addConnection(manager2banana);
-    sim.addConnection(manager2orange);
-    sim.addConnection(apple2store);
-    sim.addConnection(banana2store);
-    sim.addConnection(orange2store);
-    sim.addConnection(store2empl1);
-    sim.addConnection(store2empl2);
-    sim.addConnection(store2empl3);
-    sim.addConnection(empl12store);
-    sim.addConnection(empl22store);
-    sim.addConnection(empl32store);
-    sim.addConnection(store2seller);
-    sim.addConnection(seller2manager);
+    sim.addConnection(apple2manager);
+    // sim.addConnection(manager2banana);
+    // sim.addConnection(manager2orange);
+    // sim.addConnection(apple2store);
+    // sim.addConnection(banana2store);
+    // sim.addConnection(orange2store);
+    // sim.addConnection(store2empl1);
+    // sim.addConnection(store2empl2);
+    // sim.addConnection(store2empl3);
+    // sim.addConnection(empl12store);
+    // sim.addConnection(empl22store);
+    // sim.addConnection(empl32store);
+    // sim.addConnection(store2seller);
+    // sim.addConnection(seller2manager);
 
     sim.configureStartupComponent(manager->getId(), {{"init_budget", "100"}});
 

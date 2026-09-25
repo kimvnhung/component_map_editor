@@ -1,45 +1,122 @@
 #include "Actor.h"
 
-#include "Mailbox.h"
+#include <base_log.h>
+
 #include "ActorScheduler.h"
-#include "GraphExecutionSandboxSim.h"
 
-Actor::Actor(ActorSystem *system, const Component *component)
-    : m_system(system)
-    , m_component(const_cast<Component *>(component))
-    , m_mailbox(new Mailbox()) {}
-
-bool Actor::hasNextMessage() const
+IActor::IActor(const std::string& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler)
+    : id_(id)
+    , mailbox_(std::move(mailbox))
+    , scheduler_(scheduler)
 {
-    return m_mailbox->hasNextMessage();
 }
 
-ActorTaskResult Actor::ProcessNextMessage()
+bool IActor::hasWork() const
 {
-    Message message;
+    return !mailbox_->empty();
+}
 
-    if (m_mailbox->nextMessage(message))
+std::string IActor::getId() const
+{
+    return id_;
+}
+
+bool IActor::enqueuedIfNot()
+{
+    return !enqueued_.exchange(true);
+}
+
+void IActor::markNotEnqueued()
+{
+    enqueued_.store(false);
+}
+
+void IActor::enqueueMessage(Message&& msg)
+{
+    bool wasEmpty = mailbox_->empty();// check trước
+
+    if (mailbox_->enqueue(std::move(msg)))
     {
-        // Process the message here
-        // For example, you can call the component's execute method with the message payload
-        Tokens outputTokens;
-        bool result = m_component->execute(outputTokens, message.getTokens(), message.getComponentSnapshot());
-        ActorTaskResult taskResult;
-        taskResult.status = result ? ActorTaskResult::Status::Success : ActorTaskResult::Status::Failure;
-        taskResult.outputMessage.setActorId(m_component->getId());
-        taskResult.outputMessage.setTokens(outputTokens);
-        return taskResult;
+        if (wasEmpty)
+        {
+            // If the mailbox was empty before this enqueue, we need to schedule the actor for processing
+            // Use atomic exchange to avoid race conditions
+            // old = value
+            // value = new
+            // return old
+            if (enqueuedIfNot())
+            {
+                // Actor was not already enqueued; schedule it
+                if (scheduler_)
+                {
+                    scheduler_->enqueueActorWork(this);
+                }
+            }
+        }
     }
-
-    return ActorTaskResult{ActorTaskResult::Status::Failure, {}, "No messages to process."};
+    else
+    {
+        // Handle backpressure: message was dropped or rejected
+        LOGWF("[ComponentActor][{}] Mailbox full. Message dropped.", id_);
+    }
 }
 
-std::string Actor::getActorId() const
+IMailbox &IActor::getMailbox()
 {
-    return m_component->getId();
+    return *mailbox_;
 }
 
-void Actor::enqueueMessage(Message&& message)
+ActorScheduler *IActor::getScheduler() const
 {
-    m_mailbox->enqueueMessage(std::move(message));
+    return scheduler_;
 }
+
+ComponentActor::ComponentActor(const std::string & id,
+                               Component * component,
+                               ActorScheduler * scheduler,
+                               std::vector<std::string> targetActorIds)
+    : IActor(id, std::make_unique<MailboxImpl>(1024, BackpressurePolicy::DROP_NEWEST), scheduler)
+    , component_(component)
+    , targetActorIds_(std::move(targetActorIds))
+{
+}
+
+void ComponentActor::onMessage(Message && msg)
+{
+    // Process the message using the component's logic
+    if (component_)
+    {
+        Tokens output;
+        bool res = component_->execute(output, msg.tokens, msg.componentSnapshot);
+
+        if (res)
+        {
+            LOGDF("[ComponentActor][{}] Component executed successfully for message ID {}. Output tokens: {}",
+                  getId(), msg.id, token2string(output));
+
+            // Route output tokens to target actors
+            for (const std::string& targetId : targetActorIds_)
+            {
+                Message outputMsg{msg.id, targetId, output, component_->snapshot()};
+
+                if (getScheduler())
+                {
+                    getScheduler()->routeMessage(targetId, std::move(outputMsg));
+                }
+                else
+                {
+                    LOGWF("[ComponentActor][{}] No scheduler available to route message to {}.", getId(), targetId);
+                }
+            }
+        }
+        else
+        {
+            LOGWF("[ComponentActor][{}] Component execution failed for message ID {}.", getId(), msg.id);
+        }
+    }
+    else
+    {
+        LOGWF("[ComponentActor][{}] No component associated with this actor.", getId());
+    }
+}
+

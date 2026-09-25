@@ -2,46 +2,122 @@
 
 #include <base_log.h>
 
-#define DEFAULT_MAX_THREADS 4
-
-ActorScheduler::ActorScheduler()
-    : m_threadPool(new QThreadPool)
-    , m_maxTheads(DEFAULT_MAX_THREADS)
+ActorScheduler::ActorScheduler(size_t workerCount)
+    : workers_(workerCount)
 {
-    m_threadPool->setMaxThreadCount(m_maxTheads);
+
 }
 
-void ActorScheduler::setMaxThreads(int maxThreads)
+ActorScheduler::~ActorScheduler()
 {
-    m_maxTheads = maxThreads;
-    m_threadPool->setMaxThreadCount(maxThreads);
+    shutdown();
 }
 
-int ActorScheduler::maxThreads() const
+void ActorScheduler::start()
 {
-    return m_maxTheads;
-}
+    LOGDF("[ActorScheduler] Starting {} worker threads.", workers_.size());
 
-void ActorScheduler::scheduleTask(ActorTask task)
-{
-    m_threadPool->start([task]()
+    for (size_t i = 0; i < workers_.size(); ++i)
     {
-        try
-        {
-            auto result = task.taskFunction();
+        workers_[i] = std::thread(&ActorScheduler::workerLoop, this, i);
+    }
+}
 
-            if (task.finishCallback)
+void ActorScheduler::shutdown()
+{
+    shutdown_ = true;
+    workAvailable_.notify_all();
+
+    for (std::thread &worker : workers_)
+    {
+        if (worker.joinable())
+        {
+            worker.join();
+        }
+    }
+}
+
+void ActorScheduler::registerActor(const std::string& id, std::shared_ptr<IActor> actor)
+{
+    registry_.registerActor(id, actor);
+}
+
+void ActorScheduler::enqueueActorWork(IActor* actor)
+{
+    {
+        std::lock_guard<std::mutex> lock(runQueueMu_);
+        runQueue_.push_back(actor);
+    }
+    workAvailable_.notify_one();
+}
+
+void ActorScheduler::routeMessage(const std::string& targetActorId, Message&& msg)
+{
+    auto actor = registry_.getActor(targetActorId);
+
+    if (actor)
+    {
+        actor->enqueueMessage(std::move(msg));
+    }
+    else
+    {
+        LOGWF("[ActorScheduler] Actor with ID {} not found for routing message.", targetActorId);
+    }
+}
+
+ActorScheduler::Metrics ActorScheduler::getMetrics() const
+{
+    Metrics metrics;
+    // Implement metrics collection logic here if needed
+    return metrics;
+}
+
+void ActorScheduler::workerLoop(size_t workerIdx)
+{
+    while (!shutdown_)
+    {
+        IActor* actor = nullptr;
+
+        {
+            std::unique_lock<std::mutex> lock(runQueueMu_);
+            LOGDF("[ActorScheduler][Worker {}] runQueue_.size={}", workerIdx, runQueue_.size());
+            workAvailable_.wait(lock, [this] { return shutdown_ || !runQueue_.empty(); });
+
+            if (shutdown_)
             {
-                task.finishCallback(result);
+                break;
+            }
+
+            actor = runQueue_.front();
+            runQueue_.pop_front();
+        }
+
+        if (actor)
+        {
+            actor->markNotEnqueued();
+            std::vector<Message> messages;
+
+            if (actor->getMailbox().dequeueBatch(messages, batchSize_) > 0)
+            {
+                LOGDF("[ActorScheduler][Worker {}] Processing {} messages for actor {}.", workerIdx, messages.size(), actor->getId());
+
+                for (Message &msg : messages)
+                {
+                    actor->onMessage(std::move(msg));
+                }
+            }
+
+            if (actor->hasWork())
+            {
+                if (actor->enqueuedIfNot())
+                {
+                    enqueueActorWork(actor);
+                }
             }
         }
-        catch (const std::exception &e)
+        else
         {
-            LOGW("[ActorScheduler][ERROR] Exception in scheduled task: {}", e.what());
+            LOGWF("[ActorScheduler][Worker {}] No actor to process.", workerIdx);
         }
-        catch (...)
-        {
-            LOGW("[ActorScheduler][ERROR] Unknown exception in scheduled task.");
-        }
-    });
+    }
 }

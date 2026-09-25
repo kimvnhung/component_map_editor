@@ -48,17 +48,18 @@ private:
 
     std::vector<Component *> m_components;
     std::vector<Connection *> m_connections;
-    ActorSystem *m_actorSystem{nullptr};
     ActorScheduler *m_scheduler{nullptr};
     bool m_isRunning{false};
     QStringList m_timeline;
+
+    std::string m_startupComponentId;
+    std::unordered_map<std::string, std::string> m_startupProperties;
 private:
     bool captureState();
     void prepareExecution();
     void executeComponent(Component *component);
     void commitState();
     void setRunning(bool running);
-    void routeTokens(const ActorTaskResult& result);
 };
 
 #endif // GRAPHEXECUTIONSANDBOXSIM_H
