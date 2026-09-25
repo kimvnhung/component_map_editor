@@ -17,7 +17,6 @@
 
 class Connection;
 class IExecutionSematicsProvider;
-class ActorScheduler;
 
 struct ConnectionRoutingTable
 {
