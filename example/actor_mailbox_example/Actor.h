@@ -13,9 +13,11 @@ public:
     Actor(ActorSystem *system, const Component *component);
     ~Actor() = default;
 
+    bool hasNextMessage() const;
     ActorTaskResult ProcessNextMessage();
-    void enqueueMessage(const Message &message);
-    bool hasMessages() const;
+    void enqueueMessage(Message&& message);
+
+    std::string getActorId() const;
 private:
     ActorSystem *m_system{nullptr};
     Component *m_component{nullptr};
