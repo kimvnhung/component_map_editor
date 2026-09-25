@@ -19,7 +19,7 @@ class Component
 {
 public:
     Component(const std::string &id, const std::string &type);
-    virtual void execute(const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}, const Tokens &outputTokens = {})
+    virtual bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {})
         = 0;
     std::string getId() const;
     std::string getType() const;
@@ -57,8 +57,7 @@ class ClockComponent : public Component
 {
 public:
     ClockComponent(const std::string &id);
-    void execute(const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}, const Tokens &outputTokens = {})
-    override;
+    bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
 private:
     int m_tickCount{};
 };
@@ -67,8 +66,7 @@ class PrinterComponent : public Component
 {
 public:
     PrinterComponent(const std::string &id);
-    void execute(const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}, const Tokens &outputTokens = {})
-    override;
+    bool execute(Tokens &outputTokens, const Tokens &inputTokens = {}, const Tokens &componentSnapshot = {}) override;
 };
 
 std::string new_id(GraphItemType type);
@@ -122,7 +120,7 @@ private:
     void prepareExecution();
     void executeComponent(Component *component);
     void commitState();
-
+    void setRunning(bool running);
     void routeTokens(const ActorTaskResult& result);
 };
 

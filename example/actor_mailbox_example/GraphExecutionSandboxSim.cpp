@@ -47,29 +47,31 @@ std::string Connection::getProperty(const std::string &key) const
 ClockComponent::ClockComponent(const std::string &id)
     : Component(id, "Clock"), m_tickCount(0) {}
 
-void ClockComponent::execute(const Tokens &incomingTokens, const Tokens &componentSnapshot,
-                             const Tokens &outgoingTokens)
+bool ClockComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
 {
     m_tickCount++;
     QThread::msleep(1000); // Simulate a clock tick every second
+    return true;
 }
 
 PrinterComponent::PrinterComponent(const std::string &id)
     : Component(id, "Printer") {}
 
-void PrinterComponent::execute(const Tokens &incomingTokens, const Tokens &componentSnapshot,
-                               const Tokens &outgoingTokens)
+bool PrinterComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
 {
     std::string message = getProperty("message");
 
     if (!message.empty())
     {
         LOGD("PrinterComponent: {}", message);
+        return true;
     }
     else
     {
         LOGD("PrinterComponent: No message to print.");
     }
+
+    return false;
 }
 
 GraphExecutionSandboxSim::GraphExecutionSandboxSim()
@@ -238,12 +240,41 @@ bool GraphExecutionSandboxSim::captureState()
 
 void GraphExecutionSandboxSim::stop()
 {
-    m_isRunning = false;
+    setRunning(false);
+    m_actorSystem->stop();
+    LOGD("[GraphExecutionSandboxSim] Execution stopped.");
 }
 
 void GraphExecutionSandboxSim::routeTokens(const ActorTaskResult &result)
 {
+    if (result.status == ActorTaskResult::Status::Success && result.outputMessage)
+    {
+        std::string actorId = result.outputMessage->getActorId();
+        Tokens outputTokens = result.outputMessage->getTokens();
 
+        // Route tokens to outgoing connections
+        for (Connection *connection : getOutgoingConnections(actorId))
+        {
+            Component *targetComponent = getComponentById(connection->getTargetComponentId());
+
+            if (targetComponent)
+            {
+                m_actorSystem->send(targetComponent->getId(), new Message(outputTokens));
+            }
+            else
+            {
+                LOGWF("[GraphExecutionSandboxSim][ERROR] Target component with ID {} not found for connection {}.",
+                      connection->getTargetComponentId(), connection->getId());
+            }
+        }
+    }
+    else if (result.status == ActorTaskResult::Status::Failure)
+    {
+        LOGWF("[GraphExecutionSandboxSim][ERROR] Task failed: {}", result.error);
+        stop();
+    }
+
+    delete result.outputMessage; // Clean up the output message
 }
 
 bool GraphExecutionSandboxSim::isRunning() const
@@ -258,7 +289,7 @@ QStringList GraphExecutionSandboxSim::getTimeline() const
 
 void GraphExecutionSandboxSim::execute()
 {
-    m_isRunning = true;
+    setRunning(true);
     QThreadPool::globalInstance()->start([this]()
     {
         while (m_isRunning)
@@ -276,7 +307,7 @@ void GraphExecutionSandboxSim::execute()
             }
             else
             {
-                stop();
+                LOGD("[GraphExecutionSandboxSim] No ready actors. Waiting for messages...");
             }
         }
 
@@ -284,6 +315,14 @@ void GraphExecutionSandboxSim::execute()
     });
 }
 
+void GraphExecutionSandboxSim::setRunning(bool running)
+{
+    if (m_isRunning != running)
+    {
+        m_isRunning = running;
+        emit isRunningChanged();
+    }
+}
 void GraphExecutionSandboxSim::prepareExecution()
 {
     // TODO: Implement preparation logic before executing the graph simulation.
@@ -303,5 +342,6 @@ void GraphExecutionSandboxSim::executeComponent(Component * component)
     }
 
     LOGD("Executing component: ID={}, Type={}", component->getId(), component->getType());
-    component->execute();
+    Tokens output;
+    component->execute(output);
 }

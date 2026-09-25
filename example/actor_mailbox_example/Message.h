@@ -7,15 +7,21 @@
 class Message
 {
 public:
-    Message(const std::unordered_map<std::string, std::string> &payload = {});
+    Message(const std::unordered_map<std::string, std::string> &tokens = {},
+            const std::unordered_map<std::string, std::string> &componentSnapshot = {});
 
-    void setPayload(const std::unordered_map<std::string, std::string> &payload);
-    void addPayloadField(const std::string &key, const std::string &value);
-    void removePayloadField(const std::string &key);
-    std::unordered_map<std::string, std::string> getPayload() const;
-    std::string getPayloadField(const std::string &key) const;
+    void setActorId(const std::string &actorId);
+    std::string getActorId() const;
+
+    void setTokens(const std::unordered_map<std::string, std::string> &tokens);
+    void setComponentSnapshot(const std::unordered_map<std::string, std::string> &snapshot);
+    std::unordered_map<std::string, std::string> getTokens() const;
+    std::unordered_map<std::string, std::string> getComponentSnapshot() const;
+
 private:
-    std::unordered_map<std::string, std::string> m_payload{};
+    std::string m_actorId;
+    std::unordered_map<std::string, std::string> m_tokens;
+    std::unordered_map<std::string, std::string> m_componentSnapshot;
 };
 
 #endif // MESSAGE_H

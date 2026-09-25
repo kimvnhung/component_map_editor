@@ -39,22 +39,42 @@ void ActorSystem::unregisterActor(const std::string actorId)
 
 Actor *ActorSystem::nextReadyActor()
 {
-    for (const auto& actor : actors)
+    std::unique_lock lock(m_mutex);
+
+    m_cv.wait(lock, [this]
     {
-        if (actor->hasMessages())
-        {
-            readyActors.push(actor);
-        }
+        return m_stopped || !readyActors.empty();
+    });
+
+    if (m_stopped)
+    {
+        return nullptr;
     }
 
-    if (!readyActors.empty())
-    {
-        auto nextActor = readyActors.front();
-        readyActors.pop();
-        return nextActor.get();
-    }
+    Actor* actor = readyActors.front().get();
+    readyActors.pop();
+
+    return actor;
 
     return nullptr; // No ready actors
+}
+void ActorSystem::stop()
+{
+    {
+        std::lock_guard lock(m_mutex);
+        m_stopped = true;
+    }
+
+    m_cv.notify_all();
+}
+
+void ActorSystem::enqueReadyActor(std::shared_ptr<Actor> actor)
+{
+    {
+        std::unique_lock lock(m_mutex);
+        readyActors.push(actor);
+    }
+    m_cv.notify_one();
 }
 
 void ActorSystem::send(const std::string & actorId, Message * message)
@@ -65,5 +85,6 @@ void ActorSystem::send(const std::string & actorId, Message * message)
     {
         size_t index = std::distance(actorIds.begin(), it);
         actors[index]->enqueueMessage(*message);
+        enqueReadyActor(actors[index]);
     }
 }
