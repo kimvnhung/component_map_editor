@@ -52,6 +52,12 @@ namespace
                                                "component/factory/manager",
         {
             customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
+            customize::property_schemas::makeField("capital", SchemaFieldType::Number, "Capital", true, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 100,
+                                                   QStringLiteral("Current capital available for the manager to make purchases."),
+            QVariantMap{{QStringLiteral("min"), 0}, {QStringLiteral("max"), 1000000}}),
+            customize::property_schemas::makeField("buyAmount", SchemaFieldType::Number, "Buy Amount", true, 10, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 110,
+                                                   QStringLiteral("The amount of capital required for the manager to make a purchase."),
+            QVariantMap{{QStringLiteral("min"), 1}, {QStringLiteral("max"), 1000000}}),
         });
 
         return bundle;

@@ -1,6 +1,7 @@
 #include "ManagerExecutor.h"
 
 #include "extensions/factory_pack/providers/FactoryComponentTypeProvider.h"
+#include "extensions/providers/executors/customizeexecutioncommon.h"
 
 QString ManagerExecutor::providerId() const
 {
@@ -23,17 +24,40 @@ bool ManagerExecutor::executeComponent(const QString &componentType, const QStri
                                        const cme::execution::IncomingTokens &incomingTokens, cme::execution::ExecutionPayload *outputPayload,
                                        QVariantMap *trace, QString *error) const
 {
-    Q_UNUSED(componentType);
-    Q_UNUSED(componentId);
-    Q_UNUSED(componentSnapshot);
-    Q_UNUSED(incomingTokens);
-    Q_UNUSED(trace);
-    Q_UNUSED(error);
+    const QVariantMap context = customize::executors::mergeIncomingTokens(incomingTokens);
 
-    if (outputPayload)
+    if (!context.contains("revenue") || !context.contains("request_buy"))
     {
-        // For demonstration purposes, we simulate a manager that can request to buy fruit.
-        (*outputPayload)[QStringLiteral("request_buy")] = QStringLiteral("store_1"); // Request buy from store_1
+        const QString msg = QStringLiteral("Missing required input tokens 'revenue' or 'request_buy' for ManagerExecutor.");
+        return customize::executors::failExecution(componentType, componentId, context, {}, "", msg, outputPayload, trace,
+                error);
+    }
+
+    QVariantMap out;
+
+    bool revenueOk;
+    double revenue = context.value("revenue", 0).toDouble(&revenueOk);
+    QString requestBuy = context.value("request_buy", "").toString();
+
+    if (!revenueOk || requestBuy.isEmpty())
+    {
+        const QString msg = QStringLiteral("Invalid input tokens 'revenue' or 'request_buy' for ManagerExecutor.");
+        return customize::executors::failExecution(componentType, componentId, context, {}, "", msg, outputPayload, trace,
+                error);
+    }
+
+    double currentCap = componentSnapshot.value("capital", 0).toDouble();
+
+    if (currentCap < 0)
+    {
+        currentCap = 0;
+    }
+
+    out["capital"] = currentCap + revenue;
+
+    if (currentCap + revenue >= componentSnapshot.value("buyAmount", 0).toDouble())
+    {
+        out["request_buy"] = requestBuy;
     }
 
     return true;
