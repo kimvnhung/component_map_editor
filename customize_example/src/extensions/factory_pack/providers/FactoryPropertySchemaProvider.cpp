@@ -18,35 +18,38 @@ namespace
         bundle.set_provider_id("factory.propertySchema");
         bundle.set_schema_version("1.0.0");
 
+        // TODO: targetId must start with component for matching template on PropertyPanel
+        // This need to be created a machanic for exposing error or something for ensure devs know about this!
         customize::property_schemas::addTarget(&bundle,
-                                               FactoryComponentTypeProvider::TypeFruitProducer,
+                                               "component/factory/fruit_producer",
         {
-            customize::property_schemas::makeField("id", SchemaFieldType::String, "Component ID", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 0),
+            customize::property_schemas::makeField("id", SchemaFieldType::String, "Component ID", true, QString(), SchemaFieldWidget::TextArea, SchemaFieldSection::Identity, 0),
+            customize::property_schemas::makeField("title", SchemaFieldType::String, "Component Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
             customize::property_schemas::makeField("price", SchemaFieldType::Number, "Fruite Price", true, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 20,
                                                    QStringLiteral("Seed number consumed by the start component when simulation begins."),
             QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
         });
 
         customize::property_schemas::addTarget(&bundle,
-                                               FactoryComponentTypeProvider::TypeStore,
+                                               "component/factory/store",
         {
             customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
         });
 
         customize::property_schemas::addTarget(&bundle,
-                                               FactoryComponentTypeProvider::TypeEmployee,
+                                               "component/factory/employee",
         {
             customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
         });
 
         customize::property_schemas::addTarget(&bundle,
-                                               FactoryComponentTypeProvider::TypeSeller,
+                                               "component/factory/seller",
         {
             customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
         });
 
         customize::property_schemas::addTarget(&bundle,
-                                               FactoryComponentTypeProvider::TypeManager,
+                                               "component/factory/manager",
         {
             customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
         });
