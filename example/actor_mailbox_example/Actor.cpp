@@ -3,6 +3,7 @@
 #include <base_log.h>
 
 #include "ActorScheduler.h"
+#include "ExecutionStateCapture.h"
 
 IActor::IActor(const QString& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler)
     : id_(id)
@@ -77,47 +78,56 @@ ComponentActor::ComponentActor(const QString& id,
                                QMap<QString, QStringList> connectionRoutingTable)
     : IActor(id, std::make_unique<MailboxImpl>(1024, BackpressurePolicy::DROP_NEWEST), scheduler)
     , component_(component)
-    , connectionRoutingTable_(connectionRoutingTable)
 {
 }
 
 void ComponentActor::onMessage(Message && msg)
 {
+    ExecuteResult result;
+    ExecutionContext ctx
+    {
+        msg.sourceId,
+        getId(),
+        msg.tokens,
+        component_ == nullptr ? component_->snapshot() : QVariantMap()
+    };
+
     // Process the message using the component's logic
     if (component_)
     {
-        Tokens output;
-        bool res = component_->execute(output, msg.tokens, msg.componentSnapshot);
+        bool res = component_->execute(result.outputState, ctx.inputTokens, ctx.componentSnapshot);
+        result.success = res;
 
         if (res)
         {
             LOGDF("[ComponentActor][{}] Component executed successfully for message ID {}. Output tokens: {}",
-                  getId().toStdString(), msg.id, token2string(output).toStdString());
+                  getId().toStdString(), msg.id, token2string(result.outputState).toStdString());
 
-            // Route output tokens to target actors
-            for (const QString& targetId : connectionRoutingTable_.keys())
-            {
-                Message outputMsg{msg.id, targetId, output, component_->snapshot()};
-
-                if (getScheduler())
-                {
-                    getScheduler()->routeMessage(targetId, std::move(outputMsg));
-                }
-                else
-                {
-                    LOGWF("[ComponentActor][{}] No scheduler available to route message to {}.", getId().toStdString(),
-                          targetId.toStdString());
-                }
-            }
+            result.message = "Component executed successfully.";
         }
         else
         {
+            result.message = "Component execution failed.";
             LOGWF("[ComponentActor][{}] Component execution failed for message ID {}.", getId().toStdString(), msg.id);
         }
     }
     else
     {
         LOGWF("[ComponentActor][{}] No component associated with this actor.", getId().toStdString());
+        result.success = false;
+        result.message = "No component associated with this actor.";
+    }
+
+    // Route output tokens to connected components
+    auto scheduler = getScheduler();
+
+    if (scheduler)
+    {
+        scheduler->handleActorProcessFinished(ctx, result);
+    }
+    else
+    {
+        LOGWF("[ComponentActor][{}] Scheduler not available for routing tokens.", getId().toStdString());
     }
 }
 

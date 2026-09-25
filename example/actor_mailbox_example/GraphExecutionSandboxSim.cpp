@@ -6,7 +6,9 @@
 #include "Actor.h"
 
 GraphExecutionSandboxSim::GraphExecutionSandboxSim()
-    : m_scheduler(new ActorScheduler())
+    : m_scheduler(new ActorScheduler(std::bind(&GraphExecutionSandboxSim::onStepCompleted, this, std::placeholders::_1,
+                                     std::placeholders::_2)))
+    , m_stateCapture(new ExecutionStateCapture())
 {}
 
 std::vector<Component *> GraphExecutionSandboxSim::getComponents() const
@@ -98,7 +100,7 @@ void GraphExecutionSandboxSim::removeComponent(const QString &id)
     }
     else
     {
-        LOGWF("[GraphExecutionSandboxSim][ERROR] Component with ID {} not found.", id);
+        LOGWF("[GraphExecutionSandboxSim][ERROR] Component with ID {} not found.", id.toStdString());
     }
 }
 
@@ -121,7 +123,7 @@ bool GraphExecutionSandboxSim::configureStartupComponent(const QString &componen
 
     if (!component)
     {
-        LOGWF("[GraphExecutionSandboxSim][ERROR] Component with ID {} not found.", componentId);
+        LOGWF("[GraphExecutionSandboxSim][ERROR] Component with ID {} not found.", componentId.toStdString());
         return false;
     }
 
@@ -134,6 +136,76 @@ void GraphExecutionSandboxSim::clear()
 {
     m_components.clear();
     m_connections.clear();
+}
+
+void GraphExecutionSandboxSim::onStepCompleted(const ExecutionContext& ctx, const ExecuteResult& result)
+{
+    if (result.success)
+    {
+        LOGDF("[GraphExecutionSandboxSim] Step completed for component {}. Output tokens: {}", ctx.componentId.toStdString(),
+              token2string(result.outputState).toStdString());
+
+        if (getExecutionStatus() == ExecutionStatus::STEPPING)
+        {
+            LOGD("[GraphExecutionSandboxSim] Execution is in STEPPING mode. Storing last context and result for next step.");
+            m_lastCtx = ctx;
+            m_lastResult = result;
+        }
+        else
+        {
+            // Clear last context and result after successful execution in RUNNING mode
+            m_lastCtx = {};
+            m_lastResult = {};
+
+            if (getExecutionStatus() == ExecutionStatus::RUNNING)
+            {
+                Message msg{0, ctx.componentId, result.outputState};
+                m_scheduler->routeMessage(std::move(msg));
+            }
+            else if (getExecutionStatus() == ExecutionStatus::STEPPING)
+            {
+                setExecutionStatus(ExecutionStatus::PAUSED);
+                LOGD("[GraphExecutionSandboxSim] Execution is stepping. Transitioning to PAUSED after this step.");
+            }
+            else
+            {
+                LOGWF("[GraphExecutionSandboxSim] Execution status is {}, not routing further messages.",
+                      static_cast<int>(getExecutionStatus()));
+            }
+        }
+    }
+    else
+    {
+        LOGWF("[GraphExecutionSandboxSim] Step failed for component {}.", ctx.componentId.toStdString());
+        // TODO: Need handle more
+    }
+}
+
+QVariantMap GraphExecutionSandboxSim::componentSnapshot(const QString &componentId) const
+{
+    Component *component = getComponentById(componentId);
+
+    if (!component)
+    {
+        LOGWF("[GraphExecutionSandboxSim][ERROR] Component with ID {} not found for snapshot.", componentId.toStdString());
+        return {};
+    }
+
+    return component->snapshot();
+}
+
+GraphExecutionSandboxSim::ExecutionStatus GraphExecutionSandboxSim::getExecutionStatus() const
+{
+    return m_executionStatus;
+}
+
+void GraphExecutionSandboxSim::setExecutionStatus(ExecutionStatus status)
+{
+    if (m_executionStatus != status)
+    {
+        m_executionStatus = status;
+        emit executionStatusChanged();
+    }
 }
 
 bool GraphExecutionSandboxSim::captureState()
@@ -158,48 +230,72 @@ bool GraphExecutionSandboxSim::captureState()
             return false;
         }
 
-        QMap<QString, QStringList> connectionRoutingTable;
-
-        for (Connection *connection : m_connections)
-        {
-            if (connection->getSourceComponentId() == component->getId())
-            {
-                connectionRoutingTable[connection->getId()].append(connection->getTargetComponentId());
-            }
-        }
-
         m_scheduler->registerActor(component->getId(), std::make_shared<ComponentActor>(component->getId(), component,
-                                   m_scheduler, connectionRoutingTable));
+                                   m_scheduler));
     }
 
     return true;
 }
 
-void GraphExecutionSandboxSim::stop()
+void GraphExecutionSandboxSim::pause()
 {
-    setRunning(false);
-    m_scheduler->shutdown();
-    LOGD("[GraphExecutionSandboxSim] Execution stopped.");
+    setExecutionStatus(ExecutionStatus::PAUSED);
+    m_scheduler->setExecutionMode(ActorScheduler::ExecutionMode::SEQUENTIAL);
 }
 
-bool GraphExecutionSandboxSim::isRunning() const
+void GraphExecutionSandboxSim::step()
 {
-    return m_isRunning;
+    setExecutionStatus(ExecutionStatus::STEPPING);
+    static uint64_t stepCounter = 0;
+    m_scheduler->setExecutionMode(ActorScheduler::ExecutionMode::SEQUENTIAL);
+
+    if (stepCounter == 0)
+    {
+        Message initialMessage{stepCounter++, "", m_startupProperties};
+        m_scheduler->routeMessageToActor(m_startupComponentId, std::move(initialMessage));
+    }
+    else if (m_lastCtx.componentId != "")
+    {
+        Message msg{stepCounter++, m_lastCtx.componentId, m_lastResult.outputState};
+        m_scheduler->routeMessage(std::move(msg));
+    }
+    else
+    {
+        LOGW("[GraphExecutionSandboxSim][ERROR] No last context available for stepping.");
+        setExecutionStatus(ExecutionStatus::ERROR);
+    }
+
+    LOGDF("[GraphExecutionSandboxSim] Step {} executed. Current execution status: {}", stepCounter,
+          static_cast<int>(getExecutionStatus()));
 }
+
 
 QStringList GraphExecutionSandboxSim::getTimeline() const
 {
     return m_timeline;
 }
 
-void GraphExecutionSandboxSim::execute()
+void GraphExecutionSandboxSim::reset()
 {
-    setRunning(true);
+    m_timeline.clear();
+    setExecutionStatus(ExecutionStatus::COMPLETED);
+    m_scheduler->shutdown();
+    LOGD("[GraphExecutionSandboxSim] Execution state reset.");
+}
+
+void GraphExecutionSandboxSim::run()
+{
+    m_scheduler->setExecutionMode(ActorScheduler::ExecutionMode::PARALLEL);
+}
+
+void GraphExecutionSandboxSim::start()
+{
+    setExecutionStatus(ExecutionStatus::RUNNING);
 
     if (!captureState())
     {
         LOGW("[GraphExecutionSandboxSim][ERROR] Failed to capture state. Execution aborted.");
-        setRunning(false);
+        setExecutionStatus(ExecutionStatus::ERROR);
         return;
     }
 
@@ -209,20 +305,10 @@ void GraphExecutionSandboxSim::execute()
     if (!startupComponent)
     {
         LOGW("[GraphExecutionSandboxSim][ERROR] Startup component with ID {} not found.", m_startupComponentId.toStdString());
-        setRunning(false);
+        setExecutionStatus(ExecutionStatus::ERROR);
         return;
     }
 
-    Message initialMessage{0, m_startupComponentId, m_startupProperties, startupComponent->snapshot()};
-    m_scheduler->routeMessage(m_startupComponentId, std::move(initialMessage));
-    m_scheduler->start();
-}
-
-void GraphExecutionSandboxSim::setRunning(bool running)
-{
-    if (m_isRunning != running)
-    {
-        m_isRunning = running;
-        emit isRunningChanged();
-    }
+    auto routeTable = ConnectionRoutingTable::buildFromGraphSnapshot(m_components, m_connections);
+    m_scheduler->start(std::move(routeTable));
 }

@@ -19,14 +19,26 @@ Window {
             spacing: 10
             Button {
                 text: "Start"
-                onClicked: sandbox.execute()
+                onClicked: sandbox.start()
             }
             Button {
-                text: "Stop"
-                onClicked: sandbox.stop()
+                text: "Step"
+                onClicked: sandbox.step()
+            }
+            Button {
+                text: "Run"
+                onClicked: sandbox.run()
+            }
+            Button {
+                text: "Pause"
+                onClicked: sandbox.pause()
+            }
+            Button {
+                text: "Reset"
+                onClicked: sandbox.reset()
             }
             Text {
-                text: sandbox.isRunning ? "Running" : "Stopped"
+                text: "Status: " + statusText()
                 font.pixelSize: 20
             }
         }
@@ -38,6 +50,25 @@ Window {
             delegate: Text {
                 text: modelData
             }
+        }
+    }
+
+    function statusText() {
+        switch (sandbox.executionStatus) {
+        case 0:
+            return "Not started";
+        case 1:
+            return "Running";
+        case 2:
+            return "Paused";
+        case 3:
+            return "Stepping";
+        case 4:
+            return "Completed";
+        case 5:
+            return "Error";
+        default:
+            return "Unknown";
         }
     }
 }
