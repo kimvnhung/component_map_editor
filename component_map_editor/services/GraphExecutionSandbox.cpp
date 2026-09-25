@@ -891,7 +891,7 @@ void GraphExecutionSandbox::prepareIncomingTokens(const QString &componentId, Ex
     }
 }
 
-GraphExecutionSandbox::ExecuteResult GraphExecutionSandbox::invokeProvider(const ExecutionContext &ctx)
+ExecuteResult GraphExecutionSandbox::invokeProvider(const ExecutionContext &ctx)
 {
     ExecuteResult output;
     output.componentData = cme::helper::getComponentById(m_graphSnapshot,

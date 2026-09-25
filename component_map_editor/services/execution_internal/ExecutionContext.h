@@ -4,19 +4,29 @@
 #include <QString>
 #include <QVariantMap>
 
+#include <graph.pb.h>
+
+#include "extensions/contracts/IExecutionSemanticsProvider.h"
+
 struct ExecutionContext
 {
-    QString sourceComponentId;
     QString componentId;
-    QVariantMap inputTokens;  // Merged inputs
-    QVariantMap componentSnapshot;
+    QString componentType;
+    bool tokenRoutingEnabled;
+    cme::execution::IncomingTokens incomingTokens;
+    QVariantMap stepState;
+    QVariantMap trace;
 };
 
 struct ExecuteResult
 {
-    bool success;
-    QVariantMap outputState;
-    QString message;
+    enum Status { Ok, Rejected, Error } status;
+    QVariantMap output; // default token payload
+    QString providerId;
+    cme::ComponentData componentData;
+    QStringList requiredOutputKeys; // list of keys that must be present in the output
+    QVariantMap trace; // { providerId, durationMs, status, details }
+    QString errorMessage;
 };
 
 #endif // EXECUTIONCONTEXT_H
