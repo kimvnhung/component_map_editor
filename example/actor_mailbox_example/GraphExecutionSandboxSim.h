@@ -15,6 +15,7 @@ class GraphExecutionSandboxSim: public QObject
     Q_PROPERTY(ExecutionStatus executionStatus READ getExecutionStatus NOTIFY executionStatusChanged)
     Q_PROPERTY(TimelineModel* timeLine READ getTimeline NOTIFY timelineChanged)
     Q_PROPERTY(QList<ExecutionSnapshot> states READ getStates NOTIFY timelineChanged)
+    Q_PROPERTY(quint64 stepCounter READ stepCounter NOTIFY timelineChanged)
 public:
     enum class ExecutionStatus
     {
@@ -58,6 +59,7 @@ public:
     ExecutionStatus getExecutionStatus() const;
     TimelineModel *getTimeline() const;
     QList<ExecutionSnapshot> getStates() const;
+    quint64 stepCounter() const { return m_stepCounter; }
 signals:
     void executionStatusChanged();
     void timelineChanged();
@@ -74,6 +76,7 @@ private:
     QVariantMap m_startupProperties;
 
     QString m_lastStepComponentId{};
+    quint64 m_stepCounter{0};
 private:
     bool captureState();
     QVariantMap componentSnapshot(const QString& componentId) const;
