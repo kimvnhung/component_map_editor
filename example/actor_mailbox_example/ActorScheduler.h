@@ -23,11 +23,11 @@ public:
     void shutdown();
 
     // Register an actor with the scheduler
-    void registerActor(const std::string& id, std::shared_ptr<IActor> actor);
+    void registerActor(const QString& id, std::shared_ptr<IActor> actor);
 
     // Enqueue actor for processing (called by ComponentActor when message arrives)
     void enqueueActorWork(IActor* actor);
-    void routeMessage(const std::string& targetActorId, Message&& msg);
+    void routeMessage(const QString& targetActorId, Message&& msg);
 
     // Get actor registry
     ActorRegistry &getRegistry() { return registry_; }

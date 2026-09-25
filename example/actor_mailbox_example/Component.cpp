@@ -3,61 +3,61 @@
 #include <QThread>
 #include <base_log.h>
 
-std::string new_id(GraphItemType type)
+QString new_id(GraphItemType type)
 {
     static int componentCounter = 0;
     static int connectionCounter = 0;
-    return std::string((type == Component_Type ? "component" : "connection")) + "_" + std::to_string((
+    return QString((type == Component_Type ? "component" : "connection")) + "_" + std::to_string((
                 type == Component_Type ? componentCounter++ :
                 connectionCounter++));
 }
 
-std::string token2string(const Tokens &tokens)
+QString token2string(const Tokens &tokens)
 {
-    std::string result;
+    QStringList tokenStrings;
 
-    for (const auto &pair : tokens)
+    for (auto it = tokens.constBegin(); it != tokens.constEnd(); ++it)
     {
-        result += pair.first + ": " + pair.second + "; ";
+        tokenStrings.append(it.key() + ": " + it.value().toString());
     }
 
-    return result;
+    return "{" + tokenStrings.join(", ") + "}";
 }
 
-Component::Component(const std::string &id, const std::string &title, const std::string &type)
+Component::Component(const QString &id, const QString &title, const QString &type)
     : m_id(id)
     , m_type(type)
     , m_title(title)
 {}
 
-std::string Component::getId() const { return m_id; }
-std::string Component::getType() const { return m_type; }
-std::string Component::getTitle() const { return m_title; }
-void Component::addProperty(const std::string &key, const std::string &value) { m_properties[key] = value; }
-void Component::removeProperty(const std::string &key) { m_properties.erase(key); }
-std::string Component::getProperty(const std::string &key) const
+QString Component::getId() const { return m_id; }
+QString Component::getType() const { return m_type; }
+QString Component::getTitle() const { return m_title; }
+void Component::addProperty(const QString &key, const QString &value) { m_properties[key] = value; }
+void Component::removeProperty(const QString &key) { m_properties.remove(key); }
+QString Component::getProperty(const QString &key) const
 {
     auto it = m_properties.find(key);
-    return (it != m_properties.end()) ? it->second : "";
+    return (it != m_properties.end()) ? it.value().toString() : "";
 }
 
-Connection::Connection(const std::string &id, const std::string &sourceComponentId,
-                       const std::string &targetComponentId)
+Connection::Connection(const QString &id, const QString &sourceComponentId,
+                       const QString &targetComponentId)
     : m_id(id), m_sourceComponentId(sourceComponentId), m_targetComponentId(targetComponentId) {}
-std::string Connection::getId() const { return m_id; }
-std::string Connection::getSourceComponentId() const { return m_sourceComponentId; }
-std::string Connection::getTargetComponentId() const { return m_targetComponentId; }
-void Connection::setSourceComponentId(const std::string &sourceComponentId) { m_sourceComponentId = sourceComponentId; }
-void Connection::setTargetComponentId(const std::string &targetComponentId) { m_targetComponentId = targetComponentId; }
-void Connection::addProperty(const std::string &key, const std::string &value) { m_properties[key] = value; }
-void Connection::removeProperty(const std::string &key) { m_properties.erase(key); }
-std::string Connection::getProperty(const std::string &key) const
+QString Connection::getId() const { return m_id; }
+QString Connection::getSourceComponentId() const { return m_sourceComponentId; }
+QString Connection::getTargetComponentId() const { return m_targetComponentId; }
+void Connection::setSourceComponentId(const QString &sourceComponentId) { m_sourceComponentId = sourceComponentId; }
+void Connection::setTargetComponentId(const QString &targetComponentId) { m_targetComponentId = targetComponentId; }
+void Connection::addProperty(const QString &key, const QString &value) { m_properties[key] = value; }
+void Connection::removeProperty(const QString &key) { m_properties.remove(key); }
+QString Connection::getProperty(const QString &key) const
 {
     auto it = m_properties.find(key);
-    return (it != m_properties.end()) ? it->second : "";
+    return (it != m_properties.end()) ? it.value().toString() : "";
 }
 
-ClockComponent::ClockComponent(const std::string &id)
+ClockComponent::ClockComponent(const QString &id)
     : Component(id, "clock", "Clock") {}
 
 bool ClockComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
@@ -66,24 +66,22 @@ bool ClockComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, co
 
     if (inputTokens.find("tick") != inputTokens.end())
     {
-        std::string tickValue = inputTokens.at("tick");
-        tick = std::stoi(tickValue);
+        tick = inputTokens.value("tick").toInt();
     }
 
     QThread::msleep(1000); // Simulate a clock tick every second
-    outputTokens["tick"] = std::to_string(tick + 1);
+    outputTokens["tick"] = QString::number(tick + 1);
     return true;
 }
 
-PrinterComponent::PrinterComponent(const std::string &id)
+PrinterComponent::PrinterComponent(const QString &id)
     : Component(id, "printer", "Printer") {}
 
 bool PrinterComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, const Tokens &componentSnapshot)
 {
     if (inputTokens.find("tick") != inputTokens.end())
     {
-        std::string tickValue = inputTokens.at("tick");
-        LOGDF("PrinterComponent received tick: {}", tickValue);
+        QString tickValue = inputTokens.value("tick").toString();
         outputTokens["printed"] = "Printed tick: " + tickValue;
         outputTokens["tick"] = tickValue;
         return true;
@@ -92,7 +90,7 @@ bool PrinterComponent::execute(Tokens &outputTokens, const Tokens &inputTokens, 
     return false;
 }
 
-FruitProducerComponent::FruitProducerComponent(const std::string &id, const std::string title, int price,
+FruitProducerComponent::FruitProducerComponent(const QString &id, const QString title, int price,
         double productionRate, int buySizePerTime)
     : Component(id, "fruit_producer", title)
     , m_price(price)
@@ -106,24 +104,25 @@ FruitProducerComponent::FruitProducerComponent(const std::string &id, const std:
 bool FruitProducerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens,
                                      const Tokens & componentSnapshot)
 {
-    LOGDF("FruitProducerComponent {} received input tokens: {}", getId(), token2string(inputTokens));
+    LOGDF("FruitProducerComponent {} received input tokens: {}", getId().toStdString(),
+          token2string(inputTokens).toStdString());
     int buy = 0;
 
     if (inputTokens.find("buy") != inputTokens.end())
     {
         if (inputTokens.find("producer_id") != inputTokens.end())
         {
-            std::string producerId = inputTokens.at("producer_id");
+            QString producerId = inputTokens.value("producer_id").toString();
 
             if (producerId == getId())
             {
-                buy = std::stoi(inputTokens.at("buy"));
-                LOGDF("FruitProducerComponent {} received buy request: {}", getId(), buy);
+                buy = inputTokens.value("buy").toInt();
+                LOGDF("FruitProducerComponent {} received buy request: {}", getId().toStdString(), buy);
 
                 if (m_inProducing)
                 {
                     m_waitingBuyAmount += buy;
-                    LOGDF("FruitProducerComponent {} is currently producing. Accumulated waiting buy amount: {}", getId(),
+                    LOGDF("FruitProducerComponent {} is currently producing. Accumulated waiting buy amount: {}", getId().toStdString(),
                           m_waitingBuyAmount);
                 }
                 else
@@ -135,14 +134,15 @@ bool FruitProducerComponent::execute(Tokens & outputTokens, const Tokens & input
 
                     // Simulate production time based on production rate
                     int productionTimeMs = static_cast<int>((produceAmount / m_productionRate) * 1000);
-                    LOGDF("FruitProducerComponent {} producing: {} of fruit type: {}. Estimated production time: {} ms", getId(),
-                          produceAmount, getTitle(), productionTimeMs);
+                    LOGDF("FruitProducerComponent {} producing: {} of fruit type: {}. Estimated production time: {} ms",
+                          getId().toStdString(),
+                          produceAmount, getTitle().toStdString(), productionTimeMs);
                     QThread::msleep(productionTimeMs);
 
-                    outputTokens["produced"] = std::to_string(produceAmount);
+                    outputTokens["produced"] = QString::number(produceAmount);
                     outputTokens["fruit_type"] = getTitle();
-                    LOGDF("FruitProducerComponent {} produced: {} of fruit type: {}. Remaining buy amount: {}", getId(),
-                          produceAmount, getTitle(), remainingBuy);
+                    LOGDF("FruitProducerComponent {} produced: {} of fruit type: {}. Remaining buy amount: {}", getId().toStdString(),
+                          produceAmount, getTitle().toStdString(), remainingBuy);
 
                     m_waitingBuyAmount = remainingBuy;
                     m_inProducing.store(false);
@@ -158,7 +158,7 @@ bool FruitProducerComponent::execute(Tokens & outputTokens, const Tokens & input
     return true;
 }
 
-StoreComponent::StoreComponent(const std::string & id, const std::string title, int washAmount, int sellAmount)
+StoreComponent::StoreComponent(const QString & id, const QString title, int washAmount, int sellAmount)
     : Component(id, "store", title)
     , m_washAmount(washAmount)
     , m_sellAmount(sellAmount)
@@ -170,8 +170,8 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
     // Check if request from EmployeeComponent
     if (inputTokens.find("washed") != inputTokens.end())
     {
-        int washed = std::stoi(inputTokens.at("washed"));
-        std::string fruitType = inputTokens.at("fruit_type");
+        int washed = inputTokens.value("washed").toInt();
+        QString fruitType = inputTokens.value("fruit_type").toString();
         int lastStock = m_products[fruitType];
 
         if (lastStock <= 0)
@@ -180,35 +180,35 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
         }
 
         m_products[fruitType] = lastStock + washed;
-        LOGDF("StoreComponent received washed: {} for fruit type: {}. Updated stock: {}", washed, fruitType,
+        LOGDF("StoreComponent received washed: {} for fruit type: {}. Updated stock: {}", washed, fruitType.toStdString(),
               m_products[fruitType]);
     }
     else if (inputTokens.find("produced") != inputTokens.end())
     {
-        int produced = std::stoi(inputTokens.at("produced"));
-        std::string fruitType = inputTokens.at("fruit_type");
+        int produced = inputTokens.value("produced").toInt();
+        QString fruitType = inputTokens.value("fruit_type").toString();
         m_rawMaterials[fruitType] += produced;
     }
     else if (inputTokens.find("request_wash") != inputTokens.end())
     {
-        std::string employeeId = inputTokens.at("request_wash");
+        QString employeeId = inputTokens.value("request_wash").toString();
         int total = 0;
         bool isSent = false;
 
         for (const auto &pair : m_rawMaterials)
         {
-            const std::string &fruitType = pair.first;
+            const QString &fruitType = pair.first;
             int rawAmount = pair.second;
             total += rawAmount;
 
             if (rawAmount >= m_washAmount)
             {
                 m_rawMaterials[fruitType] -= m_washAmount;
-                outputTokens["wash"] = std::to_string(m_washAmount);
+                outputTokens["wash"] = m_washAmount;
                 outputTokens["fruit_type"] = fruitType;
                 outputTokens["employee_id"] = employeeId;
                 LOGDF("StoreComponent sending washed: {} for fruit type: {} to employee: {}", m_washAmount,
-                      fruitType, employeeId);
+                      fruitType.toStdString(), employeeId.toStdString());
                 isSent = true;
                 break; // Only wash one type of fruit at a time
             }
@@ -220,17 +220,17 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
             {
                 for (const auto &pair : m_rawMaterials)
                 {
-                    const std::string &fruitType = pair.first;
+                    const QString &fruitType = pair.first;
                     int rawAmount = pair.second;
 
                     if (rawAmount > 0)
                     {
                         m_rawMaterials[fruitType] -= rawAmount;
-                        outputTokens["wash"] = std::to_string(rawAmount);
+                        outputTokens["wash"] = rawAmount;
                         outputTokens["fruit_type"] = fruitType;
                         outputTokens["employee_id"] = employeeId;
                         LOGDF("StoreComponent sending washed: {} for fruit type: {} to employee: {}", rawAmount,
-                              fruitType, employeeId);
+                              fruitType.toStdString(), employeeId.toStdString());
                         break; // Only wash one type of fruit at a time
                     }
                 }
@@ -239,24 +239,24 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
     }
     else if (inputTokens.find("request_sell") != inputTokens.end())
     {
-        std::string employeeId = inputTokens.at("request_sell");
+        QString employeeId = inputTokens.value("request_sell").toString();
         int total = 0;
         bool isSent = false;
 
         for (const auto &pair : m_products)
         {
-            const std::string &fruitType = pair.first;
+            const QString &fruitType = pair.first;
             int productAmount = pair.second;
             total += productAmount;
 
             if (productAmount >= m_sellAmount)
             {
                 m_products[fruitType] -= m_sellAmount;
-                outputTokens["sell"] = std::to_string(m_sellAmount);
+                outputTokens["sell"] = m_sellAmount;
                 outputTokens["fruit_type"] = fruitType;
                 outputTokens["employee_id"] = employeeId;
                 LOGDF("StoreComponent sending sold: {} for fruit type: {} to employee: {}", m_sellAmount,
-                      fruitType, employeeId);
+                      fruitType.toStdString(), employeeId.toStdString());
                 isSent = true;
                 break; // Only sell one type of fruit at a time
             }
@@ -268,17 +268,17 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
             {
                 for (const auto &pair : m_products)
                 {
-                    const std::string &fruitType = pair.first;
+                    const QString &fruitType = pair.first;
                     int productAmount = pair.second;
 
                     if (productAmount > 0)
                     {
                         m_products[fruitType] -= productAmount;
-                        outputTokens["sell"] = std::to_string(productAmount);
+                        outputTokens["sell"] = productAmount;
                         outputTokens["fruit_type"] = fruitType;
                         outputTokens["employee_id"] = employeeId;
                         LOGDF("StoreComponent sending sold: {} for fruit type: {} to employee: {}", productAmount,
-                              fruitType, employeeId);
+                              fruitType.toStdString(), employeeId.toStdString());
                         break; // Only sell one type of fruit at a time
                     }
                 }
@@ -289,8 +289,8 @@ bool StoreComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, 
     return true;
 }
 
-EmployeeComponent::EmployeeComponent(const std::string & id, const std::string title,
-                                     std::unordered_map<std::string, double> performanceMetrics)
+EmployeeComponent::EmployeeComponent(const QString & id, const QString title,
+                                     std::unordered_map<QString, double> performanceMetrics)
     : Component(id, "employee", title)
     , m_performanceMetrics(performanceMetrics)
 {
@@ -300,19 +300,19 @@ bool EmployeeComponent::execute(Tokens & outputTokens, const Tokens & inputToken
 {
     if (inputTokens.find("wash") != inputTokens.end())
     {
-        int washed = std::stoi(inputTokens.at("wash"));
-        std::string fruitType = inputTokens.at("fruit_type");
-        std::string employeeId = inputTokens.at("employee_id");
+        int washed = inputTokens.value("wash").toInt();
+        QString fruitType = inputTokens.value("fruit_type").toString();
+        QString employeeId = inputTokens.value("employee_id").toString();
 
         if (employeeId == getId())
         {
             double performance = m_performanceMetrics[fruitType];
             int processed = static_cast<int>(washed / performance * 1000);
             QThread::msleep(processed);
-            outputTokens["washed"] = std::to_string(washed);
+            outputTokens["washed"] = washed;
             outputTokens["fruit_type"] = fruitType;
-            LOGDF("EmployeeComponent {} processed washed: {} for fruit type: {} with performance: {}", getId(),
-                  washed, fruitType, performance);
+            LOGDF("EmployeeComponent {} processed washed: {} for fruit type: {} with performance: {}", getId().toStdString(),
+                  washed, fruitType.toStdString(), performance);
         }
     }
     else
@@ -324,9 +324,9 @@ bool EmployeeComponent::execute(Tokens & outputTokens, const Tokens & inputToken
     return true;
 }
 
-SellerComponent::SellerComponent(const std::string & id, const std::string title,
-                                 std::unordered_map<std::string, double> performanceMetrics,
-                                 std::unordered_map<std::string, double> pricingStrategy)
+SellerComponent::SellerComponent(const QString & id, const QString title,
+                                 std::unordered_map<QString, double> performanceMetrics,
+                                 std::unordered_map<QString, double> pricingStrategy)
     : Component(id, "seller", title)
     , m_performanceMetrics(performanceMetrics)
     , m_pricingStrategy(pricingStrategy)
@@ -337,9 +337,9 @@ bool SellerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens,
 {
     if (inputTokens.find("sell") != inputTokens.end())
     {
-        int sold = std::stoi(inputTokens.at("sell"));
-        std::string fruitType = inputTokens.at("fruit_type");
-        std::string employeeId = inputTokens.at("employee_id");
+        int sold = inputTokens.value("sell").toInt();
+        QString fruitType = inputTokens.value("fruit_type").toString();
+        QString employeeId = inputTokens.value("employee_id").toString();
 
         if (employeeId == getId())
         {
@@ -347,9 +347,10 @@ bool SellerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens,
             double price = m_pricingStrategy[fruitType];
             int processed = static_cast<int>(sold / performance * 1000);
             QThread::msleep(processed);
-            outputTokens["revenue"] = std::to_string(sold * price);
-            LOGDF("SellerComponent {} processed sold: {} for fruit type: {} with performance: {} and revenue: {}", getId(),
-                  sold, fruitType, performance, sold * price);
+            outputTokens["revenue"] = sold * price;
+            LOGDF("SellerComponent {} processed sold: {} for fruit type: {} with performance: {} and revenue: {}",
+                  getId().toStdString(),
+                  sold, fruitType.toStdString(), performance, sold * price);
         }
     }
     else
@@ -361,7 +362,7 @@ bool SellerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens,
     return true;
 }
 
-ManagerComponent::ManagerComponent(const std::string & id, const std::string title, int buyAmount)
+ManagerComponent::ManagerComponent(const QString & id, const QString title, int buyAmount)
     : Component(id, "manager", title)
     , m_buyAmount(buyAmount)
 {
@@ -371,33 +372,33 @@ bool ManagerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens
 {
     if (inputTokens.find("revenue") != inputTokens.end())
     {
-        double revenue = std::stod(inputTokens.at("revenue"));
+        double revenue = inputTokens.value("revenue").toDouble();
         m_capital += revenue;
-        LOGDF("ManagerComponent {} received revenue: {}. Updated capital: {}", getId(), revenue, m_capital);
+        LOGDF("ManagerComponent {} received revenue: {}. Updated capital: {}", getId().toStdString(), revenue, m_capital);
     }
     else if (inputTokens.find("request_buy") != inputTokens.end())
     {
-        std::string producerId = inputTokens.at("request_buy");
+        QString producerId = inputTokens.value("request_buy").toString();
 
         if (m_capital >= m_buyAmount)
         {
             m_capital -= m_buyAmount;
-            outputTokens["buy"] = std::to_string(m_buyAmount);
+            outputTokens["buy"] = m_buyAmount;
             outputTokens["producer_id"] = producerId;
-            LOGDF("ManagerComponent {} requested buy: {} from producer: {}. Updated capital: {}", getId(),
-                  m_buyAmount, producerId, m_capital);
+            LOGDF("ManagerComponent {} requested buy: {} from producer: {}. Updated capital: {}", getId().toStdString(),
+                  m_buyAmount, producerId.toStdString(), m_capital);
         }
         else
         {
-            LOGDF("ManagerComponent {} has insufficient capital: {} to buy from producer: {}", getId(),
-                  m_capital, producerId);
+            LOGDF("ManagerComponent {} has insufficient capital: {} to buy from producer: {}", getId().toStdString(), m_capital,
+                  producerId.toStdString());
             return false;
         }
     }
     else if (inputTokens.find("init_budget") != inputTokens.end())
     {
-        m_capital = std::stoi(inputTokens.at("init_budget"));
-        LOGDF("ManagerComponent {} initialized budget: {}", getId(), m_capital);
+        m_capital = inputTokens.value("init_budget").toInt();
+        LOGDF("ManagerComponent {} initialized budget: {}", getId().toStdString(), m_capital);
     }
 
     return true;

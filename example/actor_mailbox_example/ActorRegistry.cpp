@@ -2,19 +2,19 @@
 
 #include "Actor.h"
 
-void ActorRegistry::registerActor(const std::string& id, std::shared_ptr<IActor> actor)
+void ActorRegistry::registerActor(const QString& id, std::shared_ptr<IActor> actor)
 {
     std::lock_guard<std::mutex> lock(mu_);
     actors_[id] = actor;
 }
 
-void ActorRegistry::deregisterActor(const std::string& id)
+void ActorRegistry::deregisterActor(const QString& id)
 {
     std::lock_guard<std::mutex> lock(mu_);
     actors_.erase(id);
 }
 
-std::shared_ptr<IActor> ActorRegistry::getActor(const std::string& id) const
+std::shared_ptr<IActor> ActorRegistry::getActor(const QString& id) const
 {
     std::lock_guard<std::mutex> lock(mu_);
     auto it = actors_.find(id);

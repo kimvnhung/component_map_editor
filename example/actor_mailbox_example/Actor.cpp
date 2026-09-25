@@ -4,7 +4,7 @@
 
 #include "ActorScheduler.h"
 
-IActor::IActor(const std::string& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler)
+IActor::IActor(const QString& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler)
     : id_(id)
     , mailbox_(std::move(mailbox))
     , scheduler_(scheduler)
@@ -16,7 +16,7 @@ bool IActor::hasWork() const
     return !mailbox_->empty();
 }
 
-std::string IActor::getId() const
+QString IActor::getId() const
 {
     return id_;
 }
@@ -57,7 +57,7 @@ void IActor::enqueueMessage(Message&& msg)
     else
     {
         // Handle backpressure: message was dropped or rejected
-        LOGWF("[ComponentActor][{}] Mailbox full. Message dropped.", id_);
+        LOGWF("[ComponentActor][{}] Mailbox full. Message dropped.", id_.toStdString());
     }
 }
 
@@ -71,13 +71,13 @@ ActorScheduler *IActor::getScheduler() const
     return scheduler_;
 }
 
-ComponentActor::ComponentActor(const std::string & id,
+ComponentActor::ComponentActor(const QString& id,
                                Component * component,
                                ActorScheduler * scheduler,
-                               std::vector<std::string> targetActorIds)
+                               QMap<QString, QStringList> connectionRoutingTable)
     : IActor(id, std::make_unique<MailboxImpl>(1024, BackpressurePolicy::DROP_NEWEST), scheduler)
     , component_(component)
-    , targetActorIds_(std::move(targetActorIds))
+    , connectionRoutingTable_(connectionRoutingTable)
 {
 }
 
@@ -92,10 +92,10 @@ void ComponentActor::onMessage(Message && msg)
         if (res)
         {
             LOGDF("[ComponentActor][{}] Component executed successfully for message ID {}. Output tokens: {}",
-                  getId(), msg.id, token2string(output));
+                  getId().toStdString(), msg.id, token2string(output).toStdString());
 
             // Route output tokens to target actors
-            for (const std::string& targetId : targetActorIds_)
+            for (const QString& targetId : connectionRoutingTable_.keys())
             {
                 Message outputMsg{msg.id, targetId, output, component_->snapshot()};
 
@@ -105,18 +105,19 @@ void ComponentActor::onMessage(Message && msg)
                 }
                 else
                 {
-                    LOGWF("[ComponentActor][{}] No scheduler available to route message to {}.", getId(), targetId);
+                    LOGWF("[ComponentActor][{}] No scheduler available to route message to {}.", getId().toStdString(),
+                          targetId.toStdString());
                 }
             }
         }
         else
         {
-            LOGWF("[ComponentActor][{}] Component execution failed for message ID {}.", getId(), msg.id);
+            LOGWF("[ComponentActor][{}] Component execution failed for message ID {}.", getId().toStdString(), msg.id);
         }
     }
     else
     {
-        LOGWF("[ComponentActor][{}] No component associated with this actor.", getId());
+        LOGWF("[ComponentActor][{}] No component associated with this actor.", getId().toStdString());
     }
 }
 

@@ -37,7 +37,7 @@ void ActorScheduler::shutdown()
     }
 }
 
-void ActorScheduler::registerActor(const std::string& id, std::shared_ptr<IActor> actor)
+void ActorScheduler::registerActor(const QString& id, std::shared_ptr<IActor> actor)
 {
     registry_.registerActor(id, actor);
 }
@@ -51,7 +51,7 @@ void ActorScheduler::enqueueActorWork(IActor* actor)
     workAvailable_.notify_one();
 }
 
-void ActorScheduler::routeMessage(const std::string& targetActorId, Message&& msg)
+void ActorScheduler::routeMessage(const QString& targetActorId, Message&& msg)
 {
     auto actor = registry_.getActor(targetActorId);
 
@@ -61,7 +61,7 @@ void ActorScheduler::routeMessage(const std::string& targetActorId, Message&& ms
     }
     else
     {
-        LOGWF("[ActorScheduler] Actor with ID {} not found for routing message.", targetActorId);
+        LOGWF("[ActorScheduler] Actor with ID {} not found for routing message.", targetActorId.toStdString());
     }
 }
 
@@ -99,7 +99,8 @@ void ActorScheduler::workerLoop(size_t workerIdx)
 
             if (actor->getMailbox().dequeueBatch(messages, batchSize_) > 0)
             {
-                LOGDF("[ActorScheduler][Worker {}] Processing {} messages for actor {}.", workerIdx, messages.size(), actor->getId());
+                LOGDF("[ActorScheduler][Worker {}] Processing {} messages for actor {}.", workerIdx, messages.size(),
+                      actor->getId().toStdString());
 
                 for (Message &msg : messages)
                 {
