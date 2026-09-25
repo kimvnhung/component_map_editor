@@ -1,7 +1,7 @@
 #include "ActorScheduler.h"
 
 #include <base_log.h>
-#include "ExecutionStateCapture.h"
+
 
 ActorScheduler::ActorScheduler(ActorProcessingMessageFinishedEvent callback, size_t workerCount)
     : workers_(workerCount)
@@ -75,9 +75,9 @@ void ActorScheduler::routeMessageToActor(const QString& targetId, Message&& msg)
     }
 }
 
-void ActorScheduler::routeMessage(Message&& msg)
+void ActorScheduler::routeMessageFrom(const QString& fromComponentId)
 {
-    QString sourceId = msg.sourceId;
+    QString sourceId = fromComponentId;
 
     if (routingTable_)
     {
@@ -87,7 +87,8 @@ void ActorScheduler::routeMessage(Message&& msg)
         {
             for (const QString& targetId : targetIds)
             {
-                routeMessageToActor(targetId, Message{msg.id, sourceId, msg.tokens});
+                auto tokens = tokenRouter_ ? tokenRouter_->consumeTokensFor(targetId) : QVariantMap();
+                routeMessageToActor(targetId, Message{0, sourceId, tokens});
             }
         }
         else
@@ -113,7 +114,7 @@ void ActorScheduler::handleActorProcessFinished(const ExecutionContext& ctx, Exe
     {
         // Call the callback to notify that the actor has finished processing
         // Merge the output state with the consumed tokens from the TokenRouter
-        result.outputState = tokenRouter_->consumeTokensFor(ctx.componentId);
+        // result.outputState = tokenRouter_->consumeTokensFor(ctx.componentId);
         externalCallback_(ctx, result);
     }
 }
@@ -128,6 +129,11 @@ ActorScheduler::Metrics ActorScheduler::getMetrics() const
 TokenRouter *ActorScheduler::getTokenRouter() const
 {
     return tokenRouter_.get();
+}
+
+ExecutionSnapshot ActorScheduler::globalSnapshot() const
+{
+    return globalSnapshot_;
 }
 
 void ActorScheduler::workerLoop(size_t workerIdx)

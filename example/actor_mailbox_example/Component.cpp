@@ -366,6 +366,9 @@ ManagerComponent::ManagerComponent(const QString & id, const QString title, int 
 
 bool ManagerComponent::execute(Tokens & outputTokens, const Tokens & inputTokens, const Tokens & componentSnapshot)
 {
+    LOGDF("ManagerComponent {} received input tokens: {}", getId().toStdString(),
+          token2string(inputTokens).toStdString());
+
     if (inputTokens.find("revenue") != inputTokens.end())
     {
         double revenue = inputTokens.value("revenue").toDouble();

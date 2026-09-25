@@ -5,10 +5,40 @@
 #include "ActorScheduler.h"
 #include "ExecutionStateCapture.h"
 
+void ActorStateHistory::recordState(const ExecutionContext& ctx, const ExecuteResult& result,
+                                    const QVariantMap& outputTokens)
+{
+    ExecutionSnapshot snapshot;
+    snapshot.componentSnapshot = ctx.componentSnapshot;
+    snapshot.inputTokens = ctx.inputTokens;
+    snapshot.executedAt = std::chrono::steady_clock::now();
+    snapshot.result = result;
+    snapshot.outputTokens = outputTokens;
+    snapshot.resultCommittedAt = std::chrono::steady_clock::now();
+
+    history_.push_back(snapshot);
+}
+
+std::vector<ExecutionSnapshot> ActorStateHistory::recentHistory(size_t count) const
+{
+    if (count >= history_.size())
+    {
+        return history_;
+    }
+
+    return std::vector<ExecutionSnapshot>(history_.end() - count, history_.end());
+}
+
+std::vector<ExecutionSnapshot> ActorStateHistory::history() const
+{
+    return history_;
+}
+
 IActor::IActor(const QString& id, std::unique_ptr<IMailbox> mailbox, ActorScheduler* scheduler)
     : id_(id)
     , mailbox_(std::move(mailbox))
     , scheduler_(scheduler)
+    , stateHistory_(std::make_unique<ActorStateHistory>())
 {
 }
 
@@ -72,6 +102,11 @@ ActorScheduler *IActor::getScheduler() const
     return scheduler_;
 }
 
+ActorStateHistory *IActor::stateHistory() const
+{
+    return stateHistory_.get();
+}
+
 ComponentActor::ComponentActor(const QString& id,
                                Component * component,
                                ActorScheduler * scheduler,
@@ -129,5 +164,8 @@ void ComponentActor::onMessage(Message && msg)
     {
         LOGWF("[ComponentActor][{}] Scheduler not available for routing tokens.", getId().toStdString());
     }
+
+    // Record history
+    stateHistory()->recordState(ctx, result, result.outputState);
 }
 
