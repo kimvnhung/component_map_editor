@@ -155,12 +155,12 @@ void tst_GraphExecutionSandbox::repeatedRunsAreDeterministic()
     QVERIFY(sandbox.start(QVariantMap{ { QStringLiteral("seed"), 7 } }));
     sandbox.run();
     const QVariantMap firstState = sandbox.executionState();
-    const QVariantList firstTimeline = sandbox.timeline();
+    const QVariantList firstTimeline = sandbox.timeline()->toVariantList();
 
     QVERIFY(sandbox.start(QVariantMap{ { QStringLiteral("seed"), 7 } }));
     sandbox.run();
     const QVariantMap secondState = sandbox.executionState();
-    const QVariantList secondTimeline = sandbox.timeline();
+    const QVariantList secondTimeline = sandbox.timeline()->toVariantList();
 
     QCOMPARE(secondState, firstState);
     QCOMPARE(secondTimeline, firstTimeline);
@@ -209,7 +209,7 @@ void tst_GraphExecutionSandbox::timelineAndStateTraceAvailable()
     QVERIFY(sandbox.start(QVariantMap{ { QStringLiteral("traceMode"), QStringLiteral("full") } }));
     sandbox.run();
 
-    const QVariantList timeline = sandbox.timeline();
+    const QVariantList timeline = sandbox.timeline()->toVariantList();
     QVERIFY(timeline.size() >= 2);
     QCOMPARE(timeline.first().toMap().value(QStringLiteral("event")).toString(), QStringLiteral("simulationStarted"));
     QCOMPARE(timeline.last().toMap().value(QStringLiteral("event")).toString(), QStringLiteral("simulationCompleted"));

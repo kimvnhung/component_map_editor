@@ -293,6 +293,27 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_SequentialExecutionEngine
+    tst_SequentialExecutionEngine.cpp
+)
+
+target_link_libraries(tst_SequentialExecutionEngine
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_SequentialExecutionEngine
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_SequentialExecutionEngine
+    COMMAND tst_SequentialExecutionEngine
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_SecurityGuardrails
     tst_SecurityGuardrails.cpp
 )

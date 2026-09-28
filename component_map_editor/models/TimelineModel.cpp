@@ -167,6 +167,24 @@ TimelineModel::at(int row) const
     return m_storage->at(idx);
 }
 
+QVariantList TimelineModel::toVariantList() const
+{
+    QVariantList list;
+    const int count = rowCount();
+    list.reserve(count);
+
+    for (int row = 0; row < count; ++row)
+    {
+        const TimelineEventEntry &entry = at(row);
+        QVariantMap merged = entry.payload;
+        merged.insert(QStringLiteral("event"), entry.event);
+        merged.insert(QStringLiteral("tick"), entry.tick);
+        list.append(merged);
+    }
+
+    return list;
+}
+
 
 void TimelineModel::append(TimelineEventEntry &&entry)
 {

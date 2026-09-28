@@ -123,11 +123,11 @@ private slots:
 
         QVERIFY(sandbox.start(QVariantMap{{QStringLiteral("seed"), 42}}));
         sandbox.run();
-        const QVariantList firstTimeline = sandbox.timeline();
+        const QVariantList firstTimeline = sandbox.timeline()->toVariantList();
 
         QVERIFY(sandbox.start(QVariantMap{{QStringLiteral("seed"), 42}}));
         sandbox.run();
-        const QVariantList secondTimeline = sandbox.timeline();
+        const QVariantList secondTimeline = sandbox.timeline()->toVariantList();
 
         QCOMPARE(secondTimeline, firstTimeline);
 
@@ -176,7 +176,7 @@ private slots:
         sandbox.run();
         QCOMPARE(sandbox.status(), QStringLiteral("completed"));
 
-        const QVariantList timeline = sandbox.timeline();
+        const QVariantList timeline = sandbox.timeline()->toVariantList();
         const QStringList ev = eventsOf(timeline);
 
         QVERIFY(ev.contains(QStringLiteral("simulationStarted")));
@@ -210,7 +210,7 @@ private slots:
         QCOMPARE(executed, 0);
         QCOMPARE(sandbox.status(), QStringLiteral("error"));
 
-        const QVariantList timeline = sandbox.timeline();
+        const QVariantList timeline = sandbox.timeline()->toVariantList();
         const QStringList ev = eventsOf(timeline);
         QVERIFY(ev.contains(QStringLiteral("error")));
 

@@ -2,6 +2,7 @@
 #define TIMELINEMODEL_H
 
 #include <QObject>
+#include <QVariantList>
 #include <QVariantMap>
 #include <QAbstractListModel>
 #include <deque>
@@ -62,6 +63,10 @@ public:
     void clear();
 
     const TimelineEventEntry &at(int row) const;
+
+    // Flattened {event, tick, ...payload} view of every visible row, for callers that
+    // need a plain snapshot instead of binding to the QAbstractListModel roles.
+    Q_INVOKABLE QVariantList toVariantList() const;
 
 private:
 

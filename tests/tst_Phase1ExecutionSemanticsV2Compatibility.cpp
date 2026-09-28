@@ -172,12 +172,12 @@ void tst_Phase1ExecutionSemanticsV2Compatibility::sandboxDeterminism_unchangedFo
 
     QVERIFY(sandbox.start(QVariantMap{ { QStringLiteral("seed"), 99 } }));
     sandbox.run();
-    const QVariantList firstTimeline = sandbox.timeline();
+    const QVariantList firstTimeline = sandbox.timeline()->toVariantList();
     const QVariantMap firstState = sandbox.executionState();
 
     QVERIFY(sandbox.start(QVariantMap{ { QStringLiteral("seed"), 99 } }));
     sandbox.run();
-    const QVariantList secondTimeline = sandbox.timeline();
+    const QVariantList secondTimeline = sandbox.timeline()->toVariantList();
     const QVariantMap secondState = sandbox.executionState();
 
     QCOMPARE(secondTimeline, firstTimeline);
