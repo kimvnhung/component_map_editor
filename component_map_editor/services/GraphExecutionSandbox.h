@@ -10,6 +10,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <memory>
+
 #include <google/protobuf/struct.pb.h>
 #include <execution.pb.h>
 
@@ -17,6 +19,7 @@
 #include "models/TimelineModel.h"
 
 #include "services/execution_internal/ExecutionContext.h"
+#include "services/execution_internal/IExecutionEngine.h"
 
 class ExtensionContractRegistry;
 
@@ -131,19 +134,10 @@ private:
     void markError(const QString &message);
 
     void clearSimulationData();
-    bool captureGraphSnapshot();
     bool executeOneStep(bool bypassBreakpoint);
     // Functions for making executionOneStep more clearly
 
-    /**
-     * @brief dequeNextComponent : Dequeues the next component from the ready queue.
-     * @return The ID of the next component to execute, or an empty string if the queue is empty.
-     */
-    QString dequeNextComponent();
-    void prepareIncomingTokens(const QString& componentId, ExecutionContext& ctx);
-    ExecuteResult invokeProvider(const ExecutionContext& ctx);
-    bool validateExecutionResult(const ExecuteResult& result, QString& message);
-    void routeOutgoingTokens(const ExecutionContext& ctx, const ExecuteResult& result);
+    // Áp phần state thuộc public API (componentStates/tick/timeline) từ kết quả engine trả về.
     void commitExecutionState(const ExecutionContext& ctx, const ExecuteResult& result);
     void recordTimelineEvent(const ExecutionContext& ctx, const ExecuteResult& result);
 
@@ -151,39 +145,22 @@ private:
     void finalizeIfNoReadyComponents();
     void flushTimelineChanged();
 
-    void enqueueReadyComponent(const QString &componentId);
 private:
+    std::unique_ptr<IExecutionEngine> m_engine;
+
     QPointer<GraphModel> m_graph;
     RunStatus m_status = RunStatus::Idle;
     int m_tick = 0;
 
-    QVariantMap m_inputSnapshot;
     QVariantMap m_executionState;
     QVariantMap m_componentStates;
     TimelineModel *m_timeline;
     QList<cme::TimelineEvent> m_typedTimeline;
     QString m_lastError;
 
-    // QHash<QString, ComponentSnapshot> m_componentsById;
-    // QHash<QString, QList<ConnectionSnapshot>> m_outgoingBySource;
-    // QHash<QString, QList<ConnectionSnapshot>> m_incomingByTarget;
-    // QHash<QString, cme::execution::ExecutionPayload> m_connectionTokens;
-    QHash<std::string, int> m_pendingInDegree;
-    QSet<QString> m_executed;
-    QStringList m_readyQueue;
-    QSet<QString> m_readyQueueSet;
-    // For refactor using only proto message
-    cme::GraphSnapshot m_graphSnapshot;
-    //
-
     bool m_deferTimelineSignal = false;
     bool m_timelineDirty = false;
 
-    qint64 m_payloadBytesRead = 0;
-    qint64 m_payloadBytesWritten = 0;
-    qint64 m_maxPayloadBytes = 0;
-    int m_tokenReadCount = 0;
-    int m_tokenWriteCount = 0;
     int m_redactedFieldCount = 0;
 
     QSet<QString> m_breakpoints;

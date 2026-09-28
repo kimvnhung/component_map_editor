@@ -41,6 +41,8 @@ public:
     virtual bool hasReadyWork() const = 0;
     // Peek không xoá khỏi ready-queue; facade dùng để honor breakpoint trước khi gọi executeNext().
     virtual QString peekNextReadyComponentId() const = 0;
+    // Toàn bộ id đang ready, theo đúng thứ tự nội bộ - dùng cho snapshotSummary()/debug.
+    virtual QStringList readyComponentIds() const = 0;
 
     virtual int executedCount() const = 0;
     virtual int totalComponentCount() const = 0;

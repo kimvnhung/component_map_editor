@@ -16,6 +16,7 @@ public:
                 QString *error) override;
     bool hasReadyWork() const override;
     QString peekNextReadyComponentId() const override;
+    QStringList readyComponentIds() const override;
     int executedCount() const override;
     int totalComponentCount() const override;
     const cme::GraphSnapshot &graphSnapshot() const override;

@@ -164,6 +164,11 @@ QString SequentialExecutionEngine::peekNextReadyComponentId() const
     return m_readyQueue.isEmpty() ? QString() : m_readyQueue.first();
 }
 
+QStringList SequentialExecutionEngine::readyComponentIds() const
+{
+    return m_readyQueue;
+}
+
 int SequentialExecutionEngine::executedCount() const
 {
     return m_executed.size();
