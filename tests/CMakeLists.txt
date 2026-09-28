@@ -314,6 +314,27 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_ActorMailboxEngine
+    tst_ActorMailboxEngine.cpp
+)
+
+target_link_libraries(tst_ActorMailboxEngine
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ActorMailboxEngine
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ActorMailboxEngine
+    COMMAND tst_ActorMailboxEngine
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_SecurityGuardrails
     tst_SecurityGuardrails.cpp
 )
