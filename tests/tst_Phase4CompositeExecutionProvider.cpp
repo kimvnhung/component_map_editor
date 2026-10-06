@@ -236,12 +236,12 @@ void tst_Phase4CompositeExecutionProvider::nestedComposite_depthTwoDeterministic
     QVERIFY(sandbox.start());
     sandbox.run();
     const QVariantMap firstState = sandbox.executionState();
-    const QVariantList firstTimeline = sandbox.timeline();
+    const QVariantList firstTimeline = sandbox.timeline()->toVariantList();
 
     QVERIFY(sandbox.start());
     sandbox.run();
     const QVariantMap secondState = sandbox.executionState();
-    const QVariantList secondTimeline = sandbox.timeline();
+    const QVariantList secondTimeline = sandbox.timeline()->toVariantList();
 
     QCOMPARE(secondState, firstState);
     QCOMPARE(secondTimeline, firstTimeline);

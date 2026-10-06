@@ -13,6 +13,11 @@ public:
     static void setTokenTransportEnabled(bool enabled);
     static void resetDefaults();
     static bool compatibilityWindowOpen();
+
+    // Plan 3 actor/mailbox engine cutover toggle. Default OFF - GraphExecutionSandbox keeps
+    // using SequentialExecutionEngine until explicitly enabled.
+    static bool actorEngineEnabled();
+    static void setActorEngineEnabled(bool enabled);
 };
 
 } // namespace cme::execution

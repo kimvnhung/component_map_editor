@@ -223,7 +223,7 @@ void tst_Phase2TokenRouting::timelineSequence_noRegressionWithTokenRouting()
     QVERIFY(sandbox.start());
     sandbox.run();
 
-    const QVariantList timeline = sandbox.timeline();
+    const QVariantList timeline = sandbox.timeline()->toVariantList();
     QVERIFY(timeline.size() >= 3);
     QCOMPARE(timeline.first().toMap().value(QStringLiteral("event")).toString(), QStringLiteral("simulationStarted"));
     QCOMPARE(timeline.last().toMap().value(QStringLiteral("event")).toString(), QStringLiteral("simulationCompleted"));

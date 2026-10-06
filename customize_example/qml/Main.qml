@@ -1,7 +1,10 @@
 import QtQuick
+import QtCore
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
+
 import ComponentMapEditor           // ← the library's QML module
 
 ApplicationWindow {
@@ -38,15 +41,6 @@ ApplicationWindow {
             lines.push("[" + entry.tick + "] " + entry.event + suffix);
         }
         return lines.join("\n");
-    }
-
-    function selectedExecutionStateText() {
-        if (!executionSandbox || !propertyPanel.component)
-            return "Select a component to inspect its execution state.";
-        var state = executionSandbox.componentState(propertyPanel.component.id);
-        if (!state || Object.keys(state).length === 0)
-            return "No execution state for '" + propertyPanel.component.id + "'.";
-        return prettyJson(state);
     }
 
     Component.onCompleted: {
@@ -148,6 +142,24 @@ ApplicationWindow {
                 }
             }
 
+            ToolButton {
+                text: "Save"
+                onClicked: {
+                    fileDialog.title = "Save Graph JSON";
+                    fileDialog.fileMode = FileDialog.SaveFile;
+                    fileDialog.open();
+                }
+            }
+
+            ToolButton {
+                text: "Open File"
+                onClicked: {
+                    fileDialog.title = "Open Graph JSON";
+                    fileDialog.fileMode = FileDialog.OpenFile;
+                    fileDialog.open();
+                }
+            }
+
             Item {
                 Layout.fillWidth: true
             }
@@ -240,6 +252,7 @@ ApplicationWindow {
                         id: executionPanel
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        selectedComponentId: canvas ? (canvas.selectedComponent ? canvas.selectedComponent.id : "") : ""
                     }
                 }
             }
@@ -313,6 +326,41 @@ ApplicationWindow {
             interval: 1500
             repeat: false
             onTriggered: exportDialog.copyStatusText = ""
+        }
+    }
+
+    // Save/Open file dialog with json files filter
+    FileDialog {
+        id: fileDialog
+        title: "Select JSON File"
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        nameFilters: ["JSON files (*.json)"]
+        onAccepted: function () {
+            var file = selectedFile.toString();
+            if (fileDialog.fileMode == FileDialog.SaveFile) {
+                if (!file.endsWith(".json", Qt.CaseInsensitive))
+                    file += ".json";
+
+                if (exporter.exportToJsonFile(graph, file)) {
+                    statusLabel.text = "✓ Graph saved to " + file;
+                    statusLabel.color = "#2e7d32";
+                } else {
+                    statusLabel.text = "✗ Failed to save graph to " + file;
+                    statusLabel.color = "#c62828";
+                }
+            } else {
+                if (exporter.importFromJsonFile(graph, file)) {
+                    if (canvas)
+                        canvas.resetAllState();
+                    statusLabel.text = "✓ Graph imported from " + file;
+                    statusLabel.color = "#2e7d32";
+                    canvas.connectionRenderer.repaint();
+                    canvas.componentRenderer.repaint();
+                } else {
+                    statusLabel.text = "✗ Failed to open file " + file;
+                    statusLabel.color = "#c62828";
+                }
+            }
         }
     }
 

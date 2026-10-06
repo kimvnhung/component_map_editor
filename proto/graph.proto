@@ -4,18 +4,20 @@ package cme;
 
 // ── Individual node and edge snapshots ────────────────────────────────────
 message ComponentData {
-  string              id         = 1;
-  string              type_id    = 2;
-  double              x          = 3;
-  double              y          = 4;
-  map<string, string> properties = 5;
+  string              id                = 1;
+  string              type_id           = 2;
+  string              title             = 3;   
+  double              x                 = 4;
+  double              y                 = 5;
+  map<string, string> properties         = 6;
 }
 
 message ConnectionData {
   string              id         = 1;
   string              source_id  = 2;
   string              target_id  = 3;
-  map<string, string> properties = 4;
+  string              label      = 4;
+  map<string, string> properties = 5;
 }
 
 // ── Full graph snapshot (used by ValidationService and persistence) ────────
