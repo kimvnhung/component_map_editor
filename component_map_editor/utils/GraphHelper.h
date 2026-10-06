@@ -18,5 +18,14 @@ namespace cme::helper
     QHash<QString, QList<ConnectionData>> getIncomingConnectionsByTargetId(const cme::GraphSnapshot &graph);
     execution::ExecutionPayload getConnectionPayloadById(const cme::GraphSnapshot &graph, const QString &connectionId);
     bool setPayload(cme::GraphSnapshot &graph, const QString &connectionId, const execution::ExecutionPayload &payload);
+    bool idComparator(const QString &a, const QString &b);
+
+    QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &incomingTokens);
+    QVariant redactVariant(const QVariant &value,
+                           const QSet<QString> &sensitiveKeys,
+                           int *redactedCount);
+
+
+    qint64 estimatePayloadBytes(const QVariantMap &payload);
 }
 #endif // GRAPHHELPER_H

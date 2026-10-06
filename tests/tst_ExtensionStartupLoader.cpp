@@ -89,9 +89,9 @@ void ExtensionStartupLoaderTests::discoversAndLoadsSamplePackFromManifestOnly()
 
     ExtensionContractRegistry registry({1, 0, 0});
     ExtensionStartupLoader loader;
-    loader.registerFactory(QStringLiteral("sample.workflow"), []() {
+    loader.registerFactory(PackFactoryEntry{ QStringLiteral("sample.workflow"), []() {
         return std::make_unique<SampleExtensionPack>();
-    });
+    } });
 
     const ExtensionLoadResult result = loader.loadFromDirectory(dir.path(), registry);
 
@@ -148,12 +148,12 @@ void ExtensionStartupLoaderTests::loaderStaysStableWhenOnePackFails()
 
     ExtensionContractRegistry registry({1, 0, 0});
     ExtensionStartupLoader loader;
-    loader.registerFactory(QStringLiteral("sample.workflow"), []() {
+    loader.registerFactory(PackFactoryEntry{ QStringLiteral("sample.workflow"), []() {
         return std::make_unique<SampleExtensionPack>();
-    });
-    loader.registerFactory(QStringLiteral("broken.pack"), []() {
+    } });
+    loader.registerFactory(PackFactoryEntry{ QStringLiteral("broken.pack"), []() {
         return std::make_unique<SampleExtensionPack>();
-    });
+    } });
 
     const ExtensionLoadResult result = loader.loadFromDirectory(dir.path(), registry);
 
@@ -196,9 +196,9 @@ void ExtensionStartupLoaderTests::missingDependencyProducesClearError()
 
     ExtensionContractRegistry registry({1, 0, 0});
     ExtensionStartupLoader loader;
-    loader.registerFactory(QStringLiteral("sample.workflow"), []() {
+    loader.registerFactory(PackFactoryEntry{ QStringLiteral("sample.workflow"), []() {
         return std::make_unique<SampleExtensionPack>();
-    });
+    } });
 
     const ExtensionLoadResult result = loader.loadFromDirectory(dir.path(), registry);
 

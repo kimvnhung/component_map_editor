@@ -1,9 +1,9 @@
 #include "FruitProducerExecutor.h"
 
 #include <base_log.h>
+#include <extensions/runtime/templates/customizeexecutioncommon.h>
 
 #include "extensions/factory_pack/providers/FactoryComponentTypeProvider.h"
-#include "extensions/providers/executors/customizeexecutioncommon.h"
 
 QString FruitProducerExecutor::providerId() const
 {

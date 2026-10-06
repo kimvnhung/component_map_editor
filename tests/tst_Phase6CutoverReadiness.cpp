@@ -36,8 +36,10 @@ void tst_Phase6CutoverReadiness::v1AdapterRetained_forReleaseWindow()
 {
     const QString contractPath =
         QStringLiteral("/home/hungkv/projects/component_map_editor/component_map_editor/extensions/contracts/IExecutionSemanticsProvider.h");
+    // Legacy global-state fallback moved from GraphExecutionSandbox.cpp into the extracted
+    // SequentialExecutionEngine as part of the IExecutionEngine refactor (Plan 1).
     const QString sandboxPath =
-        QStringLiteral("/home/hungkv/projects/component_map_editor/component_map_editor/services/GraphExecutionSandbox.cpp");
+        QStringLiteral("/home/hungkv/projects/component_map_editor/component_map_editor/services/execution_internal/SequentialExecutionEngine.cpp");
 
     const QString contractSource = readTextFile(contractPath);
     const QString sandboxSource = readTextFile(sandboxPath);

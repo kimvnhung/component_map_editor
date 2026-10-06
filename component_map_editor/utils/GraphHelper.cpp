@@ -138,4 +138,77 @@ namespace cme::helper
 
         return map;
     }
+
+    bool idComparator(const QString &a, const QString &b)
+    {
+        return a < b;
+    }
+
+    QVariantMap mergeIncomingTokens(const cme::execution::IncomingTokens &incomingTokens)
+    {
+        QVariantMap merged;
+        QStringList tokenKeys = incomingTokens.keys();
+        std::sort(tokenKeys.begin(), tokenKeys.end());
+
+        for (const QString &tokenKey : tokenKeys)
+        {
+            merged.insert(incomingTokens.value(tokenKey));
+        }
+
+        return merged;
+    }
+
+    QVariant redactVariant(const QVariant &value,
+                           const QSet<QString> &sensitiveKeys,
+                           int *redactedCount)
+    {
+        if (value.metaType().id() == QMetaType::QVariantMap)
+        {
+            const QVariantMap map = value.toMap();
+            QVariantMap redacted;
+            QStringList keys = map.keys();
+            std::sort(keys.begin(), keys.end());
+
+            for (const QString &key : keys)
+            {
+                if (sensitiveKeys.contains(key))
+                {
+                    redacted.insert(key, QStringLiteral("<redacted>"));
+
+                    if (redactedCount)
+                    {
+                        ++(*redactedCount);
+                    }
+                }
+                else
+                {
+                    redacted.insert(key, redactVariant(map.value(key), sensitiveKeys, redactedCount));
+                }
+            }
+
+            return redacted;
+        }
+
+        if (value.metaType().id() == QMetaType::QVariantList)
+        {
+            const QVariantList list = value.toList();
+            QVariantList redacted;
+            redacted.reserve(list.size());
+
+            for (const QVariant &item : list)
+            {
+                redacted.append(redactVariant(item, sensitiveKeys, redactedCount));
+            }
+
+            return redacted;
+        }
+
+        return value;
+    }
+
+    qint64 estimatePayloadBytes(const QVariantMap &payload)
+    {
+        return QJsonDocument::fromVariant(payload).toJson(QJsonDocument::Compact).size();
+    }
+
 } // namespace cme::helper
