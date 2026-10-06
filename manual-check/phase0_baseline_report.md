@@ -132,7 +132,6 @@ Sentinel null-graph issue: `code=CORE_NULL_GRAPH`, `severity=error`, `entityType
 | `simulationStarted` | `start()` called |
 | `simulationCompleted` | all components executed |
 | `simulationBlocked` | unresolvable dependency |
-| `breakpointHit` | breakpoint component reached |
 | `error` | provider execution failure |
 
 ---

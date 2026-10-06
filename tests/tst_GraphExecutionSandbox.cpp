@@ -110,7 +110,7 @@ class tst_GraphExecutionSandbox : public QObject
 private slots:
     void executionDoesNotMutateLiveGraphOrUndoStack();
     void repeatedRunsAreDeterministic();
-    void stepRunPauseAndBreakpointControlsWork();
+    void stepRunPauseControlsWork();
     void timelineAndStateTraceAvailable();
     void providersCanBeLoadedFromContractRegistry();
 };
@@ -166,7 +166,7 @@ void tst_GraphExecutionSandbox::repeatedRunsAreDeterministic()
     QCOMPARE(secondTimeline, firstTimeline);
 }
 
-void tst_GraphExecutionSandbox::stepRunPauseAndBreakpointControlsWork()
+void tst_GraphExecutionSandbox::stepRunPauseControlsWork()
 {
     GraphModel graph;
     buildLinearGraph(graph);
@@ -175,7 +175,6 @@ void tst_GraphExecutionSandbox::stepRunPauseAndBreakpointControlsWork()
     GraphExecutionSandbox sandbox;
     sandbox.setGraph(&graph);
     sandbox.setExecutionSemanticsProviders({ &provider });
-    sandbox.setBreakpoint(QStringLiteral("C"));
 
     QVERIFY(sandbox.start());
     QCOMPARE(sandbox.status(), QStringLiteral("paused"));
@@ -183,17 +182,13 @@ void tst_GraphExecutionSandbox::stepRunPauseAndBreakpointControlsWork()
     QVERIFY(sandbox.step());
     QCOMPARE(sandbox.currentTick(), 1);
 
-    const int runExecuted = sandbox.run();
-    QVERIFY(runExecuted > 0);
+    sandbox.pause();
     QCOMPARE(sandbox.status(), QStringLiteral("paused"));
 
-    const QVariantMap stateAtBreakpoint = sandbox.executionState();
-    const QStringList orderAtBreakpoint = stateAtBreakpoint.value(QStringLiteral("order")).toStringList();
-    QVERIFY(!orderAtBreakpoint.contains(QStringLiteral("C")));
-
-    QVERIFY(sandbox.step());
-    QVERIFY(sandbox.run() >= 0);
+    const int runExecuted = sandbox.run();
+    QVERIFY(runExecuted > 0);
     QCOMPARE(sandbox.status(), QStringLiteral("completed"));
+    QCOMPARE(sandbox.currentTick(), 4);
 }
 
 void tst_GraphExecutionSandbox::timelineAndStateTraceAvailable()

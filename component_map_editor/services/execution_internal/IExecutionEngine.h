@@ -39,7 +39,7 @@ public:
                          QString *error) = 0;
 
     virtual bool hasReadyWork() const = 0;
-    // Peek không xoá khỏi ready-queue; facade dùng để honor breakpoint trước khi gọi executeNext().
+    // Peek không xoá khỏi ready-queue; dùng cho snapshotSummary()/debug.
     virtual QString peekNextReadyComponentId() const = 0;
     // Toàn bộ id đang ready, theo đúng thứ tự nội bộ - dùng cho snapshotSummary()/debug.
     virtual QStringList readyComponentIds() const = 0;
@@ -50,7 +50,6 @@ public:
     virtual Telemetry telemetry() const = 0;
 
     // Thực thi đúng 1 component ready tiếp theo (đồng bộ, blocking tới khi có kết quả).
-    // Luôn bỏ qua breakpoint - gate theo breakpoint là trách nhiệm của facade (dùng peekNextReadyComponentId()).
     virtual StepOutcome executeNext(const QVariantMap &legacyGlobalState,
                                     ExecutionContext *outCtx,
                                     ExecuteResult *outResult,

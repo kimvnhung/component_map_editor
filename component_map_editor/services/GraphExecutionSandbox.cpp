@@ -154,8 +154,7 @@ void GraphExecutionSandbox::selectEngine()
 {
     const bool wantActor = !m_forceSequentialEngine
                            && cme::execution::MigrationFlags::actorEngineEnabled()
-                           && cme::execution::MigrationFlags::tokenTransportEnabled()
-                           && m_breakpoints.isEmpty();
+                           && cme::execution::MigrationFlags::tokenTransportEnabled();
 
     if (m_engine && wantActor == m_usingActorEngine)
     {
@@ -221,7 +220,7 @@ bool GraphExecutionSandbox::step()
     }
 
     setStatus(RunStatus::Running);
-    const bool ok = executeOneStep(true);
+    const bool ok = executeOneStep();
 
     if (!ok)
     {
@@ -260,27 +259,7 @@ int GraphExecutionSandbox::run(int maxSteps)
             break;
         }
 
-        const QString nextId = m_engine->peekNextReadyComponentId();
-
-        if (m_breakpoints.contains(nextId))
-        {
-            appendTimelineEvent(TimelineEventKind::BreakpointHit,
-                                QVariantMap
-            {
-                { QStringLiteral("componentId"), nextId },
-                { QStringLiteral("tick"), m_tick }
-            });
-            appendTimelineEvent(TimelineEventKind::SimulationPaused,
-                                QVariantMap
-            {
-                { QStringLiteral("reason"), QStringLiteral("breakpoint") },
-                { QStringLiteral("componentId"), nextId }
-            });
-            setStatus(RunStatus::Paused);
-            break;
-        }
-
-        if (!executeOneStep(false))
+        if (!executeOneStep())
         {
             break;
         }
@@ -318,35 +297,6 @@ void GraphExecutionSandbox::reset()
     setStatus(RunStatus::Idle);
 }
 
-void GraphExecutionSandbox::setBreakpoint(const QString &componentId, bool enabled)
-{
-    if (componentId.trimmed().isEmpty())
-    {
-        return;
-    }
-
-    if (enabled)
-    {
-        m_breakpoints.insert(componentId);
-    }
-    else
-    {
-        m_breakpoints.remove(componentId);
-    }
-}
-
-void GraphExecutionSandbox::clearBreakpoints()
-{
-    m_breakpoints.clear();
-}
-
-QStringList GraphExecutionSandbox::breakpoints() const
-{
-    QStringList ids = m_breakpoints.values();
-    std::sort(ids.begin(), ids.end(), cme::helper::idComparator);
-    return ids;
-}
-
 QVariantMap GraphExecutionSandbox::componentState(const QString &componentId) const
 {
     return m_componentStates.value(componentId).toMap();
@@ -380,7 +330,6 @@ QVariantMap GraphExecutionSandbox::snapshotSummary() const
         { QStringLiteral("executedCount"), m_engine->executedCount() },
         { QStringLiteral("pendingCount"), m_engine->totalComponentCount() - m_engine->executedCount() },
         { QStringLiteral("readyQueue"), m_engine->readyComponentIds() },
-        { QStringLiteral("breakpoints"), breakpoints() },
         {
             QStringLiteral("tokenTransportEnabled"),
             cme::execution::MigrationFlags::tokenTransportEnabled()
@@ -541,9 +490,6 @@ cme::TimelineEventType GraphExecutionSandbox::timelineKindToProtoType(TimelineEv
 
         case TimelineEventKind::SimulationBlocked:
             return cme::TIMELINE_EVENT_TYPE_SIMULATION_BLOCKED;
-
-        case TimelineEventKind::BreakpointHit:
-            return cme::TIMELINE_EVENT_TYPE_BREAKPOINT_HIT;
 
         case TimelineEventKind::Error:
             return cme::TIMELINE_EVENT_TYPE_ERROR;
@@ -723,36 +669,12 @@ void GraphExecutionSandbox::recordTimelineEvent(const ExecutionContext &ctx, con
     });
 }
 
-bool GraphExecutionSandbox::executeOneStep(bool bypassBreakpoint)
+bool GraphExecutionSandbox::executeOneStep()
 {
     if (!m_engine->hasReadyWork())
     {
         finalizeIfNoReadyComponents();
         return m_status != RunStatus::Error;
-    }
-
-    // TODO: need to review if we really need breakpoint feature
-    if (!bypassBreakpoint)
-    {
-        const QString peekId = m_engine->peekNextReadyComponentId();
-
-        if (m_breakpoints.contains(peekId))
-        {
-            appendTimelineEvent(TimelineEventKind::BreakpointHit,
-                                QVariantMap
-            {
-                { QStringLiteral("componentId"), peekId },
-                { QStringLiteral("tick"), m_tick }
-            });
-            appendTimelineEvent(TimelineEventKind::SimulationPaused,
-                                QVariantMap
-            {
-                { QStringLiteral("reason"), QStringLiteral("breakpoint") },
-                { QStringLiteral("componentId"), peekId }
-            });
-            setStatus(RunStatus::Paused);
-            return true;
-        }
     }
 
     ExecutionContext context;

@@ -68,10 +68,6 @@ public:
     Q_INVOKABLE void pause();
     Q_INVOKABLE void reset();
 
-    Q_INVOKABLE void setBreakpoint(const QString &componentId, bool enabled = true);
-    Q_INVOKABLE void clearBreakpoints();
-    Q_INVOKABLE QStringList breakpoints() const;
-
     // Legacy wrapper for QML/internal map-based state access.
     Q_INVOKABLE QVariantMap componentState(const QString &componentId) const;
     bool componentStateTyped(const QString &componentId,
@@ -127,7 +123,6 @@ private:
         SimulationPaused,
         SimulationCompleted,
         SimulationBlocked,
-        BreakpointHit,
         Error
     };
 
@@ -139,13 +134,11 @@ private:
     void markError(const QString &message);
 
     void clearSimulationData();
-    bool executeOneStep(bool bypassBreakpoint);
+    bool executeOneStep();
     // Functions for making executionOneStep more clearly
 
     // Picks SequentialExecutionEngine vs ActorMailboxExecutionEngine based on
-    // MigrationFlags::actorEngineEnabled()/tokenTransportEnabled() and whether breakpoints are
-    // set (actor engine does not support deterministic breakpoint gating - see ADR Plan 3).
-    // Only re-evaluated at start(); changing breakpoints/flags mid-run does not swap engines.
+    // MigrationFlags::actorEngineEnabled()/tokenTransportEnabled(). Only re-evaluated at start().
     void selectEngine();
 
     // Áp phần state thuộc public API (componentStates/tick/timeline) từ kết quả engine trả về.
@@ -177,7 +170,6 @@ private:
 
     int m_redactedFieldCount = 0;
 
-    QSet<QString> m_breakpoints;
     QSet<QString> m_sensitiveDebugKeys;
     QHash<QString, const IExecutionSemanticsProvider *> m_providerByComponentType;
 };

@@ -715,7 +715,7 @@ add_test(
 # ── Phase 6: GraphExecutionSandbox Typed Events ─────────────────────────────
 # Internal typed event enums/messages with legacy QVariantMap timeline exposure.
 # Tests: determinism, event ordering, and payload fields for start/step/pause/
-#        complete/error/breakpoint paths.
+#        complete/error paths.
 qt_add_executable(tst_Phase6TypedExecutionEvents
     tst_Phase6TypedExecutionEvents.cpp
 )

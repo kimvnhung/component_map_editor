@@ -156,45 +156,6 @@ private slots:
         QVERIFY(firstStep.contains(QStringLiteral("trace")));
     }
 
-    void sequence_startStepBreakpointPauseComplete_stableOrdering()
-    {
-        QObject owner;
-        std::unique_ptr<GraphModel> graph(buildLinearGraph(&owner, {QStringLiteral("A"), QStringLiteral("B"), QStringLiteral("C")}));
-
-        DeterministicExecutionProviderPhase6 provider;
-        GraphExecutionSandbox sandbox;
-        sandbox.setGraph(graph.get());
-        sandbox.setExecutionSemanticsProviders({ &provider });
-        sandbox.setBreakpoint(QStringLiteral("C"));
-
-        QVERIFY(sandbox.start());
-        QVERIFY(sandbox.step());
-        QVERIFY(sandbox.run() > 0); // stops on breakpoint C
-        QCOMPARE(sandbox.status(), QStringLiteral("paused"));
-
-        QVERIFY(sandbox.step()); // execute C bypassing breakpoint via step
-        sandbox.run();
-        QCOMPARE(sandbox.status(), QStringLiteral("completed"));
-
-        const QVariantList timeline = sandbox.timeline()->toVariantList();
-        const QStringList ev = eventsOf(timeline);
-
-        QVERIFY(ev.contains(QStringLiteral("simulationStarted")));
-        QVERIFY(ev.contains(QStringLiteral("stepExecuted")));
-        QVERIFY(ev.contains(QStringLiteral("breakpointHit")));
-        QVERIFY(ev.contains(QStringLiteral("simulationPaused")));
-        QVERIFY(ev.contains(QStringLiteral("simulationCompleted")));
-
-        const int idxBreakpoint = ev.indexOf(QStringLiteral("breakpointHit"));
-        const int idxPaused = ev.indexOf(QStringLiteral("simulationPaused"));
-        QVERIFY(idxBreakpoint >= 0);
-        QVERIFY(idxPaused > idxBreakpoint);
-
-        const QVariantMap pausedEvent = timeline.at(idxPaused).toMap();
-        QCOMPARE(pausedEvent.value(QStringLiteral("reason")).toString(), QStringLiteral("breakpoint"));
-        QVERIFY(pausedEvent.contains(QStringLiteral("componentId")));
-    }
-
     void sequence_errorEventPayloadsStable()
     {
         QObject owner;

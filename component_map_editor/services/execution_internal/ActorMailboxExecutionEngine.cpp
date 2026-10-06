@@ -36,7 +36,7 @@ bool ActorMailboxExecutionEngine::prepare(GraphModel *graph,
     m_graphSnapshot = snapshotCapture.graphSnapshot();
     m_totalComponentCount = snapshotCapture.totalComponentCount();
 
-    m_scheduler = std::make_unique<ActorScheduler>([this](const ExecutionContext &ctx, const ExecuteResult &result)
+    m_scheduler = std::make_unique<ActorScheduler>([this](const ExecutionContext & ctx, const ExecuteResult & result)
     {
         onActorStep(ctx, result);
     });
@@ -143,7 +143,7 @@ IExecutionEngine::StepOutcome ActorMailboxExecutionEngine::executeNext(const QVa
         QString *error)
 {
     Q_UNUSED(legacyGlobalState); // actor engine only runs when token routing is enabled - see
-                                 // GraphExecutionSandbox's fallback to SequentialExecutionEngine otherwise.
+    // GraphExecutionSandbox's fallback to SequentialExecutionEngine otherwise.
 
     if (!m_scheduler)
     {

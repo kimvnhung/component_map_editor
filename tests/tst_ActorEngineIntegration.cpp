@@ -189,7 +189,6 @@ private slots:
 
     void linearGraphMatchesSequentialEngineViaFacade();
     void branchingGraphCompletesViaFacadeWithActorEngine();
-    void breakpointsForceFallbackToSequentialEngine();
     void nestedCompositeExecutionDoesNotHangWithActorEngineEnabled();
     void rollbackByDisablingFlagRestoresSequentialEngine();
 };
@@ -249,37 +248,6 @@ void tst_ActorEngineIntegration::branchingGraphCompletesViaFacadeWithActorEngine
 
     const QVariantMap summary = sandbox.snapshotSummary();
     QCOMPARE(summary.value(QStringLiteral("executedCount")).toInt(), 4);
-}
-
-void tst_ActorEngineIntegration::breakpointsForceFallbackToSequentialEngine()
-{
-    cme::execution::MigrationFlags::setActorEngineEnabled(true);
-
-    GraphModel graph;
-    buildLinearGraph(graph);
-
-    RecordingExecutionProvider provider;
-    GraphExecutionSandbox sandbox;
-    sandbox.setGraph(&graph);
-    sandbox.setExecutionSemanticsProviders({ &provider });
-    sandbox.setBreakpoint(QStringLiteral("C"));
-
-    // A non-empty breakpoint set must make the facade fall back to SequentialExecutionEngine
-    // (the actor engine cannot deterministically gate on a breakpoint) - so this must pause
-    // exactly before C, same as tst_GraphExecutionSandbox::stepRunPauseAndBreakpointControlsWork.
-    QVERIFY(sandbox.start());
-    QCOMPARE(sandbox.status(), QStringLiteral("paused"));
-
-    const int executed = sandbox.run();
-    QVERIFY(executed > 0);
-    QCOMPARE(sandbox.status(), QStringLiteral("paused"));
-
-    const QString orderAtBreakpoint = sandbox.executionState().value(QStringLiteral("order")).toString();
-    QVERIFY(!orderAtBreakpoint.contains(QStringLiteral("C")));
-
-    sandbox.clearBreakpoints();
-    sandbox.run();
-    QCOMPARE(sandbox.status(), QStringLiteral("completed"));
 }
 
 void tst_ActorEngineIntegration::nestedCompositeExecutionDoesNotHangWithActorEngineEnabled()
