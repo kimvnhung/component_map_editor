@@ -57,6 +57,12 @@ public:
 
     bool hasPendingWork() const;
 
+    // Best-effort, racy snapshot of what's at the front of the run-queue right now (empty if
+    // none). Only meaningful as a hint - a concurrently-running worker can pop/finish it before
+    // the caller acts on the result, so this must never be used to gate correctness decisions.
+    QString peekFrontActorId() const;
+    QStringList readyActorIds() const;
+
     // Blocks until the run-queue is empty and no message is mid-flight, or timeout elapses.
     // Returns false on timeout (e.g. a join-gate never completes) - callers/tests should
     // treat that as a hard failure, not silently ignore it.

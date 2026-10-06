@@ -54,6 +54,11 @@ public:
     void setExecutionSemanticsProviders(const QList<const IExecutionSemanticsProvider *> &providers);
     void rebuildSemanticsFromRegistry(const ExtensionContractRegistry &registry);
 
+    // Internal-only (not QML-invokable): forces SequentialExecutionEngine regardless of the
+    // actor-engine flag. Used by CompositeExecutionProvider for nested sandboxes so a composite
+    // component never spins up its own worker thread pool from inside an actor-engine step.
+    void forceSequentialEngineForNestedExecution();
+
     // Legacy wrapper for QML/internal map-based start.
     Q_INVOKABLE bool start(const QVariantMap &inputSnapshot = {});
     // Typed external entrypoint. Preferred for integrations outside the library.
@@ -137,6 +142,12 @@ private:
     bool executeOneStep(bool bypassBreakpoint);
     // Functions for making executionOneStep more clearly
 
+    // Picks SequentialExecutionEngine vs ActorMailboxExecutionEngine based on
+    // MigrationFlags::actorEngineEnabled()/tokenTransportEnabled() and whether breakpoints are
+    // set (actor engine does not support deterministic breakpoint gating - see ADR Plan 3).
+    // Only re-evaluated at start(); changing breakpoints/flags mid-run does not swap engines.
+    void selectEngine();
+
     // Áp phần state thuộc public API (componentStates/tick/timeline) từ kết quả engine trả về.
     void commitExecutionState(const ExecutionContext& ctx, const ExecuteResult& result);
     void recordTimelineEvent(const ExecutionContext& ctx, const ExecuteResult& result);
@@ -160,6 +171,9 @@ private:
 
     bool m_deferTimelineSignal = false;
     bool m_timelineDirty = false;
+
+    bool m_usingActorEngine = false;
+    bool m_forceSequentialEngine = false;
 
     int m_redactedFieldCount = 0;
 

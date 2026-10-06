@@ -335,6 +335,27 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_ActorEngineIntegration
+    tst_ActorEngineIntegration.cpp
+)
+
+target_link_libraries(tst_ActorEngineIntegration
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ActorEngineIntegration
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ActorEngineIntegration
+    COMMAND tst_ActorEngineIntegration
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_SecurityGuardrails
     tst_SecurityGuardrails.cpp
 )

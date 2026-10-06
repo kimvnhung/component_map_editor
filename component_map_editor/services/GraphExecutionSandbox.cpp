@@ -8,6 +8,7 @@
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/PublicApiContractAdapter.h"
 #include "services/ExecutionMigrationFlags.h"
+#include "services/execution_internal/ActorMailboxExecutionEngine.h"
 #include "services/execution_internal/SequentialExecutionEngine.h"
 #include "utils/GraphHelper.h"
 
@@ -144,8 +145,38 @@ void GraphExecutionSandbox::rebuildSemanticsFromRegistry(const ExtensionContract
     setExecutionSemanticsProviders(registry.executionSemanticsProviders());
 }
 
+void GraphExecutionSandbox::forceSequentialEngineForNestedExecution()
+{
+    m_forceSequentialEngine = true;
+}
+
+void GraphExecutionSandbox::selectEngine()
+{
+    const bool wantActor = !m_forceSequentialEngine
+                           && cme::execution::MigrationFlags::actorEngineEnabled()
+                           && cme::execution::MigrationFlags::tokenTransportEnabled()
+                           && m_breakpoints.isEmpty();
+
+    if (m_engine && wantActor == m_usingActorEngine)
+    {
+        return;
+    }
+
+    if (wantActor)
+    {
+        m_engine = std::make_unique<ActorMailboxExecutionEngine>();
+    }
+    else
+    {
+        m_engine = std::make_unique<SequentialExecutionEngine>();
+    }
+
+    m_usingActorEngine = wantActor;
+}
+
 bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
 {
+    selectEngine();
     reset();
 
     QString error;

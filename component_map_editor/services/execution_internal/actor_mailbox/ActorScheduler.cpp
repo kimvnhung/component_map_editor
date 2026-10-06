@@ -47,7 +47,12 @@ void ActorScheduler::start()
 
 void ActorScheduler::shutdown()
 {
-    m_shutdown = true;
+    // Mutate the predicate under the same mutex used by workerLoop's wait() - otherwise a
+    // worker that just read m_shutdown==false can miss this notify and sleep forever.
+    {
+        std::lock_guard<std::mutex> lock(m_runQueueMutex);
+        m_shutdown = true;
+    }
     m_workAvailable.notify_all();
 
     for (std::thread &worker : m_workers)
@@ -61,7 +66,10 @@ void ActorScheduler::shutdown()
 
 void ActorScheduler::setExecutionMode(ExecutionMode mode)
 {
-    m_mode = mode;
+    {
+        std::lock_guard<std::mutex> lock(m_runQueueMutex);
+        m_mode = mode;
+    }
     m_workAvailable.notify_all();
 }
 
@@ -84,6 +92,26 @@ bool ActorScheduler::hasPendingWork() const
 {
     std::lock_guard<std::mutex> lock(m_runQueueMutex);
     return m_inFlight != 0 || !m_runQueue.empty();
+}
+
+QString ActorScheduler::peekFrontActorId() const
+{
+    std::lock_guard<std::mutex> lock(m_runQueueMutex);
+    return m_runQueue.empty() ? QString() : m_runQueue.front()->id();
+}
+
+QStringList ActorScheduler::readyActorIds() const
+{
+    std::lock_guard<std::mutex> lock(m_runQueueMutex);
+    QStringList ids;
+    ids.reserve(static_cast<int>(m_runQueue.size()));
+
+    for (const std::shared_ptr<IActor> &actor : m_runQueue)
+    {
+        ids.append(actor->id());
+    }
+
+    return ids;
 }
 
 bool ActorScheduler::runUntilIdle(std::chrono::milliseconds timeout)

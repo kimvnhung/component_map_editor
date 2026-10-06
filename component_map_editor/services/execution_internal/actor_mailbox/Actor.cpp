@@ -7,72 +7,6 @@
 namespace cme::actor
 {
 
-namespace
-{
-
-// Same declared-output-key validation as SequentialExecutionEngine::validateExecutionResult.
-bool validateExecutionResult(const ExecuteResult &result, QString &message)
-{
-    const QStringList declared = result.requiredOutputKeys;
-
-    if (declared.isEmpty())
-    {
-        return true;
-    }
-
-    bool matched = false;
-
-    for (const QString &key : declared)
-    {
-        if (result.output.contains(key))
-        {
-            matched = true;
-            break;
-        }
-    }
-
-    if (!matched)
-    {
-        static const QStringList kOutputKeyProps =
-        {
-            QStringLiteral("outputKey"),
-            QStringLiteral("trueRouteKey"),
-            QStringLiteral("falseRouteKey"),
-            QStringLiteral("iterKey"),
-            QStringLiteral("continueKey"),
-            QStringLiteral("errorKey")
-        };
-
-        const auto &properties = result.componentData.properties();
-
-        for (const QString &prop : kOutputKeyProps)
-        {
-            auto it = properties.find(prop.toStdString());
-
-            if (it != properties.end())
-            {
-                const QString configured = QString::fromStdString(it->second);
-
-                if (!configured.isEmpty() && result.output.contains(configured))
-                {
-                    matched = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (!matched)
-    {
-        message = QString("Provider '%1': output payload for type '%2' is missing all declared keys [%3].")
-                  .arg(result.providerId, result.componentData.type_id().c_str(), declared.join(QStringLiteral(", ")));
-    }
-
-    return matched;
-}
-
-} // namespace
-
 IActor::IActor(const QString &id, std::unique_ptr<IMailbox> mailbox)
     : m_id(id)
     , m_mailbox(std::move(mailbox))
@@ -158,14 +92,10 @@ void ComponentActor::onMessage(Message &&msg)
         result.status = ExecuteResult::Status::Ok;
     }
 
-    QString validateMessage;
-
-    if (!validateExecutionResult(result, validateMessage))
-    {
-        result.status = ExecuteResult::Status::Error;
-        result.errorMessage = validateMessage;
-    }
-
+    // Declared-output-key validation (cme::execution::validateExecutionResult) is deliberately NOT
+    // run here - ActorMailboxExecutionEngine runs it once after popping a completed step, exactly
+    // like SequentialExecutionEngine::executeNext(), so both engines distinguish ProviderError from
+    // ValidationError identically instead of collapsing both into ExecuteResult::Status::Error here.
     if (m_onFinished)
     {
         m_onFinished(ctx, result);
