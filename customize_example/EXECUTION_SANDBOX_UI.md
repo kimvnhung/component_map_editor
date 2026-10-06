@@ -29,7 +29,7 @@ There are three layers:
 
 | Layer | File | Role |
 |-------|------|------|
-| **Service** | `component_map_editor/services/GraphExecutionSandbox.h/.cpp` | Owns execution state, tick counter, timeline, breakpoints |
+| **Service** | `component_map_editor/services/GraphExecutionSandbox.h/.cpp` | Owns execution state, tick counter, timeline |
 | **Wiring** | `customize_example/main.cpp` | Creates sandbox, injects semantics, exposes as QML context property |
 | **UI** | `customize_example/qml/Main.qml` | Binds to Q_PROPERTYs, calls Q_INVOKABLEs |
 
@@ -94,7 +94,6 @@ idle ──start()──► paused ──step()──► paused (repeats)
 | `componentState(id)` | `QVariantMap` — node-level key→value | "Selected Component State" TextArea |
 | `debugSnapshot()` | `QVariantMap` — full internal state | Debugging only |
 | `executionTelemetry()` | `QVariantMap` — timing data | Performance review |
-| `breakpoints()` | `QVariantList` | Breakpoint panel (future) |
 
 ---
 
@@ -108,7 +107,6 @@ Each entry in `executionSandbox.timeline` is a `QVariantMap`:
 | `stepExecuted` | `componentId`, `type` |
 | `simulationPaused` | `tick` |
 | `simulationCompleted` | `tick`, `elapsed_ms` |
-| `breakpointHit` | `componentId` |
 | `error` | `message`, `componentId` (if applicable) |
 
 Helper function used in QML:

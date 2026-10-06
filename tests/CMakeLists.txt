@@ -293,6 +293,69 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_SequentialExecutionEngine
+    tst_SequentialExecutionEngine.cpp
+)
+
+target_link_libraries(tst_SequentialExecutionEngine
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_SequentialExecutionEngine
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_SequentialExecutionEngine
+    COMMAND tst_SequentialExecutionEngine
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_ActorMailboxEngine
+    tst_ActorMailboxEngine.cpp
+)
+
+target_link_libraries(tst_ActorMailboxEngine
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ActorMailboxEngine
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ActorMailboxEngine
+    COMMAND tst_ActorMailboxEngine
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_ActorEngineIntegration
+    tst_ActorEngineIntegration.cpp
+)
+
+target_link_libraries(tst_ActorEngineIntegration
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ActorEngineIntegration
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ActorEngineIntegration
+    COMMAND tst_ActorEngineIntegration
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_SecurityGuardrails
     tst_SecurityGuardrails.cpp
 )
@@ -652,7 +715,7 @@ add_test(
 # ── Phase 6: GraphExecutionSandbox Typed Events ─────────────────────────────
 # Internal typed event enums/messages with legacy QVariantMap timeline exposure.
 # Tests: determinism, event ordering, and payload fields for start/step/pause/
-#        complete/error/breakpoint paths.
+#        complete/error paths.
 qt_add_executable(tst_Phase6TypedExecutionEvents
     tst_Phase6TypedExecutionEvents.cpp
 )

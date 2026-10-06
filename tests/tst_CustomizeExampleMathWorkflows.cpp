@@ -274,7 +274,7 @@ void tst_CustomizeExampleMathWorkflows::executionTrace_containsInputsOutputsAndE
                               {QStringLiteral("outputKey"), QStringLiteral("sum")}},
                   QVariantMap{{QStringLiteral("a"), 8.0}, {QStringLiteral("b"), 3.0}});
 
-    const QVariantList timeline = sandbox.timeline();
+    const QVariantList timeline = sandbox.timeline()->toVariantList();
     bool sawStepWithTrace = false;
     for (const QVariant &entryVar : timeline) {
         const QVariantMap entry = entryVar.toMap();

@@ -10,13 +10,16 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-#include <google/protobuf/struct.pb.h>
+#include <memory>
 
-#include "extensions/contracts/IExecutionSemanticsProvider.h"
+#include <google/protobuf/struct.pb.h>
+#include <execution.pb.h>
+
 #include "models/GraphModel.h"
 #include "models/TimelineModel.h"
-#include "execution.pb.h"
-#include <graph.pb.h>
+
+#include "services/execution_internal/ExecutionContext.h"
+#include "services/execution_internal/IExecutionEngine.h"
 
 class ExtensionContractRegistry;
 
@@ -51,6 +54,11 @@ public:
     void setExecutionSemanticsProviders(const QList<const IExecutionSemanticsProvider *> &providers);
     void rebuildSemanticsFromRegistry(const ExtensionContractRegistry &registry);
 
+    // Internal-only (not QML-invokable): forces SequentialExecutionEngine regardless of the
+    // actor-engine flag. Used by CompositeExecutionProvider for nested sandboxes so a composite
+    // component never spins up its own worker thread pool from inside an actor-engine step.
+    void forceSequentialEngineForNestedExecution();
+
     // Legacy wrapper for QML/internal map-based start.
     Q_INVOKABLE bool start(const QVariantMap &inputSnapshot = {});
     // Typed external entrypoint. Preferred for integrations outside the library.
@@ -59,10 +67,6 @@ public:
     Q_INVOKABLE int run(int maxSteps = -1);
     Q_INVOKABLE void pause();
     Q_INVOKABLE void reset();
-
-    Q_INVOKABLE void setBreakpoint(const QString &componentId, bool enabled = true);
-    Q_INVOKABLE void clearBreakpoints();
-    Q_INVOKABLE QStringList breakpoints() const;
 
     // Legacy wrapper for QML/internal map-based state access.
     Q_INVOKABLE QVariantMap componentState(const QString &componentId) const;
@@ -119,7 +123,6 @@ private:
         SimulationPaused,
         SimulationCompleted,
         SimulationBlocked,
-        BreakpointHit,
         Error
     };
 
@@ -131,38 +134,14 @@ private:
     void markError(const QString &message);
 
     void clearSimulationData();
-    bool captureGraphSnapshot();
-    bool executeOneStep(bool bypassBreakpoint);
+    bool executeOneStep();
     // Functions for making executionOneStep more clearly
-    struct ExecutionContext
-    {
-        QString componentId;
-        QString componentType;
-        bool tokenRoutingEnabled;
-        cme::execution::IncomingTokens incomingTokens;
-        QVariantMap stepState;
-        QVariantMap trace;
-    };
-    struct ExecuteResult
-    {
-        enum Status { Ok, Rejected, Error } status;
-        QVariantMap output; // default token payload
-        QString providerId;
-        cme::ComponentData componentData;
-        QStringList requiredOutputKeys; // list of keys that must be present in the output
-        QVariantMap trace; // { providerId, durationMs, status, details }
-        QString errorMessage;
-    };
 
-    /**
-     * @brief dequeNextComponent : Dequeues the next component from the ready queue.
-     * @return The ID of the next component to execute, or an empty string if the queue is empty.
-     */
-    QString dequeNextComponent();
-    void prepareIncomingTokens(const QString& componentId, ExecutionContext& ctx);
-    ExecuteResult invokeProvider(const ExecutionContext& ctx);
-    bool validateExecutionResult(const ExecuteResult& result, QString& message);
-    void routeOutgoingTokens(const ExecutionContext& ctx, const ExecuteResult& result);
+    // Picks SequentialExecutionEngine vs ActorMailboxExecutionEngine based on
+    // MigrationFlags::actorEngineEnabled()/tokenTransportEnabled(). Only re-evaluated at start().
+    void selectEngine();
+
+    // Áp phần state thuộc public API (componentStates/tick/timeline) từ kết quả engine trả về.
     void commitExecutionState(const ExecutionContext& ctx, const ExecuteResult& result);
     void recordTimelineEvent(const ExecutionContext& ctx, const ExecuteResult& result);
 
@@ -170,42 +149,27 @@ private:
     void finalizeIfNoReadyComponents();
     void flushTimelineChanged();
 
-    void enqueueReadyComponent(const QString &componentId);
 private:
+    std::unique_ptr<IExecutionEngine> m_engine;
+
     QPointer<GraphModel> m_graph;
     RunStatus m_status = RunStatus::Idle;
     int m_tick = 0;
 
-    QVariantMap m_inputSnapshot;
     QVariantMap m_executionState;
     QVariantMap m_componentStates;
     TimelineModel *m_timeline;
     QList<cme::TimelineEvent> m_typedTimeline;
     QString m_lastError;
 
-    // QHash<QString, ComponentSnapshot> m_componentsById;
-    // QHash<QString, QList<ConnectionSnapshot>> m_outgoingBySource;
-    // QHash<QString, QList<ConnectionSnapshot>> m_incomingByTarget;
-    // QHash<QString, cme::execution::ExecutionPayload> m_connectionTokens;
-    QHash<std::string, int> m_pendingInDegree;
-    QSet<QString> m_executed;
-    QStringList m_readyQueue;
-    QSet<QString> m_readyQueueSet;
-    // For refactor using only proto message
-    cme::GraphSnapshot m_graphSnapshot;
-    //
-
     bool m_deferTimelineSignal = false;
     bool m_timelineDirty = false;
 
-    qint64 m_payloadBytesRead = 0;
-    qint64 m_payloadBytesWritten = 0;
-    qint64 m_maxPayloadBytes = 0;
-    int m_tokenReadCount = 0;
-    int m_tokenWriteCount = 0;
+    bool m_usingActorEngine = false;
+    bool m_forceSequentialEngine = false;
+
     int m_redactedFieldCount = 0;
 
-    QSet<QString> m_breakpoints;
     QSet<QString> m_sensitiveDebugKeys;
     QHash<QString, const IExecutionSemanticsProvider *> m_providerByComponentType;
 };

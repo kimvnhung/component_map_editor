@@ -207,7 +207,7 @@ void tst_Phase5ExecutionObservability::redaction_masksSensitiveFieldsInTimelineA
     QVERIFY(payloadSummary.value(QStringLiteral("secret")).toString() != QStringLiteral("s3cr3t-S"));
 
     bool foundStep = false;
-    for (const QVariant &entryVar : sandbox.timeline()) {
+    for (const QVariant &entryVar : sandbox.timeline()->toVariantList()) {
         const QVariantMap entry = entryVar.toMap();
         if (entry.value(QStringLiteral("event")).toString() != QStringLiteral("stepExecuted"))
             continue;

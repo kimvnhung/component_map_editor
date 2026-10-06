@@ -21,6 +21,7 @@ file(MAKE_DIRECTORY "${EXAMPLE_EXTENSION_MANIFEST_DIR}")
 set(MANIFEST_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/built.extension.pack.json"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/manifest.customize.workflow.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/extensions/manifests/manifest.factory.pack.json"
 )
 # Loop through the manifest files and copy them to the build directory
 foreach(MANIFEST_FILE ${MANIFEST_FILES})

@@ -263,9 +263,8 @@ This means "correct workflow" is selected by both data dependencies
 
 - Ready queue insertion is id-sorted, so same graph + same providers produce
   stable execution order.
-- Breakpoints can pause before a specific component id executes.
 - run(maxSteps) allows bounded execution for inspection and tests.
-- Timeline events include simulationStarted, stepExecuted, breakpointHit,
+- Timeline events include simulationStarted, stepExecuted,
   simulationCompleted, simulationBlocked, and error.
 
 ## Validation Architecture
