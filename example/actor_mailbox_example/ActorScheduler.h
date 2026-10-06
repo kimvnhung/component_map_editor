@@ -59,6 +59,7 @@ public:
                          const QVariantMap& outputState, const ConnectionRoutingTable& routingTable)
     {
         auto targets = routingTable.lookup(sourceId);
+        std::lock_guard<std::mutex> lock(mu_);
 
         for (const auto& target : std::as_const(targets))
         {
