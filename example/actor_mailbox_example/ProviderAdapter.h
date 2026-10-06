@@ -7,12 +7,17 @@ enum class ThreadAffinity { THREAD_SAFE, MAIN_THREAD };
 
 class ProviderAdapter
 {
+public:
+    virtual ~ProviderAdapter() = default;
     virtual ExecuteResult execute(const ExecutionContext& ctx) = 0;
     virtual ThreadAffinity affinity() const = 0;
 };
 
 class MainThreadProviderAdapter : public ProviderAdapter
 {
+public:
+    ThreadAffinity affinity() const override { return ThreadAffinity::MAIN_THREAD; }
+
     // Marshal execution to main thread via QMetaObject::invokeMethod
     ExecuteResult execute(const ExecutionContext& ctx) override
     {
@@ -23,6 +28,9 @@ class MainThreadProviderAdapter : public ProviderAdapter
 
 class DirectProviderAdapter : public ProviderAdapter
 {
+public:
+    ThreadAffinity affinity() const override { return ThreadAffinity::THREAD_SAFE; }
+
     // Call directly (THREAD_SAFE)
     ExecuteResult execute(const ExecutionContext& ctx) override
     {
