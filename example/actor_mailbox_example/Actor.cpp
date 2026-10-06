@@ -125,7 +125,7 @@ void ComponentActor::onMessage(Message && msg)
         msg.sourceId,
         getId(),
         msg.tokens,
-        component_ == nullptr ? component_->snapshot() : QVariantMap()
+        component_ != nullptr ? component_->snapshot() : QVariantMap()
     };
 
     // Process the message using the component's logic
