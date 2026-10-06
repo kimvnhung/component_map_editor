@@ -21,9 +21,9 @@ public:
     ~ActorMailboxExecutionEngine() override;
 
     bool prepare(GraphModel *graph,
-                const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
-                const QVariantMap &inputSnapshot,
-                QString *error) override;
+                 const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
+                 const QVariantMap &inputSnapshot,
+                 QString *error) override;
 
     bool hasReadyWork() const override;
     QString peekNextReadyComponentId() const override;
@@ -34,9 +34,9 @@ public:
     Telemetry telemetry() const override;
 
     StepOutcome executeNext(const QVariantMap &legacyGlobalState,
-                           ExecutionContext *outCtx,
-                           ExecuteResult *outResult,
-                           QString *error) override;
+                            ExecutionContext *outCtx,
+                            ExecuteResult *outResult,
+                            QString *error) override;
 
     void reset() override;
 
@@ -51,6 +51,12 @@ private:
     mutable std::mutex m_completedMutex;
     std::condition_variable m_completedAvailable;
     std::deque<std::pair<ExecutionContext, ExecuteResult>> m_completedSteps;
+
+    qint64 m_payloadBytesRead = 0;
+    qint64 m_payloadBytesWritten = 0;
+    qint64 m_maxPayloadBytes = 0;
+    int m_tokenReadCount = 0;
+    int m_tokenWriteCount = 0;
 };
 
 #endif // ACTORMAILBOXEXECUTIONENGINE_H

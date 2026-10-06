@@ -125,9 +125,14 @@ const cme::GraphSnapshot &ActorMailboxExecutionEngine::graphSnapshot() const
 
 IExecutionEngine::Telemetry ActorMailboxExecutionEngine::telemetry() const
 {
-    // TODO(Plan 4): wire payload/token counters through ActorScheduler, matching
-    // SequentialExecutionEngine::telemetry(). Not needed for the Plan 3 wiring milestone.
-    return {};
+    return Telemetry
+    {
+        m_payloadBytesRead,
+        m_payloadBytesWritten,
+        m_maxPayloadBytes,
+        m_tokenReadCount,
+        m_tokenWriteCount
+    };
 }
 
 void ActorMailboxExecutionEngine::onActorStep(const ExecutionContext &ctx, const ExecuteResult &result)
