@@ -145,13 +145,13 @@ void tst_Phase0DesignBBaselineFreeze::baselineExecutionDeterminism_flagOff()
     QVERIFY(sandbox.start(QVariantMap{ { QStringLiteral("seed"), 17 } }));
     sandbox.run();
     const QVariantMap firstState = sandbox.executionState();
-    const QVariantList firstTimeline = sandbox.timeline();
+    const QVariantList firstTimeline = sandbox.timeline()->toVariantList();
     const QVariantMap firstSummary = sandbox.snapshotSummary();
 
     QVERIFY(sandbox.start(QVariantMap{ { QStringLiteral("seed"), 17 } }));
     sandbox.run();
     const QVariantMap secondState = sandbox.executionState();
-    const QVariantList secondTimeline = sandbox.timeline();
+    const QVariantList secondTimeline = sandbox.timeline()->toVariantList();
     const QVariantMap secondSummary = sandbox.snapshotSummary();
 
     QCOMPARE(secondState, firstState);

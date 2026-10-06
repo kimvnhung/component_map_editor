@@ -390,6 +390,9 @@ bool CompositeExecutionProvider::executeCompositeComponent(const CompositeGraphD
 
     GraphExecutionSandbox sandbox;
     sandbox.setGraph(innerGraph.get());
+    // Nested sandbox must never spin up its own actor-engine thread pool from inside a step
+    // that may already be running on an actor-engine worker thread (see ADR Plan 3).
+    sandbox.forceSequentialEngineForNestedExecution();
 
     QList<const IExecutionSemanticsProvider *> providers = m_delegateProviders;
     if (!providers.contains(this))

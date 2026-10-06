@@ -164,10 +164,10 @@ void CompatibilityMigrationToolkitTests::compatibilityCheckerReportsDeprecatedAp
     manifest.extensionVersion = QStringLiteral("0.8.0");
     manifest.minCoreApi = {1, 0, 0};
     manifest.maxCoreApi = {1, 99, 99};
-    manifest.capabilities = {
+    manifest.capabilities = extensions::capabilitiesFromArray({
         QStringLiteral("actions"),
         QStringLiteral("propertySchema")
-    };
+    });
 
     QVariantMap contractVersions;
     contractVersions.insert(QStringLiteral("actions"), 0);

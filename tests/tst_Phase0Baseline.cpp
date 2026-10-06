@@ -610,7 +610,7 @@ void tst_Phase0Baseline::executionSandboxTimelineEventNamesAreUnchanged()
     QVERIFY(sandbox.start());
     sandbox.run();
 
-    const QVariantList timeline = sandbox.timeline();
+    const QVariantList timeline = sandbox.timeline()->toVariantList();
     QVERIFY(timeline.size() >= 2);
 
     // First event must still be "simulationStarted"
@@ -654,11 +654,11 @@ void tst_Phase0Baseline::executionSandboxIsDeterministic()
 
     QVERIFY(sb.start());
     sb.run();
-    const QVariantList first = sb.timeline();
+    const QVariantList first = sb.timeline()->toVariantList();
 
     QVERIFY(sb.start());
     sb.run();
-    const QVariantList second = sb.timeline();
+    const QVariantList second = sb.timeline()->toVariantList();
 
     QCOMPARE(first.size(), second.size());
     for (int i = 0; i < first.size(); ++i) {
