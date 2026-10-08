@@ -343,7 +343,7 @@ QVariantMap GraphExecutionSandbox::debugSnapshot() const
     int redactedCount = 0;
 
     QVariantList components;
-    QStringList componentIds = cme::helper::getComponentIds(m_engine->graphSnapshot());
+    QStringList componentIds = cme::helper::graph::getComponentIds(m_engine->graphSnapshot());
     std::sort(componentIds.begin(), componentIds.end());
 
     for (const QString &componentId : componentIds)
@@ -352,19 +352,19 @@ QVariantMap GraphExecutionSandbox::debugSnapshot() const
         QVariantMap entry
         {
             { QStringLiteral("componentId"), componentId },
-            { QStringLiteral("type"), QString::fromStdString(cme::helper::getComponentById(m_engine->graphSnapshot(), componentId).type_id()) },
+            { QStringLiteral("type"), QString::fromStdString(cme::helper::graph::getComponentById(m_engine->graphSnapshot(), componentId).type_id()) },
             { QStringLiteral("consumedIncomingTokenIds"), state.value(QStringLiteral("consumedIncomingTokenIds")) },
             { QStringLiteral("producedOutgoingConnectionIds"), state.value(QStringLiteral("producedOutgoingConnectionIds")) },
             {
                 QStringLiteral("lastOutputSummary"),
-                cme::helper::redactVariant(state.value(QStringLiteral("outputState")), m_sensitiveDebugKeys, &redactedCount)
+                cme::helper::graph::redactVariant(state.value(QStringLiteral("outputState")), m_sensitiveDebugKeys, &redactedCount)
             }
         };
         components.append(entry);
     }
 
     QList<cme::ConnectionData> allEdges;
-    auto outgoingMap = cme::helper::getOutgoingConnectionsBySourceId(m_engine->graphSnapshot());
+    auto outgoingMap = cme::helper::graph::getOutgoingConnectionsBySourceId(m_engine->graphSnapshot());
 
     for (auto it = outgoingMap.constBegin(); it != outgoingMap.constEnd(); ++it)
     {
@@ -383,16 +383,17 @@ QVariantMap GraphExecutionSandbox::debugSnapshot() const
 
     for (const cme::ConnectionData &edge : allEdges)
     {
-        const QVariantMap payload = cme::helper::getConnectionPayloadById(m_engine->graphSnapshot(),
+        const QVariantMap payload = cme::helper::graph::getConnectionPayloadById(m_engine->graphSnapshot(),
                                     QString::fromStdString(edge.id()));
-        const QVariantMap redactedPayload = cme::helper::redactVariant(payload, m_sensitiveDebugKeys, &redactedCount).toMap();
+        const QVariantMap redactedPayload = cme::helper::graph::redactVariant(payload, m_sensitiveDebugKeys,
+                                            &redactedCount).toMap();
         connections.append(QVariantMap
         {
             { QStringLiteral("connectionId"), QString::fromStdString(edge.id()) },
             { QStringLiteral("sourceId"), QString::fromStdString(edge.source_id()) },
             { QStringLiteral("targetId"), QString::fromStdString(edge.target_id()) },
             { QStringLiteral("label"), QString::fromStdString(edge.label()) },
-            { QStringLiteral("payloadBytes"), cme::helper::estimatePayloadBytes(payload) },
+            { QStringLiteral("payloadBytes"), cme::helper::graph::estimatePayloadBytes(payload) },
             { QStringLiteral("payloadSummary"), redactedPayload }
         });
     }
@@ -617,7 +618,7 @@ void GraphExecutionSandbox::commitExecutionState(const ExecutionContext &ctx, co
     state.insert(QStringLiteral("outputState"), result.output);
     auto incomingTokenIds = ctx.incomingTokens.keys();
     state.insert(QStringLiteral("consumedIncomingTokenIds"), incomingTokenIds);
-    auto outgoingConnections = cme::helper::getConnectionsBySourceId(m_engine->graphSnapshot(), ctx.componentId);
+    auto outgoingConnections = cme::helper::graph::getConnectionsBySourceId(m_engine->graphSnapshot(), ctx.componentId);
     auto outgoingConnectionIds = QStringList();
 
     for (const cme::ConnectionData &edge : outgoingConnections)
@@ -643,11 +644,12 @@ void GraphExecutionSandbox::commitExecutionState(const ExecutionContext &ctx, co
 void GraphExecutionSandbox::recordTimelineEvent(const ExecutionContext &ctx, const ExecuteResult &result)
 {
     int stepRedactedCount = 0;
-    const QVariant redactedOutputSummary = cme::helper::redactVariant(result.output, m_sensitiveDebugKeys, &stepRedactedCount);
+    const QVariant redactedOutputSummary = cme::helper::graph::redactVariant(result.output, m_sensitiveDebugKeys,
+                                           &stepRedactedCount);
     m_redactedFieldCount += stepRedactedCount;
 
     auto incomingTokenIds = ctx.incomingTokens.keys();
-    auto outgoingConnections = cme::helper::getConnectionsBySourceId(m_engine->graphSnapshot(), ctx.componentId);
+    auto outgoingConnections = cme::helper::graph::getConnectionsBySourceId(m_engine->graphSnapshot(), ctx.componentId);
     auto outgoingConnectionIds = QStringList();
 
     for (const cme::ConnectionData &edge : outgoingConnections)
@@ -663,7 +665,7 @@ void GraphExecutionSandbox::recordTimelineEvent(const ExecutionContext &ctx, con
         { QStringLiteral("incomingTokenCount"), ctx.incomingTokens.size()},
         { QStringLiteral("incomingTokenIds"), incomingTokenIds },
         { QStringLiteral("outgoingConnectionIds"), outgoingConnectionIds },
-        { QStringLiteral("outputPayloadBytes"), cme::helper::estimatePayloadBytes(result.output) },
+        { QStringLiteral("outputPayloadBytes"), cme::helper::graph::estimatePayloadBytes(result.output) },
         { QStringLiteral("outputPayloadSummary"), redactedOutputSummary },
         { QStringLiteral("trace"), result.trace }
     });

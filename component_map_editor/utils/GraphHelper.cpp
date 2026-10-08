@@ -1,6 +1,6 @@
 #include "GraphHelper.h"
 
-namespace cme::helper
+namespace cme::helper::graph
 {
     QStringList getComponentIds(const cme::GraphSnapshot &graph)
     {

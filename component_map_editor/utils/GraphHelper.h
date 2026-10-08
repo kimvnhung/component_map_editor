@@ -5,7 +5,7 @@
 #include <graph.pb.h>
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 
-namespace cme::helper
+namespace cme::helper::graph
 {
     QVariantMap mapToVariantMap(const google::protobuf::Map<std::string, std::string> &map);
     google::protobuf::Map<std::string, std::string> variantMapToMap(const QVariantMap &variantMap);
