@@ -3,6 +3,7 @@
 #include <QString>
 #include <base_log.h>
 
+#include "extensions/runtime/GraphPropertySchemaProvider.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/contracts/IExtensionPack.h"
 #include "extensions/common.h"
@@ -229,6 +230,8 @@ private:
 ExtensionPackBuilder::ExtensionPackBuilder()
     : m_builtPack(std::make_unique<BuiltExtensionPack>())
 {
+    // Make default for built-in extension pack
+    m_builtPack->append(std::move(utils::makeFactory<GraphPropertySchemaProvider>()));
 }
 
 ExtensionPackBuilder::~ExtensionPackBuilder() = default;

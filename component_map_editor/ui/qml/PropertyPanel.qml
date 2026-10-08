@@ -22,92 +22,103 @@ Rectangle {
 
     onItemChanged: {
         if (!item) {
-            root.component = null
-            root.connection = null
+            root.component = null;
+            root.connection = null;
         } else if (item.sourceId !== undefined) {
-            root.connection = item
-            root.component = null
+            root.connection = item;
+            root.component = null;
         } else {
-            root.component = item
-            root.connection = null
+            root.component = item;
+            root.connection = null;
         }
     }
     property PropertySchemaRegistry propertySchemaRegistry: null
-    readonly property PropertySchemaRegistry effectiveSchemaRegistry:
-        root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
-    readonly property TokenKeyCatalog effectiveTokenKeyCatalog:
-        root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
+    readonly property PropertySchemaRegistry effectiveSchemaRegistry: root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
+    readonly property TokenKeyCatalog effectiveTokenKeyCatalog: root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
 
     readonly property var connectionSideModel: [
-        { text: "Auto", value: ConnectionModel.SideAuto },
-        { text: "Top", value: ConnectionModel.SideTop },
-        { text: "Right", value: ConnectionModel.SideRight },
-        { text: "Bottom", value: ConnectionModel.SideBottom },
-        { text: "Left", value: ConnectionModel.SideLeft }
+        {
+            text: "Auto",
+            value: ConnectionModel.SideAuto
+        },
+        {
+            text: "Top",
+            value: ConnectionModel.SideTop
+        },
+        {
+            text: "Right",
+            value: ConnectionModel.SideRight
+        },
+        {
+            text: "Bottom",
+            value: ConnectionModel.SideBottom
+        },
+        {
+            text: "Left",
+            value: ConnectionModel.SideLeft
+        }
     ]
 
     readonly property string componentTarget: {
         if (!root.component)
-            return ""
-        var typeId = root.component.type || "default"
-        return "component/" + typeId
+            return "";
+        var typeId = root.component.type || "default";
+        return "component/" + typeId;
     }
 
     readonly property string connectionTarget: {
         if (!root.connection)
-            return ""
-        return "connection/flow"
+            return "";
+        return "connection/flow";
     }
 
-    readonly property var activeSchemaSections: root.component !== null
-        ? root.sectionsForTarget(root.componentTarget)
-        : root.sectionsForTarget(root.connectionTarget)
+    readonly property string graphTarget: {
+        // TODO: Need to notice the bug when contains a component has id "component/graph"
+        return "component/graph";
+    }
+
+    readonly property var activeSchemaSections: root.component !== null ? root.sectionsForTarget(root.componentTarget) : (root.connection !== null ? root.sectionsForTarget(root.connectionTarget) : root.sectionsForTarget(root.graphTarget))
 
     readonly property var activeSchemaSectionModel: {
         if (!root.effectiveSchemaRegistry)
-            return null
-        var targetId = root.component !== null ? root.componentTarget : root.connectionTarget
+            return null;
+        var targetId = root.component !== null ? root.componentTarget : root.connectionTarget;
         if (!targetId || !targetId.length)
-            return null
-        return root.effectiveSchemaRegistry.typedSectionModelForTarget(targetId)
+            return null;
+        return root.effectiveSchemaRegistry.typedSectionModelForTarget(targetId);
     }
 
     readonly property var dynamicFieldOptions: ({
-        "tokenKeys": root.effectiveTokenKeyCatalog
-            ? root.effectiveTokenKeyCatalog.tokenKeys
-            : [],
-        "tokenKeyOptions": root.effectiveTokenKeyCatalog
-            ? root.effectiveTokenKeyCatalog.tokenKeyOptions
-            : []
-    })
+            "tokenKeys": root.effectiveTokenKeyCatalog ? root.effectiveTokenKeyCatalog.tokenKeys : [],
+            "tokenKeyOptions": root.effectiveTokenKeyCatalog ? root.effectiveTokenKeyCatalog.tokenKeyOptions : []
+        })
 
     function updateComponentProperty(propertyName, value) {
         if (!root.component || !root.undoStack || !propertyName)
-            return
-        root.undoStack.pushSetComponentProperty(root.component, propertyName, value)
+            return;
+        root.undoStack.pushSetComponentProperty(root.component, propertyName, value);
     }
 
     function updateConnectionProperty(propertyName, value) {
         if (!root.connection || !root.undoStack || !propertyName)
-            return
-
+            return;
         if (propertyName === "sourceSide") {
-            root.undoStack.pushSetConnectionSides(root.connection, value, root.connection.targetSide)
-            return
+            root.undoStack.pushSetConnectionSides(root.connection, value, root.connection.targetSide);
+            return;
         }
 
         if (propertyName === "targetSide") {
-            root.undoStack.pushSetConnectionSides(root.connection, root.connection.sourceSide, value)
-            return
+            root.undoStack.pushSetConnectionSides(root.connection, root.connection.sourceSide, value);
+            return;
         }
 
-        root.undoStack.pushSetConnectionProperty(root.connection, propertyName, value)
+        root.undoStack.pushSetConnectionProperty(root.connection, propertyName, value);
     }
 
     function sectionsForTarget(targetId) {
         if (root.effectiveSchemaRegistry)
-            return root.effectiveSchemaRegistry.sectionedSchemaForTarget(targetId)
-        return []
+            return root.effectiveSchemaRegistry.sectionedSchemaForTarget(targetId);
+        return [];
     }
 
     PropertySchemaRegistry {
@@ -141,51 +152,40 @@ Rectangle {
             bottomPadding: 4
         }
 
-        Loader {
-            active: root.component !== null || root.connection !== null
+        SchemaFormRenderer {
+            // width: parent ? parent.width : 0
             Layout.fillWidth: true
-            sourceComponent: unifiedInspector
-        }
-
-        Component {
-            id: unifiedInspector
-
-            SchemaFormRenderer {
-                width: parent ? parent.width : 0
-                schemaSections: root.activeSchemaSections
-                schemaSectionModel: root.activeSchemaSectionModel
-                modelObject: root.component !== null ? root.component : root.connection
-                expectedModelObjectId: root.component !== null
-                    ? root.component.id
-                    : (root.connection !== null ? root.connection.id : "")
-                expectedSchemaTarget: root.component !== null
-                    ? root.componentTarget
-                    : root.connectionTarget
-                readOnly: root.undoStack === null
-                sideModel: root.connectionSideModel
-                dynamicOptions: root.dynamicFieldOptions
-                onPropertyEditRequested: function(propertyName, value, sourceModelObject) {
-                    var activeModelObject = root.component !== null ? root.component : root.connection
-                    if (sourceModelObject !== activeModelObject)
-                        return
-
-                    if (root.component !== null)
-                        root.updateComponentProperty(propertyName, value)
-                    else
-                        root.updateConnectionProperty(propertyName, value)
-                }
+            schemaSections: root.activeSchemaSections
+            onSchemaSectionsChanged: {
+                console.log("PropertyPanel: schemaSections changed: \n", JSON.stringify(root.activeSchemaSections, null, 2));
+            }
+            schemaSectionModel: root.activeSchemaSectionModel
+            modelObject: root.component !== null ? root.component : (root.connection !== null ? root.connection : root.graph)
+            expectedModelObjectId: root.component !== null ? root.component.id : (root.connection !== null ? root.connection.id : "")
+            expectedSchemaTarget: root.component !== null ? root.componentTarget : root.connectionTarget
+            readOnly: root.undoStack === null
+            sideModel: root.connectionSideModel
+            dynamicOptions: root.dynamicFieldOptions
+            onPropertyEditRequested: function (propertyName, value, sourceModelObject) {
+                var activeModelObject = root.component !== null ? root.component : root.connection;
+                if (sourceModelObject !== activeModelObject)
+                    return;
+                if (root.component !== null)
+                    root.updateComponentProperty(propertyName, value);
+                else
+                    root.updateConnectionProperty(propertyName, value);
             }
         }
 
-        Label {
-            visible: root.component === null && root.connection === null
-            text: "Select a component or connection\nto view its properties."
-            wrapMode: Text.WordWrap
-            color: "#aaa"
-            font.pixelSize: 12
-            Layout.fillWidth: true
-            horizontalAlignment: Text.AlignHCenter
-        }
+        // Label {
+        //     visible: root.component === null && root.connection === null
+        //     text: "Select a component or connection\nto view its properties."
+        //     wrapMode: Text.WordWrap
+        //     color: "#aaa"
+        //     font.pixelSize: 12
+        //     Layout.fillWidth: true
+        //     horizontalAlignment: Text.AlignHCenter
+        // }
 
         Label {
             visible: (root.component !== null || root.connection !== null) && root.undoStack === null
@@ -196,6 +196,8 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        Item { Layout.fillHeight: true }
+        Item {
+            Layout.fillHeight: true
+        }
     }
 }
