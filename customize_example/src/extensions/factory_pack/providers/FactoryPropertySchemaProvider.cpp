@@ -1,7 +1,8 @@
 #include "FactoryPropertySchemaProvider.h"
 
+#include <utils/PropertySchemaHelper.h>
+
 #include "extensions/runtime/templates/PropertySchemaTemplateAdapter.h"
-#include "extensions/providers/property_schemas/propertyschematemplateutils.h"
 #include "FactoryComponentTypeProvider.h"
 
 namespace
@@ -20,43 +21,43 @@ namespace
 
         // TODO: targetId must start with component for matching template on PropertyPanel
         // This need to be created a machanic for exposing error or something for ensure devs know about this!
-        customize::property_schemas::addTarget(&bundle,
-                                               "component/factory/fruit_producer",
+        cme::helper::property_schemas::addTarget(&bundle,
+                "component/factory/fruit_producer",
         {
-            customize::property_schemas::makeField("id", SchemaFieldType::String, "Component ID", true, QString(), SchemaFieldWidget::TextArea, SchemaFieldSection::Identity, 0),
-            customize::property_schemas::makeField("title", SchemaFieldType::String, "Component Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
-            customize::property_schemas::makeField("price", SchemaFieldType::Number, "Fruite Price", true, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 20,
-                                                   QStringLiteral("Seed number consumed by the start component when simulation begins."),
+            cme::helper::property_schemas::makeField("id", SchemaFieldType::String, "Component ID", true, QString(), SchemaFieldWidget::TextArea, SchemaFieldSection::Identity, 0),
+            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Component Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
+            cme::helper::property_schemas::makeField("price", SchemaFieldType::Number, "Fruite Price", true, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 20,
+                    QStringLiteral("Seed number consumed by the start component when simulation begins."),
             QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
         });
 
-        customize::property_schemas::addTarget(&bundle,
-                                               "component/factory/store",
+        cme::helper::property_schemas::addTarget(&bundle,
+                "component/factory/store",
         {
-            customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
+            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
         });
 
-        customize::property_schemas::addTarget(&bundle,
-                                               "component/factory/employee",
+        cme::helper::property_schemas::addTarget(&bundle,
+                "component/factory/employee",
         {
-            customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
+            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
         });
 
-        customize::property_schemas::addTarget(&bundle,
-                                               "component/factory/seller",
+        cme::helper::property_schemas::addTarget(&bundle,
+                "component/factory/seller",
         {
-            customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
+            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
         });
 
-        customize::property_schemas::addTarget(&bundle,
-                                               "component/factory/manager",
+        cme::helper::property_schemas::addTarget(&bundle,
+                "component/factory/manager",
         {
-            customize::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
-            customize::property_schemas::makeField("capital", SchemaFieldType::Number, "Capital", true, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 100,
-                                                   QStringLiteral("Current capital available for the manager to make purchases."),
+            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, QString(), SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 1),
+            cme::helper::property_schemas::makeField("capital", SchemaFieldType::Number, "Capital", true, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 100,
+                    QStringLiteral("Current capital available for the manager to make purchases."),
             QVariantMap{{QStringLiteral("min"), 0}, {QStringLiteral("max"), 1000000}}),
-            customize::property_schemas::makeField("buyAmount", SchemaFieldType::Number, "Buy Amount", true, 10, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 110,
-                                                   QStringLiteral("The amount of capital required for the manager to make a purchase."),
+            cme::helper::property_schemas::makeField("buyAmount", SchemaFieldType::Number, "Buy Amount", true, 10, SchemaFieldWidget::SpinBox, SchemaFieldSection::Behavior, 110,
+                    QStringLiteral("The amount of capital required for the manager to make a purchase."),
             QVariantMap{{QStringLiteral("min"), 1}, {QStringLiteral("max"), 1000000}}),
         });
 

@@ -419,6 +419,10 @@ Item {
         connectionCanvas.repaint();
     }
 
+    function setAsStartComponent(component) {
+    // TODO : Implement this
+    }
+
     function deleteComponent(component) {
         if (!root.graph || !component)
             return;
@@ -1480,6 +1484,10 @@ Item {
         MenuItem {
             text: "Clear Outgoing Connections"
             onTriggered: root.clearComponentConnections(root.menuTargetComponent, false, true)
+        }
+        MenuItem {
+            text: "Set as start component"
+            onTriggered: root.setAsStartComponent(root.menuTargetComponent)
         }
     }
 

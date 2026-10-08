@@ -109,7 +109,7 @@ bool SequentialExecutionEngine::prepare(GraphModel *graph,
         m_graphSnapshot.mutable_connections()->Add(std::move(conn));
     }
 
-    auto outgoingMap = cme::helper::getOutgoingConnectionsBySourceId(m_graphSnapshot);
+    auto outgoingMap = cme::helper::graph::getOutgoingConnectionsBySourceId(m_graphSnapshot);
 
     for (auto it = outgoingMap.begin(); it != outgoingMap.end(); ++it)
     {
@@ -125,7 +125,7 @@ bool SequentialExecutionEngine::prepare(GraphModel *graph,
         });
     }
 
-    auto incomingMap = cme::helper::getIncomingConnectionsByTargetId(m_graphSnapshot);
+    auto incomingMap = cme::helper::graph::getIncomingConnectionsByTargetId(m_graphSnapshot);
 
     for (auto it = incomingMap.begin(); it != incomingMap.end(); ++it)
     {
@@ -141,8 +141,8 @@ bool SequentialExecutionEngine::prepare(GraphModel *graph,
         });
     }
 
-    QStringList componentIds = cme::helper::getComponentIds(m_graphSnapshot);
-    std::sort(componentIds.begin(), componentIds.end(), cme::helper::idComparator);
+    QStringList componentIds = cme::helper::graph::getComponentIds(m_graphSnapshot);
+    std::sort(componentIds.begin(), componentIds.end(), cme::helper::graph::idComparator);
 
     for (const QString &componentId : componentIds)
     {
@@ -177,7 +177,7 @@ int SequentialExecutionEngine::executedCount() const
 
 int SequentialExecutionEngine::totalComponentCount() const
 {
-    return cme::helper::getComponentCount(m_graphSnapshot);
+    return cme::helper::graph::getComponentCount(m_graphSnapshot);
 }
 
 const cme::GraphSnapshot &SequentialExecutionEngine::graphSnapshot() const
@@ -209,7 +209,7 @@ IExecutionEngine::StepOutcome SequentialExecutionEngine::executeNext(const QVari
 
     const QString componentId = dequeNextComponent();
 
-    cme::ComponentData component = cme::helper::getComponentById(m_graphSnapshot, componentId);
+    cme::ComponentData component = cme::helper::graph::getComponentById(m_graphSnapshot, componentId);
     ExecutionContext ctx;
     ctx.componentId = componentId;
     ctx.tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
@@ -296,7 +296,7 @@ void SequentialExecutionEngine::enqueueReadyComponent(const QString &componentId
         return;
     }
 
-    auto it = std::lower_bound(m_readyQueue.begin(), m_readyQueue.end(), componentId, cme::helper::idComparator);
+    auto it = std::lower_bound(m_readyQueue.begin(), m_readyQueue.end(), componentId, cme::helper::graph::idComparator);
     m_readyQueue.insert(it, componentId);
     m_readyQueueSet.insert(componentId);
 }
@@ -317,7 +317,7 @@ QString SequentialExecutionEngine::dequeNextComponent()
 void SequentialExecutionEngine::prepareIncomingTokens(const QString &componentId, ExecutionContext &ctx,
         const QVariantMap &legacyGlobalState)
 {
-    const QList<cme::ConnectionData> incoming = cme::helper::getConnectionsByTargetId(m_graphSnapshot, componentId);
+    const QList<cme::ConnectionData> incoming = cme::helper::graph::getConnectionsByTargetId(m_graphSnapshot, componentId);
 
     const bool tokenRoutingEnabled = cme::execution::MigrationFlags::tokenTransportEnabled();
 
@@ -325,7 +325,7 @@ void SequentialExecutionEngine::prepareIncomingTokens(const QString &componentId
     {
         for (const cme::ConnectionData &edge : incoming)
         {
-            auto tokenPayload = cme::helper::getConnectionPayloadById(m_graphSnapshot, QString::fromStdString(edge.id()));
+            auto tokenPayload = cme::helper::graph::getConnectionPayloadById(m_graphSnapshot, QString::fromStdString(edge.id()));
             ctx.incomingTokens.insert(QString::fromStdString(edge.id()), tokenPayload);
         }
 
@@ -334,7 +334,7 @@ void SequentialExecutionEngine::prepareIncomingTokens(const QString &componentId
             ctx.incomingTokens.insert(QStringLiteral("__graph_input__"), m_inputSnapshot);
         }
 
-        ctx.stepState = cme::helper::mergeIncomingTokens(ctx.incomingTokens);
+        ctx.stepState = cme::helper::graph::mergeIncomingTokens(ctx.incomingTokens);
     }
     else
     {
@@ -348,7 +348,7 @@ void SequentialExecutionEngine::prepareIncomingTokens(const QString &componentId
     for (const QString &tokenId : std::as_const(incomingTokenIds))
     {
         ++m_tokenReadCount;
-        const qint64 bytes = cme::helper::estimatePayloadBytes(ctx.incomingTokens.value(tokenId));
+        const qint64 bytes = cme::helper::graph::estimatePayloadBytes(ctx.incomingTokens.value(tokenId));
         m_payloadBytesRead += bytes;
         m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
     }
@@ -358,7 +358,7 @@ void SequentialExecutionEngine::prepareIncomingTokens(const QString &componentId
 ExecuteResult SequentialExecutionEngine::invokeProvider(const ExecutionContext &ctx)
 {
     ExecuteResult output;
-    output.componentData = cme::helper::getComponentById(m_graphSnapshot,
+    output.componentData = cme::helper::graph::getComponentById(m_graphSnapshot,
                            ctx.componentId);
     const IExecutionSemanticsProvider *provider = m_providerByComponentType.value(ctx.componentType, nullptr);
 
@@ -393,7 +393,7 @@ ExecuteResult SequentialExecutionEngine::invokeProvider(const ExecutionContext &
 
         if (ctx.tokenRoutingEnabled)
         {
-            QList<cme::ConnectionData> incoming = cme::helper::getConnectionsByTargetId(m_graphSnapshot, ctx.componentId);
+            QList<cme::ConnectionData> incoming = cme::helper::graph::getConnectionsByTargetId(m_graphSnapshot, ctx.componentId);
 
             for (const cme::ConnectionData &edge : incoming)
             {
@@ -417,7 +417,8 @@ bool SequentialExecutionEngine::validateExecutionResult(const ExecuteResult &res
 
 void SequentialExecutionEngine::routeOutgoingTokens(const ExecutionContext& ctx, const ExecuteResult &result)
 {
-    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, ctx.componentId);
+    const QList<cme::ConnectionData> outgoing = cme::helper::graph::getConnectionsBySourceId(m_graphSnapshot,
+        ctx.componentId);
 
     // Route tokens to outgoing connections
     for (const cme::ConnectionData &edge : outgoing)
@@ -428,11 +429,11 @@ void SequentialExecutionEngine::routeOutgoingTokens(const ExecutionContext& ctx,
         if (ctx.tokenRoutingEnabled)
         {
             // Store the payload in the graph snapshot for the outgoing connection
-            cme::helper::setPayload(m_graphSnapshot, connectionId, payload);
+            cme::helper::graph::setPayload(m_graphSnapshot, connectionId, payload);
         }
 
         ++m_tokenWriteCount;
-        const qint64 bytes = cme::helper::estimatePayloadBytes(payload);
+        const qint64 bytes = cme::helper::graph::estimatePayloadBytes(payload);
         m_payloadBytesWritten += bytes;
         m_maxPayloadBytes = qMax(m_maxPayloadBytes, bytes);
     }
@@ -443,7 +444,8 @@ void SequentialExecutionEngine::routeOutgoingTokens(const ExecutionContext& ctx,
 void SequentialExecutionEngine::commitSchedulingState(const ExecutionContext &ctx)
 {
     m_executed.insert(ctx.componentId);
-    const QList<cme::ConnectionData> outgoing = cme::helper::getConnectionsBySourceId(m_graphSnapshot, ctx.componentId);
+    const QList<cme::ConnectionData> outgoing = cme::helper::graph::getConnectionsBySourceId(m_graphSnapshot,
+        ctx.componentId);
 
     for (const cme::ConnectionData &edge : outgoing)
     {
