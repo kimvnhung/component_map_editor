@@ -69,8 +69,8 @@ Rectangle {
         if (root._model.type !== undefined)
             return "component/" + (root._model.type || "default");
 
-        // TODO: Need to notice the bug when contains a component has id "component/graph"
-        return "component/graph";
+        // Need to same with componentId in GraphPropertySchemaProvider
+        return "graph";
     }
 
     readonly property var activeSchemaSections: root.sectionsForTarget(root.target)
@@ -93,7 +93,7 @@ Rectangle {
         if (!root._model || !propertyName)
             return;
 
-        if (root.isComponentModel || root.isGraphModel) {
+        if (root.isComponentModel) {
             if (!root.undoStack)
                 return;
             root.undoStack.pushSetComponentProperty(root._model, propertyName, value);
@@ -111,6 +111,10 @@ Rectangle {
             }
 
             root.undoStack.pushSetConnectionProperty(root._model, propertyName, value);
+        } else if (root.isGraphModel) {
+            if (!root.undoStack)
+                return;
+            root.undoStack.pushSetGraphProperty(root._model, propertyName, value);
         }
     }
 
