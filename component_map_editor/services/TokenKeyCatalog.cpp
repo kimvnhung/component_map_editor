@@ -5,16 +5,14 @@
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 
-TokenKeyCatalog::TokenKeyCatalog(QObject *parent)
-    : QObject(parent)
-{}
+TokenKeyCatalog::TokenKeyCatalog(QObject* parent) : QObject(parent) {}
 
-GraphModel *TokenKeyCatalog::graph() const
+GraphModel* TokenKeyCatalog::graph() const
 {
     return m_graph;
 }
 
-void TokenKeyCatalog::setGraph(GraphModel *graph)
+void TokenKeyCatalog::setGraph(GraphModel* graph)
 {
     if (m_graph == graph)
         return;
@@ -33,7 +31,7 @@ QVariantMap TokenKeyCatalog::providerOutputKeyHints() const
     return m_providerOutputKeyHints;
 }
 
-void TokenKeyCatalog::setProviderOutputKeyHints(const QVariantMap &hints)
+void TokenKeyCatalog::setProviderOutputKeyHints(const QVariantMap& hints)
 {
     if (m_providerOutputKeyHints == hints)
         return;
@@ -48,7 +46,7 @@ QString TokenKeyCatalog::targetComponentId() const
     return m_targetComponentId;
 }
 
-void TokenKeyCatalog::setTargetComponentId(const QString &targetComponentId)
+void TokenKeyCatalog::setTargetComponentId(const QString& targetComponentId)
 {
     const QString trimmed = targetComponentId.trimmed();
     if (m_targetComponentId == trimmed)
@@ -71,7 +69,8 @@ QVariantList TokenKeyCatalog::tokenKeyOptions() const
 
 void TokenKeyCatalog::refresh()
 {
-    if (!m_graph || m_targetComponentId.isEmpty()) {
+    if (!m_graph || m_targetComponentId.isEmpty())
+    {
         publishOptions({}, {});
         return;
     }
@@ -80,65 +79,104 @@ void TokenKeyCatalog::refresh()
     QVariantList options;
     QSet<QString> seenKeys;
 
-    const QList<ConnectionModel *> connections = m_graph->connectionList();
-    for (const ConnectionModel *connection : connections) {
-        if (!connection)
-            continue;
-        if (connection->targetId().trimmed() != m_targetComponentId)
-            continue;
-
-        const QString sourceId = connection->sourceId().trimmed();
-        const ComponentModel *source = m_graph->componentById(sourceId);
-        if (!source)
-            continue;
-
-        const QString sourceType = source->type();
-        const QStringList declared = m_providerOutputKeyHints.value(sourceType).toStringList();
-        const QString connectionId = connection->id().trimmed();
-        for (const QString &key : declared) {
-            if (key.isEmpty())
+    if (m_targetComponentId == "graph")
+    {
+        const QList<ComponentModel*> components = m_graph->componentList();
+        for (const ComponentModel* component : components)
+        {
+            if (!component)
                 continue;
 
-            if (!seenKeys.contains(key)) {
-                seenKeys.insert(key);
-                keys.append(key);
-            }
+            const QString componentId = component->id().trimmed();
+            const QString componentType = component->type();
+            const QStringList declared = m_providerOutputKeyHints.value(componentType).toStringList();
+            for (const QString& key : declared)
+            {
+                if (key.isEmpty())
+                    continue;
 
-            const QString tokenReference = connectionId.isEmpty()
-                ? key
-                : QStringLiteral("%1::%2").arg(connectionId, key);
-            const QString optionText = connectionId.isEmpty()
-                ? QStringLiteral("%1 (%2)").arg(key, sourceId)
-                : QStringLiteral("%1 (%2 via %3)").arg(key, sourceId, connectionId);
-            options.append(QVariantMap{
-                { QStringLiteral("text"),     optionText },
-                { QStringLiteral("value"),    tokenReference },
-                { QStringLiteral("key"),      key },
-                { QStringLiteral("tokenId"),  connectionId },
-                { QStringLiteral("sourceId"), sourceId }
-            });
+                if (!seenKeys.contains(key))
+                {
+                    seenKeys.insert(key);
+                    keys.append(key);
+                }
+
+                const QString tokenReference =
+                    componentId.isEmpty() ? key : QStringLiteral("%1::%2").arg(componentId, key);
+                const QString optionText = componentId.isEmpty()
+                                               ? QStringLiteral("%1 (%2)").arg(key, componentType)
+                                               : QStringLiteral("%1 (%2 via %3)").arg(key, componentType, componentId);
+                options.append(QVariantMap{{QStringLiteral("text"), optionText},
+                                           {QStringLiteral("value"), tokenReference},
+                                           {QStringLiteral("key"), key},
+                                           {QStringLiteral("tokenId"), componentId},
+                                           {QStringLiteral("sourceId"), componentId}});
+            }
+        }
+    }
+    else
+    {
+        const QList<ConnectionModel*> connections = m_graph->connectionList();
+        for (const ConnectionModel* connection : connections)
+        {
+            if (!connection)
+                continue;
+            if (connection->targetId().trimmed() != m_targetComponentId)
+                continue;
+
+            const QString sourceId = connection->sourceId().trimmed();
+            const ComponentModel* source = m_graph->componentById(sourceId);
+            if (!source)
+                continue;
+
+            const QString sourceType = source->type();
+            const QStringList declared = m_providerOutputKeyHints.value(sourceType).toStringList();
+            const QString connectionId = connection->id().trimmed();
+            for (const QString& key : declared)
+            {
+                if (key.isEmpty())
+                    continue;
+
+                if (!seenKeys.contains(key))
+                {
+                    seenKeys.insert(key);
+                    keys.append(key);
+                }
+
+                const QString tokenReference =
+                    connectionId.isEmpty() ? key : QStringLiteral("%1::%2").arg(connectionId, key);
+                const QString optionText = connectionId.isEmpty()
+                                               ? QStringLiteral("%1 (%2)").arg(key, sourceId)
+                                               : QStringLiteral("%1 (%2 via %3)").arg(key, sourceId, connectionId);
+                options.append(QVariantMap{{QStringLiteral("text"), optionText},
+                                           {QStringLiteral("value"), tokenReference},
+                                           {QStringLiteral("key"), key},
+                                           {QStringLiteral("tokenId"), connectionId},
+                                           {QStringLiteral("sourceId"), sourceId}});
+            }
         }
     }
 
-    std::sort(keys.begin(), keys.end(), [](const QString &a, const QString &b) {
-        return QString::compare(a, b, Qt::CaseInsensitive) < 0;
-    });
+    std::sort(keys.begin(), keys.end(),
+              [](const QString& a, const QString& b) { return QString::compare(a, b, Qt::CaseInsensitive) < 0; });
 
     publishOptions(keys, sortedOptionsByText(options));
 }
 
-QVariantList TokenKeyCatalog::sortedOptionsByText(const QVariantList &rows)
+QVariantList TokenKeyCatalog::sortedOptionsByText(const QVariantList& rows)
 {
     QVariantList sorted = rows;
-    std::sort(sorted.begin(), sorted.end(), [](const QVariant &a, const QVariant &b) {
-        const QString textA = a.toMap().value(QStringLiteral("text")).toString();
-        const QString textB = b.toMap().value(QStringLiteral("text")).toString();
-        return QString::compare(textA, textB, Qt::CaseInsensitive) < 0;
-    });
+    std::sort(sorted.begin(), sorted.end(),
+              [](const QVariant& a, const QVariant& b)
+              {
+                  const QString textA = a.toMap().value(QStringLiteral("text")).toString();
+                  const QString textB = b.toMap().value(QStringLiteral("text")).toString();
+                  return QString::compare(textA, textB, Qt::CaseInsensitive) < 0;
+              });
     return sorted;
 }
 
-void TokenKeyCatalog::publishOptions(const QStringList &keys, const QVariantList &options)
+void TokenKeyCatalog::publishOptions(const QStringList& keys, const QVariantList& options)
 {
     const bool keysChanged = (m_tokenKeys != keys);
     const bool optionsChanged = (m_tokenKeyOptions != options);
@@ -158,16 +196,14 @@ void TokenKeyCatalog::reconnectGraphSignals()
     if (!m_graph)
         return;
 
-    QObject::connect(m_graph, &QObject::destroyed, this, [this]() {
-        m_graph = nullptr;
-        refresh();
-    });
+    QObject::connect(m_graph, &QObject::destroyed, this,
+                     [this]()
+                     {
+                         m_graph = nullptr;
+                         refresh();
+                     });
 
-    QObject::connect(m_graph, &GraphModel::connectionsChanged, this, [this]() {
-        refresh();
-    });
+    QObject::connect(m_graph, &GraphModel::connectionsChanged, this, [this]() { refresh(); });
 
-    QObject::connect(m_graph, &GraphModel::componentsChanged, this, [this]() {
-        refresh();
-    });
+    QObject::connect(m_graph, &GraphModel::componentsChanged, this, [this]() { refresh(); });
 }

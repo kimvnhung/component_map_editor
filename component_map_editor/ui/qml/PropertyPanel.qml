@@ -132,7 +132,8 @@ Rectangle {
         id: fallbackTokenKeyCatalog
         graph: root.graph
         providerOutputKeyHints: root.providerOutputKeyHints
-        targetComponentId: root.isComponentModel ? root._model.id : ""
+        // TODO: Need to improve this, without hard-coding grah as the targetComponentId
+        targetComponentId: root.isComponentModel ? root._model.id : "graph"
     }
 
     color: "#ffffff"

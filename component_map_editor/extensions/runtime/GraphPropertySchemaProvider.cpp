@@ -9,6 +9,7 @@ namespace
 using cme::runtime::SchemaFieldSection;
 using cme::runtime::SchemaFieldType;
 using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaOptionsSource;
 
 cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
 {
@@ -24,8 +25,9 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
             cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, "Unitled",
                                                      SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 2),
             cme::helper::property_schemas::makeField("start_component_id", SchemaFieldType::String,
-                                                     "Compnent Startup ID", true, QString(),
-                                                     SchemaFieldWidget::Dropdown, SchemaFieldSection::Behavior, 10),
+                                                     "Component Startup ID", true, QString(),
+                                                     SchemaFieldWidget::Dropdown, SchemaFieldSection::Behavior, 10, "",
+                                                     {}, {}, {}, SchemaOptionsSource::TokenKeyOptions),
             cme::helper::property_schemas::makeField("start_component_title", SchemaFieldType::String,
                                                      "Component Startup Title", true, "Unitled",
                                                      SchemaFieldWidget::TextArea, SchemaFieldSection::Behavior, 11),
