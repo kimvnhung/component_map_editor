@@ -25,9 +25,9 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                                                      SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 2),
             cme::helper::property_schemas::makeField("start_component_id", SchemaFieldType::String,
                                                      "Compnent Startup ID", true, QString(),
-                                                     SchemaFieldWidget::TextField, SchemaFieldSection::Behavior, 10),
+                                                     SchemaFieldWidget::Dropdown, SchemaFieldSection::Behavior, 10),
             cme::helper::property_schemas::makeField("start_component_title", SchemaFieldType::String,
-                                                     "Compnent Startup Title", true, "Unitled",
+                                                     "Component Startup Title", true, "Unitled",
                                                      SchemaFieldWidget::TextArea, SchemaFieldSection::Behavior, 11),
 
         });
