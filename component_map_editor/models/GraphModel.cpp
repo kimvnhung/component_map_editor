@@ -2,29 +2,29 @@
 
 #include <QtAlgorithms>
 
-GraphModel::GraphModel(QObject *parent)
-    : QObject(parent)
-{}
+GraphModel::GraphModel(QObject* parent) : QObject(parent) {}
 
-ComponentModel *GraphModel::firstComponentByIdLinear(const QString &id) const
+ComponentModel* GraphModel::firstComponentByIdLinear(const QString& id) const
 {
-    for (ComponentModel *component : m_components) {
+    for (ComponentModel* component : m_components)
+    {
         if (component && component->id() == id)
             return component;
     }
     return nullptr;
 }
 
-ConnectionModel *GraphModel::firstConnectionByIdLinear(const QString &id) const
+ConnectionModel* GraphModel::firstConnectionByIdLinear(const QString& id) const
 {
-    for (ConnectionModel *connection : m_connections) {
+    for (ConnectionModel* connection : m_connections)
+    {
         if (connection && connection->id() == id)
             return connection;
     }
     return nullptr;
 }
 
-void GraphModel::attachComponent(ComponentModel *component)
+void GraphModel::attachComponent(ComponentModel* component)
 {
     if (!component)
         return;
@@ -35,12 +35,11 @@ void GraphModel::attachComponent(ComponentModel *component)
     if (!m_componentIndex.contains(component->id()))
         m_componentIndex.insert(component->id(), component);
 
-    QObject::connect(component, &ComponentModel::idChanged, this, [this, component]() {
-        onTrackedComponentIdChanged(component);
-    });
+    QObject::connect(component, &ComponentModel::idChanged, this,
+                     [this, component]() { onTrackedComponentIdChanged(component); });
 }
 
-void GraphModel::detachComponent(ComponentModel *component)
+void GraphModel::detachComponent(ComponentModel* component)
 {
     if (!component)
         return;
@@ -48,8 +47,9 @@ void GraphModel::detachComponent(ComponentModel *component)
     QObject::disconnect(component, nullptr, this, nullptr);
 
     const QString oldId = m_componentTrackedIds.take(component);
-    if (!oldId.isNull() && m_componentIndex.value(oldId) == component) {
-        ComponentModel *replacement = firstComponentByIdLinear(oldId);
+    if (!oldId.isNull() && m_componentIndex.value(oldId) == component)
+    {
+        ComponentModel* replacement = firstComponentByIdLinear(oldId);
         if (replacement)
             m_componentIndex.insert(oldId, replacement);
         else
@@ -57,7 +57,7 @@ void GraphModel::detachComponent(ComponentModel *component)
     }
 }
 
-void GraphModel::attachConnection(ConnectionModel *connection)
+void GraphModel::attachConnection(ConnectionModel* connection)
 {
     if (!connection)
         return;
@@ -68,12 +68,11 @@ void GraphModel::attachConnection(ConnectionModel *connection)
     if (!m_connectionIndex.contains(connection->id()))
         m_connectionIndex.insert(connection->id(), connection);
 
-    QObject::connect(connection, &ConnectionModel::idChanged, this, [this, connection]() {
-        onTrackedConnectionIdChanged(connection);
-    });
+    QObject::connect(connection, &ConnectionModel::idChanged, this,
+                     [this, connection]() { onTrackedConnectionIdChanged(connection); });
 }
 
-void GraphModel::detachConnection(ConnectionModel *connection)
+void GraphModel::detachConnection(ConnectionModel* connection)
 {
     if (!connection)
         return;
@@ -81,8 +80,9 @@ void GraphModel::detachConnection(ConnectionModel *connection)
     QObject::disconnect(connection, nullptr, this, nullptr);
 
     const QString oldId = m_connectionTrackedIds.take(connection);
-    if (!oldId.isNull() && m_connectionIndex.value(oldId) == connection) {
-        ConnectionModel *replacement = firstConnectionByIdLinear(oldId);
+    if (!oldId.isNull() && m_connectionIndex.value(oldId) == connection)
+    {
+        ConnectionModel* replacement = firstConnectionByIdLinear(oldId);
         if (replacement)
             m_connectionIndex.insert(oldId, replacement);
         else
@@ -90,7 +90,7 @@ void GraphModel::detachConnection(ConnectionModel *connection)
     }
 }
 
-void GraphModel::onTrackedComponentIdChanged(ComponentModel *component)
+void GraphModel::onTrackedComponentIdChanged(ComponentModel* component)
 {
     if (!component)
         return;
@@ -102,18 +102,22 @@ void GraphModel::onTrackedComponentIdChanged(ComponentModel *component)
 
     m_componentTrackedIds[component] = newId;
 
-    if (m_componentIndex.value(oldId) == component) {
-        ComponentModel *replacement = firstComponentByIdLinear(oldId);
+    if (m_componentIndex.value(oldId) == component)
+    {
+        ComponentModel* replacement = firstComponentByIdLinear(oldId);
         if (replacement)
             m_componentIndex.insert(oldId, replacement);
         else
             m_componentIndex.remove(oldId);
     }
 
-    ComponentModel *currentFirst = m_componentIndex.value(newId, nullptr);
-    if (!currentFirst) {
+    ComponentModel* currentFirst = m_componentIndex.value(newId, nullptr);
+    if (!currentFirst)
+    {
         m_componentIndex.insert(newId, component);
-    } else if (currentFirst != component) {
+    }
+    else if (currentFirst != component)
+    {
         const int changedPos = m_components.indexOf(component);
         const int currentPos = m_components.indexOf(currentFirst);
         if (changedPos != -1 && (currentPos == -1 || changedPos < currentPos))
@@ -126,7 +130,7 @@ void GraphModel::onTrackedComponentIdChanged(ComponentModel *component)
 #endif
 }
 
-void GraphModel::onTrackedConnectionIdChanged(ConnectionModel *connection)
+void GraphModel::onTrackedConnectionIdChanged(ConnectionModel* connection)
 {
     if (!connection)
         return;
@@ -138,18 +142,22 @@ void GraphModel::onTrackedConnectionIdChanged(ConnectionModel *connection)
 
     m_connectionTrackedIds[connection] = newId;
 
-    if (m_connectionIndex.value(oldId) == connection) {
-        ConnectionModel *replacement = firstConnectionByIdLinear(oldId);
+    if (m_connectionIndex.value(oldId) == connection)
+    {
+        ConnectionModel* replacement = firstConnectionByIdLinear(oldId);
         if (replacement)
             m_connectionIndex.insert(oldId, replacement);
         else
             m_connectionIndex.remove(oldId);
     }
 
-    ConnectionModel *currentFirst = m_connectionIndex.value(newId, nullptr);
-    if (!currentFirst) {
+    ConnectionModel* currentFirst = m_connectionIndex.value(newId, nullptr);
+    if (!currentFirst)
+    {
         m_connectionIndex.insert(newId, connection);
-    } else if (currentFirst != connection) {
+    }
+    else if (currentFirst != connection)
+    {
         const int changedPos = m_connections.indexOf(connection);
         const int currentPos = m_connections.indexOf(currentFirst);
         if (changedPos != -1 && (currentPos == -1 || changedPos < currentPos))
@@ -168,7 +176,8 @@ bool GraphModel::verifyComponentIndexIntegrity() const
     if (m_componentTrackedIds.size() != m_components.size())
         return false;
 
-    for (ComponentModel *component : m_components) {
+    for (ComponentModel* component : m_components)
+    {
         if (!component)
             return false;
         if (!m_componentTrackedIds.contains(component))
@@ -177,13 +186,15 @@ bool GraphModel::verifyComponentIndexIntegrity() const
             return false;
     }
 
-    for (auto it = m_componentIndex.constBegin(); it != m_componentIndex.constEnd(); ++it) {
+    for (auto it = m_componentIndex.constBegin(); it != m_componentIndex.constEnd(); ++it)
+    {
         if (it.value() != firstComponentByIdLinear(it.key()))
             return false;
     }
 
-    for (ComponentModel *component : m_components) {
-        ComponentModel *expected = firstComponentByIdLinear(component->id());
+    for (ComponentModel* component : m_components)
+    {
+        ComponentModel* expected = firstComponentByIdLinear(component->id());
         if (expected && m_componentIndex.value(component->id()) != expected)
             return false;
     }
@@ -196,7 +207,8 @@ bool GraphModel::verifyConnectionIndexIntegrity() const
     if (m_connectionTrackedIds.size() != m_connections.size())
         return false;
 
-    for (ConnectionModel *connection : m_connections) {
+    for (ConnectionModel* connection : m_connections)
+    {
         if (!connection)
             return false;
         if (!m_connectionTrackedIds.contains(connection))
@@ -205,13 +217,15 @@ bool GraphModel::verifyConnectionIndexIntegrity() const
             return false;
     }
 
-    for (auto it = m_connectionIndex.constBegin(); it != m_connectionIndex.constEnd(); ++it) {
+    for (auto it = m_connectionIndex.constBegin(); it != m_connectionIndex.constEnd(); ++it)
+    {
         if (it.value() != firstConnectionByIdLinear(it.key()))
             return false;
     }
 
-    for (ConnectionModel *connection : m_connections) {
-        ConnectionModel *expected = firstConnectionByIdLinear(connection->id());
+    for (ConnectionModel* connection : m_connections)
+    {
+        ConnectionModel* expected = firstConnectionByIdLinear(connection->id());
         if (expected && m_connectionIndex.value(connection->id()) != expected)
             return false;
     }
@@ -222,16 +236,67 @@ bool GraphModel::verifyConnectionIndexIntegrity() const
 void GraphModel::assertIndexIntegrity() const
 {
     const bool ok = verifyComponentIndexIntegrity() && verifyConnectionIndexIntegrity();
-    Q_ASSERT_X(ok, "GraphModel::assertIndexIntegrity",
-               "GraphModel internal id index diverged from source collections");
+    Q_ASSERT_X(ok, "GraphModel::assertIndexIntegrity", "GraphModel internal id index diverged from source collections");
 }
 #endif
+
+QString GraphModel::startComponentTitle() const
+{
+    return m_startComponentTitle;
+}
+
+void GraphModel::setStartComponentTitle(const QString& newStartComponentTitle)
+{
+    if (m_startComponentTitle == newStartComponentTitle)
+        return;
+    m_startComponentTitle = newStartComponentTitle;
+    emit startComponentTitleChanged();
+}
+
+QString GraphModel::startComponentId() const
+{
+    return m_startComponentId;
+}
+
+void GraphModel::setStartComponentId(const QString& newStartComponentId)
+{
+    if (m_startComponentId == newStartComponentId)
+        return;
+    m_startComponentId = newStartComponentId;
+    emit startComponentIdChanged();
+}
+
+QString GraphModel::name() const
+{
+    return m_name;
+}
+
+void GraphModel::setName(const QString& newName)
+{
+    if (m_name == newName)
+        return;
+    m_name = newName;
+    emit nameChanged();
+}
+
+QString GraphModel::id() const
+{
+    return m_id;
+}
+
+void GraphModel::setId(const QString& newId)
+{
+    if (m_id == newId)
+        return;
+    m_id = newId;
+    emit idChanged();
+}
 
 QVariantList GraphModel::componentsVariant() const
 {
     QVariantList list;
     list.reserve(m_components.size());
-    for (ComponentModel *component : m_components)
+    for (ComponentModel* component : m_components)
         list.append(QVariant::fromValue(component));
     return list;
 }
@@ -240,18 +305,30 @@ QVariantList GraphModel::connectionsVariant() const
 {
     QVariantList list;
     list.reserve(m_connections.size());
-    for (ConnectionModel *connection : m_connections)
+    for (ConnectionModel* connection : m_connections)
         list.append(QVariant::fromValue(connection));
     return list;
 }
 
-int GraphModel::componentCount() const { return m_components.size(); }
-int GraphModel::connectionCount() const { return m_connections.size(); }
+int GraphModel::componentCount() const
+{
+    return m_components.size();
+}
+int GraphModel::connectionCount() const
+{
+    return m_connections.size();
+}
 
-const QList<ComponentModel *> &GraphModel::componentList() const { return m_components; }
-const QList<ConnectionModel *> &GraphModel::connectionList() const { return m_connections; }
+const QList<ComponentModel*>& GraphModel::componentList() const
+{
+    return m_components;
+}
+const QList<ConnectionModel*>& GraphModel::connectionList() const
+{
+    return m_connections;
+}
 
-void GraphModel::addComponent(ComponentModel *component)
+void GraphModel::addComponent(ComponentModel* component)
 {
     if (!component)
         return;
@@ -272,9 +349,9 @@ void GraphModel::addComponent(ComponentModel *component)
 #endif
 }
 
-bool GraphModel::removeComponent(const QString &id)
+bool GraphModel::removeComponent(const QString& id)
 {
-    ComponentModel *component = m_componentIndex.value(id, nullptr);
+    ComponentModel* component = m_componentIndex.value(id, nullptr);
     if (!component)
         return false;
 
@@ -296,12 +373,12 @@ bool GraphModel::removeComponent(const QString &id)
     return true;
 }
 
-ComponentModel *GraphModel::componentById(const QString &id) const
+ComponentModel* GraphModel::componentById(const QString& id) const
 {
     return m_componentIndex.value(id, nullptr);
 }
 
-void GraphModel::addConnection(ConnectionModel *connection)
+void GraphModel::addConnection(ConnectionModel* connection)
 {
     if (!connection)
         return;
@@ -322,9 +399,9 @@ void GraphModel::addConnection(ConnectionModel *connection)
 #endif
 }
 
-bool GraphModel::removeConnection(const QString &id)
+bool GraphModel::removeConnection(const QString& id)
 {
-    ConnectionModel *connection = m_connectionIndex.value(id, nullptr);
+    ConnectionModel* connection = m_connectionIndex.value(id, nullptr);
     if (!connection)
         return false;
 
@@ -345,15 +422,16 @@ bool GraphModel::removeConnection(const QString &id)
     return true;
 }
 
-ConnectionModel *GraphModel::connectionById(const QString &id) const
+ConnectionModel* GraphModel::connectionById(const QString& id) const
 {
     return m_connectionIndex.value(id, nullptr);
 }
 
 void GraphModel::clear()
 {
-    if (!m_connections.isEmpty()) {
-        for (ConnectionModel *connection : std::as_const(m_connections))
+    if (!m_connections.isEmpty())
+    {
+        for (ConnectionModel* connection : std::as_const(m_connections))
             detachConnection(connection);
         qDeleteAll(m_connections);
         m_connections.clear();
@@ -362,8 +440,9 @@ void GraphModel::clear()
         if (!m_batchMode)
             emit connectionsChanged();
     }
-    if (!m_components.isEmpty()) {
-        for (ComponentModel *component : std::as_const(m_components))
+    if (!m_components.isEmpty())
+    {
+        for (ComponentModel* component : std::as_const(m_components))
             detachComponent(component);
         qDeleteAll(m_components);
         m_components.clear();
