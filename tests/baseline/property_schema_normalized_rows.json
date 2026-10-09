@@ -1,0 +1,5404 @@
+{
+    "builtin.propertySchema.graph": {
+        "graph": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "id",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 0,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Graph ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textarea",
+                "widgetEnum": 2
+            },
+            {
+                "defaultValue": "Unitled",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "start_component_id",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 10,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Component Startup ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "Unitled",
+                "hint": "",
+                "key": "start_component_title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 11,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Component Startup Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textarea",
+                "widgetEnum": 2
+            }
+        ]
+    },
+    "customize.workflow.propertySchema": {
+        "component/control/ifelse": [
+            {
+                "defaultValue": "condition",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "conditionKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Condition Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "routeTrue",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "trueRouteKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "True Route Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "routeFalse",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "falseRouteKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 3,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "False Route Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": false,
+                "hint": "",
+                "key": "condition",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Condition",
+                "type": "bool",
+                "typeEnum": 3,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "checkbox",
+                "widgetEnum": 4
+            }
+        ],
+        "component/control/loop": [
+            {
+                "defaultValue": "iter",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "iterKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Iter Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "maxIter",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "maxIterKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Max Iter Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "continueLoop",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "continueKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 3,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Continue Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "condition",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "conditionKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 4,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Condition Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "iter",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Iter",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 10,
+                "hint": "",
+                "key": "maxIter",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Max Iter",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": true,
+                "hint": "",
+                "key": "condition",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 22,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Condition",
+                "type": "bool",
+                "typeEnum": 3,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "checkbox",
+                "widgetEnum": 4
+            }
+        ],
+        "component/math/add": [
+            {
+                "defaultValue": "Add Componnent",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "sum",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/divide": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "quotient",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/equal": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/less_or_equal": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/less_than": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/mod": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/multiply": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "product",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/sqrt": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "sqrtS",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "S",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback S",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/subtract": [
+            {
+                "defaultValue": "Subtract Componnent",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "difference",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/start": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "id",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 0,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "Seed number consumed by the start component when simulation begins.",
+                "key": "inputNumber",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Input Number",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1000000,
+                    "min": -1000000
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/stop": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            }
+        ],
+        "component/system/error_handler": [
+            {
+                "defaultValue": "error",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "Unhandled workflow error.",
+                "hint": "",
+                "key": "message",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Fallback Message",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textarea",
+                "widgetEnum": 2
+            }
+        ],
+        "component/workflow/right_triangle_longest_edge": [
+            {
+                "defaultValue": "Right Triangle Longest Edge",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "sideARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Side A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "sideBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 3,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Side B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/workflow/sqrt_graph": [
+            {
+                "defaultValue": "Sqrt Graph",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "sRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "S Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "S",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback S",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "connection/flow": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "label",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 0,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Label",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "id",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Connection ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "sourceId",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Source Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "targetId",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 3,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Target Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": -1,
+                "hint": "",
+                "key": "sourceSide",
+                "options": [
+                    {
+                        "text": "Auto",
+                        "value": -1
+                    },
+                    {
+                        "text": "Top",
+                        "value": 0
+                    },
+                    {
+                        "text": "Right",
+                        "value": 1
+                    },
+                    {
+                        "text": "Bottom",
+                        "value": 2
+                    },
+                    {
+                        "text": "Left",
+                        "value": 3
+                    }
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Source Side",
+                "type": "enum",
+                "typeEnum": 4,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": -1,
+                "hint": "",
+                "key": "targetSide",
+                "options": [
+                    {
+                        "text": "Auto",
+                        "value": -1
+                    },
+                    {
+                        "text": "Top",
+                        "value": 0
+                    },
+                    {
+                        "text": "Right",
+                        "value": 1
+                    },
+                    {
+                        "text": "Bottom",
+                        "value": 2
+                    },
+                    {
+                        "text": "Left",
+                        "value": 3
+                    }
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Target Side",
+                "type": "enum",
+                "typeEnum": 4,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Routing token key used for connection payload selection.",
+                "key": "tokenKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 22,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Token Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            }
+        ]
+    },
+    "customize.workflow.propertySchema.connection": {
+        "connection/flow": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "label",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 0,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Label",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "id",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Connection ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "sourceId",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Source Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "targetId",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 3,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Target Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": -1,
+                "hint": "",
+                "key": "sourceSide",
+                "options": [
+                    {
+                        "text": "Auto",
+                        "value": -1
+                    },
+                    {
+                        "text": "Top",
+                        "value": 0
+                    },
+                    {
+                        "text": "Right",
+                        "value": 1
+                    },
+                    {
+                        "text": "Bottom",
+                        "value": 2
+                    },
+                    {
+                        "text": "Left",
+                        "value": 3
+                    }
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Source Side",
+                "type": "enum",
+                "typeEnum": 4,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": -1,
+                "hint": "",
+                "key": "targetSide",
+                "options": [
+                    {
+                        "text": "Auto",
+                        "value": -1
+                    },
+                    {
+                        "text": "Top",
+                        "value": 0
+                    },
+                    {
+                        "text": "Right",
+                        "value": 1
+                    },
+                    {
+                        "text": "Bottom",
+                        "value": 2
+                    },
+                    {
+                        "text": "Left",
+                        "value": 3
+                    }
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Target Side",
+                "type": "enum",
+                "typeEnum": 4,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Routing token key used for connection payload selection.",
+                "key": "tokenKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 22,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Token Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            }
+        ]
+    },
+    "customize.workflow.propertySchema.control": {
+        "component/control/ifelse": [
+            {
+                "defaultValue": "condition",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "conditionKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Condition Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "routeTrue",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "trueRouteKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "True Route Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "routeFalse",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "falseRouteKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 3,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "False Route Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": false,
+                "hint": "",
+                "key": "condition",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Condition",
+                "type": "bool",
+                "typeEnum": 3,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "checkbox",
+                "widgetEnum": 4
+            }
+        ],
+        "component/control/loop": [
+            {
+                "defaultValue": "iter",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "iterKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Iter Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "maxIter",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "maxIterKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Max Iter Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "continueLoop",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "continueKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 3,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Continue Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "condition",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "conditionKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 4,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Condition Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "iter",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Iter",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 10,
+                "hint": "",
+                "key": "maxIter",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Max Iter",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": true,
+                "hint": "",
+                "key": "condition",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 22,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback Condition",
+                "type": "bool",
+                "typeEnum": 3,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "checkbox",
+                "widgetEnum": 4
+            }
+        ]
+    },
+    "customize.workflow.propertySchema.math": {
+        "component/math/add": [
+            {
+                "defaultValue": "Add Componnent",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "sum",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/divide": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "quotient",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/equal": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/less_or_equal": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/less_than": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/mod": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "result",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/multiply": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "product",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 1,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/sqrt": [
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "sqrtS",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "S",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback S",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/math/subtract": [
+            {
+                "defaultValue": "Subtract Componnent",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "inputBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 4,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Input B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "difference",
+                "hint": "Result field written by this component.",
+                "key": "outputKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 5,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Output Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "error",
+                "hint": "Error field written when execution fails.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 6,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ]
+    },
+    "customize.workflow.propertySchema.startStop": {
+        "component/start": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "id",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 0,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "Seed number consumed by the start component when simulation begins.",
+                "key": "inputNumber",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Input Number",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1000000,
+                    "min": -1000000
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/stop": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            }
+        ]
+    },
+    "customize.workflow.propertySchema.system": {
+        "component/system/error_handler": [
+            {
+                "defaultValue": "error",
+                "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "errorKey",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Error Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "Unhandled workflow error.",
+                "hint": "",
+                "key": "message",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Fallback Message",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textarea",
+                "widgetEnum": 2
+            }
+        ]
+    },
+    "customize.workflow.propertySchema.workflow": {
+        "component/workflow/right_triangle_longest_edge": [
+            {
+                "defaultValue": "Right Triangle Longest Edge",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "sideARef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Side A Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "sideBRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 3,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "Side B Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "a",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback A",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "b",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback B",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/workflow/sqrt_graph": [
+            {
+                "defaultValue": "Sqrt Graph",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "General",
+                "sectionEnum": 0,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
+                "key": "sRef",
+                "options": [
+                ],
+                "optionsSource": "tokenKeyOptions",
+                "optionsSourceEnum": 2,
+                "order": 2,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Context",
+                "sectionEnum": 5,
+                "title": "S Ref",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "S",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Fallback",
+                "sectionEnum": 6,
+                "title": "Fallback S",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ]
+    },
+    "factory.propertySchema": {
+        "component/factory/employee": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            }
+        ],
+        "component/factory/fruit_producer": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "id",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 0,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textarea",
+                "widgetEnum": 2
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Component Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 1,
+                "hint": "Seed number consumed by the start component when simulation begins.",
+                "key": "price",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Fruite Price",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1000000,
+                    "min": -1000000
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/factory/manager": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "Current capital available for the manager to make purchases.",
+                "key": "capital",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 100,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Capital",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1000000,
+                    "min": 0
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 10,
+                "hint": "The amount of capital required for the manager to make a purchase.",
+                "key": "buyAmount",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 110,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Buy Amount",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1000000,
+                    "min": 1
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/factory/seller": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            }
+        ],
+        "component/factory/store": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            }
+        ]
+    },
+    "sample.workflow.propertySchema": {
+        "component/process": [
+            {
+                "defaultValue": "",
+                "hint": "Display title used in the component body.",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Optional implementation notes for this process.",
+                "key": "description",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Description",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textarea",
+                "widgetEnum": 2
+            },
+            {
+                "defaultValue": 9,
+                "hint": "Number added to the current simulation value (default +9).",
+                "key": "addValue",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Add Value",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1000000,
+                    "min": -1000000
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "x",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 40,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Layout",
+                "sectionEnum": 8,
+                "title": "X",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 50000,
+                    "min": -50000
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 0,
+                "hint": "",
+                "key": "y",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 41,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Layout",
+                "sectionEnum": 8,
+                "title": "Y",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 50000,
+                    "min": -50000
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 160,
+                "hint": "",
+                "key": "width",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 42,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Layout",
+                "sectionEnum": 8,
+                "title": "Width",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1200,
+                    "min": 40
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": 96,
+                "hint": "",
+                "key": "height",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 43,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Layout",
+                "sectionEnum": 8,
+                "title": "Height",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1200,
+                    "min": 40
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            }
+        ],
+        "component/start": [
+            {
+                "defaultValue": "",
+                "hint": "Human-friendly label shown on the graph.",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": 0,
+                "hint": "Seed number consumed by the start component when simulation begins.",
+                "key": "inputNumber",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Input Number",
+                "type": "number",
+                "typeEnum": 2,
+                "valid": true,
+                "validation": {
+                    "max": 1000000,
+                    "min": -1000000
+                },
+                "visibleWhen": {
+                },
+                "widget": "spinbox",
+                "widgetEnum": 5
+            },
+            {
+                "defaultValue": "",
+                "hint": "FontAwesome icon key, for example 'play' or 'stop'.",
+                "key": "icon",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 30,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Appearance",
+                "sectionEnum": 2,
+                "title": "Icon",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "#66bb6a",
+                "hint": "",
+                "key": "color",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 31,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Appearance",
+                "sectionEnum": 2,
+                "title": "Color",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "rounded",
+                "hint": "",
+                "key": "shape",
+                "options": [
+                    "rounded",
+                    "rectangle"
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 32,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Appearance",
+                "sectionEnum": 2,
+                "title": "Shape",
+                "type": "enum",
+                "typeEnum": 4,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            }
+        ],
+        "component/stop": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "title",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Title",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "Optional notes shown in the inspector.",
+                "key": "description",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Behavior",
+                "sectionEnum": 4,
+                "title": "Description",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textarea",
+                "widgetEnum": 2
+            },
+            {
+                "defaultValue": "",
+                "hint": "FontAwesome icon key, for example 'stop' or 'flag-checkered'.",
+                "key": "icon",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 30,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Appearance",
+                "sectionEnum": 2,
+                "title": "Icon",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "#ef5350",
+                "hint": "",
+                "key": "color",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 31,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Appearance",
+                "sectionEnum": 2,
+                "title": "Color",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            }
+        ],
+        "connection/flow": [
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "label",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 0,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Label",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "id",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 1,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Connection ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "sourceId",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 2,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Source Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": "",
+                "hint": "",
+                "key": "targetId",
+                "options": [
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 3,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Identity",
+                "sectionEnum": 1,
+                "title": "Target Component ID",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "textfield",
+                "widgetEnum": 1
+            },
+            {
+                "defaultValue": -1,
+                "hint": "",
+                "key": "sourceSide",
+                "options": [
+                    {
+                        "text": "Auto",
+                        "value": -1
+                    },
+                    {
+                        "text": "Top",
+                        "value": 0
+                    },
+                    {
+                        "text": "Right",
+                        "value": 1
+                    },
+                    {
+                        "text": "Bottom",
+                        "value": 2
+                    },
+                    {
+                        "text": "Left",
+                        "value": 3
+                    }
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 20,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Source Side",
+                "type": "enum",
+                "typeEnum": 4,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": -1,
+                "hint": "",
+                "key": "targetSide",
+                "options": [
+                    {
+                        "text": "Auto",
+                        "value": -1
+                    },
+                    {
+                        "text": "Top",
+                        "value": 0
+                    },
+                    {
+                        "text": "Right",
+                        "value": 1
+                    },
+                    {
+                        "text": "Bottom",
+                        "value": 2
+                    },
+                    {
+                        "text": "Left",
+                        "value": 3
+                    }
+                ],
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
+                "order": 21,
+                "placeholder": "",
+                "required": true,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Target Side",
+                "type": "enum",
+                "typeEnum": 4,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            },
+            {
+                "defaultValue": "",
+                "hint": "Routing token key used for connection payload selection. Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
+                "key": "tokenKey",
+                "options": [
+                ],
+                "optionsSource": "tokenKeys",
+                "optionsSourceEnum": 1,
+                "order": 22,
+                "placeholder": "",
+                "required": false,
+                "schemaError": "",
+                "section": "Routing",
+                "sectionEnum": 7,
+                "title": "Token Key",
+                "type": "string",
+                "typeEnum": 1,
+                "valid": true,
+                "validation": {
+                },
+                "visibleWhen": {
+                },
+                "widget": "dropdown",
+                "widgetEnum": 3
+            }
+        ]
+    }
+}

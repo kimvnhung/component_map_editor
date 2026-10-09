@@ -932,3 +932,44 @@ add_test(
     COMMAND tst_CustomizeExampleMathWorkflows
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+
+
+qt_add_executable(tst_PropertySchemaNormalizedRowBaseline
+    tst_PropertySchemaNormalizedRowBaseline.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizepropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/connectionpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/controlpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/mathpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/startstoppropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/systempropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/workflowpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/factory_pack/providers/FactoryPropertySchemaProvider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/factory_pack/providers/FactoryComponentTypeProvider.cpp
+)
+
+target_link_libraries(tst_PropertySchemaNormalizedRowBaseline
+    PRIVATE
+        Qt6::Test
+        cme_proto
+        libComponentMapEditor
+)
+
+target_include_directories(tst_PropertySchemaNormalizedRowBaseline
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+        ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers
+        ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/factory_pack/providers
+)
+
+target_compile_definitions(tst_PropertySchemaNormalizedRowBaseline
+    PRIVATE
+        CME_SCHEMA_BASELINE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/baseline/property_schema_normalized_rows.json"
+)
+
+add_test(
+    NAME tst_PropertySchemaNormalizedRowBaseline
+    COMMAND tst_PropertySchemaNormalizedRowBaseline
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
