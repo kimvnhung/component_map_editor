@@ -4,7 +4,9 @@
 
 namespace cme::helper::property_schemas
 {
-Field::Field(const QString& key) : m_key(key), m_widget(cme::runtime::SchemaFieldWidget::SchemaError), m_required(false)
+Field::Field(const QString& key)
+    : m_key(key), m_widget(cme::runtime::SchemaFieldWidget::SchemaError), m_required(false), m_defaultValue(QVariant()),
+      m_section(cme::runtime::SchemaFieldSection::Identity), m_order(0)
 {
 }
 
@@ -100,10 +102,8 @@ Field& Field::textField()
 Field& Field::dropdown(SchemaOptionsSpec spec)
 {
     m_widget = cme::runtime::SchemaFieldWidget::Dropdown;
-    // if (spec & SchemaOptionsSpec::tokenKeys)
-    //     m_optionsSource = cme::runtime::SchemaOptionsSource::TokenKeys;
-    // else if (spec & SchemaOptionsSpec::tokenKeyOptions)
-    //     m_optionsSource = cme::runtime::SchemaOptionsSource::TokenKeyOptions;
+    m_optionsSource = spec.sourceId == OptionsSources::TokenKeys ? cme::runtime::SchemaOptionsSource::TokenKeys
+                                                                 : cme::runtime::SchemaOptionsSource::TokenKeyOptions;
     return *this;
 }
 
@@ -119,6 +119,13 @@ Field& Field::spinBox(double min, double max)
     m_extra.insert(QStringLiteral("min"), min);
     m_extra.insert(QStringLiteral("max"), max);
     return *this;
+}
+
+cme::templates::v1::PropertySchemaFieldTemplate Field::build() const
+{
+    return makeField(m_key.toStdString().c_str(), m_type, m_title.toStdString().c_str(), m_required, m_defaultValue,
+                     m_widget, m_section, m_order, m_hint, m_validation, m_visibleWhen, m_options, m_optionsSource,
+                     m_customOptionsSource, m_extra);
 }
 
 cme::templates::v1::PropertySchemaFieldTemplate

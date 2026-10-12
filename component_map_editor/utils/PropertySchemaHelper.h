@@ -39,7 +39,7 @@ public:
     Field& customOptionsSource(const QString& sourceId);
     Field& extra(const QVariantMap& extra);
 
-    cme::templates::v1::PropertySchemaFieldTemplate buildTemplate() const;
+    cme::templates::v1::PropertySchemaFieldTemplate build() const;
 
 private:
     QString m_key;
