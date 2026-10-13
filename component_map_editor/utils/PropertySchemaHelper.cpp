@@ -116,8 +116,15 @@ Field& Field::checkbox()
 Field& Field::spinBox(double min, double max)
 {
     m_widget = cme::runtime::SchemaFieldWidget::SpinBox;
-    m_extra.insert(QStringLiteral("min"), min);
-    m_extra.insert(QStringLiteral("max"), max);
+    if (min == -1 || max == -1)
+    {
+        m_validation.clear();
+    }
+    else
+    {
+        m_validation.insert("min", min);
+        m_validation.insert("max", max);
+    }
     return *this;
 }
 

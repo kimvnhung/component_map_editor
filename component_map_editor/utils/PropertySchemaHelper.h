@@ -26,7 +26,7 @@ public:
     Field& textField();
     Field& dropdown(SchemaOptionsSpec spec = SchemaOptionsSpec::none());
     Field& checkbox();
-    Field& spinBox(double min = 0.0, double max = 100.0);
+    Field& spinBox(double min = -1, double max = -1);
 
     Field& defaultValue(const QVariant& value);
     Field& section(SchemaFieldSection section);
