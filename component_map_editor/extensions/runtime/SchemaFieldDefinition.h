@@ -6,9 +6,11 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-namespace cme::runtime {
+namespace cme::runtime
+{
 
-enum class SchemaFieldType {
+enum class SchemaFieldType
+{
     Unknown = 0,
     String,
     Number,
@@ -16,7 +18,8 @@ enum class SchemaFieldType {
     Enum
 };
 
-enum class SchemaFieldWidget {
+enum class SchemaFieldWidget
+{
     Unknown = 0,
     TextField,
     TextArea,
@@ -26,14 +29,16 @@ enum class SchemaFieldWidget {
     SchemaError
 };
 
-enum class SchemaOptionsSource {
+enum class SchemaOptionsSource
+{
     None = 0,
     TokenKeys,
     TokenKeyOptions,
     Custom
 };
 
-enum class SchemaFieldSection {
+enum class SchemaFieldSection
+{
     General = 0,
     Identity,
     Appearance,
@@ -42,22 +47,24 @@ enum class SchemaFieldSection {
     Context,
     Fallback,
     Routing,
-    Custom
+    Custom,
+    Layout,
 };
 
 QString schemaFieldTypeToString(SchemaFieldType value);
-SchemaFieldType schemaFieldTypeFromString(const QString &value);
+SchemaFieldType schemaFieldTypeFromString(const QString& value);
 
 QString schemaFieldWidgetToString(SchemaFieldWidget value);
-SchemaFieldWidget schemaFieldWidgetFromString(const QString &value);
+SchemaFieldWidget schemaFieldWidgetFromString(const QString& value);
 
-QString schemaOptionsSourceToString(SchemaOptionsSource value, const QString &customValue = QString());
-SchemaOptionsSource schemaOptionsSourceFromString(const QString &value);
+QString schemaOptionsSourceToString(SchemaOptionsSource value, const QString& customValue = QString());
+SchemaOptionsSource schemaOptionsSourceFromString(const QString& value);
 
-QString schemaFieldSectionToString(SchemaFieldSection value, const QString &customValue = QString());
-SchemaFieldSection schemaFieldSectionFromString(const QString &value);
+QString schemaFieldSectionToString(SchemaFieldSection value, const QString& customValue = QString());
+SchemaFieldSection schemaFieldSectionFromString(const QString& value);
 
-struct SchemaFieldDefinition {
+struct SchemaFieldDefinition
+{
     QString key;
     QString title;
     SchemaFieldType type = SchemaFieldType::Unknown;
@@ -83,8 +90,8 @@ struct SchemaFieldDefinition {
 class SchemaFieldLegacyAdapter
 {
 public:
-    static SchemaFieldDefinition fromLegacyRow(const QVariantMap &raw, const QString &targetId);
-    static QVariantMap toNormalizedRow(const SchemaFieldDefinition &field);
+    static SchemaFieldDefinition fromLegacyRow(const QVariantMap& raw, const QString& targetId);
+    static QVariantMap toNormalizedRow(const SchemaFieldDefinition& field);
 };
 
 } // namespace cme::runtime
