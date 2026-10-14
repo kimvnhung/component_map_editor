@@ -2,6 +2,7 @@
 #define SCHEMAOPTIONSSPEC_H
 
 #include <QString>
+#include <QVariantList>
 
 struct SchemaOptionsSpec
 {
@@ -9,6 +10,7 @@ struct SchemaOptionsSpec
     bool allowUnset = false;             // thay cho rule "endsWith(Ref)" (P6)
     QString unsetLabel;                  // vd "Use fallback value"
     bool fallbackToTextWhenEmpty = true; // thay cho hành vi ngầm (P10)
+    QVariantList items;                  // thay cho tham số `options` và hard-code `shape` (P11)
 
     static SchemaOptionsSpec none();
     static SchemaOptionsSpec fromSource(QString id);

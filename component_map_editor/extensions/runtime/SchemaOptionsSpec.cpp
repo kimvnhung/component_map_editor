@@ -37,8 +37,8 @@ SchemaOptionsSpec custom(QString sourceId)
 SchemaOptionsSpec fixed(QVariantList items)
 {
     SchemaOptionsSpec spec;
-    // spec.sourceId = QStringLiteral("fixed");
-    // spec.extra.insert(QStringLiteral("items"), std::move(items));
+    spec.sourceId = QStringLiteral("fixed");
+    spec.items = std::move(items);
     return spec;
 }
 } // namespace Options

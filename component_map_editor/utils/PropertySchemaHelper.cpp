@@ -102,8 +102,16 @@ Field& Field::textField()
 Field& Field::dropdown(SchemaOptionsSpec spec)
 {
     m_widget = cme::runtime::SchemaFieldWidget::Dropdown;
-    m_optionsSource = spec.sourceId == OptionsSources::TokenKeys ? cme::runtime::SchemaOptionsSource::TokenKeys
-                                                                 : cme::runtime::SchemaOptionsSource::TokenKeyOptions;
+    if (spec.sourceId == "fixed")
+    {
+        m_options = spec.items;
+    }
+    else
+    {
+        m_optionsSource = spec.sourceId == OptionsSources::TokenKeys
+                              ? cme::runtime::SchemaOptionsSource::TokenKeys
+                              : cme::runtime::SchemaOptionsSource::TokenKeyOptions;
+    }
     return *this;
 }
 
