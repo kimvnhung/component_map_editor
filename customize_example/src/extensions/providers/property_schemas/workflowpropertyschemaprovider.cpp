@@ -6,55 +6,104 @@
 namespace
 {
 
-    using cme::runtime::SchemaFieldSection;
-    using cme::runtime::SchemaFieldType;
-    using cme::runtime::SchemaFieldWidget;
-    using cme::runtime::SchemaOptionsSource;
+using cme::runtime::SchemaFieldSection;
+using cme::runtime::SchemaFieldType;
+using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaOptionsSource;
 
-    const QString kTokenRefHint =
-        QStringLiteral("Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.");
+const QString kTokenRefHint = QStringLiteral(
+    "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.");
 
-    cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
-    {
-        cme::templates::v1::PropertySchemaTemplateBundle bundle;
-        bundle.set_provider_id("customize.workflow.propertySchema.workflow");
-        bundle.set_schema_version("1.0.0");
+cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
+{
+    cme::templates::v1::PropertySchemaTemplateBundle bundle;
+    bundle.set_provider_id("customize.workflow.propertySchema.workflow");
+    bundle.set_schema_version("1.0.0");
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/workflow/sqrt_graph",
-        {
-            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", false, "Sqrt Graph", SchemaFieldWidget::TextField, SchemaFieldSection::General, 1),
-            cme::helper::property_schemas::makeField("sRef", SchemaFieldType::String, "S Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("S", SchemaFieldType::Number, "Fallback S", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/workflow/sqrt_graph",
+                                             {
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/workflow/right_triangle_longest_edge",
-        {
-            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", false, "Right Triangle Longest Edge", SchemaFieldWidget::TextField, SchemaFieldSection::General, 1),
-            cme::helper::property_schemas::makeField("sideARef", SchemaFieldType::String, "Side A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("sideBRef", SchemaFieldType::String, "Side B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 3,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+                                                 cme::helper::property_schemas::Field("title")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Title")
+                                                     .defaultValue("Sqrt Graph")
+                                                     .textField()
+                                                     .section(SchemaFieldSection::General)
+                                                     .order(1)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("sRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("S Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("S")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback S")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                             });
 
-        return bundle;
-    }
+    cme::helper::property_schemas::addTarget(&bundle, "component/workflow/right_triangle_longest_edge",
+                                             {
+                                                 cme::helper::property_schemas::Field("title")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Title")
+                                                     .defaultValue("Right Triangle Longest Edge")
+                                                     .textField()
+                                                     .section(SchemaFieldSection::General)
+                                                     .order(1)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("sideARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Side A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("sideBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Side B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(3)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
 
-    const cme::templates::v1::PropertySchemaTemplateBundle &schemaBundle()
-    {
-        static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
-        return kBundle;
-    }
+    return bundle;
+}
+
+const cme::templates::v1::PropertySchemaTemplateBundle& schemaBundle()
+{
+    static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
+    return kBundle;
+}
 
 } // namespace
 
@@ -68,8 +117,7 @@ QStringList WorkflowPropertySchemaProvider::schemaTargets() const
     return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaTargets(schemaBundle());
 }
 
-QVariantList WorkflowPropertySchemaProvider::propertySchema(const QString &targetId) const
+QVariantList WorkflowPropertySchemaProvider::propertySchema(const QString& targetId) const
 {
-    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(
-               schemaBundle(), targetId);
+    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(schemaBundle(), targetId);
 }
