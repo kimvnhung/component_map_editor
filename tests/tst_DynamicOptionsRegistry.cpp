@@ -3,20 +3,20 @@
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"
-#include "services/TokenKeyCatalog.h"
+#include "extensions/runtime/DynamicOptionsRegistry.h"
 
-namespace {
-
-void addComponent(GraphModel &graph, const QString &id, const QString &type)
+namespace
 {
-    auto *component = new ComponentModel(id, id, 0.0, 0.0, QStringLiteral("#ffffff"), type, &graph);
+
+void addComponent(GraphModel& graph, const QString& id, const QString& type)
+{
+    auto* component = new ComponentModel(id, id, 0.0, 0.0, QStringLiteral("#ffffff"), type, &graph);
     graph.addComponent(component);
 }
 
-void addConnection(GraphModel &graph, const QString &id,
-                   const QString &sourceId, const QString &targetId)
+void addConnection(GraphModel& graph, const QString& id, const QString& sourceId, const QString& targetId)
 {
-    auto *connection = new ConnectionModel(&graph);
+    auto* connection = new ConnectionModel(&graph);
     connection->setId(id);
     connection->setSourceId(sourceId);
     connection->setTargetId(targetId);
@@ -25,7 +25,7 @@ void addConnection(GraphModel &graph, const QString &id,
 
 } // namespace
 
-class tst_TokenKeyCatalog : public QObject
+class tst_DynamicOptionsRegistry : public QObject
 {
     Q_OBJECT
 
@@ -37,22 +37,19 @@ private slots:
     void updatesWhenHintsChange();
 };
 
-void tst_TokenKeyCatalog::showsDeclaredKeysForIncomingSourceType()
+void tst_DynamicOptionsRegistry::showsDeclaredKeysForIncomingSourceType()
 {
     GraphModel graph;
     addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
     addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
     addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
 
-    TokenKeyCatalog catalog;
+    DynamicOptionsRegistry catalog;
     catalog.setGraph(&graph);
     catalog.setTargetComponentId(QStringLiteral("P1"));
-    catalog.setProviderOutputKeyHints(QVariantMap{
-        { QStringLiteral("start"),
-          QStringList{ QStringLiteral("workingNumber"),
-                       QStringLiteral("started"),
-                       QStringLiteral("inputNumber") } }
-    });
+    catalog.setProviderOutputKeyHints(
+        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("workingNumber"), QStringLiteral("started"),
+                                                          QStringLiteral("inputNumber")}}});
 
     const QStringList keys = catalog.tokenKeys();
     QVERIFY(keys.contains(QStringLiteral("workingNumber")));
@@ -61,10 +58,12 @@ void tst_TokenKeyCatalog::showsDeclaredKeysForIncomingSourceType()
 
     // Options carry sourceId for display context
     bool foundWithSourceId = false;
-    for (const QVariant &v : catalog.tokenKeyOptions()) {
+    for (const QVariant& v : catalog.tokenKeyOptions())
+    {
         const QVariantMap row = v.toMap();
-        if (row.value(QStringLiteral("key")).toString() == QStringLiteral("workingNumber")
-            && row.value(QStringLiteral("sourceId")).toString() == QStringLiteral("S1")) {
+        if (row.value(QStringLiteral("key")).toString() == QStringLiteral("workingNumber") &&
+            row.value(QStringLiteral("sourceId")).toString() == QStringLiteral("S1"))
+        {
             foundWithSourceId = true;
             break;
         }
@@ -72,14 +71,14 @@ void tst_TokenKeyCatalog::showsDeclaredKeysForIncomingSourceType()
     QVERIFY(foundWithSourceId);
 }
 
-void tst_TokenKeyCatalog::emptyWhenNoHintsRegistered()
+void tst_DynamicOptionsRegistry::emptyWhenNoHintsRegistered()
 {
     GraphModel graph;
     addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
     addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
     addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
 
-    TokenKeyCatalog catalog;
+    DynamicOptionsRegistry catalog;
     catalog.setGraph(&graph);
     catalog.setTargetComponentId(QStringLiteral("P1"));
     // No providerOutputKeyHints set — catalog should be empty
@@ -88,7 +87,7 @@ void tst_TokenKeyCatalog::emptyWhenNoHintsRegistered()
     QVERIFY(catalog.tokenKeyOptions().isEmpty());
 }
 
-void tst_TokenKeyCatalog::multipleSources_unionsKeys()
+void tst_DynamicOptionsRegistry::multipleSources_unionsKeys()
 {
     GraphModel graph;
     addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
@@ -97,15 +96,13 @@ void tst_TokenKeyCatalog::multipleSources_unionsKeys()
     addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("T1"));
     addConnection(graph, QStringLiteral("e2"), QStringLiteral("P2"), QStringLiteral("T1"));
 
-    TokenKeyCatalog catalog;
+    DynamicOptionsRegistry catalog;
     catalog.setGraph(&graph);
     catalog.setTargetComponentId(QStringLiteral("T1"));
-    catalog.setProviderOutputKeyHints(QVariantMap{
-        { QStringLiteral("start"),
-          QStringList{ QStringLiteral("workingNumber"), QStringLiteral("started") } },
-        { QStringLiteral("process"),
-          QStringList{ QStringLiteral("workingNumber"), QStringLiteral("lastProcessAddValue") } }
-    });
+    catalog.setProviderOutputKeyHints(
+        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("workingNumber"), QStringLiteral("started")}},
+                    {QStringLiteral("process"),
+                     QStringList{QStringLiteral("workingNumber"), QStringLiteral("lastProcessAddValue")}}});
 
     const QStringList keys = catalog.tokenKeys();
     // workingNumber appears in both — deduplicated
@@ -114,7 +111,7 @@ void tst_TokenKeyCatalog::multipleSources_unionsKeys()
     QVERIFY(keys.contains(QStringLiteral("lastProcessAddValue")));
 }
 
-void tst_TokenKeyCatalog::duplicateKeys_preserveDistinctTokenReferences()
+void tst_DynamicOptionsRegistry::duplicateKeys_preserveDistinctTokenReferences()
 {
     GraphModel graph;
     addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
@@ -123,20 +120,19 @@ void tst_TokenKeyCatalog::duplicateKeys_preserveDistinctTokenReferences()
     addConnection(graph, QStringLiteral("edge.S1.A1"), QStringLiteral("S1"), QStringLiteral("A1"));
     addConnection(graph, QStringLiteral("edge.S2.A1"), QStringLiteral("S2"), QStringLiteral("A1"));
 
-    TokenKeyCatalog catalog;
+    DynamicOptionsRegistry catalog;
     catalog.setGraph(&graph);
     catalog.setTargetComponentId(QStringLiteral("A1"));
-    catalog.setProviderOutputKeyHints(QVariantMap{
-        { QStringLiteral("start"),
-          QStringList{ QStringLiteral("inputNumber") } }
-    });
+    catalog.setProviderOutputKeyHints(
+        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("inputNumber")}}});
 
     const QStringList keys = catalog.tokenKeys();
     QCOMPARE(keys.count(QStringLiteral("inputNumber")), 1);
 
     QStringList references;
     QStringList texts;
-    for (const QVariant &v : catalog.tokenKeyOptions()) {
+    for (const QVariant& v : catalog.tokenKeyOptions())
+    {
         const QVariantMap row = v.toMap();
         if (row.value(QStringLiteral("key")).toString() != QStringLiteral("inputNumber"))
             continue;
@@ -151,27 +147,24 @@ void tst_TokenKeyCatalog::duplicateKeys_preserveDistinctTokenReferences()
     QVERIFY(texts.contains(QStringLiteral("inputNumber (S2 via edge.S2.A1)")));
 }
 
-void tst_TokenKeyCatalog::updatesWhenHintsChange()
+void tst_DynamicOptionsRegistry::updatesWhenHintsChange()
 {
     GraphModel graph;
     addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
     addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
     addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
 
-    TokenKeyCatalog catalog;
+    DynamicOptionsRegistry catalog;
     catalog.setGraph(&graph);
     catalog.setTargetComponentId(QStringLiteral("P1"));
 
     QVERIFY(catalog.tokenKeys().isEmpty());
 
-    catalog.setProviderOutputKeyHints(QVariantMap{
-        { QStringLiteral("start"),
-          QStringList{ QStringLiteral("workingNumber") } }
-    });
+    catalog.setProviderOutputKeyHints(
+        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("workingNumber")}}});
 
     QVERIFY(catalog.tokenKeys().contains(QStringLiteral("workingNumber")));
 }
 
-QTEST_MAIN(tst_TokenKeyCatalog)
-#include "tst_TokenKeyCatalog.moc"
-
+QTEST_MAIN(tst_DynamicOptionsRegistry)
+#include "tst_DynamicOptionsRegistry.moc"

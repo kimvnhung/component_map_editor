@@ -1,18 +1,18 @@
-#include "TokenKeyCatalog.h"
+#include "DynamicOptionsRegistry.h"
 
 #include <algorithm>
 
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 
-TokenKeyCatalog::TokenKeyCatalog(QObject* parent) : QObject(parent) {}
+DynamicOptionsRegistry::DynamicOptionsRegistry(QObject* parent) : QObject(parent) {}
 
-GraphModel* TokenKeyCatalog::graph() const
+GraphModel* DynamicOptionsRegistry::graph() const
 {
     return m_graph;
 }
 
-void TokenKeyCatalog::setGraph(GraphModel* graph)
+void DynamicOptionsRegistry::setGraph(GraphModel* graph)
 {
     if (m_graph == graph)
         return;
@@ -26,12 +26,12 @@ void TokenKeyCatalog::setGraph(GraphModel* graph)
     refresh();
 }
 
-QVariantMap TokenKeyCatalog::providerOutputKeyHints() const
+QVariantMap DynamicOptionsRegistry::providerOutputKeyHints() const
 {
     return m_providerOutputKeyHints;
 }
 
-void TokenKeyCatalog::setProviderOutputKeyHints(const QVariantMap& hints)
+void DynamicOptionsRegistry::setProviderOutputKeyHints(const QVariantMap& hints)
 {
     if (m_providerOutputKeyHints == hints)
         return;
@@ -41,12 +41,12 @@ void TokenKeyCatalog::setProviderOutputKeyHints(const QVariantMap& hints)
     refresh();
 }
 
-QString TokenKeyCatalog::targetComponentId() const
+QString DynamicOptionsRegistry::targetComponentId() const
 {
     return m_targetComponentId;
 }
 
-void TokenKeyCatalog::setTargetComponentId(const QString& targetComponentId)
+void DynamicOptionsRegistry::setTargetComponentId(const QString& targetComponentId)
 {
     const QString trimmed = targetComponentId.trimmed();
     if (m_targetComponentId == trimmed)
@@ -57,17 +57,17 @@ void TokenKeyCatalog::setTargetComponentId(const QString& targetComponentId)
     refresh();
 }
 
-QStringList TokenKeyCatalog::tokenKeys() const
+QStringList DynamicOptionsRegistry::tokenKeys() const
 {
     return m_tokenKeys;
 }
 
-QVariantList TokenKeyCatalog::tokenKeyOptions() const
+QVariantList DynamicOptionsRegistry::tokenKeyOptions() const
 {
     return m_tokenKeyOptions;
 }
 
-void TokenKeyCatalog::refresh()
+void DynamicOptionsRegistry::refresh()
 {
     if (!m_graph || m_targetComponentId.isEmpty())
     {
@@ -163,7 +163,7 @@ void TokenKeyCatalog::refresh()
     publishOptions(keys, sortedOptionsByText(options));
 }
 
-QVariantList TokenKeyCatalog::sortedOptionsByText(const QVariantList& rows)
+QVariantList DynamicOptionsRegistry::sortedOptionsByText(const QVariantList& rows)
 {
     QVariantList sorted = rows;
     std::sort(sorted.begin(), sorted.end(),
@@ -176,7 +176,7 @@ QVariantList TokenKeyCatalog::sortedOptionsByText(const QVariantList& rows)
     return sorted;
 }
 
-void TokenKeyCatalog::publishOptions(const QStringList& keys, const QVariantList& options)
+void DynamicOptionsRegistry::publishOptions(const QStringList& keys, const QVariantList& options)
 {
     const bool keysChanged = (m_tokenKeys != keys);
     const bool optionsChanged = (m_tokenKeyOptions != options);
@@ -191,7 +191,7 @@ void TokenKeyCatalog::publishOptions(const QStringList& keys, const QVariantList
         emit tokenKeyOptionsChanged();
 }
 
-void TokenKeyCatalog::reconnectGraphSignals()
+void DynamicOptionsRegistry::reconnectGraphSignals()
 {
     if (!m_graph)
         return;

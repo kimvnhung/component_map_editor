@@ -1,5 +1,5 @@
-#ifndef TOKENKEYCATALOG_H
-#define TOKENKEYCATALOG_H
+#ifndef DYNAMICOPTIONSREGISTRY_H
+#define DYNAMICOPTIONSREGISTRY_H
 
 #include <QObject>
 #include <QPointer>
@@ -10,7 +10,7 @@
 
 #include "models/GraphModel.h"
 
-class TokenKeyCatalog : public QObject
+class DynamicOptionsRegistry : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
@@ -24,7 +24,7 @@ class TokenKeyCatalog : public QObject
     Q_PROPERTY(QVariantList tokenKeyOptions READ tokenKeyOptions NOTIFY tokenKeyOptionsChanged FINAL)
 
 public:
-    explicit TokenKeyCatalog(QObject *parent = nullptr);
+    explicit DynamicOptionsRegistry(QObject *parent = nullptr);
 
     GraphModel *graph() const;
     void setGraph(GraphModel *graph);
@@ -59,4 +59,4 @@ private:
     QVariantList m_tokenKeyOptions;
 };
 
-#endif // TOKENKEYCATALOG_H
+#endif // DYNAMICOPTIONSREGISTRY_H
