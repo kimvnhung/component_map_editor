@@ -17,22 +17,45 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     bundle.set_provider_id("builtin.propertySchema.graph");
     bundle.set_schema_version("1.0.0");
 
-    cme::helper::property_schemas::addTarget(
-        &bundle, "graph",
-        {
-            cme::helper::property_schemas::makeField("id", SchemaFieldType::String, "Graph ID", true, QString(),
-                                                     SchemaFieldWidget::TextArea, SchemaFieldSection::Identity, 0),
-            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", true, "Unitled",
-                                                     SchemaFieldWidget::TextField, SchemaFieldSection::Identity, 2),
-            cme::helper::property_schemas::makeField("start_component_id", SchemaFieldType::String,
-                                                     "Component Startup ID", true, QString(),
-                                                     SchemaFieldWidget::Dropdown, SchemaFieldSection::Behavior, 10, "",
-                                                     {}, {}, {}, SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("start_component_title", SchemaFieldType::String,
-                                                     "Component Startup Title", true, "Unitled",
-                                                     SchemaFieldWidget::TextArea, SchemaFieldSection::Behavior, 11),
-
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "graph",
+                                             {
+                                                 cme::helper::property_schemas::Field("id")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Graph ID")
+                                                     .required()
+                                                     .defaultValue(QString())
+                                                     .textArea()
+                                                     .section(SchemaFieldSection::Identity)
+                                                     .order(0)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("title")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Title")
+                                                     .required()
+                                                     .defaultValue("Untitled")
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Identity)
+                                                     .order(2)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("start_component_id")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Component Startup ID")
+                                                     .required()
+                                                     .defaultValue(QString())
+                                                     .dropdown(Options::tokenRef())
+                                                     .section(SchemaFieldSection::Behavior)
+                                                     .order(10)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("start_component_title")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Component Startup Title")
+                                                     .required()
+                                                     .defaultValue("Untitled")
+                                                     .textArea()
+                                                     .section(SchemaFieldSection::Behavior)
+                                                     .order(11)
+                                                     .build(),
+                                             });
 
     return bundle;
 }

@@ -27,7 +27,7 @@
                 "widgetEnum": 2
             },
             {
-                "defaultValue": "Unitled",
+                "defaultValue": "Untitled",
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -77,7 +77,7 @@
                 "widgetEnum": 3
             },
             {
-                "defaultValue": "Unitled",
+                "defaultValue": "Untitled",
                 "hint": "",
                 "key": "start_component_title",
                 "options": [
