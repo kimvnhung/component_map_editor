@@ -98,6 +98,8 @@ QString schemaOptionsSourceToString(SchemaOptionsSource value, const QString& cu
             return QStringLiteral("tokenKeyOptions");
         case SchemaOptionsSource::Custom:
             return customValue.trimmed();
+        case SchemaOptionsSource::Defined:
+            return QStringLiteral("defined");
     }
     return QString();
 }

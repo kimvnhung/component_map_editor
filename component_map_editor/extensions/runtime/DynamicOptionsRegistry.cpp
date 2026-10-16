@@ -26,6 +26,14 @@ void DynamicOptionsRegistry::setGraph(GraphModel* graph)
     refresh();
 }
 
+void DynamicOptionsRegistry::setPropertySchemaRegistry(PropertySchemaRegistry* registry)
+{
+    if (m_propertySchemaRegistry == registry)
+        return;
+
+    m_propertySchemaRegistry = registry;
+}
+
 QVariantMap DynamicOptionsRegistry::providerOutputKeyHints() const
 {
     return m_providerOutputKeyHints;
@@ -89,30 +97,13 @@ void DynamicOptionsRegistry::refresh()
 
             const QString componentId = component->id().trimmed();
             const QString componentType = component->type();
-            const QStringList declared = m_providerOutputKeyHints.value(componentType).toStringList();
-            for (const QString& key : declared)
-            {
-                if (key.isEmpty())
-                    continue;
 
-                if (!seenKeys.contains(key))
-                {
-                    seenKeys.insert(key);
-                    keys.append(key);
-                }
-
-                const QString tokenReference =
-                    componentId.isEmpty() ? key : QStringLiteral("%1::%2").arg(componentId, key);
-                const QString optionText = componentId.isEmpty()
-                                               ? QStringLiteral("%1 (%2)").arg(key, componentType)
-                                               : QStringLiteral("%1 (%2 via %3)").arg(key, componentType, componentId);
-                options.append(QVariantMap{{QStringLiteral("text"), optionText},
-                                           {QStringLiteral("value"), tokenReference},
-                                           {QStringLiteral("key"), key},
-                                           {QStringLiteral("tokenId"), componentId},
-                                           {QStringLiteral("sourceId"), componentId}});
-            }
+            options.push_back(QVariantMap{{QStringLiteral("text"), componentId},
+                                          {QStringLiteral("value"), componentId},
+                                          {QStringLiteral("key"), componentId},
+                                          {QStringLiteral("sourceId"), componentId}});
         }
+        updateOptionsForSource(QStringLiteral("components"), options);
     }
     else
     {
@@ -156,11 +147,6 @@ void DynamicOptionsRegistry::refresh()
             }
         }
     }
-
-    std::sort(keys.begin(), keys.end(),
-              [](const QString& a, const QString& b) { return QString::compare(a, b, Qt::CaseInsensitive) < 0; });
-
-    publishOptions(keys, sortedOptionsByText(options));
 }
 
 QVariantList DynamicOptionsRegistry::sortedOptionsByText(const QVariantList& rows)
@@ -191,6 +177,49 @@ void DynamicOptionsRegistry::publishOptions(const QStringList& keys, const QVari
         emit tokenKeyOptionsChanged();
 }
 
+void DynamicOptionsRegistry::updateOptionsForSource(const QString& sourceKey, const QVariantList& options)
+{
+    if (sourceKey.trimmed().isEmpty())
+        return;
+
+    if (!m_registeredSources.contains(sourceKey))
+        return;
+
+    const QVariantList sortedOptions = sortedOptionsByText(options);
+    m_registeredSources[sourceKey] = sortedOptions;
+
+    if (m_sourceKey == sourceKey)
+    {
+        setOptions(sortedOptions);
+    }
+}
+
+QString DynamicOptionsRegistry::sourceKey() const
+{
+    return m_sourceKey;
+}
+
+void DynamicOptionsRegistry::setSourceKey(const QString& newSourceKey)
+{
+    if (m_sourceKey == newSourceKey)
+        return;
+    m_sourceKey = newSourceKey;
+    emit sourceKeyChanged();
+}
+
+QVariantList DynamicOptionsRegistry::options() const
+{
+    return m_options;
+}
+
+void DynamicOptionsRegistry::setOptions(const QVariantList& newOptions)
+{
+    if (m_options == newOptions)
+        return;
+    m_options = newOptions;
+    emit optionsChanged();
+}
+
 void DynamicOptionsRegistry::reconnectGraphSignals()
 {
     if (!m_graph)
@@ -206,4 +235,16 @@ void DynamicOptionsRegistry::reconnectGraphSignals()
     QObject::connect(m_graph, &GraphModel::connectionsChanged, this, [this]() { refresh(); });
 
     QObject::connect(m_graph, &GraphModel::componentsChanged, this, [this]() { refresh(); });
+}
+
+bool DynamicOptionsRegistry::registerSource(const QString& sourceKey, const QVariantList& options)
+{
+    if (sourceKey.trimmed().isEmpty())
+        return false;
+
+    if (m_registeredSources.contains(sourceKey))
+        return false;
+
+    m_registeredSources.insert(sourceKey, sortedOptionsByText(options));
+    return true;
 }

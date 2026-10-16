@@ -2,6 +2,9 @@
 
 #include <QVariantList>
 
+namespace cme::runtime
+{
+
 SchemaOptionsSpec SchemaOptionsSpec::none()
 {
     return SchemaOptionsSpec{};
@@ -18,12 +21,13 @@ namespace Options
 {
 SchemaOptionsSpec tokenKeys()
 {
-    return SchemaOptionsSpec::fromSource(OptionsSources::TokenKeys);
+    // TODO: Need improve later, just hard code for building
+    return SchemaOptionsSpec::fromSource("tokenKeys");
 }
 
 SchemaOptionsSpec tokenRef(QString unsetLabel)
 {
-    SchemaOptionsSpec spec = SchemaOptionsSpec::fromSource(OptionsSources::TokenKeyOptions);
+    SchemaOptionsSpec spec = SchemaOptionsSpec::fromSource("tokenKeyOptions");
     spec.allowUnset = true;
     spec.unsetLabel = std::move(unsetLabel);
     return spec;
@@ -42,3 +46,4 @@ SchemaOptionsSpec fixed(QVariantList items)
     return spec;
 }
 } // namespace Options
+} // namespace cme::runtime

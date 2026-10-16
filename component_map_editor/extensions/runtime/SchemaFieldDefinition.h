@@ -6,6 +6,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include "extensions/runtime/SchemaOptionsSpec.h"
+
 namespace cme::runtime
 {
 
@@ -27,14 +29,6 @@ enum class SchemaFieldWidget
     Checkbox,
     SpinBox,
     SchemaError
-};
-
-enum class SchemaOptionsSource
-{
-    None = 0,
-    TokenKeys,
-    TokenKeyOptions,
-    Custom
 };
 
 enum class SchemaFieldSection

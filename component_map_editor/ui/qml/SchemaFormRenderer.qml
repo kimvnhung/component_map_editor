@@ -243,20 +243,21 @@ Item {
         if (!root.isFieldCurrent(field))
             return [];
 
-        var optionsSource = root.optionsSourceKeyForField(field);
-        if (optionsSource.length > 0) {
-            var dynamicModel = root.dynamicOptions ? root.dynamicOptions[optionsSource] : undefined;
-            if (dynamicModel && dynamicModel.length !== undefined)
-                return root.decorateEnumModel(field, dynamicModel);
-        }
+        // var optionsSource = root.optionsSourceKeyForField(field);
+        // if (optionsSource.length > 0) {
+        //     var dynamicModel = root.dynamicOptions ? root.dynamicOptions[optionsSource] : undefined;
+        //     if (dynamicModel && dynamicModel.length !== undefined)
+        //         return root.decorateEnumModel(field, dynamicModel);
+        // }
 
-        if (field.options && field.options.length) {
-            return root.decorateEnumModel(field, field.options);
-        }
-        if (field.key === "shape")
-            return ["rounded", "rectangle"];
-        if (field.key === "sourceSide" || field.key === "targetSide")
-            return root.sideModel;
+        // if (field.options && field.options.length) {
+        //     return root.decorateEnumModel(field, field.options);
+        // }
+        // if (field.key === "shape")
+        //     return ["rounded", "rectangle"];
+        // if (field.key === "sourceSide" || field.key === "targetSide")
+        //     return root.sideModel;
+        console.log("field: ", JSON.stringify(field, 2, null));
         return [];
     }
 

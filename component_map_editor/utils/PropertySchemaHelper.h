@@ -24,7 +24,7 @@ public:
     // Define Widget
     Field& textArea();
     Field& textField();
-    Field& dropdown(SchemaOptionsSpec spec = SchemaOptionsSpec::none());
+    Field& dropdown(cme::runtime::SchemaOptionsSpec spec = cme::runtime::SchemaOptionsSpec::none());
     Field& checkbox();
     Field& spinBox(double min = -1, double max = -1);
 

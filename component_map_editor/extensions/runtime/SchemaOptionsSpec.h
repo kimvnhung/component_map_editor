@@ -4,6 +4,18 @@
 #include <QString>
 #include <QVariantList>
 
+namespace cme::runtime
+{
+
+enum class SchemaOptionsSource
+{
+    None,
+    TokenKeys,
+    Defined,
+    Custom,
+    TokenKeyOptions, // Note: to be deprecated
+};
+
 struct SchemaOptionsSpec
 {
     QString sourceId;                    // "" = không có dynamic options
@@ -16,18 +28,14 @@ struct SchemaOptionsSpec
     static SchemaOptionsSpec fromSource(QString id);
 };
 
-namespace OptionsSources
-{ // hằng duy nhất cho tên (P4)
-inline const QString TokenKeys = QStringLiteral("tokenKeys");
-inline const QString TokenKeyOptions = QStringLiteral("tokenKeyOptions");
-} // namespace OptionsSources
-
 namespace Options
-{ // factory đọc được ngay
+{
 SchemaOptionsSpec tokenKeys();
-SchemaOptionsSpec tokenRef(QString unsetLabel = "Use fallback value"); // tokenKeyOptions + allowUnset
+SchemaOptionsSpec defined(QString sourceId);
+SchemaOptionsSpec tokenRef(QString unsetLabel = QString());
 SchemaOptionsSpec custom(QString sourceId);
-SchemaOptionsSpec fixed(QVariantList items); // thay cho tham số `options` và hard-code `shape`
-} // namespace Options
+SchemaOptionsSpec fixed(QVariantList items);
+}; // namespace Options
 
+} // namespace cme::runtime
 #endif // SCHEMAOPTIONSSPEC_H

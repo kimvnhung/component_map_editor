@@ -99,7 +99,7 @@ Field& Field::textField()
     return *this;
 }
 
-Field& Field::dropdown(SchemaOptionsSpec spec)
+Field& Field::dropdown(cme::runtime::SchemaOptionsSpec spec)
 {
     m_widget = cme::runtime::SchemaFieldWidget::Dropdown;
     if (spec.sourceId == "fixed")
@@ -108,9 +108,9 @@ Field& Field::dropdown(SchemaOptionsSpec spec)
     }
     else
     {
-        m_optionsSource = spec.sourceId == OptionsSources::TokenKeys
-                              ? cme::runtime::SchemaOptionsSource::TokenKeys
-                              : cme::runtime::SchemaOptionsSource::TokenKeyOptions;
+        // m_optionsSource = spec.sourceId == OptionsSources::TokenKeys
+        //                       ? cme::runtime::SchemaOptionsSource::TokenKeys
+        //                       : cme::runtime::SchemaOptionsSource::TokenKeyOptions;
     }
     return *this;
 }
