@@ -16,25 +16,32 @@ enum class SchemaOptionsSource
     TokenKeyOptions, // Note: to be deprecated
 };
 
+QString schemaOptionsSourceToString(SchemaOptionsSource value);
+SchemaOptionsSource schemaOptionsSourceFromString(const QString& value);
+
 struct SchemaOptionsSpec
 {
-    QString sourceId;                    // "" = không có dynamic options
+    SchemaOptionsSource source;          // None, TokenKeys, Defined, Custom
     bool allowUnset = false;             // thay cho rule "endsWith(Ref)" (P6)
     QString unsetLabel;                  // vd "Use fallback value"
     bool fallbackToTextWhenEmpty = true; // thay cho hành vi ngầm (P10)
     QVariantList items;                  // thay cho tham số `options` và hard-code `shape` (P11)
 
+    QString sourceKey;
+    QString textRole;
+    QString valueRole;
+
     static SchemaOptionsSpec none();
-    static SchemaOptionsSpec fromSource(QString id);
 };
+
+QVariantMap schemaOptionsSpecToMap(const SchemaOptionsSpec& spec);
 
 namespace Options
 {
 SchemaOptionsSpec tokenKeys();
-SchemaOptionsSpec defined(QString sourceId);
+SchemaOptionsSpec defined(QString sourceKey = QString());
 SchemaOptionsSpec tokenRef(QString unsetLabel = QString());
-SchemaOptionsSpec custom(QString sourceId);
-SchemaOptionsSpec fixed(QVariantList items);
+SchemaOptionsSpec custom(QVariantList items);
 }; // namespace Options
 
 } // namespace cme::runtime

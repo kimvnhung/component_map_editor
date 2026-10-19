@@ -165,7 +165,10 @@ Rectangle {
             expectedSchemaTarget: root.target
             readOnly: root.undoStack === null
             sideModel: root.connectionSideModel
-            dynamicOptions: dynamicOptionsRegistry.dynamicFieldOptions
+            dynamicOptions: dynamicOptionsRegistry.targetSourceOptions
+            onDynamicOptionsChanged: {
+                console.log("Dynamic options changed:", JSON.stringify(dynamicOptions, 2, null));
+            }
             onPropertyEditRequested: function (propertyName, value, sourceModelObject) {
                 var activeModelObject = root._model;
                 if (sourceModelObject !== activeModelObject)

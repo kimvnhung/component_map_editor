@@ -245,7 +245,7 @@ ApplicationWindow {
                         item: canvas ? (canvas.selectedConnection !== null ? canvas.selectedConnection : canvas.selectedComponent) : null
                         undoStack: canvas ? canvas.undoStack : null
                         propertySchemaRegistry: editorManager.propertySchemaRegistry
-                        providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
+                        // providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
                     }
 
                     ExecutionPanel {

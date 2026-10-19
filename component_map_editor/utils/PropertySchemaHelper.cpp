@@ -102,16 +102,7 @@ Field& Field::textField()
 Field& Field::dropdown(cme::runtime::SchemaOptionsSpec spec)
 {
     m_widget = cme::runtime::SchemaFieldWidget::Dropdown;
-    if (spec.sourceId == "fixed")
-    {
-        m_options = spec.items;
-    }
-    else
-    {
-        // m_optionsSource = spec.sourceId == OptionsSources::TokenKeys
-        //                       ? cme::runtime::SchemaOptionsSource::TokenKeys
-        //                       : cme::runtime::SchemaOptionsSource::TokenKeyOptions;
-    }
+    m_optionsSpec = spec;
     return *this;
 }
 
@@ -143,12 +134,9 @@ cme::templates::v1::PropertySchemaFieldTemplate Field::build() const
     const QByteArray sectionName = cme::runtime::schemaFieldSectionToString(m_section).toUtf8();
 
     QVariantMap mergedExtra = m_extra;
-    const QString optionsSourceValue =
-        cme::runtime::schemaOptionsSourceToString(m_optionsSource, m_customOptionsSource);
-
-    if (!optionsSourceValue.isEmpty() && !mergedExtra.contains(QStringLiteral("optionsSource")))
+    if (!mergedExtra.contains("dropdownOptions"))
     {
-        mergedExtra.insert(QStringLiteral("optionsSource"), optionsSourceValue);
+        mergedExtra.insert("dropdownOptions", cme::runtime::schemaOptionsSpecToMap(m_optionsSpec));
     }
 
     cme::templates::v1::PropertySchemaFieldTemplate field;

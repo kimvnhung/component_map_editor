@@ -26,6 +26,7 @@ Item {
     property var schemaSectionModel: null
     property var modelObject: null
     property bool readOnly: false
+    // This should be contains all the dynamic options for the schema fields. The key should match the optionsSource of the field.
     property var dynamicOptions: ({})
     property int renderContextVersion: 0
     property string expectedModelObjectId: ""
@@ -257,7 +258,12 @@ Item {
         //     return ["rounded", "rectangle"];
         // if (field.key === "sourceSide" || field.key === "targetSide")
         //     return root.sideModel;
+        if (field.dropdownOptions && field.dropdownOptions.sourceKey && field.dropdownOptions.sourceKey.length) {
+            return dynamicOptions[field.dropdownOptions.sourceKey] || [];
+        }
+
         console.log("field: ", JSON.stringify(field, 2, null));
+        console.log("dynamicOptions: ", JSON.stringify(dynamicOptions, 2, null));
         return [];
     }
 

@@ -57,6 +57,7 @@ private:
     cme::runtime::SchemaOptionsSource m_optionsSource = cme::runtime::SchemaOptionsSource::None;
     QString m_customOptionsSource;
     QVariantMap m_extra;
+    cme::runtime::SchemaOptionsSpec m_optionsSpec = cme::runtime::SchemaOptionsSpec::none();
 };
 
 // cme::templates::v1::PropertySchemaFieldTemplate

@@ -10,39 +10,86 @@ SchemaOptionsSpec SchemaOptionsSpec::none()
     return SchemaOptionsSpec{};
 }
 
-SchemaOptionsSpec SchemaOptionsSpec::fromSource(QString id)
+QString schemaOptionsSourceToString(SchemaOptionsSource value)
 {
-    SchemaOptionsSpec spec;
-    spec.sourceId = std::move(id);
-    return spec;
+    switch (value)
+    {
+        case SchemaOptionsSource::None:
+            return QString();
+        case SchemaOptionsSource::TokenKeys:
+            return QStringLiteral("tokenKeys");
+        case SchemaOptionsSource::TokenKeyOptions:
+            return QStringLiteral("tokenKeyOptions");
+        case SchemaOptionsSource::Custom:
+            return QStringLiteral("custom");
+        case SchemaOptionsSource::Defined:
+            return QStringLiteral("defined");
+    }
+    return QString();
+}
+
+SchemaOptionsSource schemaOptionsSourceFromString(const QString& value)
+{
+    const QString key = value.trimmed();
+    if (key.isEmpty())
+        return SchemaOptionsSource::None;
+    if (key == QStringLiteral("tokenKeys"))
+        return SchemaOptionsSource::TokenKeys;
+    if (key == QStringLiteral("tokenKeyOptions"))
+        return SchemaOptionsSource::TokenKeyOptions;
+    if (key == QStringLiteral("custom"))
+        return SchemaOptionsSource::Custom;
+    if (key == QStringLiteral("defined"))
+        return SchemaOptionsSource::Defined;
+    return SchemaOptionsSource::Custom;
+}
+
+QVariantMap schemaOptionsSpecToMap(const SchemaOptionsSpec& spec)
+{
+    QVariantMap map;
+    map.insert(QStringLiteral("source"), schemaOptionsSourceToString(spec.source));
+    map.insert(QStringLiteral("allowUnset"), spec.allowUnset);
+    map.insert(QStringLiteral("unsetLabel"), spec.unsetLabel);
+    map.insert(QStringLiteral("fallbackToTextWhenEmpty"), spec.fallbackToTextWhenEmpty);
+    map.insert(QStringLiteral("items"), spec.items);
+    map.insert(QStringLiteral("sourceKey"), spec.sourceKey);
+    map.insert(QStringLiteral("textRole"), spec.textRole);
+    map.insert(QStringLiteral("valueRole"), spec.valueRole);
+    return map;
 }
 
 namespace Options
 {
 SchemaOptionsSpec tokenKeys()
 {
-    // TODO: Need improve later, just hard code for building
-    return SchemaOptionsSpec::fromSource("tokenKeys");
+    SchemaOptionsSpec spec;
+    spec.source = SchemaOptionsSource::TokenKeys;
+    return spec;
 }
 
 SchemaOptionsSpec tokenRef(QString unsetLabel)
 {
-    SchemaOptionsSpec spec = SchemaOptionsSpec::fromSource("tokenKeyOptions");
+    SchemaOptionsSpec spec;
+    spec.source = SchemaOptionsSource::TokenKeys;
     spec.allowUnset = true;
     spec.unsetLabel = std::move(unsetLabel);
+
     return spec;
 }
 
-SchemaOptionsSpec custom(QString sourceId)
+SchemaOptionsSpec custom(QVariantList items)
 {
-    return SchemaOptionsSpec::fromSource(std::move(sourceId));
+    return SchemaOptionsSpec{SchemaOptionsSource::Custom, false, QString(), true, {}, "custom", "text", "value"};
 }
 
-SchemaOptionsSpec fixed(QVariantList items)
+SchemaOptionsSpec defined(QString sourceKey)
 {
     SchemaOptionsSpec spec;
-    spec.sourceId = QStringLiteral("fixed");
-    spec.items = std::move(items);
+    spec.source = SchemaOptionsSource::Defined;
+    spec.sourceKey = sourceKey;
+    // Note: All defined options will have textRole = "text" and valueRole = "value" by default
+    spec.textRole = "text";
+    spec.valueRole = "value";
     return spec;
 }
 } // namespace Options

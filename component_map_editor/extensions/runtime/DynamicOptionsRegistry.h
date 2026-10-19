@@ -24,8 +24,8 @@ class DynamicOptionsRegistry : public QObject
                    targetComponentIdChanged FINAL)
     Q_PROPERTY(QStringList tokenKeys READ tokenKeys NOTIFY tokenKeysChanged FINAL)
     Q_PROPERTY(QVariantList tokenKeyOptions READ tokenKeyOptions NOTIFY tokenKeyOptionsChanged FINAL)
-    Q_PROPERTY(QVariantList options READ options WRITE setOptions NOTIFY optionsChanged FINAL)
-    Q_PROPERTY(QString sourceKey READ sourceKey WRITE setSourceKey NOTIFY sourceKeyChanged FINAL)
+    Q_PROPERTY(QMap<QString, QVariantList> targetSourceOptions READ targetSourceOptions WRITE setTargetSourceOptions
+                   NOTIFY targetSourceOptionsChanged FINAL)
 
 public:
     explicit DynamicOptionsRegistry(QObject* parent = nullptr);
@@ -56,11 +56,11 @@ public:
      */
     bool registerSource(const QString& sourceKey, const QVariantList& options);
 
-    QVariantList options() const;
-    void setOptions(const QVariantList& newOptions);
-
     QString sourceKey() const;
     void setSourceKey(const QString& newSourceKey);
+
+    QMap<QString, QVariantList> targetSourceOptions() const;
+    void setTargetSourceOptions(const QMap<QString, QVariantList>& newTargetSourceOptions);
 
 signals:
     void graphChanged();
@@ -69,9 +69,9 @@ signals:
     void tokenKeysChanged();
     void tokenKeyOptionsChanged();
 
-    void optionsChanged();
-
     void sourceKeyChanged();
+
+    void targetSourceOptionsChanged();
 
 private:
     void reconnectGraphSignals();
@@ -90,9 +90,8 @@ private:
 
     // NEW: Using sourceKey, textRole, and valueRole for dynamic options
     QString m_sourceKey;
-    QVariantList m_options;
-
-    QMap<QString, QVariantList> m_registeredSources; // Maps sourceKey to its options
+    QMap<QString, QVariantList> m_targetSourceOptions; // Maps targetComponentId to its sourceKey and options
+    QMap<QString, QVariantList> m_registeredSources;   // Maps sourceKey to its options
 };
 
 #endif // DYNAMICOPTIONSREGISTRY_H

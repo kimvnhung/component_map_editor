@@ -1,6 +1,7 @@
 #include "DynamicOptionsRegistry.h"
 
 #include <algorithm>
+#include <base_log.h>
 
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
@@ -147,6 +148,13 @@ void DynamicOptionsRegistry::refresh()
             }
         }
     }
+
+    m_targetSourceOptions = m_registeredSources;
+    LOGDF("m_targetSourceOptions: length= {}, m_registeredSources.lengh= {}", m_targetSourceOptions.size(),
+          m_registeredSources.size());
+    qDebug() << m_targetSourceOptions;
+    // TODO: Need to copy more source options which is dynamicly with special targetComponent later
+    emit targetSourceOptionsChanged();
 }
 
 QVariantList DynamicOptionsRegistry::sortedOptionsByText(const QVariantList& rows)
@@ -182,16 +190,27 @@ void DynamicOptionsRegistry::updateOptionsForSource(const QString& sourceKey, co
     if (sourceKey.trimmed().isEmpty())
         return;
 
-    if (!m_registeredSources.contains(sourceKey))
-        return;
-
-    const QVariantList sortedOptions = sortedOptionsByText(options);
-    m_registeredSources[sourceKey] = sortedOptions;
-
-    if (m_sourceKey == sourceKey)
+    if (m_registeredSources.contains(sourceKey))
     {
-        setOptions(sortedOptions);
+        m_registeredSources[sourceKey] = sortedOptionsByText(options);
     }
+    else
+    {
+        m_registeredSources.insert(sourceKey, sortedOptionsByText(options));
+    }
+}
+
+QMap<QString, QVariantList> DynamicOptionsRegistry::targetSourceOptions() const
+{
+    return m_targetSourceOptions;
+}
+
+void DynamicOptionsRegistry::setTargetSourceOptions(const QMap<QString, QVariantList>& newTargetSourceOptions)
+{
+    if (m_targetSourceOptions == newTargetSourceOptions)
+        return;
+    m_targetSourceOptions = newTargetSourceOptions;
+    emit targetSourceOptionsChanged();
 }
 
 QString DynamicOptionsRegistry::sourceKey() const
@@ -205,19 +224,6 @@ void DynamicOptionsRegistry::setSourceKey(const QString& newSourceKey)
         return;
     m_sourceKey = newSourceKey;
     emit sourceKeyChanged();
-}
-
-QVariantList DynamicOptionsRegistry::options() const
-{
-    return m_options;
-}
-
-void DynamicOptionsRegistry::setOptions(const QVariantList& newOptions)
-{
-    if (m_options == newOptions)
-        return;
-    m_options = newOptions;
-    emit optionsChanged();
 }
 
 void DynamicOptionsRegistry::reconnectGraphSignals()

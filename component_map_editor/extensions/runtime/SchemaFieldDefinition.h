@@ -51,9 +51,6 @@ SchemaFieldType schemaFieldTypeFromString(const QString& value);
 QString schemaFieldWidgetToString(SchemaFieldWidget value);
 SchemaFieldWidget schemaFieldWidgetFromString(const QString& value);
 
-QString schemaOptionsSourceToString(SchemaOptionsSource value, const QString& customValue = QString());
-SchemaOptionsSource schemaOptionsSourceFromString(const QString& value);
-
 QString schemaFieldSectionToString(SchemaFieldSection value, const QString& customValue = QString());
 SchemaFieldSection schemaFieldSectionFromString(const QString& value);
 
@@ -79,6 +76,7 @@ struct SchemaFieldDefinition
     QVariantMap validation;
     bool valid = true;
     QString schemaError;
+    QVariantMap dropdownOptions;
 };
 
 class SchemaFieldLegacyAdapter
