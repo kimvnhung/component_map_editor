@@ -42,7 +42,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                                                      .title("Component Startup ID")
                                                      .required()
                                                      .defaultValue(QString())
-                                                     .dropdown(Options::tokenRef())
+                                                     .dropdown(cme::runtime::Options::defined("components"))
                                                      .section(SchemaFieldSection::Behavior)
                                                      .order(10)
                                                      .build(),

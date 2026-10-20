@@ -6,6 +6,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include "extensions/runtime/SchemaOptionsSpec.h"
+
 namespace cme::runtime
 {
 
@@ -29,14 +31,6 @@ enum class SchemaFieldWidget
     SchemaError
 };
 
-enum class SchemaOptionsSource
-{
-    None = 0,
-    TokenKeys,
-    TokenKeyOptions,
-    Custom
-};
-
 enum class SchemaFieldSection
 {
     General = 0,
@@ -56,9 +50,6 @@ SchemaFieldType schemaFieldTypeFromString(const QString& value);
 
 QString schemaFieldWidgetToString(SchemaFieldWidget value);
 SchemaFieldWidget schemaFieldWidgetFromString(const QString& value);
-
-QString schemaOptionsSourceToString(SchemaOptionsSource value, const QString& customValue = QString());
-SchemaOptionsSource schemaOptionsSourceFromString(const QString& value);
 
 QString schemaFieldSectionToString(SchemaFieldSection value, const QString& customValue = QString());
 SchemaFieldSection schemaFieldSectionFromString(const QString& value);
@@ -85,6 +76,7 @@ struct SchemaFieldDefinition
     QVariantMap validation;
     bool valid = true;
     QString schemaError;
+    QVariantMap dropdownOptions;
 };
 
 class SchemaFieldLegacyAdapter

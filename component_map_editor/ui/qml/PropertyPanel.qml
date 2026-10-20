@@ -11,8 +11,6 @@ Rectangle {
     // Internal model reference. This is used to determine which model is currently being inspected.
     property var _model: null
     property UndoStack undoStack: null
-    property var providerOutputKeyHints: ({})
-    property TokenKeyCatalog tokenKeyCatalog: null
 
     // Unified entry point. Callers can set this to either a ComponentModel,
     // a ConnectionModel, or null. The handler dispatches to component/connection
@@ -34,7 +32,7 @@ Rectangle {
 
     property PropertySchemaRegistry propertySchemaRegistry: null
     readonly property PropertySchemaRegistry effectiveSchemaRegistry: root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
-    readonly property TokenKeyCatalog effectiveTokenKeyCatalog: root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
+    // readonly property TokenKeyCatalog effectiveTokenKeyCatalog: root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
 
     readonly property var connectionSideModel: [
         {
@@ -84,11 +82,6 @@ Rectangle {
         return root.effectiveSchemaRegistry.typedSectionModelForTarget(targetId);
     }
 
-    readonly property var dynamicFieldOptions: ({
-            "tokenKeys": root.effectiveTokenKeyCatalog ? root.effectiveTokenKeyCatalog.tokenKeys : [],
-            "tokenKeyOptions": root.effectiveTokenKeyCatalog ? root.effectiveTokenKeyCatalog.tokenKeyOptions : []
-        })
-
     function updateProperty(propertyName, value) {
         if (!root._model || !propertyName)
             return;
@@ -128,10 +121,11 @@ Rectangle {
         id: fallbackSchemaRegistry
     }
 
-    TokenKeyCatalog {
-        id: fallbackTokenKeyCatalog
+    DynamicOptionsRegistry {
+        id: dynamicOptionsRegistry
         graph: root.graph
-        providerOutputKeyHints: root.providerOutputKeyHints
+        // providerOutputKeyHints: root.providerOutputKeyHints
+        propertySchemaRegistry: root.effectiveSchemaRegistry
         // TODO: Need to improve this, without hard-coding grah as the targetComponentId
         targetComponentId: root.isComponentModel ? root._model.id : "graph"
     }
@@ -161,11 +155,11 @@ Rectangle {
             schemaSections: root.activeSchemaSections
             schemaSectionModel: root.activeSchemaSectionModel
             modelObject: root._model
-            expectedModelObjectId: root.isGraphModel ? "" : root._model.id
+            expectedModelObjectId: root.isGraphModel ? "graph" : root._model.id
             expectedSchemaTarget: root.target
             readOnly: root.undoStack === null
             sideModel: root.connectionSideModel
-            dynamicOptions: root.dynamicFieldOptions
+            dynamicOptions: dynamicOptionsRegistry.targetSourceOptions
             onPropertyEditRequested: function (propertyName, value, sourceModelObject) {
                 var activeModelObject = root._model;
                 if (sourceModelObject !== activeModelObject)

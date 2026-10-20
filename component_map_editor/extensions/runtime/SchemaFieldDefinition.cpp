@@ -86,34 +86,6 @@ SchemaFieldWidget schemaFieldWidgetFromString(const QString& value)
     return SchemaFieldWidget::Unknown;
 }
 
-QString schemaOptionsSourceToString(SchemaOptionsSource value, const QString& customValue)
-{
-    switch (value)
-    {
-        case SchemaOptionsSource::None:
-            return QString();
-        case SchemaOptionsSource::TokenKeys:
-            return QStringLiteral("tokenKeys");
-        case SchemaOptionsSource::TokenKeyOptions:
-            return QStringLiteral("tokenKeyOptions");
-        case SchemaOptionsSource::Custom:
-            return customValue.trimmed();
-    }
-    return QString();
-}
-
-SchemaOptionsSource schemaOptionsSourceFromString(const QString& value)
-{
-    const QString key = normalized(value);
-    if (key.isEmpty())
-        return SchemaOptionsSource::None;
-    if (key == QStringLiteral("tokenKeys"))
-        return SchemaOptionsSource::TokenKeys;
-    if (key == QStringLiteral("tokenKeyOptions"))
-        return SchemaOptionsSource::TokenKeyOptions;
-    return SchemaOptionsSource::Custom;
-}
-
 QString schemaFieldSectionToString(SchemaFieldSection value, const QString& customValue)
 {
     switch (value)
@@ -196,6 +168,8 @@ SchemaFieldDefinition SchemaFieldLegacyAdapter::fromLegacyRow(const QVariantMap&
     field.optionsSourceKey = raw.value(QStringLiteral("optionsSource")).toString();
     field.optionsSource = schemaOptionsSourceFromString(field.optionsSourceKey);
 
+    field.dropdownOptions = raw.value(QStringLiteral("dropdownOptions")).toMap();
+
     if (field.key.isEmpty())
     {
         field.valid = false;
@@ -224,7 +198,8 @@ QVariantMap SchemaFieldLegacyAdapter::toNormalizedRow(const SchemaFieldDefinitio
 {
     const QString typeName = field.typeName.isEmpty() ? schemaFieldTypeToString(field.type) : field.typeName;
     const QString widgetName = field.valid ? field.widgetName : QStringLiteral("schema_error");
-    const QString optionsSource = schemaOptionsSourceToString(field.optionsSource, field.optionsSourceKey);
+    // TODO: review below changed later
+    const QString optionsSource = cme::runtime::schemaOptionsSourceToString(field.optionsSource);
     const QString section = field.section.isEmpty() ? schemaFieldSectionToString(field.sectionEnum) : field.section;
 
     return {{QStringLiteral("key"), field.key},
@@ -246,7 +221,8 @@ QVariantMap SchemaFieldLegacyAdapter::toNormalizedRow(const SchemaFieldDefinitio
             {QStringLiteral("visibleWhen"), field.visibleWhen},
             {QStringLiteral("validation"), field.validation},
             {QStringLiteral("valid"), field.valid},
-            {QStringLiteral("schemaError"), field.schemaError}};
+            {QStringLiteral("schemaError"), field.schemaError},
+            {QStringLiteral("dropdownOptions"), field.dropdownOptions}};
 }
 
 } // namespace cme::runtime

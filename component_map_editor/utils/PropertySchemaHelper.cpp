@@ -99,19 +99,10 @@ Field& Field::textField()
     return *this;
 }
 
-Field& Field::dropdown(SchemaOptionsSpec spec)
+Field& Field::dropdown(cme::runtime::SchemaOptionsSpec spec)
 {
     m_widget = cme::runtime::SchemaFieldWidget::Dropdown;
-    if (spec.sourceId == "fixed")
-    {
-        m_options = spec.items;
-    }
-    else
-    {
-        m_optionsSource = spec.sourceId == OptionsSources::TokenKeys
-                              ? cme::runtime::SchemaOptionsSource::TokenKeys
-                              : cme::runtime::SchemaOptionsSource::TokenKeyOptions;
-    }
+    m_optionsSpec = spec;
     return *this;
 }
 
@@ -143,12 +134,9 @@ cme::templates::v1::PropertySchemaFieldTemplate Field::build() const
     const QByteArray sectionName = cme::runtime::schemaFieldSectionToString(m_section).toUtf8();
 
     QVariantMap mergedExtra = m_extra;
-    const QString optionsSourceValue =
-        cme::runtime::schemaOptionsSourceToString(m_optionsSource, m_customOptionsSource);
-
-    if (!optionsSourceValue.isEmpty() && !mergedExtra.contains(QStringLiteral("optionsSource")))
+    if (!mergedExtra.contains("dropdownOptions"))
     {
-        mergedExtra.insert(QStringLiteral("optionsSource"), optionsSourceValue);
+        mergedExtra.insert("dropdownOptions", cme::runtime::schemaOptionsSpecToMap(m_optionsSpec));
     }
 
     cme::templates::v1::PropertySchemaFieldTemplate field;
@@ -191,36 +179,6 @@ cme::templates::v1::PropertySchemaFieldTemplate Field::build() const
 
     return field;
 }
-
-// cme::templates::v1::PropertySchemaFieldTemplate
-// makeField(const char* key, const char* type, const char* title, bool required, const QVariant& defaultValue,
-//           const char* editor, const char* section, int order, const QString& hint, const QVariantMap& validation,
-//           const QVariantMap& visibleWhen, const QVariantList& options, const QVariantMap& extra)
-// {
-// }
-
-// cme::templates::v1::PropertySchemaFieldTemplate
-// makeField(const char* key, cme::runtime::SchemaFieldType type, const char* title, bool required,
-//           const QVariant& defaultValue, cme::runtime::SchemaFieldWidget widget,
-//           cme::runtime::SchemaFieldSection section, int order, const QString& hint, const QVariantMap& validation,
-//           const QVariantMap& visibleWhen, const QVariantList& options, cme::runtime::SchemaOptionsSource
-//           optionsSource, const QString& customOptionsSource, const QVariantMap& extra)
-// {
-//     const QByteArray typeName = cme::runtime::schemaFieldTypeToString(type).toUtf8();
-//     const QByteArray widgetName = cme::runtime::schemaFieldWidgetToString(widget).toUtf8();
-//     const QByteArray sectionName = cme::runtime::schemaFieldSectionToString(section).toUtf8();
-
-//     QVariantMap mergedExtra = extra;
-//     const QString optionsSourceValue = cme::runtime::schemaOptionsSourceToString(optionsSource, customOptionsSource);
-
-//     if (!optionsSourceValue.isEmpty() && !mergedExtra.contains(QStringLiteral("optionsSource")))
-//     {
-//         mergedExtra.insert(QStringLiteral("optionsSource"), optionsSourceValue);
-//     }
-
-//     return makeField(key, typeName.constData(), title, required, defaultValue, widgetName.constData(),
-//                      sectionName.constData(), order, hint, validation, visibleWhen, options, mergedExtra);
-// }
 
 void addTarget(cme::templates::v1::PropertySchemaTemplateBundle* bundle, const char* targetId,
                const std::initializer_list<cme::templates::v1::PropertySchemaFieldTemplate>& fields)

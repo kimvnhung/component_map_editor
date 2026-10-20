@@ -20,91 +20,74 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
     bundle.set_provider_id("customize.workflow.propertySchema.control");
     bundle.set_schema_version("1.0.0");
 
-    cme::helper::property_schemas::addTarget(
-        &bundle, "component/control/loop",
-        {
-            // cme::helper::property_schemas::makeField("iterKey", SchemaFieldType::String, "Iter Key", true,
-            // QStringLiteral("iter"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 1, kTokenKeyHint, {},
-            // {}, {}, SchemaOptionsSource::TokenKeys), cme::helper::property_schemas::makeField("maxIterKey",
-            // SchemaFieldType::String, "Max Iter Key", true, QStringLiteral("maxIter"), SchemaFieldWidget::Dropdown,
-            // SchemaFieldSection::Context, 2, kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-            // cme::helper::property_schemas::makeField("continueKey", SchemaFieldType::String, "Continue Key", true,
-            // QStringLiteral("continueLoop"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 3,
-            // kTokenKeyHint, {}, {}, {}, SchemaOptionsSource::TokenKeys),
-            // cme::helper::property_schemas::makeField("conditionKey", SchemaFieldType::String, "Condition Key", true,
-            // QStringLiteral("condition"), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4, kTokenKeyHint,
-            // {}, {}, {}, SchemaOptionsSource::TokenKeys), cme::helper::property_schemas::makeField("iter",
-            // SchemaFieldType::Number, "Fallback Iter", false, 0, SchemaFieldWidget::SpinBox,
-            // SchemaFieldSection::Fallback, 20), cme::helper::property_schemas::makeField("maxIter",
-            // SchemaFieldType::Number, "Fallback Max Iter", false, 10, SchemaFieldWidget::SpinBox,
-            // SchemaFieldSection::Fallback, 21), cme::helper::property_schemas::makeField("condition",
-            // SchemaFieldType::Boolean, "Fallback Condition", false, true, SchemaFieldWidget::Checkbox,
-            // SchemaFieldSection::Fallback, 22)
-            cme::helper::property_schemas::Field("iterKey")
-                .type(SchemaFieldType::String)
-                .title("Iter Key")
-                .required()
-                .defaultValue(QStringLiteral("iter"))
-                .dropdown(Options::tokenKeys())
-                .section(SchemaFieldSection::Context)
-                .order(1)
-                .hint(kTokenKeyHint)
-                .build(),
-            cme::helper::property_schemas::Field("maxIterKey")
-                .type(SchemaFieldType::String)
-                .title("Max Iter Key")
-                .required()
-                .defaultValue(QStringLiteral("maxIter"))
-                .dropdown(Options::tokenKeys())
-                .section(SchemaFieldSection::Context)
-                .order(2)
-                .hint(kTokenKeyHint)
-                .build(),
-            cme::helper::property_schemas::Field("continueKey")
-                .type(SchemaFieldType::String)
-                .title("Continue Key")
-                .required()
-                .defaultValue(QStringLiteral("continueLoop"))
-                .dropdown(Options::tokenKeys())
-                .section(SchemaFieldSection::Context)
-                .order(3)
-                .hint(kTokenKeyHint)
-                .build(),
-            cme::helper::property_schemas::Field("conditionKey")
-                .type(SchemaFieldType::String)
-                .title("Condition Key")
-                .required()
-                .defaultValue(QStringLiteral("condition"))
-                .dropdown(Options::tokenKeys())
-                .section(SchemaFieldSection::Context)
-                .order(4)
-                .hint(kTokenKeyHint)
-                .build(),
-            cme::helper::property_schemas::Field("iter")
-                .type(SchemaFieldType::Number)
-                .title("Fallback Iter")
-                .defaultValue(0)
-                .spinBox()
-                .section(SchemaFieldSection::Fallback)
-                .order(20)
-                .build(),
-            cme::helper::property_schemas::Field("maxIter")
-                .type(SchemaFieldType::Number)
-                .title("Fallback Max Iter")
-                .defaultValue(10)
-                .spinBox()
-                .section(SchemaFieldSection::Fallback)
-                .order(21)
-                .build(),
-            cme::helper::property_schemas::Field("condition")
-                .type(SchemaFieldType::Boolean)
-                .title("Fallback Condition")
-                .defaultValue(true)
-                .checkbox()
-                .section(SchemaFieldSection::Fallback)
-                .order(22)
-                .build(),
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/control/loop",
+                                             {
+
+                                                 cme::helper::property_schemas::Field("iterKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Iter Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("iter"))
+                                                     .dropdown(cme::runtime::Options::tokenKeys())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(1)
+                                                     .hint(kTokenKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("maxIterKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Max Iter Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("maxIter"))
+                                                     .dropdown(cme::runtime::Options::tokenKeys())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("continueKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Continue Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("continueLoop"))
+                                                     .dropdown(cme::runtime::Options::tokenKeys())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(3)
+                                                     .hint(kTokenKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("conditionKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Condition Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("condition"))
+                                                     .dropdown(cme::runtime::Options::tokenKeys())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("iter")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback Iter")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("maxIter")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback Max Iter")
+                                                     .defaultValue(10)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("condition")
+                                                     .type(SchemaFieldType::Boolean)
+                                                     .title("Fallback Condition")
+                                                     .defaultValue(true)
+                                                     .checkbox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(22)
+                                                     .build(),
+                                             });
 
     cme::helper::property_schemas::addTarget(&bundle, "component/control/ifelse",
                                              {
@@ -113,7 +96,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                                                      .title("Condition Key")
                                                      .required()
                                                      .defaultValue(QStringLiteral("condition"))
-                                                     .dropdown(Options::tokenKeys())
+                                                     .dropdown(cme::runtime::Options::tokenKeys())
                                                      .section(SchemaFieldSection::Context)
                                                      .order(1)
                                                      .hint(kTokenKeyHint)
@@ -123,7 +106,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                                                      .title("True Route Key")
                                                      .required()
                                                      .defaultValue(QStringLiteral("routeTrue"))
-                                                     .dropdown(Options::tokenKeys())
+                                                     .dropdown(cme::runtime::Options::tokenKeys())
                                                      .section(SchemaFieldSection::Context)
                                                      .order(2)
                                                      .hint(kTokenKeyHint)
@@ -133,7 +116,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                                                      .title("False Route Key")
                                                      .required()
                                                      .defaultValue(QStringLiteral("routeFalse"))
-                                                     .dropdown(Options::tokenKeys())
+                                                     .dropdown(cme::runtime::Options::tokenKeys())
                                                      .section(SchemaFieldSection::Context)
                                                      .order(3)
                                                      .hint(kTokenKeyHint)

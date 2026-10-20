@@ -53,6 +53,10 @@ public:
     Q_INVOKABLE void beginBatchUpdate();
     Q_INVOKABLE void endBatchUpdate();
 
+    Q_INVOKABLE bool setDynamicProperty(const QString& name, const QVariant& value);
+    Q_INVOKABLE bool hasDynamicProperty(const QString& name) const;
+    Q_INVOKABLE QVariant dynamicPropertyValue(const QString& name) const;
+
     QString id() const;
     void setId(const QString& newId);
 

@@ -24,7 +24,7 @@ public:
     // Define Widget
     Field& textArea();
     Field& textField();
-    Field& dropdown(SchemaOptionsSpec spec = SchemaOptionsSpec::none());
+    Field& dropdown(cme::runtime::SchemaOptionsSpec spec = cme::runtime::SchemaOptionsSpec::none());
     Field& checkbox();
     Field& spinBox(double min = -1, double max = -1);
 
@@ -57,6 +57,7 @@ private:
     cme::runtime::SchemaOptionsSource m_optionsSource = cme::runtime::SchemaOptionsSource::None;
     QString m_customOptionsSource;
     QVariantMap m_extra;
+    cme::runtime::SchemaOptionsSpec m_optionsSpec = cme::runtime::SchemaOptionsSpec::none();
 };
 
 // cme::templates::v1::PropertySchemaFieldTemplate
