@@ -18,8 +18,6 @@ class GraphModel : public QObject
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
     Q_PROPERTY(
         QString startComponentId READ startComponentId WRITE setStartComponentId NOTIFY startComponentIdChanged FINAL)
-    Q_PROPERTY(QString startComponentTitle READ startComponentTitle WRITE setStartComponentTitle NOTIFY
-                   startComponentTitleChanged FINAL)
     Q_PROPERTY(QVariantList components READ componentsVariant NOTIFY componentsChanged FINAL)
     Q_PROPERTY(QVariantList connections READ connectionsVariant NOTIFY connectionsChanged FINAL)
     Q_PROPERTY(int componentCount READ componentCount NOTIFY componentsChanged FINAL)
@@ -66,9 +64,6 @@ public:
     QString startComponentId() const;
     void setStartComponentId(const QString& newStartComponentId);
 
-    QString startComponentTitle() const;
-    void setStartComponentTitle(const QString& newStartComponentTitle);
-
 signals:
     void componentAdded(ComponentModel* component);
     void componentRemoved(const QString& id);
@@ -82,8 +77,6 @@ signals:
     void nameChanged();
 
     void startComponentIdChanged();
-
-    void startComponentTitleChanged();
 
 private:
     ComponentModel* firstComponentByIdLinear(const QString& id) const;
@@ -112,7 +105,6 @@ private:
     QString m_id;
     QString m_name;
     QString m_startComponentId;
-    QString m_startComponentTitle;
 };
 
 #endif // GRAPHMODEL_H

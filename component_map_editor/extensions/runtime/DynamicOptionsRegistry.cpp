@@ -104,6 +104,14 @@ void DynamicOptionsRegistry::refresh()
                                           {QStringLiteral("key"), componentId},
                                           {QStringLiteral("title"), componentTitle}});
         }
+        if (components.isEmpty())
+        {
+            options.push_back(QVariantMap{{QStringLiteral("text"), QString("No components found")},
+                                          {QStringLiteral("value"), QString()},
+                                          {QStringLiteral("key"), QString()},
+                                          {QStringLiteral("title"), QString()}});
+        }
+
         updateOptionsForSource(QStringLiteral("components"), options);
     }
     else

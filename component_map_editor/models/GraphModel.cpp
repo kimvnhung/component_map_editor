@@ -1,6 +1,7 @@
 #include "GraphModel.h"
 
 #include <QtAlgorithms>
+#include <base_log.h>
 
 GraphModel::GraphModel(QObject* parent) : QObject(parent) {}
 
@@ -240,19 +241,6 @@ void GraphModel::assertIndexIntegrity() const
 }
 #endif
 
-QString GraphModel::startComponentTitle() const
-{
-    return m_startComponentTitle;
-}
-
-void GraphModel::setStartComponentTitle(const QString& newStartComponentTitle)
-{
-    if (m_startComponentTitle == newStartComponentTitle)
-        return;
-    m_startComponentTitle = newStartComponentTitle;
-    emit startComponentTitleChanged();
-}
-
 QString GraphModel::startComponentId() const
 {
     return m_startComponentId;
@@ -332,6 +320,14 @@ void GraphModel::addComponent(ComponentModel* component)
 {
     if (!component)
         return;
+
+    if (startComponentId().isEmpty())
+    {
+        // RELATED: CME-9 - Auto set first component as default when no component is selected, and the graph has
+        // components
+        setStartComponentId(component->id());
+    }
+
     // In batch mode skip duplicate check; caller guarantees unique IDs.
     if (!m_batchMode && m_componentIndex.contains(component->id()))
         return;
