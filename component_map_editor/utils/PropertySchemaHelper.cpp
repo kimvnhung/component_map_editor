@@ -180,36 +180,6 @@ cme::templates::v1::PropertySchemaFieldTemplate Field::build() const
     return field;
 }
 
-// cme::templates::v1::PropertySchemaFieldTemplate
-// makeField(const char* key, const char* type, const char* title, bool required, const QVariant& defaultValue,
-//           const char* editor, const char* section, int order, const QString& hint, const QVariantMap& validation,
-//           const QVariantMap& visibleWhen, const QVariantList& options, const QVariantMap& extra)
-// {
-// }
-
-// cme::templates::v1::PropertySchemaFieldTemplate
-// makeField(const char* key, cme::runtime::SchemaFieldType type, const char* title, bool required,
-//           const QVariant& defaultValue, cme::runtime::SchemaFieldWidget widget,
-//           cme::runtime::SchemaFieldSection section, int order, const QString& hint, const QVariantMap& validation,
-//           const QVariantMap& visibleWhen, const QVariantList& options, cme::runtime::SchemaOptionsSource
-//           optionsSource, const QString& customOptionsSource, const QVariantMap& extra)
-// {
-//     const QByteArray typeName = cme::runtime::schemaFieldTypeToString(type).toUtf8();
-//     const QByteArray widgetName = cme::runtime::schemaFieldWidgetToString(widget).toUtf8();
-//     const QByteArray sectionName = cme::runtime::schemaFieldSectionToString(section).toUtf8();
-
-//     QVariantMap mergedExtra = extra;
-//     const QString optionsSourceValue = cme::runtime::schemaOptionsSourceToString(optionsSource, customOptionsSource);
-
-//     if (!optionsSourceValue.isEmpty() && !mergedExtra.contains(QStringLiteral("optionsSource")))
-//     {
-//         mergedExtra.insert(QStringLiteral("optionsSource"), optionsSourceValue);
-//     }
-
-//     return makeField(key, typeName.constData(), title, required, defaultValue, widgetName.constData(),
-//                      sectionName.constData(), order, hint, validation, visibleWhen, options, mergedExtra);
-// }
-
 void addTarget(cme::templates::v1::PropertySchemaTemplateBundle* bundle, const char* targetId,
                const std::initializer_list<cme::templates::v1::PropertySchemaFieldTemplate>& fields)
 {

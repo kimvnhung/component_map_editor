@@ -97,12 +97,12 @@ void DynamicOptionsRegistry::refresh()
                 continue;
 
             const QString componentId = component->id().trimmed();
-            const QString componentType = component->type();
+            const QString componentTitle = component->title();
 
-            options.push_back(QVariantMap{{QStringLiteral("text"), componentId},
+            options.push_back(QVariantMap{{QStringLiteral("text"), QString("%1 - %2").arg(componentTitle, componentId)},
                                           {QStringLiteral("value"), componentId},
                                           {QStringLiteral("key"), componentId},
-                                          {QStringLiteral("sourceId"), componentId}});
+                                          {QStringLiteral("title"), componentTitle}});
         }
         updateOptionsForSource(QStringLiteral("components"), options);
     }
@@ -149,10 +149,10 @@ void DynamicOptionsRegistry::refresh()
         }
     }
 
-    m_targetSourceOptions = m_registeredSources;
-    LOGDF("m_targetSourceOptions: length= {}, m_registeredSources.lengh= {}", m_targetSourceOptions.size(),
-          m_registeredSources.size());
-    qDebug() << m_targetSourceOptions;
+    for (const QString& sourceKey : m_registeredSources.keys())
+    {
+        m_targetSourceOptions[sourceKey] = m_registeredSources.value(sourceKey);
+    }
     // TODO: Need to copy more source options which is dynamicly with special targetComponent later
     emit targetSourceOptionsChanged();
 }
@@ -200,12 +200,12 @@ void DynamicOptionsRegistry::updateOptionsForSource(const QString& sourceKey, co
     }
 }
 
-QMap<QString, QVariantList> DynamicOptionsRegistry::targetSourceOptions() const
+QVariantMap DynamicOptionsRegistry::targetSourceOptions() const
 {
     return m_targetSourceOptions;
 }
 
-void DynamicOptionsRegistry::setTargetSourceOptions(const QMap<QString, QVariantList>& newTargetSourceOptions)
+void DynamicOptionsRegistry::setTargetSourceOptions(const QVariantMap& newTargetSourceOptions)
 {
     if (m_targetSourceOptions == newTargetSourceOptions)
         return;

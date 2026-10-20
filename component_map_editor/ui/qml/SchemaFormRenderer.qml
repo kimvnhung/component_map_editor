@@ -83,10 +83,13 @@ Item {
 
         var objectType = root.modelObject.type !== undefined ? String(root.modelObject.type) : "";
         if (!objectType.length)
-            return "";
+            // Need to same with componentId in GraphPropertySchemaProvider
+            return "graph";
         return "component/" + objectType;
     }
 
+    // Returns true if the renderer's modelObject and schema target match the expected values (if any).
+    // This is used to determine if a field editor is still valid for the current modelObject and schema target.
     function isRendererStateStable() {
         if (!root.modelObject)
             return false;
@@ -258,12 +261,12 @@ Item {
         //     return ["rounded", "rectangle"];
         // if (field.key === "sourceSide" || field.key === "targetSide")
         //     return root.sideModel;
+        // console.log("field: ", JSON.stringify(field, 2, null));
+        // console.log("dynamicOptions: ", JSON.stringify(dynamicOptions, 2, null));
         if (field.dropdownOptions && field.dropdownOptions.sourceKey && field.dropdownOptions.sourceKey.length) {
             return dynamicOptions[field.dropdownOptions.sourceKey] || [];
         }
 
-        console.log("field: ", JSON.stringify(field, 2, null));
-        console.log("dynamicOptions: ", JSON.stringify(dynamicOptions, 2, null));
         return [];
     }
 
@@ -345,6 +348,13 @@ Item {
         if (typeof options[0] === "object")
             return "text";
         return "";
+    }
+
+    function enumTextRoleForField(field) {
+        if (field && field.dropdownOptions && field.dropdownOptions.textRole && field.dropdownOptions.textRole.length)
+            return field.dropdownOptions.textRole;
+
+        return "text";
     }
 
     function preferredAutoInitializeIndex(field, options, preferredValue) {
@@ -599,7 +609,7 @@ Item {
             }
 
             model: optionsModel
-            textRole: root.enumTextRole(optionsModel)
+            textRole: root.enumTextRoleForField(fieldData)
             currentIndex: -1
             enabled: !root.readOnly
 

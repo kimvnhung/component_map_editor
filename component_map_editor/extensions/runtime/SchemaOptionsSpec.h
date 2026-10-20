@@ -39,7 +39,7 @@ QVariantMap schemaOptionsSpecToMap(const SchemaOptionsSpec& spec);
 namespace Options
 {
 SchemaOptionsSpec tokenKeys();
-SchemaOptionsSpec defined(QString sourceKey = QString());
+SchemaOptionsSpec defined(QString sourceKey = QString(), QString textRole = "text", QString valueRole = "value");
 SchemaOptionsSpec tokenRef(QString unsetLabel = QString());
 SchemaOptionsSpec custom(QVariantList items);
 }; // namespace Options

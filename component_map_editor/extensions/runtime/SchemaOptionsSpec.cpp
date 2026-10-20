@@ -82,14 +82,14 @@ SchemaOptionsSpec custom(QVariantList items)
     return SchemaOptionsSpec{SchemaOptionsSource::Custom, false, QString(), true, {}, "custom", "text", "value"};
 }
 
-SchemaOptionsSpec defined(QString sourceKey)
+SchemaOptionsSpec defined(QString sourceKey, QString textRole, QString valueRole)
 {
     SchemaOptionsSpec spec;
     spec.source = SchemaOptionsSource::Defined;
     spec.sourceKey = sourceKey;
     // Note: All defined options will have textRole = "text" and valueRole = "value" by default
-    spec.textRole = "text";
-    spec.valueRole = "value";
+    spec.textRole = textRole;
+    spec.valueRole = valueRole;
     return spec;
 }
 } // namespace Options
