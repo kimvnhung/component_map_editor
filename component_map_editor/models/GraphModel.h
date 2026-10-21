@@ -15,7 +15,7 @@ class GraphModel : public QObject
     QML_ELEMENT
 
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY idChanged FINAL)
-    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
+    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged FINAL)
     Q_PROPERTY(
         QString startComponentId READ startComponentId WRITE setStartComponentId NOTIFY startComponentIdChanged FINAL)
     Q_PROPERTY(QVariantList components READ componentsVariant NOTIFY componentsChanged FINAL)
@@ -58,11 +58,11 @@ public:
     QString id() const;
     void setId(const QString& newId);
 
-    QString name() const;
-    void setName(const QString& newName);
-
     QString startComponentId() const;
     void setStartComponentId(const QString& newStartComponentId);
+
+    QString title() const;
+    void setTitle(const QString& newTitle);
 
 signals:
     void componentAdded(ComponentModel* component);
@@ -73,10 +73,9 @@ signals:
     void connectionsChanged();
 
     void idChanged();
-
-    void nameChanged();
-
     void startComponentIdChanged();
+
+    void titleChanged();
 
 private:
     ComponentModel* firstComponentByIdLinear(const QString& id) const;
@@ -103,7 +102,7 @@ private:
     QHash<ConnectionModel*, QString> m_connectionTrackedIds;
     bool m_batchMode = false;
     QString m_id;
-    QString m_name;
+    QString m_title;
     QString m_startComponentId;
 };
 

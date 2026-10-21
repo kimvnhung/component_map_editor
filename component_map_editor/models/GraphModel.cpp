@@ -239,6 +239,19 @@ void GraphModel::assertIndexIntegrity() const
     const bool ok = verifyComponentIndexIntegrity() && verifyConnectionIndexIntegrity();
     Q_ASSERT_X(ok, "GraphModel::assertIndexIntegrity", "GraphModel internal id index diverged from source collections");
 }
+
+QString GraphModel::title() const
+{
+    return m_title;
+}
+
+void GraphModel::setTitle(const QString& newTitle)
+{
+    if (m_title == newTitle)
+        return;
+    m_title = newTitle;
+    emit titleChanged();
+}
 #endif
 
 QString GraphModel::startComponentId() const
@@ -252,19 +265,6 @@ void GraphModel::setStartComponentId(const QString& newStartComponentId)
         return;
     m_startComponentId = newStartComponentId;
     emit startComponentIdChanged();
-}
-
-QString GraphModel::name() const
-{
-    return m_name;
-}
-
-void GraphModel::setName(const QString& newName)
-{
-    if (m_name == newName)
-        return;
-    m_name = newName;
-    emit nameChanged();
 }
 
 QString GraphModel::id() const
