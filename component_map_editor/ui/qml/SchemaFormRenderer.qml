@@ -218,7 +218,11 @@ Item {
             return field.defaultValue;
 
         var value = root.readModelProperty(key);
-        return value === undefined ? field.defaultValue : value;
+        // return defaultValue if value == undefined, or if value is string and value.length == 0
+        if (value === undefined || (typeof value === "string" && value.length === 0))
+            return field.defaultValue;
+
+        return value;
     }
 
     function fieldVisible(field) {
@@ -537,6 +541,12 @@ Item {
             text: {
                 var value = root.fieldValue(fieldData);
                 return value === undefined || value === null ? "" : String(value);
+            }
+            onTextChanged: {
+                if (text === fieldData.defaultValue) {
+                    // On first loading default value
+                    root.requestPropertyEdit(fieldData.key || "", text);
+                }
             }
             placeholderText: fieldData.placeholder || ""
             readOnly: root.readOnly
