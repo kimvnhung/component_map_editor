@@ -16,7 +16,7 @@ QString schemaOptionsSourceToString(SchemaOptionsSource value)
     {
         case SchemaOptionsSource::None:
             return QString();
-        case SchemaOptionsSource::TokenKeys:
+        case SchemaOptionsSource::TokenRef:
             return QStringLiteral("tokenKeys");
         case SchemaOptionsSource::TokenKeyOptions:
             return QStringLiteral("tokenKeyOptions");
@@ -34,7 +34,7 @@ SchemaOptionsSource schemaOptionsSourceFromString(const QString& value)
     if (key.isEmpty())
         return SchemaOptionsSource::None;
     if (key == QStringLiteral("tokenKeys"))
-        return SchemaOptionsSource::TokenKeys;
+        return SchemaOptionsSource::TokenRef;
     if (key == QStringLiteral("tokenKeyOptions"))
         return SchemaOptionsSource::TokenKeyOptions;
     if (key == QStringLiteral("custom"))
@@ -62,17 +62,18 @@ namespace Options
 {
 SchemaOptionsSpec tokenKeys()
 {
-    SchemaOptionsSpec spec;
-    spec.source = SchemaOptionsSource::TokenKeys;
-    return spec;
+    return SchemaOptionsSpec::none();
 }
 
-SchemaOptionsSpec tokenRef(QString unsetLabel)
+SchemaOptionsSpec tokenRef(QString fallbackFieldKey)
 {
     SchemaOptionsSpec spec;
-    spec.source = SchemaOptionsSource::TokenKeys;
+    spec.source = SchemaOptionsSource::TokenRef;
     spec.allowUnset = true;
-    spec.unsetLabel = std::move(unsetLabel);
+    spec.unsetLabel = std::move(fallbackFieldKey);
+    spec.sourceKey = "tokenRef";
+    spec.textRole = "text";
+    spec.valueRole = "value";
 
     return spec;
 }

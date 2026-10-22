@@ -148,7 +148,7 @@ private slots:
                  QStringLiteral("bool"));
 
         QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenKeys")),
-                 cme::runtime::SchemaOptionsSource::TokenKeys);
+                 cme::runtime::SchemaOptionsSource::TokenRef);
         QCOMPARE(cme::runtime::schemaOptionsSourceToString(cme::runtime::SchemaOptionsSource::TokenKeyOptions),
                  QStringLiteral("tokenKeyOptions"));
         QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("customSource")),

@@ -35,21 +35,6 @@ void DynamicOptionsRegistry::setPropertySchemaRegistry(PropertySchemaRegistry* r
     m_propertySchemaRegistry = registry;
 }
 
-QVariantMap DynamicOptionsRegistry::providerOutputKeyHints() const
-{
-    return m_providerOutputKeyHints;
-}
-
-void DynamicOptionsRegistry::setProviderOutputKeyHints(const QVariantMap& hints)
-{
-    if (m_providerOutputKeyHints == hints)
-        return;
-
-    m_providerOutputKeyHints = hints;
-    emit providerOutputKeyHintsChanged();
-    refresh();
-}
-
 QString DynamicOptionsRegistry::targetComponentId() const
 {
     return m_targetComponentId;

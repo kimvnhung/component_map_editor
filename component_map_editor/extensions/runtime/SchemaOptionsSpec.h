@@ -10,7 +10,7 @@ namespace cme::runtime
 enum class SchemaOptionsSource
 {
     None,
-    TokenKeys,
+    TokenRef,
     Defined,
     Custom,
     TokenKeyOptions, // Note: to be deprecated
@@ -38,9 +38,10 @@ QVariantMap schemaOptionsSpecToMap(const SchemaOptionsSpec& spec);
 
 namespace Options
 {
+// Deprecated: No options replaced by SchemaOptionsSpec::none()
 SchemaOptionsSpec tokenKeys();
 SchemaOptionsSpec defined(QString sourceKey = QString(), QString textRole = "text", QString valueRole = "value");
-SchemaOptionsSpec tokenRef(QString unsetLabel = QString());
+SchemaOptionsSpec tokenRef(QString fallbackFieldKey = QString());
 SchemaOptionsSpec custom(QVariantList items);
 }; // namespace Options
 

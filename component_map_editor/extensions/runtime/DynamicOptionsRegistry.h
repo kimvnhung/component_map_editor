@@ -18,8 +18,6 @@ class DynamicOptionsRegistry : public QObject
 
     Q_PROPERTY(GraphModel* graph READ graph WRITE setGraph NOTIFY graphChanged FINAL)
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry WRITE setPropertySchemaRegistry FINAL)
-    Q_PROPERTY(QVariantMap providerOutputKeyHints READ providerOutputKeyHints WRITE setProviderOutputKeyHints NOTIFY
-                   providerOutputKeyHintsChanged FINAL)
     Q_PROPERTY(QString targetComponentId READ targetComponentId WRITE setTargetComponentId NOTIFY
                    targetComponentIdChanged FINAL)
     Q_PROPERTY(QStringList tokenKeys READ tokenKeys NOTIFY tokenKeysChanged FINAL)
@@ -33,9 +31,6 @@ public:
     void setGraph(GraphModel* graph);
 
     void setPropertySchemaRegistry(PropertySchemaRegistry* registry);
-
-    QVariantMap providerOutputKeyHints() const;
-    void setProviderOutputKeyHints(const QVariantMap& hints);
 
     QString targetComponentId() const;
     void setTargetComponentId(const QString& targetComponentId);
@@ -63,7 +58,6 @@ public:
 
 signals:
     void graphChanged();
-    void providerOutputKeyHintsChanged();
     void targetComponentIdChanged();
     void tokenKeysChanged();
     void tokenKeyOptionsChanged();
@@ -82,7 +76,6 @@ private:
 private:
     QPointer<GraphModel> m_graph;
     QPointer<PropertySchemaRegistry> m_propertySchemaRegistry;
-    QVariantMap m_providerOutputKeyHints;
     QString m_targetComponentId;
     QStringList m_tokenKeys;
     QVariantList m_tokenKeyOptions;

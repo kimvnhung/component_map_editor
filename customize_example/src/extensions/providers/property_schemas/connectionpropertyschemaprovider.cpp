@@ -88,7 +88,6 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                 .section(SchemaFieldSection::Routing)
                 .order(22)
                 .hint(QStringLiteral("Routing token key used for connection payload selection."))
-                .optionsSource(SchemaOptionsSource::TokenKeys)
                 .build(),
         });
 
