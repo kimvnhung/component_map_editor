@@ -32,6 +32,9 @@ Rectangle {
 
     property PropertySchemaRegistry propertySchemaRegistry: null
     readonly property PropertySchemaRegistry effectiveSchemaRegistry: root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
+
+    property DynamicOptionsRegistry dynamicOptionsRegistry: null
+    readonly property DynamicOptionsRegistry effectiveDynamicOptionsRegistry: root.dynamicOptionsRegistry ? root.dynamicOptionsRegistry : fallbackDynamicOptionsRegistry
     // readonly property TokenKeyCatalog effectiveTokenKeyCatalog: root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
 
     readonly property var connectionSideModel: [
@@ -122,9 +125,8 @@ Rectangle {
     }
 
     DynamicOptionsRegistry {
-        id: dynamicOptionsRegistry
+        id: fallbackDynamicOptionsRegistry
         graph: root.graph
-        // providerOutputKeyHints: root.providerOutputKeyHints
         propertySchemaRegistry: root.effectiveSchemaRegistry
         // TODO: Need to improve this, without hard-coding grah as the targetComponentId
         targetComponentId: root.isComponentModel ? root._model.id : "graph"
@@ -159,7 +161,7 @@ Rectangle {
             expectedSchemaTarget: root.target
             readOnly: root.undoStack === null
             sideModel: root.connectionSideModel
-            dynamicOptions: dynamicOptionsRegistry.targetSourceOptions
+            dynamicOptions: root.effectiveDynamicOptionsRegistry.targetSourceOptions
             onPropertyEditRequested: function (propertyName, value, sourceModelObject) {
                 var activeModelObject = root._model;
                 if (sourceModelObject !== activeModelObject)

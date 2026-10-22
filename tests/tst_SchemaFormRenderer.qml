@@ -27,17 +27,23 @@ TestCase {
         };
     }
 
+    function setCurrentField(renderer, field) {
+        renderer.schemaSections = [{ "title": "Test", "fields": [field] }];
+    }
+
     function test_optionsSource_resolvesDynamicTokenList() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
-            "tokenKeys": ["tok.a.b", "tok.b.c"]
+            "tokenRef": ["tok.a.b", "tok.b.c"]
         };
 
         var field = {
             "key": "inputAKey",
             "widget": "dropdown",
-            "optionsSource": "tokenKeys"
+            "optionsSource": "tokenRef",
+            "dropdownOptions": { "sourceKey": "tokenRef" }
         };
+        setCurrentField(renderer, field);
 
         var options = renderer.enumModelForField(field);
         compare(options.length, 2);
@@ -48,14 +54,15 @@ TestCase {
     function test_optionsSource_fallsBackToTextFieldWhenEmpty() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
-            "tokenKeys": []
+            "tokenRef": []
         };
 
         var field = {
             "key": "outputKey",
             "widget": "dropdown",
-            "optionsSource": "tokenKeys"
+            "optionsSource": "tokenRef"
         };
+        setCurrentField(renderer, field);
 
         compare(renderer.shouldFallbackToTextField(field), true);
     }
@@ -74,7 +81,7 @@ TestCase {
     function test_typedOptionsSourceEnum_resolvesDynamicTokenKeyOptions() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
-            "tokenKeyOptions": [
+            "tokenRef": [
                 { text: "edge-a::value", value: "edge-a::value" },
                 { text: "edge-b::value", value: "edge-b::value" }
             ]
@@ -83,8 +90,10 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+            "optionsSourceEnum": renderer.optionsSourceTokenRef,
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
+        setCurrentField(renderer, field);
 
         var options = renderer.enumModelForField(field);
         compare(options.length, 3);
@@ -102,6 +111,7 @@ TestCase {
         });
 
         var modelObject = {
+            hasDynamicProperty: function() { return false; },
             dynamicPropertyValue: function() { return ""; }
         };
         renderer.modelObject = modelObject;
@@ -109,8 +119,10 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+            "optionsSourceEnum": renderer.optionsSourceTokenRef,
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
+        setCurrentField(renderer, field);
 
         var applied = renderer.autoInitializeDropdownField(field, [
             { text: "Use fallback value", value: renderer.fallbackSelectionValue },
@@ -139,7 +151,7 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+            "optionsSourceEnum": renderer.optionsSourceTokenRef
         };
 
         renderer.modelObject = {
@@ -173,8 +185,10 @@ TestCase {
         var field = {
             "key": "inputBRef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+            "optionsSourceEnum": renderer.optionsSourceTokenRef,
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
+        setCurrentField(renderer, field);
 
         var applied = renderer.autoInitializeDropdownField(field, [
             { text: "Use fallback value", value: renderer.fallbackSelectionValue },
@@ -191,15 +205,21 @@ TestCase {
 
     function test_enumIndexForValue_matchesFallbackSentinel() {
         var renderer = makeRenderer();
-        var options = renderer.enumModelForField({
+        var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions,
-            "options": [
+            "optionsSourceEnum": renderer.optionsSourceTokenRef,
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
+        };
+        setCurrentField(renderer, field);
+        renderer.dynamicOptions = {
+            "tokenRef": [
                 { text: "edge-a::value", value: "edge-a::value" }
             ]
-        });
+        };
 
+        var options = renderer.enumModelForField(field);
+        compare(options.length, 2);
         compare(renderer.enumIndexForValue(options, renderer.fallbackSelectionValue), 0);
     }
 

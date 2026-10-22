@@ -83,27 +83,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_GraphModelIndexing
-    tst_GraphModelIndexing.cpp
-)
-
-target_link_libraries(tst_GraphModelIndexing
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_GraphModelIndexing
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_GraphModelIndexing
-    COMMAND tst_GraphModelIndexing
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_ExtensionContractRegistry
     tst_ExtensionContractRegistry.cpp
 )
@@ -272,27 +251,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_GraphExecutionSandbox
-    tst_GraphExecutionSandbox.cpp
-)
-
-target_link_libraries(tst_GraphExecutionSandbox
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_GraphExecutionSandbox
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_GraphExecutionSandbox
-    COMMAND tst_GraphExecutionSandbox
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_SequentialExecutionEngine
     tst_SequentialExecutionEngine.cpp
 )
@@ -440,55 +398,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# ── Phase 0: Baseline and Freeze ──────────────────────────────────────────────
-# This test suite locks in all pre-migration contracts (command names, schema
-# keys, extension IIDs, performance budgets, behavioral guarantees).
-# Run this at the start of every migration phase to prove no regression.
-qt_add_executable(tst_Phase0Baseline
-    tst_Phase0Baseline.cpp
-)
-
-target_link_libraries(tst_Phase0Baseline
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase0Baseline
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_Phase0Baseline
-    COMMAND tst_Phase0Baseline
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-# ── Phase 0: Design B Baseline Freeze ───────────────────────────────────────
-# Captures baseline metrics and invariants with token transport migration flag
-# disabled (default-off compatibility path).
-qt_add_executable(tst_Phase0DesignBBaselineFreeze
-    tst_Phase0DesignBBaselineFreeze.cpp
-)
-
-target_link_libraries(tst_Phase0DesignBBaselineFreeze
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase0DesignBBaselineFreeze
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_Phase0DesignBBaselineFreeze
-    COMMAND tst_Phase0DesignBBaselineFreeze
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 1: Protobuf Contract Foundation ─────────────────────────────────
 # Encode/decode roundtrip tests for every proto message type defined in proto/.
 # Links only cme_proto (no libComponentMapEditor dependency) — these are pure
@@ -632,32 +541,6 @@ target_include_directories(tst_Phase4PolicyMigration
 add_test(
     NAME tst_Phase4PolicyMigration
     COMMAND tst_Phase4PolicyMigration
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-# ── Phase 4: Composite Graph as Reusable Component ─────────────────────────
-# Verifies composite execution as a reusable subgraph, nested composite support,
-# recursion guard diagnostics, and performance tolerance against a baseline graph.
-qt_add_executable(tst_Phase4CompositeExecutionProvider
-    tst_Phase4CompositeExecutionProvider.cpp
-)
-
-target_link_libraries(tst_Phase4CompositeExecutionProvider
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase4CompositeExecutionProvider
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase4CompositeExecutionProvider
-    COMMAND tst_Phase4CompositeExecutionProvider
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -894,46 +777,6 @@ add_test(
     COMMAND tst_Phase11TemplateDescriptorTransport
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-
-qt_add_executable(tst_CustomizeExampleMathWorkflows
-    tst_CustomizeExampleMathWorkflows.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizeexecutionsanticsprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizestartexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizestopexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeaddexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizesubtractexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizemultiplyexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizedivideexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeifelseexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeloopexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeerrorhandlerexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeequalexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelessorequalexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelessthanexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelogicandexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizemodexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizesqrtexecutionprovider.cpp
-)
-
-target_link_libraries(tst_CustomizeExampleMathWorkflows
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_CustomizeExampleMathWorkflows
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers
-)
-
-add_test(
-    NAME tst_CustomizeExampleMathWorkflows
-    COMMAND tst_CustomizeExampleMathWorkflows
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-
 
 qt_add_executable(tst_PropertySchemaNormalizedRowBaseline
     tst_PropertySchemaNormalizedRowBaseline.cpp

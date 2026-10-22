@@ -1,5 +1,7 @@
 #include <QtTest>
 
+#include "extensions/contracts/ExtensionContractRegistry.h"
+#include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"
@@ -7,6 +9,38 @@
 
 namespace
 {
+
+class FakeExecutionSemanticsProvider : public IExecutionSemanticsProvider
+{
+public:
+    QString providerId() const override
+    {
+        return QStringLiteral("test.execution.dynamic-options");
+    }
+
+    QStringList supportedComponentTypes() const override
+    {
+        return {QStringLiteral("typeA"), QStringLiteral("typeC"), QStringLiteral("typeD")};
+    }
+
+    QStringList providedOutputKeys(const QString& componentType) const override
+    {
+        if (componentType == QStringLiteral("typeA"))
+            return {QStringLiteral("refA1"), QStringLiteral("refA2")};
+        if (componentType == QStringLiteral("typeC"))
+            return {QStringLiteral("refA1"), QStringLiteral("refC1"), QStringLiteral("refC2")};
+        if (componentType == QStringLiteral("typeD"))
+            return {QStringLiteral("refD1")};
+        return {};
+    }
+
+    bool executeComponent(const QString&, const QString&, const QVariantMap&,
+                          const cme::execution::IncomingTokens&,
+                          cme::execution::ExecutionPayload*, QVariantMap*, QString*) const override
+    {
+        return true;
+    }
+};
 
 void addComponent(GraphModel& graph, const QString& id, const QString& type)
 {
@@ -23,6 +57,28 @@ void addConnection(GraphModel& graph, const QString& id, const QString& sourceId
     graph.addConnection(connection);
 }
 
+void prepareRegistry(DynamicOptionsRegistry& registry, GraphModel& graph,
+                     ExtensionContractRegistry& contracts, FakeExecutionSemanticsProvider& provider,
+                     const QString& targetId)
+{
+    contracts.registerExecutionSemanticsProvider(&provider);
+    registry.rebuildFromRegistry(contracts);
+    registry.setGraph(&graph);
+    registry.setTargetComponentId(targetId);
+}
+
+QVariantMap findOption(const QVariantList& options, const QString& key, const QString& sourceId)
+{
+    for (const QVariant& value : options)
+    {
+        const QVariantMap option = value.toMap();
+        if (option.value(QStringLiteral("key")).toString() == key &&
+            option.value(QStringLiteral("sourceId")).toString() == sourceId)
+            return option;
+    }
+    return {};
+}
+
 } // namespace
 
 class tst_DynamicOptionsRegistry : public QObject
@@ -30,140 +86,132 @@ class tst_DynamicOptionsRegistry : public QObject
     Q_OBJECT
 
 private slots:
-    void showsDeclaredKeysForIncomingSourceType();
-    void emptyWhenNoHintsRegistered();
-    void multipleSources_unionsKeys();
-    void duplicateKeys_preserveDistinctTokenReferences();
-    void updatesWhenHintsChange();
+    void collectsOutputKeysFromDirectSources();
+    void optionObjectsExposeTextAndValue();
+    void duplicateKeysFromDifferentSourcesKeepDistinctValues();
+    void targetWithoutIncomingConnectionsHasNoOptions();
+    void refreshReactsToConnectionChanges();
+    void targetSourceOptionsExposesTokenRefSource();
 };
 
-void tst_DynamicOptionsRegistry::showsDeclaredKeysForIncomingSourceType()
+void tst_DynamicOptionsRegistry::collectsOutputKeysFromDirectSources()
 {
     GraphModel graph;
-    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
-    addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
-    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
+    addComponent(graph, QStringLiteral("comA"), QStringLiteral("typeA"));
+    addComponent(graph, QStringLiteral("comB"), QStringLiteral("typeB"));
+    addComponent(graph, QStringLiteral("comC"), QStringLiteral("typeC"));
+    addComponent(graph, QStringLiteral("comD"), QStringLiteral("typeD"));
+    addConnection(graph, QStringLiteral("edgeA"), QStringLiteral("comA"), QStringLiteral("comB"));
+    addConnection(graph, QStringLiteral("edgeC"), QStringLiteral("comC"), QStringLiteral("comB"));
+    addConnection(graph, QStringLiteral("edgeD"), QStringLiteral("comD"), QStringLiteral("other"));
 
-    DynamicOptionsRegistry catalog;
-    catalog.setGraph(&graph);
-    catalog.setTargetComponentId(QStringLiteral("P1"));
-    catalog.setProviderOutputKeyHints(
-        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("workingNumber"), QStringLiteral("started"),
-                                                          QStringLiteral("inputNumber")}}});
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    const QStringList keys = catalog.tokenKeys();
-    QVERIFY(keys.contains(QStringLiteral("workingNumber")));
-    QVERIFY(keys.contains(QStringLiteral("started")));
-    QVERIFY(keys.contains(QStringLiteral("inputNumber")));
-
-    // Options carry sourceId for display context
-    bool foundWithSourceId = false;
-    for (const QVariant& v : catalog.tokenKeyOptions())
-    {
-        const QVariantMap row = v.toMap();
-        if (row.value(QStringLiteral("key")).toString() == QStringLiteral("workingNumber") &&
-            row.value(QStringLiteral("sourceId")).toString() == QStringLiteral("S1"))
-        {
-            foundWithSourceId = true;
-            break;
-        }
-    }
-    QVERIFY(foundWithSourceId);
+    const QStringList keys = registry.tokenKeys();
+    QCOMPARE(keys.size(), 4);
+    QVERIFY(keys.contains(QStringLiteral("refA1")));
+    QVERIFY(keys.contains(QStringLiteral("refA2")));
+    QVERIFY(keys.contains(QStringLiteral("refC1")));
+    QVERIFY(keys.contains(QStringLiteral("refC2")));
+    QVERIFY(!keys.contains(QStringLiteral("refD1")));
 }
 
-void tst_DynamicOptionsRegistry::emptyWhenNoHintsRegistered()
+void tst_DynamicOptionsRegistry::optionObjectsExposeTextAndValue()
 {
     GraphModel graph;
-    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
-    addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
-    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
+    addComponent(graph, QStringLiteral("comA"), QStringLiteral("typeA"));
+    addComponent(graph, QStringLiteral("comB"), QStringLiteral("typeB"));
+    addConnection(graph, QStringLiteral("edgeA"), QStringLiteral("comA"), QStringLiteral("comB"));
 
-    DynamicOptionsRegistry catalog;
-    catalog.setGraph(&graph);
-    catalog.setTargetComponentId(QStringLiteral("P1"));
-    // No providerOutputKeyHints set — catalog should be empty
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    QVERIFY(catalog.tokenKeys().isEmpty());
-    QVERIFY(catalog.tokenKeyOptions().isEmpty());
+    const QVariantMap option = findOption(registry.tokenKeyOptions(), QStringLiteral("refA1"), QStringLiteral("comA"));
+    QVERIFY(!option.isEmpty());
+    QVERIFY(option.contains(QStringLiteral("text")));
+    QVERIFY(option.contains(QStringLiteral("value")));
+    QCOMPARE(option.value(QStringLiteral("text")).toString(), QStringLiteral("refA1 (comA via edgeA)"));
+    QCOMPARE(option.value(QStringLiteral("value")).toString(), QStringLiteral("edgeA::refA1"));
 }
 
-void tst_DynamicOptionsRegistry::multipleSources_unionsKeys()
+void tst_DynamicOptionsRegistry::duplicateKeysFromDifferentSourcesKeepDistinctValues()
 {
     GraphModel graph;
-    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
-    addComponent(graph, QStringLiteral("P2"), QStringLiteral("process"));
-    addComponent(graph, QStringLiteral("T1"), QStringLiteral("stop"));
-    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("T1"));
-    addConnection(graph, QStringLiteral("e2"), QStringLiteral("P2"), QStringLiteral("T1"));
+    addComponent(graph, QStringLiteral("comA"), QStringLiteral("typeA"));
+    addComponent(graph, QStringLiteral("comC"), QStringLiteral("typeC"));
+    addComponent(graph, QStringLiteral("comB"), QStringLiteral("typeB"));
+    addConnection(graph, QStringLiteral("edgeA"), QStringLiteral("comA"), QStringLiteral("comB"));
+    addConnection(graph, QStringLiteral("edgeC"), QStringLiteral("comC"), QStringLiteral("comB"));
 
-    DynamicOptionsRegistry catalog;
-    catalog.setGraph(&graph);
-    catalog.setTargetComponentId(QStringLiteral("T1"));
-    catalog.setProviderOutputKeyHints(
-        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("workingNumber"), QStringLiteral("started")}},
-                    {QStringLiteral("process"),
-                     QStringList{QStringLiteral("workingNumber"), QStringLiteral("lastProcessAddValue")}}});
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    const QStringList keys = catalog.tokenKeys();
-    // workingNumber appears in both — deduplicated
-    QCOMPARE(keys.count(QStringLiteral("workingNumber")), 1);
-    QVERIFY(keys.contains(QStringLiteral("started")));
-    QVERIFY(keys.contains(QStringLiteral("lastProcessAddValue")));
+    QVERIFY(registry.tokenKeys().contains(QStringLiteral("refA1")));
+    QCOMPARE(registry.tokenKeys().count(QStringLiteral("refA1")), 1);
+
+    const QVariantMap optionA = findOption(registry.tokenKeyOptions(), QStringLiteral("refA1"), QStringLiteral("comA"));
+    const QVariantMap optionC = findOption(registry.tokenKeyOptions(), QStringLiteral("refA1"), QStringLiteral("comC"));
+    QVERIFY(!optionA.isEmpty());
+    QVERIFY(!optionC.isEmpty());
+    QVERIFY(optionA.value(QStringLiteral("value")).toString() != optionC.value(QStringLiteral("value")).toString());
 }
 
-void tst_DynamicOptionsRegistry::duplicateKeys_preserveDistinctTokenReferences()
+void tst_DynamicOptionsRegistry::targetWithoutIncomingConnectionsHasNoOptions()
 {
     GraphModel graph;
-    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
-    addComponent(graph, QStringLiteral("S2"), QStringLiteral("start"));
-    addComponent(graph, QStringLiteral("A1"), QStringLiteral("process"));
-    addConnection(graph, QStringLiteral("edge.S1.A1"), QStringLiteral("S1"), QStringLiteral("A1"));
-    addConnection(graph, QStringLiteral("edge.S2.A1"), QStringLiteral("S2"), QStringLiteral("A1"));
+    addComponent(graph, QStringLiteral("comB"), QStringLiteral("typeB"));
 
-    DynamicOptionsRegistry catalog;
-    catalog.setGraph(&graph);
-    catalog.setTargetComponentId(QStringLiteral("A1"));
-    catalog.setProviderOutputKeyHints(
-        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("inputNumber")}}});
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    const QStringList keys = catalog.tokenKeys();
-    QCOMPARE(keys.count(QStringLiteral("inputNumber")), 1);
-
-    QStringList references;
-    QStringList texts;
-    for (const QVariant& v : catalog.tokenKeyOptions())
-    {
-        const QVariantMap row = v.toMap();
-        if (row.value(QStringLiteral("key")).toString() != QStringLiteral("inputNumber"))
-            continue;
-        references.append(row.value(QStringLiteral("value")).toString());
-        texts.append(row.value(QStringLiteral("text")).toString());
-    }
-
-    QCOMPARE(references.size(), 2);
-    QVERIFY(references.contains(QStringLiteral("edge.S1.A1::inputNumber")));
-    QVERIFY(references.contains(QStringLiteral("edge.S2.A1::inputNumber")));
-    QVERIFY(texts.contains(QStringLiteral("inputNumber (S1 via edge.S1.A1)")));
-    QVERIFY(texts.contains(QStringLiteral("inputNumber (S2 via edge.S2.A1)")));
+    QVERIFY(registry.tokenKeys().isEmpty());
+    QVERIFY(registry.tokenKeyOptions().isEmpty());
 }
 
-void tst_DynamicOptionsRegistry::updatesWhenHintsChange()
+void tst_DynamicOptionsRegistry::refreshReactsToConnectionChanges()
 {
     GraphModel graph;
-    addComponent(graph, QStringLiteral("S1"), QStringLiteral("start"));
-    addComponent(graph, QStringLiteral("P1"), QStringLiteral("process"));
-    addConnection(graph, QStringLiteral("e1"), QStringLiteral("S1"), QStringLiteral("P1"));
+    addComponent(graph, QStringLiteral("comA"), QStringLiteral("typeA"));
+    addComponent(graph, QStringLiteral("comB"), QStringLiteral("typeB"));
 
-    DynamicOptionsRegistry catalog;
-    catalog.setGraph(&graph);
-    catalog.setTargetComponentId(QStringLiteral("P1"));
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
+    QVERIFY(registry.tokenKeys().isEmpty());
 
-    QVERIFY(catalog.tokenKeys().isEmpty());
+    addConnection(graph, QStringLiteral("edgeA"), QStringLiteral("comA"), QStringLiteral("comB"));
+    QVERIFY(registry.tokenKeys().contains(QStringLiteral("refA1")));
 
-    catalog.setProviderOutputKeyHints(
-        QVariantMap{{QStringLiteral("start"), QStringList{QStringLiteral("workingNumber")}}});
+    QVERIFY(graph.removeConnection(QStringLiteral("edgeA")));
+    QVERIFY(registry.tokenKeys().isEmpty());
+    QVERIFY(registry.tokenKeyOptions().isEmpty());
+}
 
-    QVERIFY(catalog.tokenKeys().contains(QStringLiteral("workingNumber")));
+void tst_DynamicOptionsRegistry::targetSourceOptionsExposesTokenRefSource()
+{
+    GraphModel graph;
+    addComponent(graph, QStringLiteral("comA"), QStringLiteral("typeA"));
+    addComponent(graph, QStringLiteral("comB"), QStringLiteral("typeB"));
+    addConnection(graph, QStringLiteral("edgeA"), QStringLiteral("comA"), QStringLiteral("comB"));
+
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
+
+    const QVariantMap sources = registry.targetSourceOptions();
+    QVERIFY(sources.contains(QStringLiteral("tokenRef")));
+    QVERIFY(!sources.value(QStringLiteral("tokenRef")).toList().isEmpty());
 }
 
 QTEST_MAIN(tst_DynamicOptionsRegistry)

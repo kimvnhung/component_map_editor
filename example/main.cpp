@@ -5,6 +5,7 @@
 #include <base_log.h>
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
+#include "extensions/runtime/DynamicOptionsRegistry.h"
 #include "extensions/runtime/ExtensionStartupLoader.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
 #include "extensions/runtime/TypeRegistry.h"
@@ -106,6 +107,9 @@ int main(int argc, char *argv[])
     GraphExecutionSandbox executionSandbox;
     executionSandbox.rebuildSemanticsFromRegistry(extensionContracts);
 
+    DynamicOptionsRegistry dynamicOptions;
+    dynamicOptions.rebuildFromRegistry(extensionContracts);
+
     ValidationService validationService;
     validationService.rebuildValidationFromRegistry(extensionContracts);
 
@@ -116,6 +120,8 @@ int main(int argc, char *argv[])
             &typeRegistry);
     engine.rootContext()->setContextProperty(QStringLiteral("startupExecutionSandbox"),
             &executionSandbox);
+    engine.rootContext()->setContextProperty(QStringLiteral("startupDynamicOptionsRegistry"),
+            &dynamicOptions);
     engine.rootContext()->setContextProperty(QStringLiteral("startupValidationService"),
             &validationService);
     QObject::connect(

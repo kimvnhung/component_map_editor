@@ -13,6 +13,7 @@ ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
     , m_extensionStartupLoader(new ExtensionStartupLoader())
     , m_componentTypeRegistry(new TypeRegistry())
     , m_propertySchemaRegistry(new PropertySchemaRegistry())
+    , m_dynamicOptionsRegistry(new DynamicOptionsRegistry())
     , m_executionSandbox(new GraphExecutionSandbox())
 {
 }
@@ -25,11 +26,13 @@ ComponentMapEditorManager::~ComponentMapEditorManager()
     delete m_extensionStartupLoader;
     delete m_componentTypeRegistry;
     delete m_propertySchemaRegistry;
+    delete m_dynamicOptionsRegistry;
     delete m_executionSandbox;
 
     m_extensionStartupLoader = nullptr;
     m_componentTypeRegistry = nullptr;
     m_propertySchemaRegistry = nullptr;
+    m_dynamicOptionsRegistry = nullptr;
     m_executionSandbox = nullptr;
 }
 
@@ -126,6 +129,7 @@ void ComponentMapEditorManager::setExtensionContractRegistry(std::unique_ptr<Ext
     // Rebuild registries to reflect the new contract registry.
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
+    m_dynamicOptionsRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
 
 

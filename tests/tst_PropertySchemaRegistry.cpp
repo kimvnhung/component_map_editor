@@ -108,7 +108,7 @@ private slots:
         QVERIFY(!row.value(QStringLiteral("schemaError")).toString().isEmpty());
     }
 
-    void samplePackConnectionSchemaIncludesTokenKeyOptionsSource()
+    void samplePackConnectionSchemaIncludesTokenRefOptionsSource()
     {
         ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
         SampleExtensionPack pack;
@@ -128,7 +128,9 @@ private slots:
 
             foundTokenKey = true;
             QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("dropdown"));
-            QCOMPARE(row.value(QStringLiteral("optionsSource")).toString(), QStringLiteral("tokenKeys"));
+            const QVariantMap dropdownOptions = row.value(QStringLiteral("dropdownOptions")).toMap();
+            QCOMPARE(dropdownOptions.value(QStringLiteral("source")).toString(), QStringLiteral("tokenRef"));
+            QCOMPARE(dropdownOptions.value(QStringLiteral("sourceKey")).toString(), QStringLiteral("tokenRef"));
             break;
         }
 
@@ -147,10 +149,15 @@ private slots:
         QCOMPARE(cme::runtime::schemaFieldTypeToString(cme::runtime::SchemaFieldType::Boolean),
                  QStringLiteral("bool"));
 
+        QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenRef")),
+                 cme::runtime::SchemaOptionsSource::TokenRef);
         QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenKeys")),
                  cme::runtime::SchemaOptionsSource::TokenRef);
         QCOMPARE(cme::runtime::schemaOptionsSourceToString(cme::runtime::SchemaOptionsSource::TokenKeyOptions),
                  QStringLiteral("tokenKeyOptions"));
+        const QVariantList customItems = {QStringLiteral("one"), QStringLiteral("two")};
+        const cme::runtime::SchemaOptionsSpec custom = cme::runtime::Options::custom(customItems);
+        QCOMPARE(custom.items, customItems);
         QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("customSource")),
                  cme::runtime::SchemaOptionsSource::Custom);
 
