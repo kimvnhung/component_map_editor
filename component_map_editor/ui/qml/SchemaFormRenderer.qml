@@ -13,19 +13,19 @@ Item {
     readonly property int widgetSpinBox: 5
     readonly property int widgetSchemaError: 6
 
+    // Mirrors cme::runtime::SchemaOptionsSource (SchemaOptionsSpec.h).
     readonly property int optionsSourceNone: 0
     readonly property int optionsSourceTokenRef: 1
+    readonly property int optionsSourceDefined: 2
+    readonly property int optionsSourceCustom: 3
+    readonly property int optionsSourceTokenKeyOptions: 4
     // Kept as an alias for QML callers using the pre-canonical name.
     readonly property int optionsSourceTokenKeys: optionsSourceTokenRef
-    readonly property int optionsSourceTokenKeyOptions: 2
-    readonly property int optionsSourceCustom: 3
     readonly property string fallbackSelectionValue: "__use_fallback__"
     readonly property string defaultUnsetLabel: "Use fallback value"
 
-    // [ { id, title, fields:[{...}] } ]
-    property var schemaSections: []
-    // Stage-2 typed model input (QAbstractListModel-based). Rendering still
-    // uses schemaSections to preserve existing behavior during migration.
+    // Typed model input (QAbstractListModel-based). Fields are read through
+    // rowAt() so every field carries the normalized contract (dropdownOptions).
     property var schemaSectionModel: null
     property var modelObject: null
     property bool readOnly: false
@@ -111,9 +111,9 @@ Item {
         return true;
     }
 
-    function typedSectionsToLegacyRows() {
+    function typedSectionsToRows() {
         if (!root.schemaSectionModel || root.schemaSectionModel.size === undefined || root.schemaSectionModel.rowAt === undefined)
-            return root.schemaSections || [];
+            return [];
 
         var sections = [];
         var sectionCount = root.schemaSectionModel.size();
@@ -142,7 +142,7 @@ Item {
         if (!propertyName || !propertyName.length)
             return false;
 
-        var sections = root.typedSectionsToLegacyRows();
+        var sections = root.typedSectionsToRows();
         for (var sectionIndex = 0; sectionIndex < sections.length; ++sectionIndex) {
             var section = sections[sectionIndex];
             var fields = section && section.fields ? section.fields : [];
@@ -162,26 +162,7 @@ Item {
     }
 
     function widgetEnumForField(field) {
-        if (field && field.widgetEnum !== undefined)
-            return Number(field.widgetEnum);
-
-        var widget = field && field.widget ? String(field.widget) : "";
-        switch (widget) {
-        case "textfield":
-            return root.widgetTextField;
-        case "textarea":
-            return root.widgetTextArea;
-        case "dropdown":
-            return root.widgetDropdown;
-        case "checkbox":
-            return root.widgetCheckbox;
-        case "spinbox":
-            return root.widgetSpinBox;
-        case "schema_error":
-            return root.widgetSchemaError;
-        default:
-            return root.widgetUnknown;
-        }
+        return field && field.widgetEnum !== undefined ? Number(field.widgetEnum) : root.widgetUnknown;
     }
 
     // The normalized spec produced by SchemaOptionsSpec (field.dropdownOptions).
@@ -191,28 +172,9 @@ Item {
         return {};
     }
 
-    // Legacy rows only carry optionsSource / optionsSourceEnum.
-    function legacyOptionsSourceKeyForField(field) {
-        if (field && field.optionsSourceEnum !== undefined) {
-            var optionsEnum = Number(field.optionsSourceEnum);
-            if (optionsEnum === root.optionsSourceTokenRef)
-                return "tokenRef";
-            if (optionsEnum === root.optionsSourceTokenKeyOptions)
-                return "tokenKeyOptions";
-            if (optionsEnum === root.optionsSourceCustom)
-                return field.optionsSource || "";
-            return "";
-        }
-
-        return field && field.optionsSource ? String(field.optionsSource) : "";
-    }
-
     function optionsSourceKeyForField(field) {
         var spec = root.dropdownSpecForField(field);
-        if (spec.sourceKey && String(spec.sourceKey).length)
-            return String(spec.sourceKey);
-
-        return root.legacyOptionsSourceKeyForField(field);
+        return spec.sourceKey ? String(spec.sourceKey) : "";
     }
 
     function readModelProperty(propertyName) {
@@ -301,12 +263,7 @@ Item {
 
     function fieldAllowsFallbackChoice(field) {
         var spec = root.dropdownSpecForField(field);
-        if (spec.allowUnset !== undefined)
-            return !!spec.allowUnset;
-
-        var optionsSource = root.legacyOptionsSourceKeyForField(field);
-        var propertyName = field && field.key ? String(field.key) : "";
-        return optionsSource === "tokenRef" && propertyName.endsWith("Ref");
+        return spec.allowUnset !== undefined ? !!spec.allowUnset : false;
     }
 
     function unsetLabelForField(field) {
@@ -436,7 +393,6 @@ Item {
 
     onModelObjectChanged: advanceRenderContext("modelObjectChanged")
 
-    onSchemaSectionsChanged: advanceRenderContext("schemaSectionsChanged")
     onSchemaSectionModelChanged: advanceRenderContext("schemaSectionModelChanged")
 
     ColumnLayout {
@@ -446,7 +402,7 @@ Item {
         spacing: 10
 
         Repeater {
-            model: root.typedSectionsToLegacyRows()
+            model: root.typedSectionsToRows()
 
             delegate: ColumnLayout {
                 required property var modelData

@@ -74,8 +74,6 @@ Rectangle {
         return "graph";
     }
 
-    readonly property var activeSchemaSections: root.sectionsForTarget(root.target)
-
     readonly property var activeSchemaSectionModel: {
         if (!root.effectiveSchemaRegistry)
             return null;
@@ -114,12 +112,6 @@ Rectangle {
         }
     }
 
-    function sectionsForTarget(targetId) {
-        if (root.effectiveSchemaRegistry)
-            return root.effectiveSchemaRegistry.sectionedSchemaForTarget(targetId);
-        return [];
-    }
-
     PropertySchemaRegistry {
         id: fallbackSchemaRegistry
     }
@@ -154,7 +146,6 @@ Rectangle {
 
         SchemaFormRenderer {
             Layout.fillWidth: true
-            schemaSections: root.activeSchemaSections
             schemaSectionModel: root.activeSchemaSectionModel
             modelObject: root._model
             expectedModelObjectId: root.isGraphModel ? "graph" : root._model.id

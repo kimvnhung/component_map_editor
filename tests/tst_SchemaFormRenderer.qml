@@ -28,7 +28,13 @@ TestCase {
     }
 
     function setCurrentField(renderer, field) {
-        renderer.schemaSections = [{ "title": "Test", "fields": [field] }];
+        renderer.schemaSectionModel = makeSectionModel([
+            {
+                "id": "test",
+                "title": "Test",
+                "fieldsModel": makeFieldModel([field])
+            }
+        ]);
     }
 
     function test_optionsSource_resolvesDynamicTokenList() {
@@ -59,8 +65,8 @@ TestCase {
 
         var field = {
             "key": "outputKey",
-            "widget": "dropdown",
-            "optionsSource": "tokenRef"
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": { "sourceKey": "tokenRef" }
         };
         setCurrentField(renderer, field);
 
@@ -257,7 +263,7 @@ TestCase {
         compare(renderer.widgetEnumForField({ "widgetEnum": renderer.widgetSpinBox }), renderer.widgetSpinBox);
     }
 
-    function test_typedSectionModel_convertsToLegacyRowsForFallbackRenderer() {
+    function test_typedSectionModel_convertsToRowsForRenderer() {
         var renderer = makeRenderer();
         var fieldsModel = makeFieldModel([
             {
@@ -276,7 +282,7 @@ TestCase {
             }
         ]);
 
-        var sections = renderer.typedSectionsToLegacyRows();
+        var sections = renderer.typedSectionsToRows();
         compare(sections.length, 1);
         compare(sections[0].title, "Behavior");
         compare(sections[0].fields.length, 1);
