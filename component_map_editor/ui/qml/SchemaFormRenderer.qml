@@ -20,6 +20,7 @@ Item {
     readonly property int optionsSourceTokenKeyOptions: 2
     readonly property int optionsSourceCustom: 3
     readonly property string fallbackSelectionValue: "__use_fallback__"
+    readonly property string defaultUnsetLabel: "Use fallback value"
 
     // [ { id, title, fields:[{...}] } ]
     property var schemaSections: []
@@ -183,7 +184,15 @@ Item {
         }
     }
 
-    function optionsSourceKeyForField(field) {
+    // The normalized spec produced by SchemaOptionsSpec (field.dropdownOptions).
+    function dropdownSpecForField(field) {
+        if (field && field.dropdownOptions)
+            return field.dropdownOptions;
+        return {};
+    }
+
+    // Legacy rows only carry optionsSource / optionsSourceEnum.
+    function legacyOptionsSourceKeyForField(field) {
         if (field && field.optionsSourceEnum !== undefined) {
             var optionsEnum = Number(field.optionsSourceEnum);
             if (optionsEnum === root.optionsSourceTokenRef)
@@ -196,6 +205,14 @@ Item {
         }
 
         return field && field.optionsSource ? String(field.optionsSource) : "";
+    }
+
+    function optionsSourceKeyForField(field) {
+        var spec = root.dropdownSpecForField(field);
+        if (spec.sourceKey && String(spec.sourceKey).length)
+            return String(spec.sourceKey);
+
+        return root.legacyOptionsSourceKeyForField(field);
     }
 
     function readModelProperty(propertyName) {
@@ -253,25 +270,20 @@ Item {
         if (!root.isFieldCurrent(field))
             return [];
 
-        // var optionsSource = root.optionsSourceKeyForField(field);
-        // if (optionsSource.length > 0) {
-        //     var dynamicModel = root.dynamicOptions ? root.dynamicOptions[optionsSource] : undefined;
-        //     if (dynamicModel && dynamicModel.length !== undefined)
-        //         return root.decorateEnumModel(field, dynamicModel);
-        // }
+        var spec = root.dropdownSpecForField(field);
+        var items = spec.items;
+        if (items && items.length !== undefined && items.length > 0)
+            return root.decorateEnumModel(field, items);
 
-        // if (field.options && field.options.length) {
-        //     return root.decorateEnumModel(field, field.options);
-        // }
-        // if (field.key === "shape")
-        //     return ["rounded", "rectangle"];
-        // if (field.key === "sourceSide" || field.key === "targetSide")
-        //     return root.sideModel;
-        // console.log("field: ", JSON.stringify(field, 2, null));
-        // console.log("dynamicOptions: ", JSON.stringify(dynamicOptions, 2, null));
-        if (field.dropdownOptions && field.dropdownOptions.sourceKey && field.dropdownOptions.sourceKey.length) {
-            return dynamicOptions[field.dropdownOptions.sourceKey] || [];
+        var sourceKey = root.optionsSourceKeyForField(field);
+        if (sourceKey.length > 0) {
+            var dynamicModel = root.dynamicOptions ? root.dynamicOptions[sourceKey] : undefined;
+            if (dynamicModel && dynamicModel.length !== undefined)
+                return root.decorateEnumModel(field, dynamicModel);
         }
+
+        if (field.options && field.options.length)
+            return root.decorateEnumModel(field, field.options);
 
         return [];
     }
@@ -284,19 +296,30 @@ Item {
     }
 
     function isUnsetValue(value) {
-        return value === undefined || value === null || value === "";
+        return value === undefined || value === null || value === "" || value === root.fallbackSelectionValue;
     }
 
     function fieldAllowsFallbackChoice(field) {
-        var optionsSource = root.optionsSourceKeyForField(field);
+        var spec = root.dropdownSpecForField(field);
+        if (spec.allowUnset !== undefined)
+            return !!spec.allowUnset;
+
+        var optionsSource = root.legacyOptionsSourceKeyForField(field);
         var propertyName = field && field.key ? String(field.key) : "";
         return optionsSource === "tokenRef" && propertyName.endsWith("Ref");
+    }
+
+    function unsetLabelForField(field) {
+        var spec = root.dropdownSpecForField(field);
+        if (spec.unsetLabel && String(spec.unsetLabel).length)
+            return String(spec.unsetLabel);
+        return root.defaultUnsetLabel;
     }
 
     function fallbackOptionForField(field) {
         var propertyName = field && field.key ? String(field.key) : "";
         return {
-            text: "Use fallback value",
+            text: root.unsetLabelForField(field),
             value: root.fallbackSelectionValue,
             key: propertyName,
             tokenId: "",
