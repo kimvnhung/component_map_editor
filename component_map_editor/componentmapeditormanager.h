@@ -2,6 +2,7 @@
 #define COMPONENTMAPEDITORMANAGER_H
 
 #include "extensions/runtime/ExtensionStartupLoader.h"
+#include "extensions/runtime/DynamicOptionsRegistry.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
 #include "extensions/runtime/TypeRegistry.h"
 #include "extensions/runtime/rules/RuleBackedProviders.h"
@@ -21,6 +22,7 @@ class ComponentMapEditorManager : public QObject
     Q_OBJECT
     Q_PROPERTY(TypeRegistry* componentTypeRegistry READ componentTypeRegistry CONSTANT)
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry READ propertySchemaRegistry CONSTANT)
+    Q_PROPERTY(DynamicOptionsRegistry* dynamicOptionsRegistry READ dynamicOptionsRegistry CONSTANT)
     Q_PROPERTY(GraphExecutionSandbox* executionSandbox READ executionSandbox CONSTANT)
 public:
     ComponentMapEditorManager(QObject *parent = nullptr);
@@ -29,6 +31,7 @@ public:
 
     TypeRegistry *componentTypeRegistry() const { return m_componentTypeRegistry; }
     PropertySchemaRegistry *propertySchemaRegistry() const { return m_propertySchemaRegistry; }
+    DynamicOptionsRegistry *dynamicOptionsRegistry() const { return m_dynamicOptionsRegistry; }
     GraphExecutionSandbox *executionSandbox() const { return m_executionSandbox; }
 public:
     Q_INVOKABLE void reloadComponentTypes();
@@ -50,6 +53,7 @@ private:
 
     TypeRegistry *m_componentTypeRegistry = nullptr;
     PropertySchemaRegistry *m_propertySchemaRegistry = nullptr;
+    DynamicOptionsRegistry *m_dynamicOptionsRegistry = nullptr;
     GraphExecutionSandbox *m_executionSandbox = nullptr;
 
     QString m_manifestDir;

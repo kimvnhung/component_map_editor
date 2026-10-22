@@ -14,7 +14,9 @@ Item {
     readonly property int widgetSchemaError: 6
 
     readonly property int optionsSourceNone: 0
-    readonly property int optionsSourceTokenKeys: 1
+    readonly property int optionsSourceTokenRef: 1
+    // Kept as an alias for QML callers using the pre-canonical name.
+    readonly property int optionsSourceTokenKeys: optionsSourceTokenRef
     readonly property int optionsSourceTokenKeyOptions: 2
     readonly property int optionsSourceCustom: 3
     readonly property string fallbackSelectionValue: "__use_fallback__"
@@ -184,8 +186,8 @@ Item {
     function optionsSourceKeyForField(field) {
         if (field && field.optionsSourceEnum !== undefined) {
             var optionsEnum = Number(field.optionsSourceEnum);
-            if (optionsEnum === root.optionsSourceTokenKeys)
-                return "tokenKeys";
+            if (optionsEnum === root.optionsSourceTokenRef)
+                return "tokenRef";
             if (optionsEnum === root.optionsSourceTokenKeyOptions)
                 return "tokenKeyOptions";
             if (optionsEnum === root.optionsSourceCustom)
@@ -286,8 +288,9 @@ Item {
     }
 
     function fieldAllowsFallbackChoice(field) {
+        var optionsSource = root.optionsSourceKeyForField(field);
         var propertyName = field && field.key ? String(field.key) : "";
-        return root.optionsSourceKeyForField(field) === "tokenKeyOptions" && propertyName.endsWith("Ref");
+        return optionsSource === "tokenRef" && propertyName.endsWith("Ref");
     }
 
     function fallbackOptionForField(field) {
