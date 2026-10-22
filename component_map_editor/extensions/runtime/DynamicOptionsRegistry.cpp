@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <base_log.h>
 
+#include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 
@@ -33,6 +34,29 @@ void DynamicOptionsRegistry::setPropertySchemaRegistry(PropertySchemaRegistry* r
         return;
 
     m_propertySchemaRegistry = registry;
+}
+
+void DynamicOptionsRegistry::rebuildFromRegistry(const ExtensionContractRegistry& registry)
+{
+    m_outputKeysByComponentType.clear();
+
+    for (const IExecutionSemanticsProvider* provider : registry.executionSemanticsProviders())
+    {
+        if (!provider)
+            continue;
+
+        for (const QString& componentType : provider->supportedComponentTypes())
+        {
+            const QString normalizedType = componentType.trimmed();
+            if (normalizedType.isEmpty() || m_outputKeysByComponentType.contains(normalizedType))
+                continue;
+
+            m_outputKeysByComponentType.insert(normalizedType,
+                                               provider->providedOutputKeys(normalizedType));
+        }
+    }
+
+    refresh();
 }
 
 QString DynamicOptionsRegistry::targetComponentId() const
@@ -66,15 +90,16 @@ void DynamicOptionsRegistry::refresh()
     if (!m_graph || m_targetComponentId.isEmpty())
     {
         publishOptions({}, {});
+        m_targetSourceOptions.clear();
+        emit targetSourceOptionsChanged();
         return;
     }
 
-    QStringList keys;
-    QVariantList options;
-    QSet<QString> seenKeys;
+    m_registeredSources.clear();
 
-    if (m_targetComponentId == "graph")
+    if (m_targetComponentId == QStringLiteral("graph"))
     {
+        QVariantList options;
         const QList<ComponentModel*> components = m_graph->componentList();
         for (const ComponentModel* component : components)
         {
@@ -98,56 +123,75 @@ void DynamicOptionsRegistry::refresh()
         }
 
         updateOptionsForSource(QStringLiteral("components"), options);
+        publishOptions({}, {});
     }
     else
     {
-        const QList<ConnectionModel*> connections = m_graph->connectionList();
-        for (const ConnectionModel* connection : connections)
+        const QVariantList options = tokenRefOptionsForTarget();
+        QStringList keys;
+        QSet<QString> seenKeys;
+
+        for (const QVariant& optionValue : options)
         {
-            if (!connection)
-                continue;
-            if (connection->targetId().trimmed() != m_targetComponentId)
-                continue;
-
-            const QString sourceId = connection->sourceId().trimmed();
-            const ComponentModel* source = m_graph->componentById(sourceId);
-            if (!source)
-                continue;
-
-            const QString sourceType = source->type();
-            const QStringList declared = m_providerOutputKeyHints.value(sourceType).toStringList();
-            const QString connectionId = connection->id().trimmed();
-            for (const QString& key : declared)
+            const QString key = optionValue.toMap().value(QStringLiteral("key")).toString();
+            if (!key.isEmpty() && !seenKeys.contains(key))
             {
-                if (key.isEmpty())
-                    continue;
-
-                if (!seenKeys.contains(key))
-                {
-                    seenKeys.insert(key);
-                    keys.append(key);
-                }
-
-                const QString tokenReference =
-                    connectionId.isEmpty() ? key : QStringLiteral("%1::%2").arg(connectionId, key);
-                const QString optionText = connectionId.isEmpty()
-                                               ? QStringLiteral("%1 (%2)").arg(key, sourceId)
-                                               : QStringLiteral("%1 (%2 via %3)").arg(key, sourceId, connectionId);
-                options.append(QVariantMap{{QStringLiteral("text"), optionText},
-                                           {QStringLiteral("value"), tokenReference},
-                                           {QStringLiteral("key"), key},
-                                           {QStringLiteral("tokenId"), connectionId},
-                                           {QStringLiteral("sourceId"), sourceId}});
+                seenKeys.insert(key);
+                keys.append(key);
             }
+        }
+
+        updateOptionsForSource(QStringLiteral("tokenRef"), options);
+        publishOptions(keys, options);
+    }
+
+    QVariantMap sourceOptions;
+    for (auto it = m_registeredSources.constBegin(); it != m_registeredSources.constEnd(); ++it)
+        sourceOptions.insert(it.key(), it.value());
+
+    setTargetSourceOptions(sourceOptions);
+}
+
+QVariantList DynamicOptionsRegistry::tokenRefOptionsForTarget() const
+{
+    QVariantList options;
+
+    if (!m_graph || m_targetComponentId.isEmpty())
+        return options;
+
+    for (const ConnectionModel* connection : m_graph->connectionList())
+    {
+        if (!connection || connection->targetId().trimmed() != m_targetComponentId)
+            continue;
+
+        const QString sourceId = connection->sourceId().trimmed();
+        const ComponentModel* source = m_graph->componentById(sourceId);
+        if (!source)
+            continue;
+
+        const QStringList outputKeys = m_outputKeysByComponentType.value(source->type().trimmed());
+        const QString connectionId = connection->id().trimmed();
+        for (const QString& rawKey : outputKeys)
+        {
+            const QString key = rawKey.trimmed();
+            if (key.isEmpty())
+                continue;
+
+            const QString tokenReference = connectionId.isEmpty()
+                                               ? key
+                                               : QStringLiteral("%1::%2").arg(connectionId, key);
+            const QString optionText = connectionId.isEmpty()
+                                           ? QStringLiteral("%1 (%2)").arg(key, sourceId)
+                                           : QStringLiteral("%1 (%2 via %3)").arg(key, sourceId, connectionId);
+            options.append(QVariantMap{{QStringLiteral("text"), optionText},
+                                       {QStringLiteral("value"), tokenReference},
+                                       {QStringLiteral("key"), key},
+                                       {QStringLiteral("tokenId"), connectionId},
+                                       {QStringLiteral("sourceId"), sourceId}});
         }
     }
 
-    for (const QString& sourceKey : m_registeredSources.keys())
-    {
-        m_targetSourceOptions[sourceKey] = m_registeredSources.value(sourceKey);
-    }
-    // TODO: Need to copy more source options which is dynamicly with special targetComponent later
-    emit targetSourceOptionsChanged();
+    return sortedOptionsByText(options);
 }
 
 QVariantList DynamicOptionsRegistry::sortedOptionsByText(const QVariantList& rows)
@@ -204,19 +248,6 @@ void DynamicOptionsRegistry::setTargetSourceOptions(const QVariantMap& newTarget
         return;
     m_targetSourceOptions = newTargetSourceOptions;
     emit targetSourceOptionsChanged();
-}
-
-QString DynamicOptionsRegistry::sourceKey() const
-{
-    return m_sourceKey;
-}
-
-void DynamicOptionsRegistry::setSourceKey(const QString& newSourceKey)
-{
-    if (m_sourceKey == newSourceKey)
-        return;
-    m_sourceKey = newSourceKey;
-    emit sourceKeyChanged();
 }
 
 void DynamicOptionsRegistry::reconnectGraphSignals()

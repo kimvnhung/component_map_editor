@@ -2,12 +2,14 @@
 #define DYNAMICOPTIONSREGISTRY_H
 
 #include <QObject>
+#include <QHash>
 #include <QPointer>
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 #include <QQmlEngine>
 
+#include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/PropertySchemaRegistry.h"
 #include "models/GraphModel.h"
 
@@ -40,6 +42,10 @@ public:
 
     Q_INVOKABLE void refresh();
 
+    // Rebuilds the output-key cache from registered execution semantics
+    // providers. Call once after all extension packs are loaded.
+    void rebuildFromRegistry(const ExtensionContractRegistry& registry);
+
     /**
      * @brief registerSource : Registers a source key with its corresponding options for dynamic option generation.
      * @param sourceKey : The unique identifier for the source (e.g., a component or connection).
@@ -50,9 +56,6 @@ public:
      */
     bool registerSource(const QString& sourceKey, const QVariantList& options);
 
-    QString sourceKey() const;
-    void setSourceKey(const QString& newSourceKey);
-
     QVariantMap targetSourceOptions() const;
     void setTargetSourceOptions(const QVariantMap& newTargetSourceOptions);
 
@@ -61,8 +64,6 @@ signals:
     void targetComponentIdChanged();
     void tokenKeysChanged();
     void tokenKeyOptionsChanged();
-
-    void sourceKeyChanged();
 
     void targetSourceOptionsChanged();
 
@@ -73,6 +74,10 @@ private:
 
     void updateOptionsForSource(const QString& sourceKey, const QVariantList& options);
 
+    // Builds the option list for the "tokenRef" source from the direct
+    // sources of the current target component.
+    QVariantList tokenRefOptionsForTarget() const;
+
 private:
     QPointer<GraphModel> m_graph;
     QPointer<PropertySchemaRegistry> m_propertySchemaRegistry;
@@ -80,8 +85,10 @@ private:
     QStringList m_tokenKeys;
     QVariantList m_tokenKeyOptions;
 
-    // NEW: Using sourceKey, textRole, and valueRole for dynamic options
-    QString m_sourceKey;
+    // Output keys declared by execution semantics providers, keyed by
+    // component type. Source of truth for tokenRef dropdown options.
+    QHash<QString, QStringList> m_outputKeysByComponentType;
+
     QVariantMap m_targetSourceOptions;               // Maps targetComponentId to its sourceKey and options
     QMap<QString, QVariantList> m_registeredSources; // Maps sourceKey to its options
 };

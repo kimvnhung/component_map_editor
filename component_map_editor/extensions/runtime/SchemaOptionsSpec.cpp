@@ -17,7 +17,7 @@ QString schemaOptionsSourceToString(SchemaOptionsSource value)
         case SchemaOptionsSource::None:
             return QString();
         case SchemaOptionsSource::TokenRef:
-            return QStringLiteral("tokenKeys");
+            return QStringLiteral("tokenRef");
         case SchemaOptionsSource::TokenKeyOptions:
             return QStringLiteral("tokenKeyOptions");
         case SchemaOptionsSource::Custom:
@@ -33,7 +33,7 @@ SchemaOptionsSource schemaOptionsSourceFromString(const QString& value)
     const QString key = value.trimmed();
     if (key.isEmpty())
         return SchemaOptionsSource::None;
-    if (key == QStringLiteral("tokenKeys"))
+    if (key == QStringLiteral("tokenRef") || key == QStringLiteral("tokenKeys"))
         return SchemaOptionsSource::TokenRef;
     if (key == QStringLiteral("tokenKeyOptions"))
         return SchemaOptionsSource::TokenKeyOptions;
@@ -62,7 +62,7 @@ namespace Options
 {
 SchemaOptionsSpec tokenKeys()
 {
-    return SchemaOptionsSpec::none();
+    return tokenRef();
 }
 
 SchemaOptionsSpec tokenRef(QString fallbackFieldKey)
@@ -80,7 +80,13 @@ SchemaOptionsSpec tokenRef(QString fallbackFieldKey)
 
 SchemaOptionsSpec custom(QVariantList items)
 {
-    return SchemaOptionsSpec{SchemaOptionsSource::Custom, false, QString(), true, {}, "custom", "text", "value"};
+    SchemaOptionsSpec spec;
+    spec.source = SchemaOptionsSource::Custom;
+    spec.sourceKey = QStringLiteral("custom");
+    spec.textRole = QStringLiteral("text");
+    spec.valueRole = QStringLiteral("value");
+    spec.items = std::move(items);
+    return spec;
 }
 
 SchemaOptionsSpec defined(QString sourceKey, QString textRole, QString valueRole)
