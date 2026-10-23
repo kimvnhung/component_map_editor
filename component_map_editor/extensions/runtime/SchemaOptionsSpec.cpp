@@ -18,8 +18,6 @@ QString schemaOptionsSourceToString(SchemaOptionsSource value)
             return QString();
         case SchemaOptionsSource::TokenRef:
             return QStringLiteral("tokenRef");
-        case SchemaOptionsSource::TokenKeyOptions:
-            return QStringLiteral("tokenKeyOptions");
         case SchemaOptionsSource::Custom:
             return QStringLiteral("custom");
         case SchemaOptionsSource::Defined:
@@ -33,10 +31,8 @@ SchemaOptionsSource schemaOptionsSourceFromString(const QString& value)
     const QString key = value.trimmed();
     if (key.isEmpty())
         return SchemaOptionsSource::None;
-    if (key == QStringLiteral("tokenRef") || key == QStringLiteral("tokenKeys"))
+    if (key == QStringLiteral("tokenRef"))
         return SchemaOptionsSource::TokenRef;
-    if (key == QStringLiteral("tokenKeyOptions"))
-        return SchemaOptionsSource::TokenKeyOptions;
     if (key == QStringLiteral("custom"))
         return SchemaOptionsSource::Custom;
     if (key == QStringLiteral("defined"))
@@ -60,11 +56,6 @@ QVariantMap schemaOptionsSpecToMap(const SchemaOptionsSpec& spec)
 
 namespace Options
 {
-SchemaOptionsSpec tokenKeys()
-{
-    return tokenRef();
-}
-
 SchemaOptionsSpec tokenRef(QString fallbackFieldKey)
 {
     SchemaOptionsSpec spec;

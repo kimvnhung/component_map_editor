@@ -35,7 +35,6 @@ Rectangle {
 
     property DynamicOptionsRegistry dynamicOptionsRegistry: null
     readonly property DynamicOptionsRegistry effectiveDynamicOptionsRegistry: root.dynamicOptionsRegistry ? root.dynamicOptionsRegistry : fallbackDynamicOptionsRegistry
-    // readonly property TokenKeyCatalog effectiveTokenKeyCatalog: root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
 
     readonly property var connectionSideModel: [
         {

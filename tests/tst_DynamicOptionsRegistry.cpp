@@ -79,6 +79,23 @@ QVariantMap findOption(const QVariantList& options, const QString& key, const QS
     return {};
 }
 
+QVariantList tokenRefOptions(const DynamicOptionsRegistry& registry)
+{
+    return registry.targetSourceOptions().value(QStringLiteral("tokenRef")).toList();
+}
+
+QStringList tokenRefKeys(const DynamicOptionsRegistry& registry)
+{
+    QStringList keys;
+    for (const QVariant& value : tokenRefOptions(registry))
+    {
+        const QString key = value.toMap().value(QStringLiteral("key")).toString();
+        if (!key.isEmpty() && !keys.contains(key))
+            keys.append(key);
+    }
+    return keys;
+}
+
 } // namespace
 
 class tst_DynamicOptionsRegistry : public QObject
@@ -110,7 +127,7 @@ void tst_DynamicOptionsRegistry::collectsOutputKeysFromDirectSources()
     DynamicOptionsRegistry registry;
     prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    const QStringList keys = registry.tokenKeys();
+    const QStringList keys = tokenRefKeys(registry);
     QCOMPARE(keys.size(), 4);
     QVERIFY(keys.contains(QStringLiteral("refA1")));
     QVERIFY(keys.contains(QStringLiteral("refA2")));
@@ -131,7 +148,7 @@ void tst_DynamicOptionsRegistry::optionObjectsExposeTextAndValue()
     DynamicOptionsRegistry registry;
     prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    const QVariantMap option = findOption(registry.tokenKeyOptions(), QStringLiteral("refA1"), QStringLiteral("comA"));
+    const QVariantMap option = findOption(tokenRefOptions(registry), QStringLiteral("refA1"), QStringLiteral("comA"));
     QVERIFY(!option.isEmpty());
     QVERIFY(option.contains(QStringLiteral("text")));
     QVERIFY(option.contains(QStringLiteral("value")));
@@ -153,11 +170,11 @@ void tst_DynamicOptionsRegistry::duplicateKeysFromDifferentSourcesKeepDistinctVa
     DynamicOptionsRegistry registry;
     prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    QVERIFY(registry.tokenKeys().contains(QStringLiteral("refA1")));
-    QCOMPARE(registry.tokenKeys().count(QStringLiteral("refA1")), 1);
+    QVERIFY(tokenRefKeys(registry).contains(QStringLiteral("refA1")));
+    QCOMPARE(tokenRefKeys(registry).count(QStringLiteral("refA1")), 1);
 
-    const QVariantMap optionA = findOption(registry.tokenKeyOptions(), QStringLiteral("refA1"), QStringLiteral("comA"));
-    const QVariantMap optionC = findOption(registry.tokenKeyOptions(), QStringLiteral("refA1"), QStringLiteral("comC"));
+    const QVariantMap optionA = findOption(tokenRefOptions(registry), QStringLiteral("refA1"), QStringLiteral("comA"));
+    const QVariantMap optionC = findOption(tokenRefOptions(registry), QStringLiteral("refA1"), QStringLiteral("comC"));
     QVERIFY(!optionA.isEmpty());
     QVERIFY(!optionC.isEmpty());
     QVERIFY(optionA.value(QStringLiteral("value")).toString() != optionC.value(QStringLiteral("value")).toString());
@@ -173,8 +190,8 @@ void tst_DynamicOptionsRegistry::targetWithoutIncomingConnectionsHasNoOptions()
     DynamicOptionsRegistry registry;
     prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
 
-    QVERIFY(registry.tokenKeys().isEmpty());
-    QVERIFY(registry.tokenKeyOptions().isEmpty());
+    QVERIFY(tokenRefKeys(registry).isEmpty());
+    QVERIFY(tokenRefOptions(registry).isEmpty());
 }
 
 void tst_DynamicOptionsRegistry::refreshReactsToConnectionChanges()
@@ -187,14 +204,14 @@ void tst_DynamicOptionsRegistry::refreshReactsToConnectionChanges()
     FakeExecutionSemanticsProvider provider;
     DynamicOptionsRegistry registry;
     prepareRegistry(registry, graph, contracts, provider, QStringLiteral("comB"));
-    QVERIFY(registry.tokenKeys().isEmpty());
+    QVERIFY(tokenRefKeys(registry).isEmpty());
 
     addConnection(graph, QStringLiteral("edgeA"), QStringLiteral("comA"), QStringLiteral("comB"));
-    QVERIFY(registry.tokenKeys().contains(QStringLiteral("refA1")));
+    QVERIFY(tokenRefKeys(registry).contains(QStringLiteral("refA1")));
 
     QVERIFY(graph.removeConnection(QStringLiteral("edgeA")));
-    QVERIFY(registry.tokenKeys().isEmpty());
-    QVERIFY(registry.tokenKeyOptions().isEmpty());
+    QVERIFY(tokenRefKeys(registry).isEmpty());
+    QVERIFY(tokenRefOptions(registry).isEmpty());
 }
 
 void tst_DynamicOptionsRegistry::targetSourceOptionsExposesTokenRefSource()

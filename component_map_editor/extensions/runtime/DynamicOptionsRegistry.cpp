@@ -75,21 +75,10 @@ void DynamicOptionsRegistry::setTargetComponentId(const QString& targetComponent
     refresh();
 }
 
-QStringList DynamicOptionsRegistry::tokenKeys() const
-{
-    return m_tokenKeys;
-}
-
-QVariantList DynamicOptionsRegistry::tokenKeyOptions() const
-{
-    return m_tokenKeyOptions;
-}
-
 void DynamicOptionsRegistry::refresh()
 {
     if (!m_graph || m_targetComponentId.isEmpty())
     {
-        publishOptions({}, {});
         m_targetSourceOptions.clear();
         emit targetSourceOptionsChanged();
         return;
@@ -123,26 +112,11 @@ void DynamicOptionsRegistry::refresh()
         }
 
         updateOptionsForSource(QStringLiteral("components"), options);
-        publishOptions({}, {});
     }
     else
     {
         const QVariantList options = tokenRefOptionsForTarget();
-        QStringList keys;
-        QSet<QString> seenKeys;
-
-        for (const QVariant& optionValue : options)
-        {
-            const QString key = optionValue.toMap().value(QStringLiteral("key")).toString();
-            if (!key.isEmpty() && !seenKeys.contains(key))
-            {
-                seenKeys.insert(key);
-                keys.append(key);
-            }
-        }
-
         updateOptionsForSource(QStringLiteral("tokenRef"), options);
-        publishOptions(keys, options);
     }
 
     QVariantMap sourceOptions;
@@ -205,21 +179,6 @@ QVariantList DynamicOptionsRegistry::sortedOptionsByText(const QVariantList& row
                   return QString::compare(textA, textB, Qt::CaseInsensitive) < 0;
               });
     return sorted;
-}
-
-void DynamicOptionsRegistry::publishOptions(const QStringList& keys, const QVariantList& options)
-{
-    const bool keysChanged = (m_tokenKeys != keys);
-    const bool optionsChanged = (m_tokenKeyOptions != options);
-    if (!keysChanged && !optionsChanged)
-        return;
-
-    m_tokenKeys = keys;
-    m_tokenKeyOptions = options;
-    if (keysChanged)
-        emit tokenKeysChanged();
-    if (optionsChanged)
-        emit tokenKeyOptionsChanged();
 }
 
 void DynamicOptionsRegistry::updateOptionsForSource(const QString& sourceKey, const QVariantList& options)

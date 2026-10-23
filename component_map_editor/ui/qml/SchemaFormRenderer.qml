@@ -18,7 +18,6 @@ Item {
     readonly property int optionsSourceTokenRef: 1
     readonly property int optionsSourceDefined: 2
     readonly property int optionsSourceCustom: 3
-    readonly property int optionsSourceTokenKeyOptions: 4
     // Kept as an alias for QML callers using the pre-canonical name.
     readonly property int optionsSourceTokenKeys: optionsSourceTokenRef
     readonly property string fallbackSelectionValue: "__use_fallback__"

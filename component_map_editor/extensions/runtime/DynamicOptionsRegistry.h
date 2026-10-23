@@ -22,8 +22,6 @@ class DynamicOptionsRegistry : public QObject
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry WRITE setPropertySchemaRegistry FINAL)
     Q_PROPERTY(QString targetComponentId READ targetComponentId WRITE setTargetComponentId NOTIFY
                    targetComponentIdChanged FINAL)
-    Q_PROPERTY(QStringList tokenKeys READ tokenKeys NOTIFY tokenKeysChanged FINAL)
-    Q_PROPERTY(QVariantList tokenKeyOptions READ tokenKeyOptions NOTIFY tokenKeyOptionsChanged FINAL)
     Q_PROPERTY(QVariantMap targetSourceOptions READ targetSourceOptions NOTIFY targetSourceOptionsChanged FINAL)
 
 public:
@@ -36,9 +34,6 @@ public:
 
     QString targetComponentId() const;
     void setTargetComponentId(const QString& targetComponentId);
-
-    QStringList tokenKeys() const;
-    QVariantList tokenKeyOptions() const;
 
     Q_INVOKABLE void refresh();
 
@@ -62,15 +57,12 @@ public:
 signals:
     void graphChanged();
     void targetComponentIdChanged();
-    void tokenKeysChanged();
-    void tokenKeyOptionsChanged();
 
     void targetSourceOptionsChanged();
 
 private:
     void reconnectGraphSignals();
     static QVariantList sortedOptionsByText(const QVariantList& rows);
-    void publishOptions(const QStringList& keys, const QVariantList& options);
 
     void updateOptionsForSource(const QString& sourceKey, const QVariantList& options);
 
@@ -82,8 +74,6 @@ private:
     QPointer<GraphModel> m_graph;
     QPointer<PropertySchemaRegistry> m_propertySchemaRegistry;
     QString m_targetComponentId;
-    QStringList m_tokenKeys;
-    QVariantList m_tokenKeyOptions;
 
     // Output keys declared by execution semantics providers, keyed by
     // component type. Source of truth for tokenRef dropdown options.

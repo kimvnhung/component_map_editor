@@ -3,6 +3,17 @@
         "graph": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "id",
                 "options": [
@@ -28,6 +39,17 @@
             },
             {
                 "defaultValue": "Untitled",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -53,12 +75,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "defined",
+                    "sourceKey": "components",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
-                "key": "start_component_id",
+                "key": "startComponentId",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 10,
                 "placeholder": "",
                 "required": true,
@@ -75,31 +108,6 @@
                 },
                 "widget": "dropdown",
                 "widgetEnum": 3
-            },
-            {
-                "defaultValue": "Untitled",
-                "hint": "",
-                "key": "start_component_title",
-                "options": [
-                ],
-                "optionsSource": "",
-                "optionsSourceEnum": 0,
-                "order": 11,
-                "placeholder": "",
-                "required": true,
-                "schemaError": "",
-                "section": "Behavior",
-                "sectionEnum": 4,
-                "title": "Component Startup Title",
-                "type": "string",
-                "typeEnum": 1,
-                "valid": true,
-                "validation": {
-                },
-                "visibleWhen": {
-                },
-                "widget": "textarea",
-                "widgetEnum": 2
             }
         ]
     },
@@ -107,12 +115,23 @@
         "component/control/ifelse": [
             {
                 "defaultValue": "condition",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "conditionKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 1,
                 "placeholder": "",
                 "required": true,
@@ -132,12 +151,23 @@
             },
             {
                 "defaultValue": "routeTrue",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "trueRouteKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": true,
@@ -157,12 +187,23 @@
             },
             {
                 "defaultValue": "routeFalse",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "falseRouteKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 3,
                 "placeholder": "",
                 "required": true,
@@ -182,6 +223,17 @@
             },
             {
                 "defaultValue": false,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "condition",
                 "options": [
@@ -209,12 +261,23 @@
         "component/control/loop": [
             {
                 "defaultValue": "iter",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "iterKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 1,
                 "placeholder": "",
                 "required": true,
@@ -234,12 +297,23 @@
             },
             {
                 "defaultValue": "maxIter",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "maxIterKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": true,
@@ -259,12 +333,23 @@
             },
             {
                 "defaultValue": "continueLoop",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "continueKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 3,
                 "placeholder": "",
                 "required": true,
@@ -284,12 +369,23 @@
             },
             {
                 "defaultValue": "condition",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "conditionKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": true,
@@ -309,6 +405,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "iter",
                 "options": [
@@ -334,6 +441,17 @@
             },
             {
                 "defaultValue": 10,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "maxIter",
                 "options": [
@@ -359,6 +477,17 @@
             },
             {
                 "defaultValue": true,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "condition",
                 "options": [
@@ -386,6 +515,17 @@
         "component/math/add": [
             {
                 "defaultValue": "Add Componnent",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -411,12 +551,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -436,12 +587,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -461,6 +623,17 @@
             },
             {
                 "defaultValue": "sum",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -486,6 +659,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -511,6 +695,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -536,6 +731,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -563,12 +769,23 @@
         "component/math/divide": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -588,12 +805,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -613,6 +841,17 @@
             },
             {
                 "defaultValue": "quotient",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -638,6 +877,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -663,6 +913,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -688,6 +949,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -715,12 +987,23 @@
         "component/math/equal": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -740,12 +1023,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -765,6 +1059,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -790,6 +1095,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -815,6 +1131,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -840,6 +1167,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -867,12 +1205,23 @@
         "component/math/less_or_equal": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -892,12 +1241,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -917,6 +1277,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -942,6 +1313,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -967,6 +1349,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -992,6 +1385,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -1019,12 +1423,23 @@
         "component/math/less_than": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -1044,12 +1459,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -1069,6 +1495,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -1094,6 +1531,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -1119,6 +1567,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -1144,6 +1603,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -1171,12 +1641,23 @@
         "component/math/mod": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -1196,12 +1677,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -1221,6 +1713,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -1246,6 +1749,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -1271,6 +1785,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -1296,6 +1821,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -1323,12 +1859,23 @@
         "component/math/multiply": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -1348,12 +1895,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -1373,6 +1931,17 @@
             },
             {
                 "defaultValue": "product",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -1398,6 +1967,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -1423,6 +2003,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -1448,6 +2039,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -1475,12 +2077,23 @@
         "component/math/sqrt": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -1500,6 +2113,17 @@
             },
             {
                 "defaultValue": "sqrtS",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -1525,6 +2149,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -1550,6 +2185,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "S",
                 "options": [
@@ -1577,6 +2223,17 @@
         "component/math/subtract": [
             {
                 "defaultValue": "Subtract Componnent",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -1602,12 +2259,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -1627,12 +2295,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -1652,6 +2331,17 @@
             },
             {
                 "defaultValue": "difference",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -1677,6 +2367,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -1702,6 +2403,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -1727,6 +2439,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -1754,6 +2477,17 @@
         "component/start": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "id",
                 "options": [
@@ -1779,6 +2513,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Seed number consumed by the start component when simulation begins.",
                 "key": "inputNumber",
                 "options": [
@@ -1808,6 +2553,17 @@
         "component/stop": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -1835,6 +2591,17 @@
         "component/system/error_handler": [
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "errorKey",
                 "options": [
@@ -1860,6 +2627,17 @@
             },
             {
                 "defaultValue": "Unhandled workflow error.",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "message",
                 "options": [
@@ -1887,6 +2665,17 @@
         "component/workflow/right_triangle_longest_edge": [
             {
                 "defaultValue": "Right Triangle Longest Edge",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -1912,12 +2701,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "sideARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -1937,12 +2737,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "sideBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 3,
                 "placeholder": "",
                 "required": false,
@@ -1962,6 +2773,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -1987,6 +2809,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -2014,6 +2847,17 @@
         "component/workflow/sqrt_graph": [
             {
                 "defaultValue": "Sqrt Graph",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -2039,12 +2883,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "sRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -2064,6 +2919,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "S",
                 "options": [
@@ -2091,6 +2957,17 @@
         "connection/flow": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "label",
                 "options": [
@@ -2116,6 +2993,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "id",
                 "options": [
@@ -2141,6 +3029,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "sourceId",
                 "options": [
@@ -2166,6 +3065,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "targetId",
                 "options": [
@@ -2191,29 +3101,40 @@
             },
             {
                 "defaultValue": -1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                        {
+                            "text": "Auto",
+                            "value": -1
+                        },
+                        {
+                            "text": "Top",
+                            "value": 0
+                        },
+                        {
+                            "text": "Right",
+                            "value": 1
+                        },
+                        {
+                            "text": "Bottom",
+                            "value": 2
+                        },
+                        {
+                            "text": "Left",
+                            "value": 3
+                        }
+                    ],
+                    "source": "custom",
+                    "sourceKey": "custom",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
                 "key": "sourceSide",
                 "options": [
-                    {
-                        "text": "Auto",
-                        "value": -1
-                    },
-                    {
-                        "text": "Top",
-                        "value": 0
-                    },
-                    {
-                        "text": "Right",
-                        "value": 1
-                    },
-                    {
-                        "text": "Bottom",
-                        "value": 2
-                    },
-                    {
-                        "text": "Left",
-                        "value": 3
-                    }
                 ],
                 "optionsSource": "",
                 "optionsSourceEnum": 0,
@@ -2236,29 +3157,40 @@
             },
             {
                 "defaultValue": -1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                        {
+                            "text": "Auto",
+                            "value": -1
+                        },
+                        {
+                            "text": "Top",
+                            "value": 0
+                        },
+                        {
+                            "text": "Right",
+                            "value": 1
+                        },
+                        {
+                            "text": "Bottom",
+                            "value": 2
+                        },
+                        {
+                            "text": "Left",
+                            "value": 3
+                        }
+                    ],
+                    "source": "custom",
+                    "sourceKey": "custom",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
                 "key": "targetSide",
                 "options": [
-                    {
-                        "text": "Auto",
-                        "value": -1
-                    },
-                    {
-                        "text": "Top",
-                        "value": 0
-                    },
-                    {
-                        "text": "Right",
-                        "value": 1
-                    },
-                    {
-                        "text": "Bottom",
-                        "value": 2
-                    },
-                    {
-                        "text": "Left",
-                        "value": 3
-                    }
                 ],
                 "optionsSource": "",
                 "optionsSourceEnum": 0,
@@ -2281,12 +3213,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Routing token key used for connection payload selection.",
                 "key": "tokenKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 22,
                 "placeholder": "",
                 "required": false,
@@ -2310,6 +3253,17 @@
         "connection/flow": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "label",
                 "options": [
@@ -2335,6 +3289,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "id",
                 "options": [
@@ -2360,6 +3325,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "sourceId",
                 "options": [
@@ -2385,6 +3361,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "targetId",
                 "options": [
@@ -2410,29 +3397,40 @@
             },
             {
                 "defaultValue": -1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                        {
+                            "text": "Auto",
+                            "value": -1
+                        },
+                        {
+                            "text": "Top",
+                            "value": 0
+                        },
+                        {
+                            "text": "Right",
+                            "value": 1
+                        },
+                        {
+                            "text": "Bottom",
+                            "value": 2
+                        },
+                        {
+                            "text": "Left",
+                            "value": 3
+                        }
+                    ],
+                    "source": "custom",
+                    "sourceKey": "custom",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
                 "key": "sourceSide",
                 "options": [
-                    {
-                        "text": "Auto",
-                        "value": -1
-                    },
-                    {
-                        "text": "Top",
-                        "value": 0
-                    },
-                    {
-                        "text": "Right",
-                        "value": 1
-                    },
-                    {
-                        "text": "Bottom",
-                        "value": 2
-                    },
-                    {
-                        "text": "Left",
-                        "value": 3
-                    }
                 ],
                 "optionsSource": "",
                 "optionsSourceEnum": 0,
@@ -2455,29 +3453,40 @@
             },
             {
                 "defaultValue": -1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                        {
+                            "text": "Auto",
+                            "value": -1
+                        },
+                        {
+                            "text": "Top",
+                            "value": 0
+                        },
+                        {
+                            "text": "Right",
+                            "value": 1
+                        },
+                        {
+                            "text": "Bottom",
+                            "value": 2
+                        },
+                        {
+                            "text": "Left",
+                            "value": 3
+                        }
+                    ],
+                    "source": "custom",
+                    "sourceKey": "custom",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
                 "key": "targetSide",
                 "options": [
-                    {
-                        "text": "Auto",
-                        "value": -1
-                    },
-                    {
-                        "text": "Top",
-                        "value": 0
-                    },
-                    {
-                        "text": "Right",
-                        "value": 1
-                    },
-                    {
-                        "text": "Bottom",
-                        "value": 2
-                    },
-                    {
-                        "text": "Left",
-                        "value": 3
-                    }
                 ],
                 "optionsSource": "",
                 "optionsSourceEnum": 0,
@@ -2500,12 +3509,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Routing token key used for connection payload selection.",
                 "key": "tokenKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 22,
                 "placeholder": "",
                 "required": false,
@@ -2529,12 +3549,23 @@
         "component/control/ifelse": [
             {
                 "defaultValue": "condition",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "conditionKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 1,
                 "placeholder": "",
                 "required": true,
@@ -2554,12 +3585,23 @@
             },
             {
                 "defaultValue": "routeTrue",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "trueRouteKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": true,
@@ -2579,12 +3621,23 @@
             },
             {
                 "defaultValue": "routeFalse",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "falseRouteKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 3,
                 "placeholder": "",
                 "required": true,
@@ -2604,6 +3657,17 @@
             },
             {
                 "defaultValue": false,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "condition",
                 "options": [
@@ -2631,12 +3695,23 @@
         "component/control/loop": [
             {
                 "defaultValue": "iter",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "iterKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 1,
                 "placeholder": "",
                 "required": true,
@@ -2656,12 +3731,23 @@
             },
             {
                 "defaultValue": "maxIter",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "maxIterKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": true,
@@ -2681,12 +3767,23 @@
             },
             {
                 "defaultValue": "continueLoop",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "continueKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 3,
                 "placeholder": "",
                 "required": true,
@@ -2706,12 +3803,23 @@
             },
             {
                 "defaultValue": "condition",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "conditionKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": true,
@@ -2731,6 +3839,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "iter",
                 "options": [
@@ -2756,6 +3875,17 @@
             },
             {
                 "defaultValue": 10,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "maxIter",
                 "options": [
@@ -2781,6 +3911,17 @@
             },
             {
                 "defaultValue": true,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "condition",
                 "options": [
@@ -2810,6 +3951,17 @@
         "component/math/add": [
             {
                 "defaultValue": "Add Componnent",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -2835,12 +3987,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -2860,12 +4023,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -2885,6 +4059,17 @@
             },
             {
                 "defaultValue": "sum",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -2910,6 +4095,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -2935,6 +4131,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -2960,6 +4167,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -2987,12 +4205,23 @@
         "component/math/divide": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -3012,12 +4241,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -3037,6 +4277,17 @@
             },
             {
                 "defaultValue": "quotient",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -3062,6 +4313,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -3087,6 +4349,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -3112,6 +4385,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -3139,12 +4423,23 @@
         "component/math/equal": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -3164,12 +4459,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -3189,6 +4495,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -3214,6 +4531,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -3239,6 +4567,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -3264,6 +4603,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -3291,12 +4641,23 @@
         "component/math/less_or_equal": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -3316,12 +4677,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -3341,6 +4713,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -3366,6 +4749,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -3391,6 +4785,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -3416,6 +4821,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -3443,12 +4859,23 @@
         "component/math/less_than": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -3468,12 +4895,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -3493,6 +4931,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -3518,6 +4967,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -3543,6 +5003,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -3568,6 +5039,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -3595,12 +5077,23 @@
         "component/math/mod": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -3620,12 +5113,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -3645,6 +5149,17 @@
             },
             {
                 "defaultValue": "result",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -3670,6 +5185,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -3695,6 +5221,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -3720,6 +5257,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -3747,12 +5295,23 @@
         "component/math/multiply": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -3772,12 +5331,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -3797,6 +5367,17 @@
             },
             {
                 "defaultValue": "product",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -3822,6 +5403,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -3847,6 +5439,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -3872,6 +5475,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -3899,12 +5513,23 @@
         "component/math/sqrt": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -3924,6 +5549,17 @@
             },
             {
                 "defaultValue": "sqrtS",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -3949,6 +5585,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -3974,6 +5621,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "S",
                 "options": [
@@ -4001,6 +5659,17 @@
         "component/math/subtract": [
             {
                 "defaultValue": "Subtract Componnent",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4026,12 +5695,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -4051,12 +5731,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "inputBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 4,
                 "placeholder": "",
                 "required": false,
@@ -4076,6 +5767,17 @@
             },
             {
                 "defaultValue": "difference",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Result field written by this component.",
                 "key": "outputKey",
                 "options": [
@@ -4101,6 +5803,17 @@
             },
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Error field written when execution fails.",
                 "key": "errorKey",
                 "options": [
@@ -4126,6 +5839,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -4151,6 +5875,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -4180,6 +5915,17 @@
         "component/start": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "id",
                 "options": [
@@ -4205,6 +5951,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Seed number consumed by the start component when simulation begins.",
                 "key": "inputNumber",
                 "options": [
@@ -4234,6 +5991,17 @@
         "component/stop": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4263,6 +6031,17 @@
         "component/system/error_handler": [
             {
                 "defaultValue": "error",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "errorKey",
                 "options": [
@@ -4288,6 +6067,17 @@
             },
             {
                 "defaultValue": "Unhandled workflow error.",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "message",
                 "options": [
@@ -4317,6 +6107,17 @@
         "component/workflow/right_triangle_longest_edge": [
             {
                 "defaultValue": "Right Triangle Longest Edge",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4342,12 +6143,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "sideARef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -4367,12 +6179,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "sideBRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 3,
                 "placeholder": "",
                 "required": false,
@@ -4392,6 +6215,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "a",
                 "options": [
@@ -4417,6 +6251,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "b",
                 "options": [
@@ -4444,6 +6289,17 @@
         "component/workflow/sqrt_graph": [
             {
                 "defaultValue": "Sqrt Graph",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4469,12 +6325,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.",
                 "key": "sRef",
                 "options": [
                 ],
-                "optionsSource": "tokenKeyOptions",
-                "optionsSourceEnum": 2,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 2,
                 "placeholder": "",
                 "required": false,
@@ -4494,6 +6361,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "S",
                 "options": [
@@ -4523,6 +6401,17 @@
         "component/factory/employee": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4550,6 +6439,17 @@
         "component/factory/fruit_producer": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "id",
                 "options": [
@@ -4575,6 +6475,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4600,6 +6511,17 @@
             },
             {
                 "defaultValue": 1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Seed number consumed by the start component when simulation begins.",
                 "key": "price",
                 "options": [
@@ -4629,6 +6551,17 @@
         "component/factory/manager": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4654,6 +6587,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Current capital available for the manager to make purchases.",
                 "key": "capital",
                 "options": [
@@ -4681,6 +6625,17 @@
             },
             {
                 "defaultValue": 10,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "The amount of capital required for the manager to make a purchase.",
                 "key": "buyAmount",
                 "options": [
@@ -4710,6 +6665,17 @@
         "component/factory/seller": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4737,6 +6703,17 @@
         "component/factory/store": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -4766,6 +6743,17 @@
         "component/process": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Display title used in the component body.",
                 "key": "title",
                 "options": [
@@ -4791,6 +6779,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Optional implementation notes for this process.",
                 "key": "description",
                 "options": [
@@ -4816,6 +6815,17 @@
             },
             {
                 "defaultValue": 9,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Number added to the current simulation value (default +9).",
                 "key": "addValue",
                 "options": [
@@ -4843,6 +6853,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "x",
                 "options": [
@@ -4870,6 +6891,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "y",
                 "options": [
@@ -4897,6 +6929,17 @@
             },
             {
                 "defaultValue": 160,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "width",
                 "options": [
@@ -4924,6 +6967,17 @@
             },
             {
                 "defaultValue": 96,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "height",
                 "options": [
@@ -4953,6 +7007,17 @@
         "component/start": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Human-friendly label shown on the graph.",
                 "key": "title",
                 "options": [
@@ -4978,6 +7043,17 @@
             },
             {
                 "defaultValue": 0,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Seed number consumed by the start component when simulation begins.",
                 "key": "inputNumber",
                 "options": [
@@ -5005,6 +7081,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "FontAwesome icon key, for example 'play' or 'stop'.",
                 "key": "icon",
                 "options": [
@@ -5030,6 +7117,17 @@
             },
             {
                 "defaultValue": "#66bb6a",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "color",
                 "options": [
@@ -5055,11 +7153,22 @@
             },
             {
                 "defaultValue": "rounded",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                        "rounded",
+                        "rectangle"
+                    ],
+                    "source": "custom",
+                    "sourceKey": "custom",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
                 "key": "shape",
                 "options": [
-                    "rounded",
-                    "rectangle"
                 ],
                 "optionsSource": "",
                 "optionsSourceEnum": 0,
@@ -5084,6 +7193,17 @@
         "component/stop": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "title",
                 "options": [
@@ -5109,6 +7229,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "Optional notes shown in the inspector.",
                 "key": "description",
                 "options": [
@@ -5134,6 +7265,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "FontAwesome icon key, for example 'stop' or 'flag-checkered'.",
                 "key": "icon",
                 "options": [
@@ -5159,6 +7301,17 @@
             },
             {
                 "defaultValue": "#ef5350",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "color",
                 "options": [
@@ -5186,6 +7339,17 @@
         "connection/flow": [
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "label",
                 "options": [
@@ -5211,6 +7375,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "id",
                 "options": [
@@ -5236,6 +7411,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "sourceId",
                 "options": [
@@ -5261,6 +7447,17 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "",
+                    "sourceKey": "",
+                    "textRole": "",
+                    "unsetLabel": "",
+                    "valueRole": ""
+                },
                 "hint": "",
                 "key": "targetId",
                 "options": [
@@ -5286,29 +7483,40 @@
             },
             {
                 "defaultValue": -1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                        {
+                            "text": "Auto",
+                            "value": -1
+                        },
+                        {
+                            "text": "Top",
+                            "value": 0
+                        },
+                        {
+                            "text": "Right",
+                            "value": 1
+                        },
+                        {
+                            "text": "Bottom",
+                            "value": 2
+                        },
+                        {
+                            "text": "Left",
+                            "value": 3
+                        }
+                    ],
+                    "source": "custom",
+                    "sourceKey": "custom",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
                 "key": "sourceSide",
                 "options": [
-                    {
-                        "text": "Auto",
-                        "value": -1
-                    },
-                    {
-                        "text": "Top",
-                        "value": 0
-                    },
-                    {
-                        "text": "Right",
-                        "value": 1
-                    },
-                    {
-                        "text": "Bottom",
-                        "value": 2
-                    },
-                    {
-                        "text": "Left",
-                        "value": 3
-                    }
                 ],
                 "optionsSource": "",
                 "optionsSourceEnum": 0,
@@ -5331,29 +7539,40 @@
             },
             {
                 "defaultValue": -1,
+                "dropdownOptions": {
+                    "allowUnset": false,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                        {
+                            "text": "Auto",
+                            "value": -1
+                        },
+                        {
+                            "text": "Top",
+                            "value": 0
+                        },
+                        {
+                            "text": "Right",
+                            "value": 1
+                        },
+                        {
+                            "text": "Bottom",
+                            "value": 2
+                        },
+                        {
+                            "text": "Left",
+                            "value": 3
+                        }
+                    ],
+                    "source": "custom",
+                    "sourceKey": "custom",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "",
                 "key": "targetSide",
                 "options": [
-                    {
-                        "text": "Auto",
-                        "value": -1
-                    },
-                    {
-                        "text": "Top",
-                        "value": 0
-                    },
-                    {
-                        "text": "Right",
-                        "value": 1
-                    },
-                    {
-                        "text": "Bottom",
-                        "value": 2
-                    },
-                    {
-                        "text": "Left",
-                        "value": 3
-                    }
                 ],
                 "optionsSource": "",
                 "optionsSourceEnum": 0,
@@ -5376,12 +7595,23 @@
             },
             {
                 "defaultValue": "",
+                "dropdownOptions": {
+                    "allowUnset": true,
+                    "fallbackToTextWhenEmpty": true,
+                    "items": [
+                    ],
+                    "source": "tokenRef",
+                    "sourceKey": "tokenRef",
+                    "textRole": "text",
+                    "unsetLabel": "",
+                    "valueRole": "value"
+                },
                 "hint": "Routing token key used for connection payload selection. Token options are sourced from connection token keys, execution-state keys, and schema key defaults.",
                 "key": "tokenKey",
                 "options": [
                 ],
-                "optionsSource": "tokenKeys",
-                "optionsSourceEnum": 1,
+                "optionsSource": "",
+                "optionsSourceEnum": 0,
                 "order": 22,
                 "placeholder": "",
                 "required": false,

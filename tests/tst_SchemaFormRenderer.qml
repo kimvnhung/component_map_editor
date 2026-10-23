@@ -84,7 +84,7 @@ TestCase {
         compare(renderer.shouldFallbackToTextField(field), false);
     }
 
-    function test_typedOptionsSourceEnum_resolvesDynamicTokenKeyOptions() {
+    function test_tokenRefDropdownUsesNormalizedSourceKey() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
             "tokenRef": [
@@ -96,7 +96,6 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenRef,
             "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
         setCurrentField(renderer, field);
@@ -108,6 +107,7 @@ TestCase {
         compare(options[1].value, "edge-a::value");
         compare(renderer.shouldFallbackToTextField(field), false);
     }
+
 
     function test_autoInitializeDropdownField_persistsFirstOptionWhenValueMissing() {
         var renderer = makeRenderer();

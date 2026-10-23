@@ -244,7 +244,7 @@ cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
                 .type(SchemaFieldType::String)
                 .title("Token Key")
                 .defaultValue(QString())
-                .dropdown(cme::runtime::Options::tokenKeys())
+                .dropdown(cme::runtime::Options::tokenRef())
                 .section(SchemaFieldSection::Routing)
                 .order(22)
                 .hint("Routing token key used for connection payload selection. Token options are sourced from "

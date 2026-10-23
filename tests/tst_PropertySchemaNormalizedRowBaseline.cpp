@@ -186,14 +186,12 @@ private slots:
         }
     }
 
-    // Documents the current optionsSource contract that the refactor must
-    // preserve (or migrate deliberately): a dropdown either carries static
-    // options or names a dynamic options source, and sources are limited to
-    // the known set below.
+    // Legacy optionsSource fields are no longer used. Dropdown sources are
+    // carried by the normalized dropdownOptions spec instead.
     void optionsSourceContract()
     {
         const QStringList knownSources = {
-            QString(), QStringLiteral("tokenKeys"), QStringLiteral("tokenKeyOptions")
+            QString(), QStringLiteral("tokenRef"), QStringLiteral("defined"), QStringLiteral("custom")
         };
 
         const QJsonObject snapshot = buildSnapshot();
@@ -204,20 +202,17 @@ private slots:
                     const QJsonObject obj = row.toObject();
                     const QString where = QStringLiteral("%1 / %2 / %3")
                                               .arg(p.key(), t.key(), obj.value(QStringLiteral("key")).toString());
-                    const QString source = obj.value(QStringLiteral("optionsSource")).toString();
-                    const int sourceEnum = obj.value(QStringLiteral("optionsSourceEnum")).toInt();
+                    QCOMPARE(obj.value(QStringLiteral("optionsSource")).toString(), QString());
+                    QCOMPARE(obj.value(QStringLiteral("optionsSourceEnum")).toInt(), 0);
 
-                    QVERIFY2(knownSources.contains(source), qPrintable(QStringLiteral("unknown optionsSource at ") + where));
-
-                    const int expectedEnum = source == QStringLiteral("tokenKeys") ? 1
-                        : source == QStringLiteral("tokenKeyOptions") ? 2
-                        : 0;
-                    QVERIFY2(sourceEnum == expectedEnum,
-                             qPrintable(QStringLiteral("optionsSourceEnum mismatch at ") + where));
+                    const QJsonObject dropdownOptions = obj.value(QStringLiteral("dropdownOptions")).toObject();
+                    QVERIFY2(knownSources.contains(dropdownOptions.value(QStringLiteral("source")).toString()),
+                             qPrintable(QStringLiteral("unknown dropdown source at ") + where));
                 }
             }
         }
     }
+
 
     void normalizedRowsMatchBaselineSnapshot()
     {

@@ -151,10 +151,8 @@ private slots:
 
         QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenRef")),
                  cme::runtime::SchemaOptionsSource::TokenRef);
-        QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenKeys")),
-                 cme::runtime::SchemaOptionsSource::TokenRef);
-        QCOMPARE(cme::runtime::schemaOptionsSourceToString(cme::runtime::SchemaOptionsSource::TokenKeyOptions),
-                 QStringLiteral("tokenKeyOptions"));
+        QCOMPARE(cme::runtime::schemaOptionsSourceToString(cme::runtime::SchemaOptionsSource::TokenRef),
+                 QStringLiteral("tokenRef"));
         const QVariantList customItems = {QStringLiteral("one"), QStringLiteral("two")};
         const cme::runtime::SchemaOptionsSpec custom = cme::runtime::Options::custom(customItems);
         QCOMPARE(custom.items, customItems);
