@@ -125,7 +125,6 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenRef,
             "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
         setCurrentField(renderer, field);
@@ -157,7 +156,6 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenRef
         };
 
         renderer.modelObject = {
@@ -191,7 +189,6 @@ TestCase {
         var field = {
             "key": "inputBRef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenRef,
             "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
         setCurrentField(renderer, field);
@@ -214,7 +211,6 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenRef,
             "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
         setCurrentField(renderer, field);
@@ -226,14 +222,13 @@ TestCase {
 
         var options = renderer.enumModelForField(field);
         compare(options.length, 2);
-        compare(renderer.enumIndexForValue(options, renderer.fallbackSelectionValue), 0);
+        compare(renderer.enumIndexForValue(field, options, renderer.fallbackSelectionValue), 0);
     }
 
-    function test_isRendererStateStable_requires_matchingExpectedObjectAndTarget() {
+    function test_isRendererStateStable_requires_matchingExpectedObject() {
         var renderer = makeRenderer();
 
         renderer.expectedModelObjectId = "component-b";
-        renderer.expectedSchemaTarget = "component/math/add";
         renderer.modelObject = {
             id: "component-a",
             type: "start"
@@ -244,13 +239,118 @@ TestCase {
             id: "component-b",
             type: "start"
         };
-        compare(renderer.isRendererStateStable(), false);
-
-        renderer.modelObject = {
-            id: "component-b",
-            type: "math/add"
-        };
         compare(renderer.isRendererStateStable(), true);
+    }
+
+    function test_customValueRole_isUsedForSelectionAndCommit() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function() { return "b"; }
+        };
+        var field = {
+            "key": "choice",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": {
+                "items": [
+                    { label: "Alpha", id: "a" },
+                    { label: "Beta", id: "b" }
+                ],
+                "textRole": "label",
+                "valueRole": "id"
+            }
+        };
+        setCurrentField(renderer, field);
+
+        var options = renderer.enumModelForField(field);
+        compare(renderer.enumIndexForValue(field, options, "b"), 1);
+        compare(renderer.enumValueAt(field, options, 0), "a");
+        compare(renderer.enumTextRoleForField(field), "label");
+    }
+
+    function test_fallbackToTextWhenEmpty_canDisableTextFallback() {
+        var renderer = makeRenderer();
+        renderer.dynamicOptions = { "tokenRef": [] };
+        var field = {
+            "key": "inputRef",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": {
+                "sourceKey": "tokenRef",
+                "fallbackToTextWhenEmpty": false
+            }
+        };
+        setCurrentField(renderer, field);
+
+        compare(renderer.shouldFallbackToTextField(field), false);
+    }
+
+    function test_fallbackOption_usesConfiguredRoles() {
+        var renderer = makeRenderer();
+        var field = {
+            "key": "choice",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": {
+                "allowUnset": true,
+                "textRole": "label",
+                "valueRole": "id",
+                "unsetLabel": "Default"
+            }
+        };
+        setCurrentField(renderer, field);
+
+        var options = renderer.decorateEnumModel(field, [
+            { label: "Alpha", id: "a" }
+        ]);
+        compare(options[0].label, "Default");
+        compare(options[0].id, renderer.fallbackSelectionValue);
+        compare(renderer.enumOptionValue(field, options[0]), renderer.fallbackSelectionValue);
+    }
+
+    function test_fieldHelpers_readNormalizedField() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function(propertyName) {
+                return propertyName === "label" ? "Internal value" : undefined;
+            }
+        };
+        var field = { "key": "label" };
+
+        compare(renderer.fieldKey(field), "label");
+        compare(renderer.fieldText(field), "Internal value");
+        compare(renderer.fieldKey({}), "");
+    }
+
+    function test_fieldValue_usesDefaultWhenModelValueEmpty() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function() { return ""; }
+        };
+        compare(renderer.fieldText({ "key": "name", "defaultValue": "Default" }), "Default");
+    }
+
+    function test_fieldVisible_usesVisibilityRule() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function(propertyName) {
+                return propertyName === "enabled";
+            }
+        };
+        compare(renderer.fieldVisible({ "visibleWhen": { "property": "enabled", "truthy": true } }), true);
+        compare(renderer.fieldVisible({ "visibleWhen": { "property": "enabled", "equals": false } }), false);
+    }
+
+    function test_emptyFallbackOption_isNotDuplicated() {
+        var renderer = makeRenderer();
+        var field = {
+            "key": "choice",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": { "allowUnset": true }
+        };
+        setCurrentField(renderer, field);
+        var options = renderer.decorateEnumModel(field, [
+            { text: "", value: "" },
+            { text: "Alpha", value: "a" }
+        ]);
+        compare(options.length, 2);
     }
 
     function test_typedWidgetEnum_dispatchesWithoutWidgetString() {

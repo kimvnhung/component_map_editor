@@ -36,29 +36,6 @@ Rectangle {
     property DynamicOptionsRegistry dynamicOptionsRegistry: null
     readonly property DynamicOptionsRegistry effectiveDynamicOptionsRegistry: root.dynamicOptionsRegistry ? root.dynamicOptionsRegistry : fallbackDynamicOptionsRegistry
 
-    readonly property var connectionSideModel: [
-        {
-            text: "Auto",
-            value: ConnectionModel.SideAuto
-        },
-        {
-            text: "Top",
-            value: ConnectionModel.SideTop
-        },
-        {
-            text: "Right",
-            value: ConnectionModel.SideRight
-        },
-        {
-            text: "Bottom",
-            value: ConnectionModel.SideBottom
-        },
-        {
-            text: "Left",
-            value: ConnectionModel.SideLeft
-        }
-    ]
-
     readonly property string target: {
         if (!root._model)
             return "";
@@ -148,9 +125,7 @@ Rectangle {
             schemaSectionModel: root.activeSchemaSectionModel
             modelObject: root._model
             expectedModelObjectId: root.isGraphModel ? "graph" : root._model.id
-            expectedSchemaTarget: root.target
             readOnly: root.undoStack === null
-            sideModel: root.connectionSideModel
             dynamicOptions: root.effectiveDynamicOptionsRegistry.targetSourceOptions
             onPropertyEditRequested: function (propertyName, value, sourceModelObject) {
                 var activeModelObject = root._model;
