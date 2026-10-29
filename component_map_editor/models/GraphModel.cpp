@@ -321,15 +321,12 @@ void GraphModel::addComponent(ComponentModel* component)
     if (!component)
         return;
 
-    if (startComponentId().isEmpty())
-    {
-        // RELATED: CME-9 - Auto set first component as default when no component is selected, and the graph has
-        // components
-        setStartComponentId(component->id());
-    }
-
     // In batch mode skip duplicate check; caller guarantees unique IDs.
     if (!m_batchMode && m_componentIndex.contains(component->id()))
+        return;
+
+    // ignore if component ID is empty
+    if (component->id().isEmpty())
         return;
 
     component->setParent(this);
@@ -343,6 +340,10 @@ void GraphModel::addComponent(ComponentModel* component)
     if (!m_batchMode)
         assertIndexIntegrity();
 #endif
+
+    // auto set start component if not set
+    if (startComponentId().isEmpty())
+        setStartComponentId(component->id());
 }
 
 bool GraphModel::removeComponent(const QString& id)
