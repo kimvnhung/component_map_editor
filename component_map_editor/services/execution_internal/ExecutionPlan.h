@@ -1,9 +1,10 @@
 #ifndef EXECUTIONPLAN_H
 #define EXECUTIONPLAN_H
 
+#include <QHash>
 #include <QSet>
 #include <QString>
-
+#include <QStringList>
 
 struct ExecutionPlan
 {

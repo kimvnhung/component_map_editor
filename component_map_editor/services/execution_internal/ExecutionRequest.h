@@ -1,6 +1,7 @@
 #ifndef EXECUTIONREQUEST_H
 #define EXECUTIONREQUEST_H
 
+#include <QString>
 #include <QVariantMap>
 
 struct ExecutionRequest

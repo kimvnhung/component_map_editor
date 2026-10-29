@@ -251,6 +251,27 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_ExecutionPlanBuilder
+    tst_ExecutionPlanBuilder.cpp
+)
+
+target_link_libraries(tst_ExecutionPlanBuilder
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_ExecutionPlanBuilder
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_ExecutionPlanBuilder
+    COMMAND tst_ExecutionPlanBuilder
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_SequentialExecutionEngine
     tst_SequentialExecutionEngine.cpp
 )
