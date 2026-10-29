@@ -5,16 +5,13 @@
 #include <QList>
 #include <QString>
 #include <memory>
-#include <vector>
 
 #include "ExtensionApiVersion.h"
-#include "ExecutionSemanticsV0Adapter.h"
 #include "ExtensionManifest.h"
 #include "IActionProvider.h"
 #include "IComponentTypeProvider.h"
 #include "IConnectionPolicyProvider.h"
 #include "IExecutionSemanticsProvider.h"
-#include "IExecutionSemanticsProviderV0.h"
 #include "IPropertySchemaProvider.h"
 #include "IValidationProvider.h"
 
@@ -39,8 +36,6 @@ public:
     bool registerValidationProvider(const IValidationProvider *provider, QString *error = nullptr);
     bool registerActionProvider(const IActionProvider *provider, QString *error = nullptr);
     bool registerExecutionSemanticsProvider(const IExecutionSemanticsProvider *provider,
-                                            QString *error = nullptr);
-    bool registerExecutionSemanticsProvider(const IExecutionSemanticsProviderV0 *provider,
                                             QString *error = nullptr);
 
     bool hasManifest(const QString &extensionId) const;
@@ -99,7 +94,6 @@ private:
     ProviderRegistry<IValidationProvider>        m_validationProviders;
     ProviderRegistry<IActionProvider>            m_actionProviders;
     ProviderRegistry<IExecutionSemanticsProvider> m_executionSemanticsProviders;
-    std::vector<std::unique_ptr<ExecutionSemanticsV0Adapter>> m_executionSemanticsV0Adapters;
 };
 
 #endif // EXTENSIONCONTRACTREGISTRY_H

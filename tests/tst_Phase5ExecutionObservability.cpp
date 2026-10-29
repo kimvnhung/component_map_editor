@@ -102,13 +102,11 @@ private slots:
 
 void tst_Phase5ExecutionObservability::init()
 {
-    cme::execution::MigrationFlags::resetDefaults();
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 }
 
 void tst_Phase5ExecutionObservability::cleanup()
 {
-    cme::execution::MigrationFlags::resetDefaults();
 }
 
 void tst_Phase5ExecutionObservability::debugSnapshot_returnsStableStructure()

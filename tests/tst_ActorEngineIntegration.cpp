@@ -195,7 +195,6 @@ private slots:
 
 void tst_ActorEngineIntegration::cleanup()
 {
-    cme::execution::MigrationFlags::resetDefaults();
 }
 
 void tst_ActorEngineIntegration::linearGraphMatchesSequentialEngineViaFacade()

@@ -27,9 +27,7 @@ private slots:
 
 void tst_Phase6CutoverReadiness::tokenTransport_defaultOn_andCompatibilityWindowOpen()
 {
-    cme::execution::MigrationFlags::resetDefaults();
     QCOMPARE(cme::execution::MigrationFlags::tokenTransportEnabled(), true);
-    QCOMPARE(cme::execution::MigrationFlags::compatibilityWindowOpen(), true);
 }
 
 void tst_Phase6CutoverReadiness::v1AdapterRetained_forReleaseWindow()

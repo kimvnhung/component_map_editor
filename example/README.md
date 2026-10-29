@@ -1189,22 +1189,11 @@ The panel also shows:
 With the seeded sample graph (`start -> process -> stop`), click `Start` and
 then `Run` to demonstrate the full pipeline and confirm that the final result is `21`.
 
-### Legacy V0 adapter
+### Execution provider contract
 
-If you have an existing v0-era execution provider (`IExecutionSemanticsProviderV0`)
-that returns a flat `QStringList` trace, wrap it without rewriting:
-
-```cpp
-#include "extensions/contracts/ExecutionSemanticsV0Adapter.h"
-#include "MyLegacyProvider.h"
-
-auto *legacy = new MyLegacyProvider();
-auto *adapter = new ExecutionSemanticsV0Adapter(legacy);
-extensionContracts.registerExecutionSemanticsProvider(adapter, nullptr);
-```
-
-The adapter converts the v0 string traces into the v1 `QVariantMap` format
-automatically.
+Execution providers must implement the current typed execution contract and register
+directly with `ExtensionContractRegistry`. Legacy v0 providers are no longer
+registered by the library.
 
 ---
 

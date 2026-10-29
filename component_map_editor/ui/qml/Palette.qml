@@ -17,7 +17,6 @@ Rectangle {
     }
     property var canvas: null
     property var componentTypeRegistry: null
-    property bool legacyDropFallbackEnabled: false
     property bool interactionTelemetryEnabled: true
 
     signal paletteDropRequested(string title, string icon, string color, string type, point scenePos)
