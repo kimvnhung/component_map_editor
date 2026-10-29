@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph Execution — Isometric Technical Figure</title>
+<link rel="stylesheet" href="graph-execution.css">
+</head>
+<body>
+<main>
+  <div class="eyebrow">Execution model · interactive figure</div>
+  <h1>How a graph moves data</h1>
+  <p class="intro">Follow a message from a mailbox, through component execution, across a connection, and into the next component. Use <b>Step</b> to inspect each transition or choose a branch before running.</p> <!-- The figure is intentionally explanatory; see the assumptions panel below. -->
+  <section class="frame" aria-label="Interactive isometric graph execution illustration">
+    <div class="bar">
+      <button class="primary" id="stepBtn" type="button">Step</button>
+      <button id="playBtn" type="button">Run</button>
+      <button id="resetBtn" type="button">Reset</button>
+      <span class="spacer"></span>
+      <button id="branchBtn" type="button" aria-label="Toggle selected condition output">Branch: output1</button>
+      <span class="step-readout" id="readout" aria-live="polite">Ready · 0 / 5</span>
+    </div>
+    <div class="stage" id="stage">
+      <svg viewBox="0 0 960 520" role="img" aria-labelledby="svgTitle svgDesc" xmlns="http://www.w3.org/2000/svg">
+        <title id="svgTitle">Isometric graph execution machine</title>
+        <desc id="svgDesc">A runtime control unit coordinates component stations. A payload moves from an input mailbox to a processing component, then a condition component sends it along one selected output connection to a destination mailbox.</desc>
+        <defs>
+          <filter id="soft" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+          <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="#668078"/></marker>
+        </defs>
+        <g class="isolate">
+          <!-- Base, feet, edge screws, engraved seams: 17 purposeful mechanical details. -->
+          <ellipse class="glow" cx="479" cy="365" rx="345" ry="76"/>
+          <path class="baseSide" d="M128 337 481 450 832 331 832 348 481 470 128 357Z"/>
+          <path class="baseFront" d="M128 337 481 450 481 470 128 357Z"/>
+          <path class="baseSide" d="M481 450 832 331 832 348 481 470Z"/>
+          <path class="baseTop" d="M128 337 479 218 832 331 481 450Z"/>
+          <path class="engrave" d="m153 337 326-110 325 104M166 345l314 101m27-1 294-100M185 337l294-99 294 96"/>
+          <path class="engrave" d="m221 367 260 83m45-99 176-59m-389 44 134-45m211 120 135-47"/>
+          <g><circle class="bolt" cx="155" cy="337" r="3"/><path d="m153.2 337 3.6 0" stroke="#edf3f1"/><circle class="bolt" cx="479" cy="225" r="3"/><path d="m477.2 225 3.6 0" stroke="#edf3f1"/><circle class="bolt" cx="824" cy="331" r="3"/><path d="m822.2 331 3.6 0" stroke="#edf3f1"/><circle class="bolt" cx="481" cy="443" r="3"/><path d="m479.2 443 3.6 0" stroke="#edf3f1"/></g>
+          <!-- Runtime: a physically mounted control unit with status lamps and dispatch lever. -->
+          <g aria-label="Runtime scheduler" transform="translate(-18 -18)">
+            <path class="housingLeft" d="m392 224 91-31 0 67-91 32z"/><path class="housingRight" d="m483 193 91 29 0 68-91-30z"/><path class="housingTop" d="m392 224 91-31 91 29-91 31z"/>
+            <path class="screen" d="m421 224 59-20 0 25-59 20z"/><path d="m430 226 40-14m-40 20 27-9" fill="none" stroke="#83b5a2" stroke-width="1.3"/>
+            <circle class="state-dot" cx="496" cy="214" r="2.3"/><circle cx="505" cy="217" r="2.3" fill="#d3944d"/><circle cx="514" cy="220" r="2.3" fill="#73a891"/>
+            <path class="runtime-cap" d="m512 244 20 6 0 18-20-6z"/><path d="m516 244 0-9 12-4 0 12" fill="none" stroke="#667975" stroke-width="2"/>
+            <path class="lip" d="m405 269 74 24 0 4-74-24z"/><path class="lip" d="m490 296 73-25 0 4-73 25z"/>
+            <text class="machine-label" x="460" y="302" text-anchor="middle">RUNTIME</text>
+            <text class="tiny" x="459" y="313" text-anchor="middle">dispatch · scheduling</text>
+          </g>
+          <!-- Graph station Connection rails. Neutral rails are the persistent graph; animated dash is the payload path. -->
+          <path class="wire-shadow" d="M252 277 341 306 414 281"/><path class="wire" d="M252 277 341 306 414 281"/>
+          <path class="flow" data-flow="0" d="M252 277 341 306 414 281" marker-end="url(#arrow)"/>
+          <path class="wire-shadow" d="m524 282 73 29 83-28"/><path class="wire" d="m524 282 73 29 83-28"/>
+          <path class="flow" data-flow="2" d="m524 282 73 29 83-28" marker-end="url(#arrow)"/>
+          <path class="branch-wire" d="m505 252 49-16 35 11"/><path class="branch-wire" d="m505 261 53 17 31-11"/>
+          <path class="flow" data-flow="3" d="m505 252 49-16 35 11" marker-end="url(#arrow)"/>
+          <path class="flow" data-flow="4" d="m505 261 53 17 31-11" marker-end="url(#arrow)"/>
+          <text class="label" x="307" y="291" transform="rotate(18 307 291)">Connection</text>
+          <text class="label" x="562" y="293" transform="rotate(18 562 293)">Connection</text>
+          <text class="label" x="554" y="229" transform="rotate(18 554 229)">output1</text>
+          <text class="label" x="554" y="280" transform="rotate(18 554 280)">output2</text>
+          <!-- Input Component / Mailbox -->
+          <g class="comp" data-component="input" transform="translate(-108 0)">
+            <path class="housingLeft" d="m207 254 47-16 0 44-47 17z"/><path class="housingRight" d="m254 238 48 15 0 44-48-15z"/><path class="housingTop" d="m207 254 47-16 48 15-48 16z"/>
+            <path class="lip" d="m214 252 39-13 40 13-39 13z"/><circle class="bolt" cx="218" cy="274" r="1.7"/><circle class="bolt" cx="291" cy="258" r="1.7"/>
+            <g class="mailbox"><path d="m218 245 30-10 0 18-30 10z" fill="#edf2f0" stroke="#869792"/><path class="slot" d="m224 245 19-6 0 7-19 6z"/><path class="component-payload" data-token="input" d="m228 243 8-3 0 3-8 3z"/></g>
+            <circle class="state-dot" cx="267" cy="250" r="2.5"/><text class="status" data-status="input" x="273" y="253">IDLE</text>
+            <text class="label" x="252" y="307" text-anchor="middle">Input component</text><text class="tiny" x="254" y="318" text-anchor="middle">Mailbox · waiting message</text>
+          </g>
+          <!-- Processor Component -->
+          <g class="comp" data-component="process">
+            <path class="housingLeft" d="m382 248 47-16 0 44-47 17z"/><path class="housingRight" d="m429 232 48 15 0 44-48-15z"/><path class="housingTop" d="m382 248 47-16 48 15-49 16z"/>
+            <path class="lip" d="m390 246 39-13 40 13-39 13z"/><circle class="bolt" cx="394" cy="269" r="1.7"/><circle class="bolt" cx="466" cy="253" r="1.7"/>
+            <path class="mailbox" d="m393 238 27-9 0 15-27 9z"/><path class="slot" d="m399 239 16-5 0 6-16 5z"/><path class="component-payload" data-token="process" d="m402 237 8-3 0 3-8 3z"/>
+            <path d="m437 241 25 8m-25-2 16 5" stroke="#a9b8b4" stroke-width="1.2" stroke-linecap="round"/><circle class="state-dot" cx="439" cy="243" r="2.5"/><text class="status" data-status="process" x="445" y="246">IDLE</text>
+            <text class="label" x="428" y="326" text-anchor="middle">Processor</text><text class="tiny" x="428" y="337" text-anchor="middle">consume · process · produce</text>
+          </g>
+          <!-- Conditional Component with physical two-way outlet manifold. -->
+          <g class="comp gate" data-component="gate">
+            <path class="housingLeft" d="m478 238 47-16 0 44-47 17z"/><path class="housingRight" d="m525 222 48 15 0 44-48-15z"/><path class="housingTop" d="m478 238 47-16 48 15-48 16z"/>
+            <path class="lip" d="m486 236 39-13 40 13-39 13z"/><path class="mailbox" d="m490 228 26-9 0 15-26 9z"/><path class="slot" d="m496 229 15-5 0 6-15 5z"/>
+            <path d="m532 236 16-6 8 3-16 6z" fill="#c8d4d1" stroke="#82918c"/><path class="output selected" d="m548 233 8-3 15 5-8 3z" fill="none"/><path class="output unselected" d="m548 249 8-3 15 5-8 3z" fill="none"/>
+            <circle class="state-dot" cx="536" cy="235" r="2.5"/><text class="status" data-status="gate" x="542" y="238">IDLE</text>
+            <text class="label" x="526" y="298" text-anchor="middle">Condition</text><text class="tiny" x="526" y="309" text-anchor="middle">select one output</text>
+          </g>
+          <!-- Output destinations, mailboxes wait for the selected payload. -->
+          <g class="comp dim" data-component="out1" transform="translate(0 -38)">
+            <path class="housingLeft" d="m626 254 47-16 0 44-47 17z"/><path class="housingRight" d="m673 238 48 15 0 44-48-15z"/><path class="housingTop" d="m626 254 47-16 48 15-48 16z"/>
+            <path class="lip" d="m634 252 39-13 40 13-39 13z"/><path class="mailbox" d="m637 245 30-10 0 18-30 10z"/><path class="slot" d="m643 245 19-6 0 7-19 6z"/><path class="component-payload" data-token="out1" d="m647 243 8-3 0 3-8 3z"/>
+            <circle class="state-dot" cx="686" cy="250" r="2.5"/><text class="status" data-status="out1" x="692" y="253">IDLE</text><text class="label" x="672" y="309" text-anchor="middle">Output 1</text><text class="tiny" x="672" y="320" text-anchor="middle">Mailbox</text>
+          </g>
+          <g class="comp dim" data-component="out2" transform="translate(0 32)">
+            <path class="housingLeft" d="m626 254 47-16 0 44-47 17z"/><path class="housingRight" d="m673 238 48 15 0 44-48-15z"/><path class="housingTop" d="m626 254 47-16 48 15-48 16z"/>
+            <path class="lip" d="m634 252 39-13 40 13-39 13z"/><path class="mailbox" d="m637 245 30-10 0 18-30 10z"/><path class="slot" d="m643 245 19-6 0 7-19 6z"/><path class="component-payload" data-token="out2" d="m647 243 8-3 0 3-8 3z"/>
+            <circle class="state-dot" cx="686" cy="250" r="2.5"/><text class="status" data-status="out2" x="692" y="253">IDLE</text><text class="label" x="672" y="309" text-anchor="middle">Output 2</text><text class="tiny" x="672" y="320" text-anchor="middle">Mailbox</text>
+          </g>
+          <!-- Stand-mounted runtime dispatch arm and small queue rack. -->
+          <path class="rail" d="m345 325 132-45 16 5-132 46z"/><path class="railTop" d="m345 325 132-45 0 5-132 45z"/><path class="rail" d="m361 331 132-45 12 4-132 46z"/>
+          <g><path class="housingLeft" d="m353 317 8-3 0 24-8 3z"/><path class="housingRight" d="m361 314 10 3 0 24-10-3z"/><path class="housingTop" d="m353 317 8-3 10 3-10 4z"/><circle class="runner" cx="365" cy="318" r="3"/><path d="m365 318 38-14" stroke="#668078" stroke-width="2"/><circle cx="404" cy="304" r="2.4" fill="#668078"/></g>
+          <text class="machine-label" x="388" y="352" text-anchor="middle">DISPATCH RAIL</text>
+          <!-- Live payload marker is placed along the chosen connection by script. -->
+          <g id="movingPayload" class="packet" aria-hidden="true"><circle class="payload" r="6"/><circle r="1.6" fill="#fff8eb"/><text x="9" y="-6" class="tiny">Payload</text></g>
+          <!-- Small fasteners/feet and identification plate complete the instrument-like base. -->
+          <path class="lip" d="m398 390 62-21 44 14-62 21z"/><path d="m407 389 36-12m-32 15 25-8" stroke="#98a8a3" stroke-width="1"/><circle class="bolt" cx="406" cy="391" r="1.6"/><circle class="bolt" cx="499" cy="386" r="1.6"/>
+        </g>
+      </svg>
+    </div>
+    <div class="legend"><span class="key"><i class="dot amber"></i>Payload in transit</span><span class="key"><i class="dot"></i>Selected / completed path</span><span class="key"><i class="dot gray"></i>Idle component or inactive branch</span><span class="key">Status: Idle → Running → Completed</span></div>
+    <div class="under">
+      <div class="caption"><strong>How to read this figure</strong>Runtime dispatches a waiting message; a component processes its payload and becomes Completed. A condition sends the payload down only the selected output connection, toward the next mailbox.</div>
+      <div class="assumption"><strong>Design assumptions — not implementation claims</strong>This figure models one illustrative message at a time. The branch choice and visual mailbox placement are explanatory. Queue ordering, worker count, parallel timing, and payload schema are intentionally not specified here.</div>
+    </div>
+  </section>
+  <p class="foot">Keyboard: Tab to controls, then Enter/Space. Reduced-motion preferences are respected. The diagram runs locally; it has no external dependencies.</p>
+</main>
+<script src="graph-execution.js"></script>
+</body>
+</html>

@@ -320,7 +320,7 @@ ApplicationWindow {
                             graph: graph
                             undoStack: undoStack
                             propertySchemaRegistry: startupPropertySchemaRegistry
-                            providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
+                            dynamicOptionsRegistry: startupDynamicOptionsRegistry
                         }
 
                         ColumnLayout {

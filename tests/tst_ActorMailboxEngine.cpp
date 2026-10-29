@@ -166,7 +166,7 @@ namespace
     {
         SequentialExecutionEngine engine;
 
-        if (!engine.prepare(&graph, providers, QVariantMap(), error))
+        if (!engine.prepare(&graph, providers, ExecutionRequest{}, error))
         {
             return {};
         }
@@ -356,7 +356,7 @@ void tst_ActorMailboxEngine::matchesSequentialEngineOutputOnDiamondGraph()
     // Reference: drive the same graph fully through SequentialExecutionEngine.
     SequentialExecutionEngine sequentialEngine;
     QString error;
-    QVERIFY2(sequentialEngine.prepare(&graph, providers, QVariantMap(), &error), qPrintable(error));
+    QVERIFY2(sequentialEngine.prepare(&graph, providers, ExecutionRequest{}, &error), qPrintable(error));
 
     QVariantMap sequentialDOutput;
 

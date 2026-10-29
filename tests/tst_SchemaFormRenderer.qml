@@ -27,17 +27,29 @@ TestCase {
         };
     }
 
+    function setCurrentField(renderer, field) {
+        renderer.schemaSectionModel = makeSectionModel([
+            {
+                "id": "test",
+                "title": "Test",
+                "fieldsModel": makeFieldModel([field])
+            }
+        ]);
+    }
+
     function test_optionsSource_resolvesDynamicTokenList() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
-            "tokenKeys": ["tok.a.b", "tok.b.c"]
+            "tokenRef": ["tok.a.b", "tok.b.c"]
         };
 
         var field = {
             "key": "inputAKey",
             "widget": "dropdown",
-            "optionsSource": "tokenKeys"
+            "optionsSource": "tokenRef",
+            "dropdownOptions": { "sourceKey": "tokenRef" }
         };
+        setCurrentField(renderer, field);
 
         var options = renderer.enumModelForField(field);
         compare(options.length, 2);
@@ -48,14 +60,15 @@ TestCase {
     function test_optionsSource_fallsBackToTextFieldWhenEmpty() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
-            "tokenKeys": []
+            "tokenRef": []
         };
 
         var field = {
             "key": "outputKey",
-            "widget": "dropdown",
-            "optionsSource": "tokenKeys"
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": { "sourceKey": "tokenRef" }
         };
+        setCurrentField(renderer, field);
 
         compare(renderer.shouldFallbackToTextField(field), true);
     }
@@ -71,10 +84,10 @@ TestCase {
         compare(renderer.shouldFallbackToTextField(field), false);
     }
 
-    function test_typedOptionsSourceEnum_resolvesDynamicTokenKeyOptions() {
+    function test_tokenRefDropdownUsesNormalizedSourceKey() {
         var renderer = makeRenderer();
         renderer.dynamicOptions = {
-            "tokenKeyOptions": [
+            "tokenRef": [
                 { text: "edge-a::value", value: "edge-a::value" },
                 { text: "edge-b::value", value: "edge-b::value" }
             ]
@@ -83,8 +96,9 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
+        setCurrentField(renderer, field);
 
         var options = renderer.enumModelForField(field);
         compare(options.length, 3);
@@ -94,6 +108,7 @@ TestCase {
         compare(renderer.shouldFallbackToTextField(field), false);
     }
 
+
     function test_autoInitializeDropdownField_persistsFirstOptionWhenValueMissing() {
         var renderer = makeRenderer();
         var edits = [];
@@ -102,6 +117,7 @@ TestCase {
         });
 
         var modelObject = {
+            hasDynamicProperty: function() { return false; },
             dynamicPropertyValue: function() { return ""; }
         };
         renderer.modelObject = modelObject;
@@ -109,8 +125,9 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
+        setCurrentField(renderer, field);
 
         var applied = renderer.autoInitializeDropdownField(field, [
             { text: "Use fallback value", value: renderer.fallbackSelectionValue },
@@ -139,7 +156,6 @@ TestCase {
         var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
         };
 
         renderer.modelObject = {
@@ -173,8 +189,9 @@ TestCase {
         var field = {
             "key": "inputBRef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
         };
+        setCurrentField(renderer, field);
 
         var applied = renderer.autoInitializeDropdownField(field, [
             { text: "Use fallback value", value: renderer.fallbackSelectionValue },
@@ -191,23 +208,27 @@ TestCase {
 
     function test_enumIndexForValue_matchesFallbackSentinel() {
         var renderer = makeRenderer();
-        var options = renderer.enumModelForField({
+        var field = {
             "key": "inputARef",
             "widgetEnum": renderer.widgetDropdown,
-            "optionsSourceEnum": renderer.optionsSourceTokenKeyOptions,
-            "options": [
+            "dropdownOptions": { "sourceKey": "tokenRef", "allowUnset": true }
+        };
+        setCurrentField(renderer, field);
+        renderer.dynamicOptions = {
+            "tokenRef": [
                 { text: "edge-a::value", value: "edge-a::value" }
             ]
-        });
+        };
 
-        compare(renderer.enumIndexForValue(options, renderer.fallbackSelectionValue), 0);
+        var options = renderer.enumModelForField(field);
+        compare(options.length, 2);
+        compare(renderer.enumIndexForValue(field, options, renderer.fallbackSelectionValue), 0);
     }
 
-    function test_isRendererStateStable_requires_matchingExpectedObjectAndTarget() {
+    function test_isRendererStateStable_requires_matchingExpectedObject() {
         var renderer = makeRenderer();
 
         renderer.expectedModelObjectId = "component-b";
-        renderer.expectedSchemaTarget = "component/math/add";
         renderer.modelObject = {
             id: "component-a",
             type: "start"
@@ -218,13 +239,118 @@ TestCase {
             id: "component-b",
             type: "start"
         };
-        compare(renderer.isRendererStateStable(), false);
-
-        renderer.modelObject = {
-            id: "component-b",
-            type: "math/add"
-        };
         compare(renderer.isRendererStateStable(), true);
+    }
+
+    function test_customValueRole_isUsedForSelectionAndCommit() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function() { return "b"; }
+        };
+        var field = {
+            "key": "choice",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": {
+                "items": [
+                    { label: "Alpha", id: "a" },
+                    { label: "Beta", id: "b" }
+                ],
+                "textRole": "label",
+                "valueRole": "id"
+            }
+        };
+        setCurrentField(renderer, field);
+
+        var options = renderer.enumModelForField(field);
+        compare(renderer.enumIndexForValue(field, options, "b"), 1);
+        compare(renderer.enumValueAt(field, options, 0), "a");
+        compare(renderer.enumTextRoleForField(field), "label");
+    }
+
+    function test_fallbackToTextWhenEmpty_canDisableTextFallback() {
+        var renderer = makeRenderer();
+        renderer.dynamicOptions = { "tokenRef": [] };
+        var field = {
+            "key": "inputRef",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": {
+                "sourceKey": "tokenRef",
+                "fallbackToTextWhenEmpty": false
+            }
+        };
+        setCurrentField(renderer, field);
+
+        compare(renderer.shouldFallbackToTextField(field), false);
+    }
+
+    function test_fallbackOption_usesConfiguredRoles() {
+        var renderer = makeRenderer();
+        var field = {
+            "key": "choice",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": {
+                "allowUnset": true,
+                "textRole": "label",
+                "valueRole": "id",
+                "unsetLabel": "Default"
+            }
+        };
+        setCurrentField(renderer, field);
+
+        var options = renderer.decorateEnumModel(field, [
+            { label: "Alpha", id: "a" }
+        ]);
+        compare(options[0].label, "Default");
+        compare(options[0].id, renderer.fallbackSelectionValue);
+        compare(renderer.enumOptionValue(field, options[0]), renderer.fallbackSelectionValue);
+    }
+
+    function test_fieldHelpers_readNormalizedField() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function(propertyName) {
+                return propertyName === "label" ? "Internal value" : undefined;
+            }
+        };
+        var field = { "key": "label" };
+
+        compare(renderer.fieldKey(field), "label");
+        compare(renderer.fieldText(field), "Internal value");
+        compare(renderer.fieldKey({}), "");
+    }
+
+    function test_fieldValue_usesDefaultWhenModelValueEmpty() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function() { return ""; }
+        };
+        compare(renderer.fieldText({ "key": "name", "defaultValue": "Default" }), "Default");
+    }
+
+    function test_fieldVisible_usesVisibilityRule() {
+        var renderer = makeRenderer();
+        renderer.modelObject = {
+            dynamicPropertyValue: function(propertyName) {
+                return propertyName === "enabled";
+            }
+        };
+        compare(renderer.fieldVisible({ "visibleWhen": { "property": "enabled", "truthy": true } }), true);
+        compare(renderer.fieldVisible({ "visibleWhen": { "property": "enabled", "equals": false } }), false);
+    }
+
+    function test_emptyFallbackOption_isNotDuplicated() {
+        var renderer = makeRenderer();
+        var field = {
+            "key": "choice",
+            "widgetEnum": renderer.widgetDropdown,
+            "dropdownOptions": { "allowUnset": true }
+        };
+        setCurrentField(renderer, field);
+        var options = renderer.decorateEnumModel(field, [
+            { text: "", value: "" },
+            { text: "Alpha", value: "a" }
+        ]);
+        compare(options.length, 2);
     }
 
     function test_typedWidgetEnum_dispatchesWithoutWidgetString() {
@@ -237,7 +363,7 @@ TestCase {
         compare(renderer.widgetEnumForField({ "widgetEnum": renderer.widgetSpinBox }), renderer.widgetSpinBox);
     }
 
-    function test_typedSectionModel_convertsToLegacyRowsForFallbackRenderer() {
+    function test_typedSectionModel_convertsToRowsForRenderer() {
         var renderer = makeRenderer();
         var fieldsModel = makeFieldModel([
             {
@@ -256,7 +382,7 @@ TestCase {
             }
         ]);
 
-        var sections = renderer.typedSectionsToLegacyRows();
+        var sections = renderer.typedSectionsToRows();
         compare(sections.length, 1);
         compare(sections[0].title, "Behavior");
         compare(sections[0].fields.length, 1);

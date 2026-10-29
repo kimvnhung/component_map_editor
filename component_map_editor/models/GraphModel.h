@@ -15,11 +15,9 @@ class GraphModel : public QObject
     QML_ELEMENT
 
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY idChanged FINAL)
-    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
+    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged FINAL)
     Q_PROPERTY(
         QString startComponentId READ startComponentId WRITE setStartComponentId NOTIFY startComponentIdChanged FINAL)
-    Q_PROPERTY(QString startComponentTitle READ startComponentTitle WRITE setStartComponentTitle NOTIFY
-                   startComponentTitleChanged FINAL)
     Q_PROPERTY(QVariantList components READ componentsVariant NOTIFY componentsChanged FINAL)
     Q_PROPERTY(QVariantList connections READ connectionsVariant NOTIFY connectionsChanged FINAL)
     Q_PROPERTY(int componentCount READ componentCount NOTIFY componentsChanged FINAL)
@@ -53,17 +51,20 @@ public:
     Q_INVOKABLE void beginBatchUpdate();
     Q_INVOKABLE void endBatchUpdate();
 
+    Q_INVOKABLE bool setDynamicProperty(const QString& name, const QVariant& value);
+    Q_INVOKABLE bool hasDynamicProperty(const QString& name) const;
+    Q_INVOKABLE QVariant dynamicPropertyValue(const QString& name) const;
+
     QString id() const;
     void setId(const QString& newId);
-
-    QString name() const;
-    void setName(const QString& newName);
 
     QString startComponentId() const;
     void setStartComponentId(const QString& newStartComponentId);
 
-    QString startComponentTitle() const;
-    void setStartComponentTitle(const QString& newStartComponentTitle);
+    QString title() const;
+    void setTitle(const QString& newTitle);
+
+    bool hasValidStartComponent() const;
 
 signals:
     void componentAdded(ComponentModel* component);
@@ -74,12 +75,9 @@ signals:
     void connectionsChanged();
 
     void idChanged();
-
-    void nameChanged();
-
     void startComponentIdChanged();
 
-    void startComponentTitleChanged();
+    void titleChanged();
 
 private:
     ComponentModel* firstComponentByIdLinear(const QString& id) const;
@@ -106,9 +104,8 @@ private:
     QHash<ConnectionModel*, QString> m_connectionTrackedIds;
     bool m_batchMode = false;
     QString m_id;
-    QString m_name;
+    QString m_title;
     QString m_startComponentId;
-    QString m_startComponentTitle;
 };
 
 #endif // GRAPHMODEL_H

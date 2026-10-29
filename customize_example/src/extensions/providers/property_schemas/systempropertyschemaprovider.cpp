@@ -6,36 +6,58 @@
 namespace
 {
 
-    using cme::runtime::SchemaFieldType;
-    using cme::runtime::SchemaFieldWidget;
-    using cme::runtime::SchemaFieldSection;
-    using cme::runtime::SchemaOptionsSource;
+using cme::runtime::SchemaFieldSection;
+using cme::runtime::SchemaFieldType;
+using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaOptionsSource;
 
-    const QString kTokenKeyHint =
-        QStringLiteral("Token options are sourced from connection token keys, execution-state keys, and schema key defaults.");
+const QString kTokenKeyHint = QStringLiteral(
+    "Token options are sourced from connection token keys, execution-state keys, and schema key defaults.");
 
-    cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
-    {
-        cme::templates::v1::PropertySchemaTemplateBundle bundle;
-        bundle.set_provider_id("customize.workflow.propertySchema.system");
-        bundle.set_schema_version("1.0.0");
+cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
+{
+    cme::templates::v1::PropertySchemaTemplateBundle bundle;
+    bundle.set_provider_id("customize.workflow.propertySchema.system");
+    bundle.set_schema_version("1.0.0");
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/system/error_handler",
+    cme::helper::property_schemas::addTarget(
+        &bundle, "component/system/error_handler",
         {
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 1,
-                    kTokenKeyHint),
-            cme::helper::property_schemas::makeField("message", SchemaFieldType::String, "Fallback Message", true, QStringLiteral("Unhandled workflow error."), SchemaFieldWidget::TextArea, SchemaFieldSection::Behavior, 2)
+            // cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true,
+            // QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 1,
+            //         kTokenKeyHint),
+            // cme::helper::property_schemas::makeField("message", SchemaFieldType::String, "Fallback Message", true,
+            // QStringLiteral("Unhandled workflow error."), SchemaFieldWidget::TextArea, SchemaFieldSection::Behavior,
+            // 2)
+            cme::helper::property_schemas::Field("errorKey")
+                .type(SchemaFieldType::String)
+                .title("Error Key")
+                .required()
+                .defaultValue(QStringLiteral("error"))
+                .textField()
+                .section(SchemaFieldSection::Context)
+                .order(1)
+                .hint(kTokenKeyHint)
+                .build(),
+            cme::helper::property_schemas::Field("message")
+                .type(SchemaFieldType::String)
+                .title("Fallback Message")
+                .required()
+                .defaultValue(QStringLiteral("Unhandled workflow error."))
+                .textArea()
+                .section(SchemaFieldSection::Behavior)
+                .order(2)
+                .build(),
         });
 
-        return bundle;
-    }
+    return bundle;
+}
 
-    const cme::templates::v1::PropertySchemaTemplateBundle &schemaBundle()
-    {
-        static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
-        return kBundle;
-    }
+const cme::templates::v1::PropertySchemaTemplateBundle& schemaBundle()
+{
+    static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
+    return kBundle;
+}
 
 } // namespace
 
@@ -49,8 +71,7 @@ QStringList SystemPropertySchemaProvider::schemaTargets() const
     return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaTargets(schemaBundle());
 }
 
-QVariantList SystemPropertySchemaProvider::propertySchema(const QString &targetId) const
+QVariantList SystemPropertySchemaProvider::propertySchema(const QString& targetId) const
 {
-    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(
-               schemaBundle(), targetId);
+    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(schemaBundle(), targetId);
 }

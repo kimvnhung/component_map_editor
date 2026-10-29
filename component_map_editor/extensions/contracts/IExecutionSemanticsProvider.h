@@ -25,7 +25,7 @@ public:
 
     // Returns the keys this provider promises to write into outputPayload
     // for the given componentType. Used by the sandbox for post-execute
-    // validation and by TokenKeyCatalog for design-time dropdown population.
+    // validation and by DynamicOptionsRegistry for design-time dropdown population.
     virtual QStringList providedOutputKeys(const QString &componentType) const = 0;
 
     // Executes one component in sandbox context using token-aware inputs.

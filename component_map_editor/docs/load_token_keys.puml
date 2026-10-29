@@ -1,5 +1,5 @@
 @startuml
-title PropertyPanel Runtime - Token Key Loading (Activity Diagram)
+title PropertyPanel Runtime - Token Ref Options Loading (Activity Diagram)
 
 start
 
@@ -8,40 +8,36 @@ start
 :PropertyPanel resolves selected object as component;
 :Set componentTarget = "component/<type>";
 
-:Request schema sections from PropertySchemaRegistry\nsectionedSchemaForTarget(componentTarget);
-:PropertyPanel receives activeSchemaSections;
+:Request typed schema model from PropertySchemaRegistry\ntypedSectionModelForTarget(componentTarget);
+:PropertyPanel receives activeSchemaSectionModel;
 
-:Set TokenKeyCatalog.graph = graph;
-:Set TokenKeyCatalog.schemaSections = activeSchemaSections;
-:Set TokenKeyCatalog.targetComponentId = selected component.id;
+:Set DynamicOptionsRegistry.graph = graph;
+:Set DynamicOptionsRegistry.targetComponentId = selected component.id;
+:DynamicOptionsRegistry.refresh();
 
-:TokenKeyCatalog.refresh();
 :Read graph.connectionList();
 
 while (More connections?) is (yes)
   :Take next connection;
   if (connection.targetId == targetComponentId?) then (yes)
-    if (connection.tokenKey non-empty?) then (yes)
-      :Add tokenKey candidate;
-    else (no)
-      :Skip connection;
-    endif
+    :Look up source component and its declared output keys;
+    :Add tokenRef candidate per output key;
   else (no)
     :Skip connection;
   endif
 endwhile (no)
 
-:Deduplicate + sort token keys;
-:Emit tokenKeysChanged;
+:Deduplicate + sort options by text;
+:Register options under source key "tokenRef";
+:Emit targetSourceOptionsChanged;
 
-:PropertyPanel builds dynamicFieldOptions\n{ tokenKeys: catalog.tokenKeys };
-:Pass schemaSections + dynamicOptions to SchemaFormRenderer;
+:PropertyPanel passes dynamicOptions\n= registry.targetSourceOptions to SchemaFormRenderer;
 
 while (More schema fields?) is (yes)
-  :Read field.optionsSource;
-  if (optionsSource == "tokenKeys"?) then (yes)
+  :Read field.dropdownOptions.sourceKey;
+  if (sourceKey == "tokenRef"?) then (yes)
     if (dynamic token list not empty?) then (yes)
-      :Render dropdown with token keys;
+      :Render dropdown with tokenRef options;
     else (no)
       :Fallback to textfield;
     endif
@@ -60,7 +56,7 @@ fork again
   :User selects another component;
 end fork
 
-:TokenKeyCatalog refresh triggered again;
+:DynamicOptionsRegistry refresh triggered again;
 :PropertyPanel/Renderer bindings auto-update options;
 
 stop

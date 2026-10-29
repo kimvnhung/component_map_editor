@@ -1,6 +1,7 @@
 #include "GraphModel.h"
 
 #include <QtAlgorithms>
+#include <base_log.h>
 
 GraphModel::GraphModel(QObject* parent) : QObject(parent) {}
 
@@ -238,19 +239,27 @@ void GraphModel::assertIndexIntegrity() const
     const bool ok = verifyComponentIndexIntegrity() && verifyConnectionIndexIntegrity();
     Q_ASSERT_X(ok, "GraphModel::assertIndexIntegrity", "GraphModel internal id index diverged from source collections");
 }
-#endif
 
-QString GraphModel::startComponentTitle() const
+QString GraphModel::title() const
 {
-    return m_startComponentTitle;
+    return m_title;
 }
 
-void GraphModel::setStartComponentTitle(const QString& newStartComponentTitle)
+void GraphModel::setTitle(const QString& newTitle)
 {
-    if (m_startComponentTitle == newStartComponentTitle)
+    if (m_title == newTitle)
         return;
-    m_startComponentTitle = newStartComponentTitle;
-    emit startComponentTitleChanged();
+    m_title = newTitle;
+    emit titleChanged();
+}
+#endif
+
+bool GraphModel::hasValidStartComponent() const
+{
+    if (m_startComponentId.isEmpty())
+        return false;
+
+    return m_componentIndex.contains(m_startComponentId);
 }
 
 QString GraphModel::startComponentId() const
@@ -264,19 +273,6 @@ void GraphModel::setStartComponentId(const QString& newStartComponentId)
         return;
     m_startComponentId = newStartComponentId;
     emit startComponentIdChanged();
-}
-
-QString GraphModel::name() const
-{
-    return m_name;
-}
-
-void GraphModel::setName(const QString& newName)
-{
-    if (m_name == newName)
-        return;
-    m_name = newName;
-    emit nameChanged();
 }
 
 QString GraphModel::id() const
@@ -332,8 +328,13 @@ void GraphModel::addComponent(ComponentModel* component)
 {
     if (!component)
         return;
+
     // In batch mode skip duplicate check; caller guarantees unique IDs.
     if (!m_batchMode && m_componentIndex.contains(component->id()))
+        return;
+
+    // ignore if component ID is empty
+    if (component->id().isEmpty())
         return;
 
     component->setParent(this);
@@ -347,6 +348,10 @@ void GraphModel::addComponent(ComponentModel* component)
     if (!m_batchMode)
         assertIndexIntegrity();
 #endif
+
+    // auto set start component if not set
+    if (startComponentId().isEmpty())
+        setStartComponentId(component->id());
 }
 
 bool GraphModel::removeComponent(const QString& id)
@@ -369,6 +374,16 @@ bool GraphModel::removeComponent(const QString& id)
     if (!m_batchMode)
         assertIndexIntegrity();
 #endif
+
+    // auto unset start component if it was the removed component
+    if (startComponentId() == id)
+    {
+        // set start component to the first available component, if any
+        if (!m_components.isEmpty())
+            setStartComponentId(m_components.first()->id());
+        else
+            setStartComponentId(QString());
+    }
 
     return true;
 }
@@ -455,6 +470,8 @@ void GraphModel::clear()
 #ifdef QT_DEBUG
     assertIndexIntegrity();
 #endif
+
+    setStartComponentId(QString());
 }
 
 void GraphModel::beginBatchUpdate()
@@ -476,4 +493,34 @@ void GraphModel::endBatchUpdate()
 
     emit componentsChanged();
     emit connectionsChanged();
+}
+
+bool GraphModel::setDynamicProperty(const QString& name, const QVariant& value)
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return false;
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::setProperty(utf8Name.constData(), value);
+}
+
+bool GraphModel::hasDynamicProperty(const QString& name) const
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return false;
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::dynamicPropertyNames().contains(utf8Name);
+}
+
+QVariant GraphModel::dynamicPropertyValue(const QString& name) const
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty())
+        return {};
+
+    const QByteArray utf8Name = trimmedName.toUtf8();
+    return QObject::property(utf8Name.constData());
 }

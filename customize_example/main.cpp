@@ -10,18 +10,21 @@
 #include "extensions/factory_pack/providers/FactoryComponentTypeProvider.h"
 #include "extensions/factory_pack/providers/FactoryPropertySchemaProvider.h"
 #include "extensions/factory_pack/providers/FactoryExecutionSemanticsProvider.h"
+#include "extensions/providers/customizecomponenttypeprovider.h"
+#include "extensions/providers/customizeexecutionsanticsprovider.h"
+#include "extensions/providers/customizepropertyschemaprovider.h"
 
 #include <services/ExecutionMigrationFlags.h>
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
-    #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
+#define EXAMPLE_EXTENSION_MANIFEST_DIR ""
 #endif
 
 #ifndef EXAMPLE_EXTENSION_RULE_FILE
-    #define EXAMPLE_EXTENSION_RULE_FILE ""
+#define EXAMPLE_EXTENSION_RULE_FILE ""
 #endif
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
 
@@ -31,26 +34,42 @@ int main(int argc, char *argv[])
 
     try
     {
+        // manager = ComponentMapEditorManagerBuilder()
+        //           .withPackFactoryEntry(ExtensionPackBuilder()
+        //                                 .withExtensionId("manifest.factory.pack")
+        //                                 .withCapabilities(
+        //                                     static_cast<extensions::Capability>(
+        //                                         extensions::Capability_ComponentTypes |
+        //                                         extensions::Capability_PropertySchema |
+        //                                         extensions::Capability_ExecutionSemantics))
+        //                                 .withComponentProviderFactory(utils::makeFactory<FactoryComponentTypeProvider>())
+        //                                 .withPropertySchemaProviderFactory(utils::makeFactory<FactoryPropertySchemaProvider>())
+        //                                 .withExecutionSemanticsFactory(utils::makeFactory<FactoryExecutionSemanticsProvider>())
+        //                                 .build())
+        //           .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
+        //           .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
+        //           .withExtensionContractRegistry(
+        //               ExtensionContractRegistryBuilder()
+        //               .build()
+        //           )
+        //           .build();
         manager = ComponentMapEditorManagerBuilder()
-                  .withPackFactoryEntry(ExtensionPackBuilder()
-                                        .withExtensionId("manifest.factory.pack")
-                                        .withCapabilities(
-                                            static_cast<extensions::Capability>(
-                                                extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema |
-                                                extensions::Capability_ExecutionSemantics))
-                                        .withComponentProviderFactory(utils::makeFactory<FactoryComponentTypeProvider>())
-                                        .withPropertySchemaProviderFactory(utils::makeFactory<FactoryPropertySchemaProvider>())
-                                        .withExecutionSemanticsFactory(utils::makeFactory<FactoryExecutionSemanticsProvider>())
-                                        .build())
-                  .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
-                  .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
-                  .withExtensionContractRegistry(
-                      ExtensionContractRegistryBuilder()
-                      .build()
-                  )
-                  .build();
+                      .withPackFactoryEntry(
+                          ExtensionPackBuilder()
+                              .withExtensionId("customize.workflow")
+                              .withCapabilities(static_cast<extensions::Capability>(
+                                  extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema |
+                                  extensions::Capability_ExecutionSemantics))
+                              .withComponentProviderFactory(utils::makeFactory<CustomizeComponentTypeProvider>())
+                              .withPropertySchemaProviderFactory(utils::makeFactory<CustomizePropertySchemaProvider>())
+                              .withExecutionSemanticsFactory(utils::makeFactory<CustomizeExecutionSemanticsProvider>())
+                              .build())
+                      .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
+                      .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
+                      .withExtensionContractRegistry(ExtensionContractRegistryBuilder().build())
+                      .build();
     }
-    catch (std::runtime_error &e)
+    catch (std::runtime_error& e)
     {
         qCritical() << "Failed to initialize ComponentMapEditorManager:" << e.what();
         return -1;
@@ -61,11 +80,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("editorManager"), manager.get());
 
     QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        &app,
-    []() { QCoreApplication::exit(-1); },
-    Qt::QueuedConnection);
+        &engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(-1); },
+        Qt::QueuedConnection);
     engine.loadFromModule("customize_example", "Main");
 
     return QCoreApplication::exec();
