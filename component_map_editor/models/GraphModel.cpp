@@ -254,6 +254,14 @@ void GraphModel::setTitle(const QString& newTitle)
 }
 #endif
 
+bool GraphModel::hasValidStartComponent() const
+{
+    if (m_startComponentId.isEmpty())
+        return false;
+
+    return m_componentIndex.contains(m_startComponentId);
+}
+
 QString GraphModel::startComponentId() const
 {
     return m_startComponentId;
@@ -321,15 +329,12 @@ void GraphModel::addComponent(ComponentModel* component)
     if (!component)
         return;
 
-    if (startComponentId().isEmpty())
-    {
-        // RELATED: CME-9 - Auto set first component as default when no component is selected, and the graph has
-        // components
-        setStartComponentId(component->id());
-    }
-
     // In batch mode skip duplicate check; caller guarantees unique IDs.
     if (!m_batchMode && m_componentIndex.contains(component->id()))
+        return;
+
+    // ignore if component ID is empty
+    if (component->id().isEmpty())
         return;
 
     component->setParent(this);
@@ -343,6 +348,10 @@ void GraphModel::addComponent(ComponentModel* component)
     if (!m_batchMode)
         assertIndexIntegrity();
 #endif
+
+    // auto set start component if not set
+    if (startComponentId().isEmpty())
+        setStartComponentId(component->id());
 }
 
 bool GraphModel::removeComponent(const QString& id)
@@ -365,6 +374,16 @@ bool GraphModel::removeComponent(const QString& id)
     if (!m_batchMode)
         assertIndexIntegrity();
 #endif
+
+    // auto unset start component if it was the removed component
+    if (startComponentId() == id)
+    {
+        // set start component to the first available component, if any
+        if (!m_components.isEmpty())
+            setStartComponentId(m_components.first()->id());
+        else
+            setStartComponentId(QString());
+    }
 
     return true;
 }
@@ -451,6 +470,8 @@ void GraphModel::clear()
 #ifdef QT_DEBUG
     assertIndexIntegrity();
 #endif
+
+    setStartComponentId(QString());
 }
 
 void GraphModel::beginBatchUpdate()

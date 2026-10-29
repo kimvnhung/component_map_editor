@@ -2,6 +2,7 @@
 #define IEXECUTIONENGINE_H
 
 #include "ExecutionContext.h"
+#include "ExecutionRequest.h"
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "models/GraphModel.h"
 
@@ -35,7 +36,7 @@ public:
     // Build snapshot + in-degree + ready-queue ban đầu từ GraphModel.
     virtual bool prepare(GraphModel *graph,
                          const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
-                         const QVariantMap &inputSnapshot,
+                         const ExecutionRequest &request,
                          QString *error) = 0;
 
     virtual bool hasReadyWork() const = 0;
