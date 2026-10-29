@@ -721,9 +721,11 @@ Button {
 }
 ```
 
-The JSON schema is forward-compatible: the `GraphJsonMigration` service
-(used internally) upgrades legacy v0 files to the current format
-automatically.
+Graph JSON uses one coordinate convention: component `x` and `y` represent
+center points in a Y-down world coordinate system. Imports require the matching
+`coordinateSystem` value. Legacy coordinate formats are rejected rather than
+converted, so callers should export legacy graphs with a compatible older version
+before importing them here.
 
 ---
 
@@ -1346,7 +1348,7 @@ PerformanceTelemetry {
 ┌─────────────────────────▼────────────────────────────────────────┐
 │  Library Services (C++)                                           │
 │                                                                   │
-│  ExportService    ValidationService    GraphJsonMigration         │
+│  ExportService    ValidationService                              │
 │                                                                   │
 ├───────────────────────────────────────────────────────────────────┤
 │  Extension SDK                                                    │

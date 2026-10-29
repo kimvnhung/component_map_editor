@@ -26,8 +26,8 @@ class PersistenceValidationTests : public QObject
 private slots:
     void roundTripIsStable();
     void roundTripPreservesDynamicProperties();
-    void importsLegacyTopLeftV2();
-    void importsLegacyYUpWithoutCoordinateSystem();
+    void importsCanonicalCenterYDownCoordinates();
+    void rejectsUnsupportedCoordinateSystem();
     void componentModelAcceptsDynamicProperties();
     void validationCatchesExpectedSchemaErrors();
     void validationRequiresExactlyOneStartAndStop();
@@ -88,14 +88,14 @@ void PersistenceValidationTests::roundTripIsStable()
     QCOMPARE(canonicalBefore, canonicalAfter);
 }
 
-void PersistenceValidationTests::importsLegacyTopLeftV2()
+void PersistenceValidationTests::importsCanonicalCenterYDownCoordinates()
 {
     const QString json = QStringLiteral(R"json({
-        "coordinateSystem": "world-top-left-y-down-v2",
+        "coordinateSystem": "world-center-y-down-v3",
         "components": [
             {
                 "id": "A",
-                "title": "Legacy",
+                "title": "Canonical",
                 "x": 10,
                 "y": 20,
                 "width": 100,
@@ -113,37 +113,23 @@ void PersistenceValidationTests::importsLegacyTopLeftV2()
 
     ComponentModel *component = graph.componentById(QStringLiteral("A"));
     QVERIFY(component != nullptr);
-    QCOMPARE(component->x(), 60.0);
-    QCOMPARE(component->y(), 45.0);
+    QCOMPARE(component->x(), 10.0);
+    QCOMPARE(component->y(), 20.0);
 }
 
-void PersistenceValidationTests::importsLegacyYUpWithoutCoordinateSystem()
+void PersistenceValidationTests::rejectsUnsupportedCoordinateSystem()
 {
     const QString json = QStringLiteral(R"json({
-        "components": [
-            {
-                "id": "A",
-                "title": "LegacyYUp",
-                "x": 12,
-                "y": 30,
-                "width": 96,
-                "height": 96,
-                "color": "#4fc3f7",
-                "type": "default"
-            }
-        ],
+        "coordinateSystem": "world-top-left-y-down-v2",
+        "components": [],
         "connections": []
     })json");
 
     GraphModel graph;
     ExportService persistence;
-    QVERIFY(persistence.importFromJson(&graph, json));
-
-    ComponentModel *component = graph.componentById(QStringLiteral("A"));
-    QVERIFY(component != nullptr);
-    QCOMPARE(component->x(), 12.0);
-    QCOMPARE(component->y(), -30.0);
+    QVERIFY(!persistence.importFromJson(&graph, json));
 }
+
 
 void PersistenceValidationTests::componentModelAcceptsDynamicProperties()
 {

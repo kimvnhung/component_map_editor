@@ -48,7 +48,6 @@ namespace CoordinateSystem
 {
 
 const QString& current();
-const QString& legacyTopLeftYDownV2();
 
 } // namespace CoordinateSystem
 

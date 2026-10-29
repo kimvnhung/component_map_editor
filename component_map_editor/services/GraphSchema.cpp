@@ -146,12 +146,6 @@ const QString& current()
     return value;
 }
 
-const QString& legacyTopLeftYDownV2()
-{
-    static const QString value = QStringLiteral("world-top-left-y-down-v2");
-    return value;
-}
-
 } // namespace CoordinateSystem
 
 QStringList componentFieldOrder()
