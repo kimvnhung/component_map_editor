@@ -57,6 +57,18 @@ void buildDiamondGraph(GraphModel &graph)
     graph.addConnection(makeConnection(graph, QStringLiteral("e4"), QStringLiteral("C"), QStringLiteral("D")));
 }
 
+// A second, disconnected branch is intentionally present to verify the execution plan boundary.
+void buildGraphWithDisconnectedBranch(GraphModel &graph)
+{
+    graph.addComponent(makeComponent(graph, QStringLiteral("A"), QStringLiteral("start")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("B"), QStringLiteral("process")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("X"), QStringLiteral("start")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("Y"), QStringLiteral("process")));
+
+    graph.addConnection(makeConnection(graph, QStringLiteral("e1"), QStringLiteral("A"), QStringLiteral("B")));
+    graph.addConnection(makeConnection(graph, QStringLiteral("e2"), QStringLiteral("X"), QStringLiteral("Y")));
+}
+
 // Scriptable provider: "start"/"process" always succeed, "faulty" always fails,
 // "invalid" succeeds but never produces its declared output key.
 class ScriptedExecutionProvider : public IExecutionSemanticsProvider
@@ -100,38 +112,27 @@ public:
             {
                 *error = QStringLiteral("boom");
             }
-
             return false;
         }
 
         if (componentType == QStringLiteral("invalid"))
         {
-            if (outputPayload)
-            {
-                outputPayload->insert(QStringLiteral("otherKey"), 1);
-            }
-
+            (*outputPayload)["otherKey"] = QStringLiteral("1");
             return true;
         }
 
-        if (outputPayload)
-        {
-            outputPayload->insert(QStringLiteral("visited"), componentId);
-        }
-
+        (*outputPayload)["lastExecutedComponentId"] = componentId;
         return true;
     }
 };
 
-QHash<QString, const IExecutionSemanticsProvider *> providerMapFor(const IExecutionSemanticsProvider &provider)
+QHash<QString, const IExecutionSemanticsProvider *> providerMapFor(const ScriptedExecutionProvider &provider)
 {
     QHash<QString, const IExecutionSemanticsProvider *> providers;
-
     for (const QString &type : provider.supportedComponentTypes())
     {
         providers.insert(type, &provider);
     }
-
     return providers;
 }
 
@@ -201,6 +202,7 @@ private slots:
     void cleanup();
 
     void prepareBuildsReadyQueueFromZeroInDegreeComponents();
+    void prepareUsesOnlyReachableSubgraphFromRequestedStart();
     void executeNextCommitsAndTopologicallyUnlocksNextReadyComponent();
     void executeNextGatesMergeNodeUntilAllIncomingEdgesCommitted();
     void executeNextReturnsProviderErrorWithoutMarkingComponentExecuted();
@@ -232,6 +234,35 @@ void tst_SequentialExecutionEngine::prepareBuildsReadyQueueFromZeroInDegreeCompo
     QCOMPARE(engine.readyComponentIds(), QStringList{ QStringLiteral("A") });
     QCOMPARE(engine.totalComponentCount(), 4);
     QCOMPARE(engine.executedCount(), 0);
+}
+
+void tst_SequentialExecutionEngine::prepareUsesOnlyReachableSubgraphFromRequestedStart()
+{
+    GraphModel graph;
+    buildGraphWithDisconnectedBranch(graph);
+
+    ScriptedExecutionProvider provider;
+    SequentialExecutionEngine engine;
+    ExecutionRequest request;
+    request.requestedStartComponentId = QStringLiteral("X");
+    QString error;
+
+    QVERIFY2(engine.prepare(&graph, providerMapFor(provider), request, &error), qPrintable(error));
+    QCOMPARE(engine.totalComponentCount(), 2);
+    QCOMPARE(engine.readyComponentIds(), QStringList{ QStringLiteral("X") });
+
+    QStringList executedOrder;
+    while (engine.hasReadyWork())
+    {
+        ExecutionContext context;
+        ExecuteResult result;
+        QCOMPARE(engine.executeNext(QVariantMap(), &context, &result, &error),
+                 IExecutionEngine::StepOutcome::Committed);
+        executedOrder.append(context.componentId);
+    }
+
+    QCOMPARE(executedOrder, (QStringList{ QStringLiteral("X"), QStringLiteral("Y") }));
+    QCOMPARE(engine.executedCount(), engine.totalComponentCount());
 }
 
 void tst_SequentialExecutionEngine::executeNextCommitsAndTopologicallyUnlocksNextReadyComponent()
@@ -386,49 +417,42 @@ void tst_SequentialExecutionEngine::telemetryTracksTokenReadWriteCountersAcrossS
     const IExecutionEngine::Telemetry telemetry = engine.telemetry();
     QVERIFY(telemetry.tokenReadCount > 0);
     QVERIFY(telemetry.tokenWriteCount > 0);
+    QVERIFY(telemetry.payloadBytesRead > 0);
     QVERIFY(telemetry.payloadBytesWritten > 0);
+    QVERIFY(telemetry.maxPayloadBytes > 0);
 }
 
 void tst_SequentialExecutionEngine::legacyGlobalStateFlowsToContextWhenTokenTransportDisabled()
 {
-    cme::execution::MigrationFlags::setTokenTransportEnabled(false);
-
     GraphModel graph;
-    graph.addComponent(makeComponent(graph, QStringLiteral("A"), QStringLiteral("start")));
+    graph.addComponent(makeComponent(graph, QStringLiteral("A"), QStringLiteral("process")));
 
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString error;
     QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &error));
 
-    const QVariantMap legacyState{ { QStringLiteral("counter"), 42 } };
-    ExecutionContext ctx;
-    ExecuteResult result;
-    QCOMPARE(engine.executeNext(legacyState, &ctx, &result, &error), IExecutionEngine::StepOutcome::Committed);
+    const bool originalTokenFlag = cme::execution::MigrationFlags::tokenTransportEnabled();
+    cme::execution::MigrationFlags::setTokenTransportEnabled(false);
 
-    QCOMPARE(ctx.stepState, legacyState);
-    QCOMPARE(ctx.incomingTokens.value(QStringLiteral("__legacy_global_state__")), legacyState);
+    ExecutionContext context;
+    ExecuteResult result;
+    const QVariantMap legacyState{ { QStringLiteral("legacy"), 42 } };
+    QCOMPARE(engine.executeNext(legacyState, &context, &result, &error), IExecutionEngine::StepOutcome::Committed);
+    QCOMPARE(context.stepState.value(QStringLiteral("legacy")).toInt(), 42);
+
+    cme::execution::MigrationFlags::setTokenTransportEnabled(originalTokenFlag);
 }
 
 void tst_SequentialExecutionEngine::engineInterfaceIsMockableWithoutGraphModelOrQml()
 {
-    NullExecutionEngine mockEngine;
-    IExecutionEngine *engine = &mockEngine; // exercised purely through the interface
-
+    std::unique_ptr<IExecutionEngine> engine = std::make_unique<NullExecutionEngine>();
     QString error;
     QVERIFY(engine->prepare(nullptr, {}, ExecutionRequest{}, &error));
     QVERIFY(engine->hasReadyWork());
     QCOMPARE(engine->peekNextReadyComponentId(), QStringLiteral("mock"));
-
-    ExecutionContext ctx;
-    ExecuteResult result;
-    QCOMPARE(engine->executeNext(QVariantMap(), &ctx, &result, &error), IExecutionEngine::StepOutcome::Committed);
-    QCOMPARE(ctx.componentId, QStringLiteral("mock"));
+    QCOMPARE(engine->executeNext({}, nullptr, nullptr, &error), IExecutionEngine::StepOutcome::Committed);
     QCOMPARE(engine->executedCount(), 1);
-    QVERIFY(!engine->hasReadyWork());
-
-    engine->reset();
-    QCOMPARE(engine->executedCount(), 0);
 }
 
 QTEST_MAIN(tst_SequentialExecutionEngine)

@@ -2,18 +2,17 @@
 #define SEQUENTIALEXECUTIONENGINE_H
 
 #include "IExecutionEngine.h"
+#include "ExecutionPlan.h"
 
-class SequentialExecutionEngine: public IExecutionEngine
+class SequentialExecutionEngine : public IExecutionEngine
 {
 public:
     SequentialExecutionEngine();
 
-    // IExecutionEngine interface
-public:
     bool prepare(GraphModel *graph,
-                const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
-                const ExecutionRequest &request,
-                QString *error) override;
+                 const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
+                 const ExecutionRequest &request,
+                 QString *error) override;
     bool hasReadyWork() const override;
     QString peekNextReadyComponentId() const override;
     QStringList readyComponentIds() const override;
@@ -22,26 +21,25 @@ public:
     const cme::GraphSnapshot &graphSnapshot() const override;
     Telemetry telemetry() const override;
     StepOutcome executeNext(const QVariantMap &legacyGlobalState,
-                           ExecutionContext *outCtx,
-                           ExecuteResult *outResult,
-                           QString *error) override;
+                            ExecutionContext *outCtx,
+                            ExecuteResult *outResult,
+                            QString *error) override;
     void reset() override;
+
 private:
     void enqueueReadyComponent(const QString &componentId);
-    /**
-     * @brief dequeNextComponent : Dequeues the next component from the ready queue.
-     * @return The ID of the next component to execute, or an empty string if the queue is empty.
-     */
     QString dequeNextComponent();
-    void prepareIncomingTokens(const QString& componentId, ExecutionContext& ctx, const QVariantMap &legacyGlobalState);
-    ExecuteResult invokeProvider(const ExecutionContext& ctx);
-    bool validateExecutionResult(const ExecuteResult& result, QString& message);
-    void routeOutgoingTokens(const ExecutionContext& ctx, const ExecuteResult& result);
-    // Chỉ cập nhật executed-set/in-degree/ready-queue; tick/timeline/componentStates thuộc facade (Plan 1.3).
-    void commitSchedulingState(const ExecutionContext& ctx);
+    void prepareIncomingTokens(const QString &componentId,
+                               ExecutionContext &ctx,
+                               const QVariantMap &legacyGlobalState);
+    ExecuteResult invokeProvider(const ExecutionContext &ctx);
+    bool validateExecutionResult(const ExecuteResult &result, QString &message);
+    void routeOutgoingTokens(const ExecutionContext &ctx, const ExecuteResult &result);
+    void commitSchedulingState(const ExecutionContext &ctx);
 
 private:
     cme::GraphSnapshot m_graphSnapshot;
+    ExecutionPlan m_executionPlan;
     QHash<std::string, int> m_pendingInDegree;
     QSet<QString> m_executed;
     QStringList m_readyQueue;
