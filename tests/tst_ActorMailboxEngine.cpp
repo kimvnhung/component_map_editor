@@ -206,13 +206,11 @@ void tst_ActorMailboxEngine::linearGraphExecutesAllComponentsInParallelMode()
         collector.onStep(ctx, result);
     });
 
-    QStringList entryIds;
-    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, &scheduler, &entryIds, &error),
+    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, QStringLiteral("A"), &scheduler, &error),
              qPrintable(error));
-    QCOMPARE(entryIds, QStringList{ QStringLiteral("A") });
 
     scheduler.start();
-    scheduler.seedEntryComponents(entryIds, QVariantMap());
+    scheduler.seedEntryComponents({ QStringLiteral("A") }, QVariantMap());
     QVERIFY(scheduler.runUntilIdle(std::chrono::seconds(2)));
     scheduler.shutdown();
 
@@ -243,13 +241,11 @@ void tst_ActorMailboxEngine::diamondGraphJoinGateWaitsForBothIncomingEdges()
         collector.onStep(ctx, result);
     });
 
-    QStringList entryIds;
-    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, &scheduler, &entryIds, &error),
+    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, QStringLiteral("A"), &scheduler, &error),
              qPrintable(error));
-    QCOMPARE(entryIds, QStringList{ QStringLiteral("A") });
 
     scheduler.start();
-    scheduler.seedEntryComponents(entryIds, QVariantMap());
+    scheduler.seedEntryComponents({ QStringLiteral("A") }, QVariantMap());
     QVERIFY(scheduler.runUntilIdle(std::chrono::seconds(2)));
     scheduler.shutdown();
 
@@ -292,12 +288,11 @@ void tst_ActorMailboxEngine::providerErrorIsIsolatedAndDoesNotPropagateDownstrea
         collector.onStep(ctx, result);
     });
 
-    QStringList entryIds;
-    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, &scheduler, &entryIds, &error),
+    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, QStringLiteral("A"), &scheduler, &error),
              qPrintable(error));
 
     scheduler.start();
-    scheduler.seedEntryComponents(entryIds, QVariantMap());
+    scheduler.seedEntryComponents({ QStringLiteral("A") }, QVariantMap());
     // Must still reach quiescence quickly even though D can never complete its join gate -
     // the scheduler has no more work to do, it should not hang waiting on B's never-arriving token.
     QVERIFY(scheduler.runUntilIdle(std::chrono::seconds(2)));
@@ -339,9 +334,9 @@ void tst_ActorMailboxEngine::invalidGraphReferenceFailsAdapterBuild()
     const auto providers = providerMapFor(provider);
 
     ActorScheduler scheduler([](const ExecutionContext &, const ExecuteResult &) {});
-    QStringList entryIds;
     QString error;
-    QVERIFY(!GraphSnapshotActorAdapter::build(snapshot, providers, &scheduler, &entryIds, &error));
+    QVERIFY(!GraphSnapshotActorAdapter::build(snapshot, providers, QStringLiteral("A"), &scheduler, &error));
+
     QVERIFY(!error.isEmpty());
 }
 
@@ -385,12 +380,11 @@ void tst_ActorMailboxEngine::matchesSequentialEngineOutputOnDiamondGraph()
         collector.onStep(ctx, result);
     });
 
-    QStringList entryIds;
-    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, &scheduler, &entryIds, &error),
+    QVERIFY2(GraphSnapshotActorAdapter::build(snapshot, providers, QStringLiteral("A"), &scheduler, &error),
              qPrintable(error));
 
     scheduler.start();
-    scheduler.seedEntryComponents(entryIds, QVariantMap());
+    scheduler.seedEntryComponents({ QStringLiteral("A") }, QVariantMap());
     QVERIFY(scheduler.runUntilIdle(std::chrono::seconds(2)));
     scheduler.shutdown();
 

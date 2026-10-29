@@ -41,16 +41,23 @@ bool ActorMailboxExecutionEngine::prepare(GraphModel *graph,
         onActorStep(ctx, result);
     });
 
-    QStringList entryIds;
+    const QString requestedStartComponentId = request.requestedStartComponentId.trimmed();
+    const QString resolvedStartComponentId = requestedStartComponentId.isEmpty()
+            ? graph->startComponentId().trimmed()
+            : requestedStartComponentId;
 
-    if (!GraphSnapshotActorAdapter::build(m_graphSnapshot, providersByType, m_scheduler.get(), &entryIds, error))
+    if (!GraphSnapshotActorAdapter::build(m_graphSnapshot,
+                                          providersByType,
+                                          resolvedStartComponentId,
+                                          m_scheduler.get(),
+                                          error))
     {
         m_scheduler.reset();
         return false;
     }
 
     m_scheduler->start();
-    m_scheduler->seedEntryComponents(entryIds, request.inputSnapshot);
+    m_scheduler->seedEntryComponents({ resolvedStartComponentId }, request.inputSnapshot);
     return true;
 }
 

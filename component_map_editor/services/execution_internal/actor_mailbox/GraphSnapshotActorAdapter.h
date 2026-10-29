@@ -9,18 +9,16 @@
 namespace cme::actor
 {
 
-// Bridges the domain graph (cme::GraphSnapshot + real IExecutionSemanticsProvider) into an
-// ActorScheduler: builds one ComponentActor per component, wires the routing table and
-// initial join-gate in-degree counts, and reports which components are ready to fire first
-// (in-degree 0). Mirrors SequentialExecutionEngine::prepare()'s graph-capture semantics so
-// both engines schedule the same DAG identically.
+// Bridges a prepared graph snapshot into the actor scheduler. The snapshot is expected to
+// already represent the active execution plan; the adapter only seeds the explicitly resolved
+// start component and never infers multiple entry points from in-degree.
 class GraphSnapshotActorAdapter
 {
 public:
     static bool build(const cme::GraphSnapshot &snapshot,
                       const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
+                      const QString &resolvedStartComponentId,
                       ActorScheduler *scheduler,
-                      QStringList *outEntryComponentIds,
                       QString *error);
 };
 
