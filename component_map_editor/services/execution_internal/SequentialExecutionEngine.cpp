@@ -10,7 +10,7 @@ SequentialExecutionEngine::SequentialExecutionEngine() {}
 
 bool SequentialExecutionEngine::prepare(GraphModel *graph,
                                         const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
-                                        const QVariantMap &inputSnapshot,
+                                        const ExecutionRequest &request,
                                         QString *error)
 {
     if (!graph)
@@ -24,7 +24,7 @@ bool SequentialExecutionEngine::prepare(GraphModel *graph,
     }
 
     m_providerByComponentType = providersByType;
-    m_inputSnapshot = inputSnapshot;
+    m_inputSnapshot = request.inputSnapshot;
 
     const QList<ComponentModel *> components = graph->componentList();
 

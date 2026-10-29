@@ -141,7 +141,7 @@ class NullExecutionEngine : public IExecutionEngine
 {
 public:
     bool prepare(GraphModel *, const QHash<QString, const IExecutionSemanticsProvider *> &,
-                const QVariantMap &, QString *) override
+                const ExecutionRequest &, QString *) override
     {
         m_remaining = 1;
         m_executed = 0;
@@ -224,7 +224,7 @@ void tst_SequentialExecutionEngine::prepareBuildsReadyQueueFromZeroInDegreeCompo
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString error;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap(), &error));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &error));
     QVERIFY(error.isEmpty());
 
     QVERIFY(engine.hasReadyWork());
@@ -242,7 +242,7 @@ void tst_SequentialExecutionEngine::executeNextCommitsAndTopologicallyUnlocksNex
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString error;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap(), &error));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &error));
 
     QStringList committedOrder;
 
@@ -268,7 +268,7 @@ void tst_SequentialExecutionEngine::executeNextGatesMergeNodeUntilAllIncomingEdg
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString error;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap(), &error));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &error));
 
     // Execute A: unlocks both B and C, D must stay gated (in-degree 2).
     ExecutionContext ctx;
@@ -302,7 +302,7 @@ void tst_SequentialExecutionEngine::executeNextReturnsProviderErrorWithoutMarkin
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString prepareError;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap(), &prepareError));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &prepareError));
 
     ExecutionContext ctx;
     ExecuteResult result;
@@ -323,7 +323,7 @@ void tst_SequentialExecutionEngine::executeNextReturnsValidationErrorButStillPop
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString prepareError;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap(), &prepareError));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &prepareError));
 
     ExecutionContext ctx;
     ExecuteResult result;
@@ -346,7 +346,7 @@ void tst_SequentialExecutionEngine::resetClearsAllSchedulingAndTelemetryState()
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString error;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap(), &error));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &error));
 
     ExecutionContext ctx;
     ExecuteResult result;
@@ -374,7 +374,7 @@ void tst_SequentialExecutionEngine::telemetryTracksTokenReadWriteCountersAcrossS
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString error;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap{ { QStringLiteral("seed"), 1 } }, &error));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{ QVariantMap{ { QStringLiteral("seed"), 1 } } }, &error));
 
     while (engine.hasReadyWork())
     {
@@ -399,7 +399,7 @@ void tst_SequentialExecutionEngine::legacyGlobalStateFlowsToContextWhenTokenTran
     ScriptedExecutionProvider provider;
     SequentialExecutionEngine engine;
     QString error;
-    QVERIFY(engine.prepare(&graph, providerMapFor(provider), QVariantMap(), &error));
+    QVERIFY(engine.prepare(&graph, providerMapFor(provider), ExecutionRequest{}, &error));
 
     const QVariantMap legacyState{ { QStringLiteral("counter"), 42 } };
     ExecutionContext ctx;
@@ -416,7 +416,7 @@ void tst_SequentialExecutionEngine::engineInterfaceIsMockableWithoutGraphModelOr
     IExecutionEngine *engine = &mockEngine; // exercised purely through the interface
 
     QString error;
-    QVERIFY(engine->prepare(nullptr, {}, QVariantMap(), &error));
+    QVERIFY(engine->prepare(nullptr, {}, ExecutionRequest{}, &error));
     QVERIFY(engine->hasReadyWork());
     QCOMPARE(engine->peekNextReadyComponentId(), QStringLiteral("mock"));
 

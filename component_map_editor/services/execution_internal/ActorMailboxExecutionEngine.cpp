@@ -19,7 +19,7 @@ ActorMailboxExecutionEngine::~ActorMailboxExecutionEngine()
 
 bool ActorMailboxExecutionEngine::prepare(GraphModel *graph,
         const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
-        const QVariantMap &inputSnapshot,
+        const ExecutionRequest &request,
         QString *error)
 {
     reset();
@@ -28,7 +28,7 @@ bool ActorMailboxExecutionEngine::prepare(GraphModel *graph,
     // capture; the actor engine intentionally does not duplicate that capture logic (ADR Plan 2).
     SequentialExecutionEngine snapshotCapture;
 
-    if (!snapshotCapture.prepare(graph, providersByType, inputSnapshot, error))
+    if (!snapshotCapture.prepare(graph, providersByType, request, error))
     {
         return false;
     }
@@ -50,7 +50,7 @@ bool ActorMailboxExecutionEngine::prepare(GraphModel *graph,
     }
 
     m_scheduler->start();
-    m_scheduler->seedEntryComponents(entryIds, inputSnapshot);
+    m_scheduler->seedEntryComponents(entryIds, request.inputSnapshot);
     return true;
 }
 

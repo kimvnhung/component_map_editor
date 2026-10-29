@@ -12,7 +12,7 @@ public:
 public:
     bool prepare(GraphModel *graph,
                 const QHash<QString, const IExecutionSemanticsProvider *> &providersByType,
-                const QVariantMap &inputSnapshot,
+                const ExecutionRequest &request,
                 QString *error) override;
     bool hasReadyWork() const override;
     QString peekNextReadyComponentId() const override;

@@ -180,7 +180,14 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
 
     QString error;
 
-    if (!m_engine->prepare(m_graph, m_providerByComponentType, inputSnapshot, &error))
+    ExecutionRequest request;
+    request.inputSnapshot = inputSnapshot;
+    if (m_graph)
+    {
+        request.requestedStartComponentId = m_graph->startComponentId();
+    }
+
+    if (!m_engine->prepare(m_graph, m_providerByComponentType, request, &error))
     {
         markError(error);
         return false;
