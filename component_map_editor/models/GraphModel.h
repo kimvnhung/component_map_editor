@@ -64,6 +64,8 @@ public:
     QString title() const;
     void setTitle(const QString& newTitle);
 
+    bool hasValidStartComponent() const;
+
 signals:
     void componentAdded(ComponentModel* component);
     void componentRemoved(const QString& id);

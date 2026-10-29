@@ -254,6 +254,14 @@ void GraphModel::setTitle(const QString& newTitle)
 }
 #endif
 
+bool GraphModel::hasValidStartComponent() const
+{
+    if (m_startComponentId.isEmpty())
+        return false;
+
+    return m_componentIndex.contains(m_startComponentId);
+}
+
 QString GraphModel::startComponentId() const
 {
     return m_startComponentId;
@@ -367,6 +375,16 @@ bool GraphModel::removeComponent(const QString& id)
         assertIndexIntegrity();
 #endif
 
+    // auto unset start component if it was the removed component
+    if (startComponentId() == id)
+    {
+        // set start component to the first available component, if any
+        if (!m_components.isEmpty())
+            setStartComponentId(m_components.first()->id());
+        else
+            setStartComponentId(QString());
+    }
+
     return true;
 }
 
@@ -452,6 +470,8 @@ void GraphModel::clear()
 #ifdef QT_DEBUG
     assertIndexIntegrity();
 #endif
+
+    setStartComponentId(QString());
 }
 
 void GraphModel::beginBatchUpdate()
