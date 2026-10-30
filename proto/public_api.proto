@@ -4,7 +4,6 @@ package cme.publicapi.v1;
 
 import "google/protobuf/struct.proto";
 
-import "command.proto";
 import "execution.proto";
 import "graph.proto";
 import "policy.proto";
@@ -69,21 +68,6 @@ message ActionDescriptorRequest {
 message ActionDescriptorResponse {
   ApiStatus status = 1;
   ActionDescriptor action_descriptor = 2;
-}
-
-message ActionInvocationContext {
-  map<string, google.protobuf.Value> values = 1;
-}
-
-message ActionInvokeRequest {
-  ProviderIdentity provider = 1;
-  string action_id = 2;
-  ActionInvocationContext context = 3;
-}
-
-message ActionInvokeResponse {
-  ApiStatus status = 1;
-  cme.GraphCommandRequest command_request = 2;
 }
 
 // ---------------------------------------------------------------------------

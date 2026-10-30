@@ -4,18 +4,8 @@
 #include "extensions/contracts/IActionProvider.h"
 
 // Sample implementation of IActionProvider for the workflow domain.
-// Registered actions:
-//   setTaskPriority  – changes the priority property of a task node.
-//
-// invokeAction context keys for setTaskPriority:
-//   componentId  (required) – id of the target task node
-//   newPriority  (required) – one of: "low", "normal", "high"
-//
-// Produced commandRequest keys (consumed by core command gateway):
-//   command   = "setComponentProperty"
-//   id        = <from context>
-//   property  = "priority"
-//   value     = <from context newPriority>
+// The provider exposes action metadata for presentation in the UI.
+// Graph mutations are performed only by user-facing UI workflows.
 class SampleActionProvider : public IActionProvider
 {
 public:
@@ -24,10 +14,6 @@ public:
     QString     providerId() const override;
     QStringList actionIds() const override;
     QVariantMap actionDescriptor(const QString &actionId) const override;
-    bool        invokeAction(const QString &actionId,
-                             const QVariantMap &context,
-                             QVariantMap *commandRequest,
-                             QString *error) const override;
 };
 
 #endif // SAMPLEACTIONPROVIDER_H

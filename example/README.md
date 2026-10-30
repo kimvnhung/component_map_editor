@@ -971,19 +971,10 @@ public:
 
 ### Typed Service Boundaries (External Integrations)
 
-For external integrations, call typed service entrypoints and treat QVariant
-entrypoints as legacy wrappers.
+External integrations may query read-only contracts and execution state. Graph
+creation and editing are performed through the user-facing UI only.
 
 ```cpp
-// Command boundary
-cme::GraphCommandRequest cmd;
-auto *add = cmd.mutable_add_component();
-add->set_component_id("node_1");
-add->set_type_id("process");
-add->set_x(120.0);
-add->set_y(80.0);
-gateway.executeTypedRequest("my.extension", cmd, &error);
-
 // Policy boundary
 cme::ConnectionPolicyContext policyCtx;
 policyCtx.set_source_type_id("process");
@@ -999,15 +990,10 @@ cme::ExecutionSnapshot snap = sandbox.executionSnapshotTyped();
 // Schema boundary
 cme::publicapi::v1::PropertySchemaResponse schema;
 schemaRegistry.schemaForTargetTyped("component/process", &schema, &error);
-
-// Action invocation boundary
-cme::publicapi::v1::ActionInvokeRequest actionReq;
-actionReq.set_action_id("setTaskPriority");
-cme::publicapi::v1::ActionInvokeResponse actionResp;
-actionService.invokeActionTyped(actionReq, &actionResp, &error);
 ```
 
----
+No external command gateway, action invocation, or command transport is
+available for graph mutation.
 
 ### Assembling Your Pack
 
