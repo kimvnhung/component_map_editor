@@ -5,7 +5,7 @@
 namespace {
 
 constexpr bool kDefaultTokenTransportEnabled = true;
-constexpr bool kDefaultActorEngineEnabled = false;
+constexpr bool kDefaultActorEngineEnabled = true;
 
 std::atomic_bool g_tokenTransportEnabled{kDefaultTokenTransportEnabled};
 std::atomic_bool g_actorEngineEnabled{kDefaultActorEngineEnabled};

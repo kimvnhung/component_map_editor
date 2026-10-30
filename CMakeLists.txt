@@ -42,7 +42,6 @@ add_subdirectory(base_log)
 add_subdirectory(component_map_editor)
 
 if(CME_BUILD_EXAMPLES)
-    add_subdirectory(example)
     add_subdirectory(customize_example)
 endif()
 

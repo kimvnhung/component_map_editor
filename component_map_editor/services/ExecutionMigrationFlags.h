@@ -12,8 +12,8 @@ public:
     static bool tokenTransportEnabled();
     static void setTokenTransportEnabled(bool enabled);
 
-    // Plan 3 actor/mailbox engine cutover toggle. Default OFF - GraphExecutionSandbox keeps
-    // using SequentialExecutionEngine until explicitly enabled.
+    // Plan 3 actor/mailbox engine cutover toggle. Default ON - GraphExecutionSandbox uses
+    // ActorMailboxExecutionEngine unless explicitly disabled.
     static bool actorEngineEnabled();
     static void setActorEngineEnabled(bool enabled);
 };
