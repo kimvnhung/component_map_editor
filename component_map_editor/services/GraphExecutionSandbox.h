@@ -113,6 +113,7 @@ private:
         Running,
         Paused,
         Completed,
+        Blocked,
         Error
     };
 

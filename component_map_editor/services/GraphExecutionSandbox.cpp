@@ -221,7 +221,7 @@ bool GraphExecutionSandbox::startTyped(const google::protobuf::Struct &inputSnap
 
 bool GraphExecutionSandbox::step()
 {
-    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Error)
+    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Blocked || m_status == RunStatus::Error)
     {
         return false;
     }
@@ -244,7 +244,7 @@ bool GraphExecutionSandbox::step()
 
 int GraphExecutionSandbox::run(int maxSteps)
 {
-    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Error)
+    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Blocked || m_status == RunStatus::Error)
     {
         return 0;
     }
@@ -473,6 +473,9 @@ QString GraphExecutionSandbox::statusToString(RunStatus status)
         case RunStatus::Completed:
             return QStringLiteral("completed");
 
+        case RunStatus::Blocked:
+            return QStringLiteral("blocked");
+
         case RunStatus::Error:
             return QStringLiteral("error");
     }
@@ -683,7 +686,7 @@ bool GraphExecutionSandbox::executeOneStep()
     if (!m_engine->hasReadyWork())
     {
         finalizeIfNoReadyComponents();
-        return m_status != RunStatus::Error;
+        return m_status != RunStatus::Error && m_status != RunStatus::Blocked;
     }
 
     ExecutionContext context;
@@ -738,10 +741,10 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
         return;
     }
 
-    const int componentCount = m_engine->totalComponentCount();
+    const int activeComponentCount = m_engine->totalComponentCount();
     const int executedCount = m_engine->executedCount();
 
-    if (executedCount == componentCount)
+    if (executedCount == activeComponentCount)
     {
         appendTimelineEvent(TimelineEventKind::SimulationCompleted,
                             QVariantMap
@@ -752,15 +755,16 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
         return;
     }
 
-    if (m_status == RunStatus::Running || m_status == RunStatus::Paused)
+    if (executedCount < activeComponentCount &&
+            (m_status == RunStatus::Running || m_status == RunStatus::Paused))
     {
         appendTimelineEvent(TimelineEventKind::SimulationBlocked,
                             QVariantMap
         {
             { QStringLiteral("executedCount"), executedCount },
-            { QStringLiteral("remainingCount"), componentCount - executedCount }
+            { QStringLiteral("remainingCount"), activeComponentCount - executedCount }
         });
-        setStatus(RunStatus::Completed);
+        setStatus(RunStatus::Blocked);
     }
 }
 
