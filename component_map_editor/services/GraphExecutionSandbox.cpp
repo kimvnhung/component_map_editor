@@ -63,6 +63,11 @@ QString GraphExecutionSandbox::lastError() const
     return m_lastError;
 }
 
+QString GraphExecutionSandbox::resolvedStartComponentId() const
+{
+    return m_engine ? m_engine->resolvedStartComponentId() : QString();
+}
+
 QVariantMap GraphExecutionSandbox::providerOutputKeyHints() const
 {
     QVariantMap hints;
@@ -193,6 +198,7 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
         return false;
     }
 
+    emit resolvedStartComponentIdChanged();
     m_executionState = inputSnapshot;
     emit executionStateChanged();
 
@@ -200,6 +206,11 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
                         QVariantMap
     {
         { QStringLiteral("componentCount"), m_engine->totalComponentCount() },
+        { QStringLiteral("resolvedStartComponentId"), m_engine->resolvedStartComponentId() },
+        { QStringLiteral("activeComponentCount"), m_engine->reachableComponentIds().size() },
+        { QStringLiteral("ignoredComponentCount"), m_engine->ignoredComponentIds().size() },
+        { QStringLiteral("activeConnectionCount"), m_engine->activeConnectionCount() },
+        { QStringLiteral("executionMode"), m_usingActorEngine ? QStringLiteral("actor") : QStringLiteral("sequential") },
         { QStringLiteral("inputKeys"), inputSnapshot.keys() },
         {
             QStringLiteral("tokenTransportEnabled"),
@@ -331,8 +342,16 @@ bool GraphExecutionSandbox::componentStateTyped(const QString &componentId,
 
 QVariantMap GraphExecutionSandbox::snapshotSummary() const
 {
+    const QStringList reachableComponentIds = m_engine->reachableComponentIds();
+    const QStringList ignoredComponentIds = m_engine->ignoredComponentIds();
+
     return QVariantMap
     {
+        { QStringLiteral("startComponentId"), m_graph ? m_graph->startComponentId() : QString() },
+        { QStringLiteral("resolvedStartComponentId"), m_engine->resolvedStartComponentId() },
+        { QStringLiteral("activeComponentCount"), reachableComponentIds.size() },
+        { QStringLiteral("ignoredComponentCount"), ignoredComponentIds.size() },
+        { QStringLiteral("reachableComponentIds"), reachableComponentIds },
         { QStringLiteral("componentCount"), m_engine->totalComponentCount() },
         { QStringLiteral("executedCount"), m_engine->executedCount() },
         { QStringLiteral("pendingCount"), m_engine->totalComponentCount() - m_engine->executedCount() },

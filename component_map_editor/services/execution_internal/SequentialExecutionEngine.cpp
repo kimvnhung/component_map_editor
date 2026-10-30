@@ -182,6 +182,30 @@ int SequentialExecutionEngine::totalComponentCount() const
     return m_executionPlan.reachableComponentIds.size();
 }
 
+QString SequentialExecutionEngine::resolvedStartComponentId() const
+{
+    return m_executionPlan.resolvedStartComponentId;
+}
+
+QStringList SequentialExecutionEngine::reachableComponentIds() const
+{
+    QStringList ids = m_executionPlan.reachableComponentIds.values();
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
+
+QStringList SequentialExecutionEngine::ignoredComponentIds() const
+{
+    QStringList ids = m_executionPlan.ignoredComponentIds.values();
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
+
+int SequentialExecutionEngine::activeConnectionCount() const
+{
+    return m_executionPlan.activeConnectionIds.size();
+}
+
 const cme::GraphSnapshot &SequentialExecutionEngine::graphSnapshot() const
 {
     return m_graphSnapshot;
