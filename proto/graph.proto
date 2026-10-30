@@ -22,7 +22,8 @@ message ConnectionData {
 
 // ── Full graph snapshot (used by ValidationService and persistence) ────────
 message GraphSnapshot {
-  repeated ComponentData  components  = 1;
-  repeated ConnectionData connections = 2;
-  string                  graph_id    = 3;
+  repeated ComponentData  components          = 1;
+  repeated ConnectionData connections         = 2;
+  string                  graph_id            = 3;
+  string                  start_component_id  = 4;
 }

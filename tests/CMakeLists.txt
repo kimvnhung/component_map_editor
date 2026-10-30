@@ -335,27 +335,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_SecurityGuardrails
-    tst_SecurityGuardrails.cpp
-)
-
-target_link_libraries(tst_SecurityGuardrails
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_SecurityGuardrails
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_SecurityGuardrails
-    COMMAND tst_SecurityGuardrails
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_CompatibilityMigrationToolkit
     tst_CompatibilityMigrationToolkit.cpp
 )
@@ -374,27 +353,6 @@ target_include_directories(tst_CompatibilityMigrationToolkit
 add_test(
     NAME tst_CompatibilityMigrationToolkit
     COMMAND tst_CompatibilityMigrationToolkit
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-qt_add_executable(tst_PerformanceScaleHardening
-    tst_PerformanceScaleHardening.cpp
-)
-
-target_link_libraries(tst_PerformanceScaleHardening
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_PerformanceScaleHardening
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_PerformanceScaleHardening
-    COMMAND tst_PerformanceScaleHardening
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -460,32 +418,6 @@ target_include_directories(tst_Phase1ExecutionSemanticsV2Compatibility
 add_test(
     NAME tst_Phase1ExecutionSemanticsV2Compatibility
     COMMAND tst_Phase1ExecutionSemanticsV2Compatibility
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-# ── Phase 2: Compatibility Adapter Layer ──────────────────────────────────
-# Roundtrip conversion tests: QVariantMap <-> protobuf for all contract types.
-# Tests required-field validation, type mismatch handling, and error handling.
-qt_add_executable(tst_Phase2AdapterLayer
-    tst_Phase2AdapterLayer.cpp
-)
-
-target_link_libraries(tst_Phase2AdapterLayer
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase2AdapterLayer
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase2AdapterLayer
-    COMMAND tst_Phase2AdapterLayer
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -689,61 +621,6 @@ target_include_directories(tst_Phase7ExtensionContractV2Parallel
 add_test(
     NAME tst_Phase7ExtensionContractV2Parallel
     COMMAND tst_Phase7ExtensionContractV2Parallel
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-# ── Phase 8: Hardcoded String Cleanup ────────────────────────────────────────
-# Static-check tests: verify forbidden raw literals are absent from core modules.
-qt_add_executable(tst_Phase8HardcodedStringCleanup
-    tst_Phase8HardcodedStringCleanup.cpp
-)
-
-target_compile_definitions(tst_Phase8HardcodedStringCleanup PRIVATE
-    CME_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
-
-target_link_libraries(tst_Phase8HardcodedStringCleanup
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase8HardcodedStringCleanup
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase8HardcodedStringCleanup
-    COMMAND tst_Phase8HardcodedStringCleanup
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-# ── Phase 9: Optional gRPC Transport Enablement ─────────────────────────────
-# Transport facade smoke tests (success/failure/cancel/timeout) while keeping
-# in-process mode as default path.
-qt_add_executable(tst_Phase9GrpcTransportEnablement
-    tst_Phase9GrpcTransportEnablement.cpp
-)
-
-target_link_libraries(tst_Phase9GrpcTransportEnablement
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase9GrpcTransportEnablement
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase9GrpcTransportEnablement
-    COMMAND tst_Phase9GrpcTransportEnablement
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 

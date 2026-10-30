@@ -47,6 +47,11 @@ public:
 
     virtual int executedCount() const = 0;
     virtual int totalComponentCount() const = 0;
+    virtual QString resolvedStartComponentId() const { return {}; }
+    virtual QStringList reachableComponentIds() const { return {}; }
+    virtual QStringList ignoredComponentIds() const { return {}; }
+    virtual int activeConnectionCount() const { return 0; }
+
     virtual const cme::GraphSnapshot &graphSnapshot() const = 0;
     virtual Telemetry telemetry() const = 0;
 

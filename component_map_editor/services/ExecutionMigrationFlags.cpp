@@ -5,7 +5,6 @@
 namespace {
 
 constexpr bool kDefaultTokenTransportEnabled = true;
-constexpr bool kCompatibilityWindowOpen = true;
 constexpr bool kDefaultActorEngineEnabled = false;
 
 std::atomic_bool g_tokenTransportEnabled{kDefaultTokenTransportEnabled};
@@ -23,17 +22,6 @@ bool MigrationFlags::tokenTransportEnabled()
 void MigrationFlags::setTokenTransportEnabled(bool enabled)
 {
     g_tokenTransportEnabled.store(enabled, std::memory_order_relaxed);
-}
-
-void MigrationFlags::resetDefaults()
-{
-    setTokenTransportEnabled(kDefaultTokenTransportEnabled);
-    setActorEngineEnabled(kDefaultActorEngineEnabled);
-}
-
-bool MigrationFlags::compatibilityWindowOpen()
-{
-    return kCompatibilityWindowOpen;
 }
 
 bool MigrationFlags::actorEngineEnabled()

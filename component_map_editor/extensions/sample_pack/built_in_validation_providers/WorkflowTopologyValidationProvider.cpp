@@ -41,7 +41,12 @@ QVariantList WorkflowTopologyValidationProvider::validateGraph(const QVariantMap
     QHash<QString, int> outgoingConnectionCount;
     QHash<QString, QStringList> adjacency;
     int startCount = 0;
-    QString startId;
+    QString legacyStartId;
+
+    const QString configuredStartId = graphSnapshot.value(QStringLiteral("startComponentId"))
+                                          .toString()
+                                          .trimmed();
+    QString startId = configuredStartId;
 
     for (const QVariant &v : components) {
         const QVariantMap component = v.toMap();
@@ -58,8 +63,22 @@ QVariantList WorkflowTopologyValidationProvider::validateGraph(const QVariantMap
 
         if (type == QStringLiteral("start")) {
             ++startCount;
-            startId = id;
+            legacyStartId = id;
         }
+    }
+
+    if (startId.isEmpty() && startCount == 1)
+    {
+        startId = legacyStartId;
+    }
+
+    if (!startId.isEmpty() && !componentIds.contains(startId))
+    {
+        issues.append(makeIssue(QStringLiteral("W009"),
+                                QStringLiteral("error"),
+                                QStringLiteral("Configured start component '%1' does not exist").arg(startId),
+                                QStringLiteral("graph"),
+                                QString()));
     }
 
     for (const QVariant &v : connections) {
@@ -131,7 +150,7 @@ QVariantList WorkflowTopologyValidationProvider::validateGraph(const QVariantMap
             }
         }
 
-        if (startCount == 1 && componentIds.contains(startId)) {
+        if (!startId.isEmpty() && componentIds.contains(startId)) {
             QSet<QString> visited;
             QQueue<QString> queue;
             visited.insert(startId);

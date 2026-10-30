@@ -721,9 +721,11 @@ Button {
 }
 ```
 
-The JSON schema is forward-compatible: the `GraphJsonMigration` service
-(used internally) upgrades legacy v0 files to the current format
-automatically.
+Graph JSON uses one coordinate convention: component `x` and `y` represent
+center points in a Y-down world coordinate system. Imports require the matching
+`coordinateSystem` value. Legacy coordinate formats are rejected rather than
+converted, so callers should export legacy graphs with a compatible older version
+before importing them here.
 
 ---
 
@@ -969,19 +971,10 @@ public:
 
 ### Typed Service Boundaries (External Integrations)
 
-For external integrations, call typed service entrypoints and treat QVariant
-entrypoints as legacy wrappers.
+External integrations may query read-only contracts and execution state. Graph
+creation and editing are performed through the user-facing UI only.
 
 ```cpp
-// Command boundary
-cme::GraphCommandRequest cmd;
-auto *add = cmd.mutable_add_component();
-add->set_component_id("node_1");
-add->set_type_id("process");
-add->set_x(120.0);
-add->set_y(80.0);
-gateway.executeTypedRequest("my.extension", cmd, &error);
-
 // Policy boundary
 cme::ConnectionPolicyContext policyCtx;
 policyCtx.set_source_type_id("process");
@@ -997,15 +990,10 @@ cme::ExecutionSnapshot snap = sandbox.executionSnapshotTyped();
 // Schema boundary
 cme::publicapi::v1::PropertySchemaResponse schema;
 schemaRegistry.schemaForTargetTyped("component/process", &schema, &error);
-
-// Action invocation boundary
-cme::publicapi::v1::ActionInvokeRequest actionReq;
-actionReq.set_action_id("setTaskPriority");
-cme::publicapi::v1::ActionInvokeResponse actionResp;
-actionService.invokeActionTyped(actionReq, &actionResp, &error);
 ```
 
----
+No external command gateway, action invocation, or command transport is
+available for graph mutation.
 
 ### Assembling Your Pack
 
@@ -1189,22 +1177,11 @@ The panel also shows:
 With the seeded sample graph (`start -> process -> stop`), click `Start` and
 then `Run` to demonstrate the full pipeline and confirm that the final result is `21`.
 
-### Legacy V0 adapter
+### Execution provider contract
 
-If you have an existing v0-era execution provider (`IExecutionSemanticsProviderV0`)
-that returns a flat `QStringList` trace, wrap it without rewriting:
-
-```cpp
-#include "extensions/contracts/ExecutionSemanticsV0Adapter.h"
-#include "MyLegacyProvider.h"
-
-auto *legacy = new MyLegacyProvider();
-auto *adapter = new ExecutionSemanticsV0Adapter(legacy);
-extensionContracts.registerExecutionSemanticsProvider(adapter, nullptr);
-```
-
-The adapter converts the v0 string traces into the v1 `QVariantMap` format
-automatically.
+Execution providers must implement the current typed execution contract and register
+directly with `ExtensionContractRegistry`. Legacy v0 providers are no longer
+registered by the library.
 
 ---
 
@@ -1357,7 +1334,7 @@ PerformanceTelemetry {
 ┌─────────────────────────▼────────────────────────────────────────┐
 │  Library Services (C++)                                           │
 │                                                                   │
-│  ExportService    ValidationService    GraphJsonMigration         │
+│  ExportService    ValidationService                              │
 │                                                                   │
 ├───────────────────────────────────────────────────────────────────┤
 │  Extension SDK                                                    │

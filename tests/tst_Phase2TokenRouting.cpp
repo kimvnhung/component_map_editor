@@ -119,13 +119,11 @@ private slots:
 
 void tst_Phase2TokenRouting::init()
 {
-    cme::execution::MigrationFlags::resetDefaults();
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 }
 
 void tst_Phase2TokenRouting::cleanup()
 {
-    cme::execution::MigrationFlags::resetDefaults();
 }
 
 void tst_Phase2TokenRouting::fanOut_duplicatesPayloadToAllOutgoingEdges()

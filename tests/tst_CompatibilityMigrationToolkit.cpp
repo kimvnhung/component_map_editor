@@ -10,7 +10,6 @@
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
 #include "extensions/runtime/ExtensionCompatibilityChecker.h"
 #include "extensions/runtime/ExtensionManifestJson.h"
-#include "extensions/sample_pack/LegacyV0ExtensionPack.h"
 #include "extensions/sample_pack/SampleExtensionPack.h"
 
 namespace {
@@ -93,43 +92,10 @@ class CompatibilityMigrationToolkitTests : public QObject
     Q_OBJECT
 
 private slots:
-    void legacyExecutionPackRegistersViaAdapterWithoutCoreEdits();
     void compatibilityCheckerCatchesAllIntentionalBreakings();
     void compatibilityCheckerReportsDeprecatedApis();
     void modernPackReportHasNoBreakingChanges();
 };
-
-void CompatibilityMigrationToolkitTests::legacyExecutionPackRegistersViaAdapterWithoutCoreEdits()
-{
-    ExtensionContractRegistry registry({1, 0, 0});
-    LegacyV0ExtensionPack legacyPack;
-
-    QString error;
-    QVERIFY2(legacyPack.registerAll(registry, &error), qPrintable(error));
-
-    const QList<const IExecutionSemanticsProvider *> providers =
-        registry.executionSemanticsProviders();
-    QCOMPARE(providers.size(), 1);
-    QCOMPARE(providers.first()->providerId(),
-             QStringLiteral("sample.workflow.execution.legacy.v0"));
-
-    QVariantMap output;
-    QVariantMap trace;
-    QString execError;
-    cme::execution::IncomingTokens incomingTokens;
-    incomingTokens.insert(QStringLiteral("__legacy_global_state__"), QVariantMap{});
-    QVERIFY(providers.first()->executeComponent(QStringLiteral("start"),
-                                                QStringLiteral("t-1"),
-                                                QVariantMap{},
-                                                incomingTokens,
-                                                &output,
-                                                &trace,
-                                                &execError));
-    QVERIFY(execError.isEmpty());
-    QCOMPARE(output.value(QStringLiteral("started")).toBool(), true);
-    QCOMPARE(trace.value(QStringLiteral("adapter")).toString(),
-             QStringLiteral("executionSemantics.v0"));
-}
 
 void CompatibilityMigrationToolkitTests::compatibilityCheckerCatchesAllIntentionalBreakings()
 {

@@ -72,11 +72,6 @@ bool PropertySchemaRegistry::hasTarget(const QString &targetId) const
     return m_rowsByTarget.contains(targetId);
 }
 
-QVariantList PropertySchemaRegistry::schemaForTarget(const QString &targetId) const
-{
-    return resolvedSchemaRows(targetId);
-}
-
 bool PropertySchemaRegistry::schemaForTargetTyped(
     const QString &targetId,
     cme::publicapi::v1::PropertySchemaResponse *out,
@@ -112,11 +107,6 @@ bool PropertySchemaRegistry::schemaForTargetTyped(
     return true;
 }
 
-QVariantList PropertySchemaRegistry::sectionedSchemaForTarget(const QString &targetId) const
-{
-    return sectionizeRows(resolvedSchemaRows(targetId));
-}
-
 QObject *PropertySchemaRegistry::typedSectionModelForTarget(const QString &targetId)
 {
     if (targetId.isEmpty())
@@ -129,16 +119,6 @@ QObject *PropertySchemaRegistry::typedSectionModelForTarget(const QString &targe
     model->setSections(sectionizeTypedRows(resolvedSchemaRows(targetId), targetId));
     m_sectionModelsByTarget.insert(targetId, model);
     return model;
-}
-
-QVariantList PropertySchemaRegistry::componentSchema(const QString &componentTypeId) const
-{
-    return resolvedSchemaRows(QStringLiteral("component/%1").arg(componentTypeId));
-}
-
-QVariantList PropertySchemaRegistry::connectionSchema(const QString &connectionTypeId) const
-{
-    return resolvedSchemaRows(QStringLiteral("connection/%1").arg(connectionTypeId));
 }
 
 bool PropertySchemaRegistry::componentSchemaTyped(

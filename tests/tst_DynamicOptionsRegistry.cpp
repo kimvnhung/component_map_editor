@@ -109,6 +109,8 @@ private slots:
     void targetWithoutIncomingConnectionsHasNoOptions();
     void refreshReactsToConnectionChanges();
     void targetSourceOptionsExposesTokenRefSource();
+    void graphComponentOptionsUseTitleAndId();
+    void graphComponentOptionsRefreshAfterRemoval();
 };
 
 void tst_DynamicOptionsRegistry::collectsOutputKeysFromDirectSources()
@@ -229,6 +231,42 @@ void tst_DynamicOptionsRegistry::targetSourceOptionsExposesTokenRefSource()
     const QVariantMap sources = registry.targetSourceOptions();
     QVERIFY(sources.contains(QStringLiteral("tokenRef")));
     QVERIFY(!sources.value(QStringLiteral("tokenRef")).toList().isEmpty());
+}
+
+void tst_DynamicOptionsRegistry::graphComponentOptionsUseTitleAndId()
+{
+    GraphModel graph;
+    auto *component = new ComponentModel(QStringLiteral("component-a"), QStringLiteral("Display A"),
+                                         0.0, 0.0, QStringLiteral("#ffffff"), QStringLiteral("typeA"), &graph);
+    graph.addComponent(component);
+
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("graph"));
+
+    const QVariantList options = registry.targetSourceOptions().value(QStringLiteral("components")).toList();
+    QCOMPARE(options.size(), 1);
+    const QVariantMap option = options.first().toMap();
+    QCOMPARE(option.value(QStringLiteral("text")).toString(), QStringLiteral("Display A"));
+    QCOMPARE(option.value(QStringLiteral("value")).toString(), QStringLiteral("component-a"));
+}
+
+void tst_DynamicOptionsRegistry::graphComponentOptionsRefreshAfterRemoval()
+{
+    GraphModel graph;
+    addComponent(graph, QStringLiteral("component-a"), QStringLiteral("typeA"));
+    addComponent(graph, QStringLiteral("component-b"), QStringLiteral("typeB"));
+
+    ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
+    FakeExecutionSemanticsProvider provider;
+    DynamicOptionsRegistry registry;
+    prepareRegistry(registry, graph, contracts, provider, QStringLiteral("graph"));
+    QVERIFY(graph.removeComponent(QStringLiteral("component-a")));
+
+    const QVariantList options = registry.targetSourceOptions().value(QStringLiteral("components")).toList();
+    QCOMPARE(options.size(), 1);
+    QCOMPARE(options.first().toMap().value(QStringLiteral("value")).toString(), QStringLiteral("component-b"));
 }
 
 QTEST_MAIN(tst_DynamicOptionsRegistry)

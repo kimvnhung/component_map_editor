@@ -35,6 +35,7 @@ class GraphExecutionSandbox : public QObject
     Q_PROPERTY(QVariantMap executionState READ executionState NOTIFY executionStateChanged FINAL)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged FINAL)
     Q_PROPERTY(QVariantMap providerOutputKeyHints READ providerOutputKeyHints NOTIFY providerOutputKeyHintsChanged FINAL)
+    Q_PROPERTY(QString resolvedStartComponentId READ resolvedStartComponentId NOTIFY resolvedStartComponentIdChanged FINAL)
 
 
 public:
@@ -48,6 +49,7 @@ public:
     TimelineModel *timeline() const;
     QVariantMap executionState() const;
     QString lastError() const;
+    QString resolvedStartComponentId() const;
 
     QVariantMap providerOutputKeyHints() const;
 
@@ -89,6 +91,7 @@ signals:
     void executionStateChanged();
     void lastErrorChanged();
     void providerOutputKeyHintsChanged();
+    void resolvedStartComponentIdChanged();
 
 private:
     struct ComponentSnapshot
@@ -113,6 +116,7 @@ private:
         Running,
         Paused,
         Completed,
+        Blocked,
         Error
     };
 

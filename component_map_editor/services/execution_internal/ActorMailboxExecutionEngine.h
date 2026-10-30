@@ -30,6 +30,10 @@ public:
     QStringList readyComponentIds() const override;
     int executedCount() const override;
     int totalComponentCount() const override;
+    QString resolvedStartComponentId() const override;
+    QStringList reachableComponentIds() const override;
+    QStringList ignoredComponentIds() const override;
+    int activeConnectionCount() const override;
     const cme::GraphSnapshot &graphSnapshot() const override;
     Telemetry telemetry() const override;
 
@@ -47,6 +51,10 @@ private:
     cme::GraphSnapshot m_graphSnapshot;
     int m_totalComponentCount = 0;
     int m_executedCount = 0;
+    QString m_resolvedStartComponentId;
+    QStringList m_reachableComponentIds;
+    QStringList m_ignoredComponentIds;
+    int m_activeConnectionCount = 0;
 
     mutable std::mutex m_completedMutex;
     std::condition_variable m_completedAvailable;
@@ -57,6 +65,7 @@ private:
     qint64 m_maxPayloadBytes = 0;
     int m_tokenReadCount = 0;
     int m_tokenWriteCount = 0;
+
 };
 
 #endif // ACTORMAILBOXEXECUTIONENGINE_H

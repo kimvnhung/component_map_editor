@@ -35,6 +35,10 @@ bool ActorMailboxExecutionEngine::prepare(GraphModel *graph,
 
     m_graphSnapshot = snapshotCapture.graphSnapshot();
     m_totalComponentCount = snapshotCapture.totalComponentCount();
+    m_resolvedStartComponentId = snapshotCapture.resolvedStartComponentId();
+    m_reachableComponentIds = snapshotCapture.reachableComponentIds();
+    m_ignoredComponentIds = snapshotCapture.ignoredComponentIds();
+    m_activeConnectionCount = snapshotCapture.activeConnectionCount();
 
     m_scheduler = std::make_unique<ActorScheduler>([this](const ExecutionContext & ctx, const ExecuteResult & result)
     {
@@ -123,6 +127,26 @@ int ActorMailboxExecutionEngine::executedCount() const
 int ActorMailboxExecutionEngine::totalComponentCount() const
 {
     return m_totalComponentCount;
+}
+
+QString ActorMailboxExecutionEngine::resolvedStartComponentId() const
+{
+    return m_resolvedStartComponentId;
+}
+
+QStringList ActorMailboxExecutionEngine::reachableComponentIds() const
+{
+    return m_reachableComponentIds;
+}
+
+QStringList ActorMailboxExecutionEngine::ignoredComponentIds() const
+{
+    return m_ignoredComponentIds;
+}
+
+int ActorMailboxExecutionEngine::activeConnectionCount() const
+{
+    return m_activeConnectionCount;
 }
 
 const cme::GraphSnapshot &ActorMailboxExecutionEngine::graphSnapshot() const
@@ -250,6 +274,10 @@ void ActorMailboxExecutionEngine::reset()
     m_graphSnapshot.Clear();
     m_totalComponentCount = 0;
     m_executedCount = 0;
+    m_resolvedStartComponentId.clear();
+    m_reachableComponentIds.clear();
+    m_ignoredComponentIds.clear();
+    m_activeConnectionCount = 0;
 
     std::lock_guard<std::mutex> lock(m_completedMutex);
     m_completedSteps.clear();

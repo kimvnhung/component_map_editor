@@ -16,7 +16,6 @@ ApplicationWindow {
     property int inspectorTabIndex: 0
     property bool enableInteractionTelemetry: true
     property bool enableStrictMutationGuards: true
-    property bool enableLegacyPaletteDropFallback: false
 
     function prettyJson(value) {
         if (value === undefined || value === null)
@@ -240,7 +239,6 @@ ApplicationWindow {
                 canvas: canvas
                 componentTypeRegistry: startupComponentTypeRegistry
                 interactionTelemetryEnabled: window.enableInteractionTelemetry
-                legacyDropFallbackEnabled: window.enableLegacyPaletteDropFallback
             }
 
             // Thin separator

@@ -1,6 +1,5 @@
 #include "ExportService.h"
 
-#include "GraphJsonMigration.h"
 #include "GraphSchema.h"
 
 #include <QFile>
@@ -60,22 +59,27 @@ bool ExportService::importFromJson(GraphModel* graph, const QString& json)
         return false;
     }
 
-    const GraphJsonMigration::CanonicalDocument canonical = GraphJsonMigration::migrateToCurrentSchema(doc.object());
+    const QJsonObject root = doc.object();
+    const QJsonValue coordinateSystem = root.value(GraphSchema::Keys::coordinateSystem());
+    if (!coordinateSystem.isString()
+        || coordinateSystem.toString() != GraphSchema::CoordinateSystem::current()) {
+        return false;
+    }
 
     graph->clear();
     graph->beginBatchUpdate();
 
-    graph->setId(doc.object().value(GraphSchema::Keys::graphId()).toString());
-    graph->setTitle(doc.object().value(GraphSchema::Keys::graphTitle()).toString());
-    graph->setStartComponentId(doc.object().value(GraphSchema::Keys::graphStartComponentId()).toString());
+    graph->setId(root.value(GraphSchema::Keys::graphId()).toString());
+    graph->setTitle(root.value(GraphSchema::Keys::graphTitle()).toString());
+    graph->setStartComponentId(root.value(GraphSchema::Keys::graphStartComponentId()).toString());
 
-    for (const QJsonValue& v : canonical.components)
+    for (const QJsonValue& v : root.value(GraphSchema::Keys::components()).toArray())
     {
         auto* component = GraphSchema::componentFromCanonicalJson(v.toObject());
         graph->addComponent(component);
     }
 
-    for (const QJsonValue& v : canonical.connections)
+    for (const QJsonValue& v : root.value(GraphSchema::Keys::connections()).toArray())
     {
         auto* connection = GraphSchema::connectionFromCanonicalJson(v.toObject());
         graph->addConnection(connection);

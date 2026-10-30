@@ -120,12 +120,10 @@ private slots:
 
 void tst_Phase1ExecutionSemanticsV2Compatibility::init()
 {
-    cme::execution::MigrationFlags::resetDefaults();
 }
 
 void tst_Phase1ExecutionSemanticsV2Compatibility::cleanup()
 {
-    cme::execution::MigrationFlags::resetDefaults();
 }
 
 void tst_Phase1ExecutionSemanticsV2Compatibility::v1Fallback_mergesIncomingTokensAndDelegates()

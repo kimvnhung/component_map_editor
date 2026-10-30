@@ -18,6 +18,10 @@ public:
     QStringList readyComponentIds() const override;
     int executedCount() const override;
     int totalComponentCount() const override;
+    QString resolvedStartComponentId() const override;
+    QStringList reachableComponentIds() const override;
+    QStringList ignoredComponentIds() const override;
+    int activeConnectionCount() const override;
     const cme::GraphSnapshot &graphSnapshot() const override;
     Telemetry telemetry() const override;
     StepOutcome executeNext(const QVariantMap &legacyGlobalState,

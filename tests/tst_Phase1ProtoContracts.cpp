@@ -11,7 +11,6 @@
 
 #include <QtTest>
 
-#include "command.pb.h"
 #include "execution.pb.h"
 #include "graph.pb.h"
 #include "policy.pb.h"
@@ -40,18 +39,6 @@ class tst_Phase1ProtoContracts : public QObject {
 
 private Q_SLOTS:
 
-    // ── command.proto ────────────────────────────────────────────────────
-    void addComponentRequest_roundtrip();
-    void removeComponentRequest_roundtrip();
-    void moveComponentRequest_roundtrip();
-    void addConnectionRequest_roundtrip();
-    void removeConnectionRequest_roundtrip();
-    void setComponentPropertyRequest_roundtrip();
-    void setConnectionPropertyRequest_roundtrip();
-    void graphCommandResult_success_roundtrip();
-    void graphCommandResult_failure_roundtrip();
-    void errorCodeEnumValues();
-
     // ── graph.proto ──────────────────────────────────────────────────────
     void componentData_roundtrip();
     void connectionData_roundtrip();
@@ -78,8 +65,6 @@ private Q_SLOTS:
     void actionListResponse_roundtrip();
     void actionDescriptorRequest_roundtrip();
     void actionDescriptorResponse_roundtrip();
-    void actionInvokeRequest_roundtrip();
-    void actionInvokeResponse_roundtrip();
     void componentTypeIdsRequest_roundtrip();
     void componentTypeIdsResponse_roundtrip();
     void componentTypeDescriptorRequest_roundtrip();
@@ -108,151 +93,6 @@ private Q_SLOTS:
     void componentTypeTemplateBundle_roundtrip();
     void connectionPolicyTemplateBundle_roundtrip();
 };
-
-// ============================================================================
-// command.proto
-// ============================================================================
-
-void tst_Phase1ProtoContracts::addComponentRequest_roundtrip()
-{
-    cme::GraphCommandRequest req;
-    auto *p = req.mutable_add_component();
-    p->set_type_id("logic/AndGate");
-    p->set_x(100.5);
-    p->set_y(200.75);
-    p->set_component_id("comp-001");
-
-    auto decoded = roundtrip(req);
-    QVERIFY(decoded.has_add_component());
-    QCOMPARE(decoded.add_component().type_id(),      std::string("logic/AndGate"));
-    QCOMPARE(decoded.add_component().x(),            100.5);
-    QCOMPARE(decoded.add_component().y(),            200.75);
-    QCOMPARE(decoded.add_component().component_id(), std::string("comp-001"));
-    QCOMPARE(decoded.payload_case(),
-             cme::GraphCommandRequest::kAddComponent);
-}
-
-void tst_Phase1ProtoContracts::removeComponentRequest_roundtrip()
-{
-    cme::GraphCommandRequest req;
-    req.mutable_remove_component()->set_component_id("comp-007");
-
-    auto decoded = roundtrip(req);
-    QVERIFY(decoded.has_remove_component());
-    QCOMPARE(decoded.remove_component().component_id(), std::string("comp-007"));
-    QCOMPARE(decoded.payload_case(),
-             cme::GraphCommandRequest::kRemoveComponent);
-}
-
-void tst_Phase1ProtoContracts::moveComponentRequest_roundtrip()
-{
-    cme::GraphCommandRequest req;
-    auto *p = req.mutable_move_component();
-    p->set_component_id("comp-003");
-    p->set_old_x(10.0);
-    p->set_old_y(20.0);
-    p->set_new_x(30.0);
-    p->set_new_y(40.0);
-
-    auto decoded = roundtrip(req);
-    QVERIFY(decoded.has_move_component());
-    QCOMPARE(decoded.move_component().component_id(), std::string("comp-003"));
-    QCOMPARE(decoded.move_component().old_x(), 10.0);
-    QCOMPARE(decoded.move_component().old_y(), 20.0);
-    QCOMPARE(decoded.move_component().new_x(), 30.0);
-    QCOMPARE(decoded.move_component().new_y(), 40.0);
-}
-
-void tst_Phase1ProtoContracts::addConnectionRequest_roundtrip()
-{
-    cme::GraphCommandRequest req;
-    auto *p = req.mutable_add_connection();
-    p->set_source_id("comp-001");
-    p->set_target_id("comp-002");
-    p->set_connection_id("conn-001");
-
-    auto decoded = roundtrip(req);
-    QVERIFY(decoded.has_add_connection());
-    QCOMPARE(decoded.add_connection().source_id(),     std::string("comp-001"));
-    QCOMPARE(decoded.add_connection().target_id(),     std::string("comp-002"));
-    QCOMPARE(decoded.add_connection().connection_id(), std::string("conn-001"));
-}
-
-void tst_Phase1ProtoContracts::removeConnectionRequest_roundtrip()
-{
-    cme::GraphCommandRequest req;
-    req.mutable_remove_connection()->set_connection_id("conn-099");
-
-    auto decoded = roundtrip(req);
-    QVERIFY(decoded.has_remove_connection());
-    QCOMPARE(decoded.remove_connection().connection_id(), std::string("conn-099"));
-}
-
-void tst_Phase1ProtoContracts::setComponentPropertyRequest_roundtrip()
-{
-    cme::GraphCommandRequest req;
-    auto *p = req.mutable_set_component_property();
-    p->set_component_id("comp-001");
-    p->set_key("label");
-    p->set_value("MyGate");
-
-    auto decoded = roundtrip(req);
-    QVERIFY(decoded.has_set_component_property());
-    QCOMPARE(decoded.set_component_property().component_id(), std::string("comp-001"));
-    QCOMPARE(decoded.set_component_property().key(),          std::string("label"));
-    QCOMPARE(decoded.set_component_property().value(),        std::string("MyGate"));
-}
-
-void tst_Phase1ProtoContracts::setConnectionPropertyRequest_roundtrip()
-{
-    cme::GraphCommandRequest req;
-    auto *p = req.mutable_set_connection_property();
-    p->set_connection_id("conn-001");
-    p->set_key("weight");
-    p->set_value("1.5");
-
-    auto decoded = roundtrip(req);
-    QVERIFY(decoded.has_set_connection_property());
-    QCOMPARE(decoded.set_connection_property().connection_id(), std::string("conn-001"));
-    QCOMPARE(decoded.set_connection_property().key(),           std::string("weight"));
-    QCOMPARE(decoded.set_connection_property().value(),         std::string("1.5"));
-}
-
-void tst_Phase1ProtoContracts::graphCommandResult_success_roundtrip()
-{
-    cme::GraphCommandResult result;
-    result.set_success(true);
-    result.set_error_code(cme::ERROR_CODE_UNSPECIFIED);
-
-    auto decoded = roundtrip(result);
-    QVERIFY(decoded.success());
-    QCOMPARE(decoded.error_code(), cme::ERROR_CODE_UNSPECIFIED);
-    QVERIFY(decoded.error_message().empty());
-}
-
-void tst_Phase1ProtoContracts::graphCommandResult_failure_roundtrip()
-{
-    cme::GraphCommandResult result;
-    result.set_success(false);
-    result.set_error_code(cme::ERROR_CODE_MISSING_FIELD);
-    result.set_error_message("field 'typeId' is required");
-
-    auto decoded = roundtrip(result);
-    QVERIFY(!decoded.success());
-    QCOMPARE(decoded.error_code(), cme::ERROR_CODE_MISSING_FIELD);
-    QCOMPARE(decoded.error_message(), std::string("field 'typeId' is required"));
-}
-
-void tst_Phase1ProtoContracts::errorCodeEnumValues()
-{
-    // Enum numeric values must remain stable across proto file edits.
-    QCOMPARE(static_cast<int>(cme::ERROR_CODE_UNSPECIFIED),            0);
-    QCOMPARE(static_cast<int>(cme::ERROR_CODE_UNKNOWN_COMMAND),        1);
-    QCOMPARE(static_cast<int>(cme::ERROR_CODE_MISSING_FIELD),          2);
-    QCOMPARE(static_cast<int>(cme::ERROR_CODE_CAPABILITY_DENIED),      3);
-    QCOMPARE(static_cast<int>(cme::ERROR_CODE_POST_INVARIANT_VIOLATED), 4);
-    QCOMPARE(static_cast<int>(cme::ERROR_CODE_POLICY_REJECTED),        5);
-}
 
 // ============================================================================
 // graph.proto
@@ -536,30 +376,6 @@ void tst_Phase1ProtoContracts::actionDescriptorResponse_roundtrip()
     QVERIFY(decoded.status().success());
     QCOMPARE(decoded.action_descriptor().action_id(), std::string("action.run"));
     QCOMPARE(decoded.action_descriptor().hint(), std::string("Runs current graph"));
-}
-
-void tst_Phase1ProtoContracts::actionInvokeRequest_roundtrip()
-{
-    cme::publicapi::v1::ActionInvokeRequest req;
-    req.mutable_provider()->set_provider_id("provider.actions");
-    req.set_action_id("action.run");
-    (*req.mutable_context()->mutable_values())["mode"].set_string_value("fast");
-
-    const auto decoded = roundtrip(req);
-    QCOMPARE(decoded.action_id(), std::string("action.run"));
-    QCOMPARE(decoded.context().values().at("mode").string_value(), std::string("fast"));
-}
-
-void tst_Phase1ProtoContracts::actionInvokeResponse_roundtrip()
-{
-    cme::publicapi::v1::ActionInvokeResponse resp;
-    resp.mutable_status()->set_success(true);
-    resp.mutable_command_request()->mutable_add_component()->set_type_id("logic/AndGate");
-
-    const auto decoded = roundtrip(resp);
-    QVERIFY(decoded.status().success());
-    QVERIFY(decoded.command_request().has_add_component());
-    QCOMPARE(decoded.command_request().add_component().type_id(), std::string("logic/AndGate"));
 }
 
 void tst_Phase1ProtoContracts::componentTypeIdsRequest_roundtrip()

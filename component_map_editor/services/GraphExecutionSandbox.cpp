@@ -63,6 +63,11 @@ QString GraphExecutionSandbox::lastError() const
     return m_lastError;
 }
 
+QString GraphExecutionSandbox::resolvedStartComponentId() const
+{
+    return m_engine ? m_engine->resolvedStartComponentId() : QString();
+}
+
 QVariantMap GraphExecutionSandbox::providerOutputKeyHints() const
 {
     QVariantMap hints;
@@ -193,6 +198,7 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
         return false;
     }
 
+    emit resolvedStartComponentIdChanged();
     m_executionState = inputSnapshot;
     emit executionStateChanged();
 
@@ -200,6 +206,11 @@ bool GraphExecutionSandbox::start(const QVariantMap &inputSnapshot)
                         QVariantMap
     {
         { QStringLiteral("componentCount"), m_engine->totalComponentCount() },
+        { QStringLiteral("resolvedStartComponentId"), m_engine->resolvedStartComponentId() },
+        { QStringLiteral("activeComponentCount"), m_engine->reachableComponentIds().size() },
+        { QStringLiteral("ignoredComponentCount"), m_engine->ignoredComponentIds().size() },
+        { QStringLiteral("activeConnectionCount"), m_engine->activeConnectionCount() },
+        { QStringLiteral("executionMode"), m_usingActorEngine ? QStringLiteral("actor") : QStringLiteral("sequential") },
         { QStringLiteral("inputKeys"), inputSnapshot.keys() },
         {
             QStringLiteral("tokenTransportEnabled"),
@@ -221,7 +232,7 @@ bool GraphExecutionSandbox::startTyped(const google::protobuf::Struct &inputSnap
 
 bool GraphExecutionSandbox::step()
 {
-    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Error)
+    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Blocked || m_status == RunStatus::Error)
     {
         return false;
     }
@@ -244,7 +255,7 @@ bool GraphExecutionSandbox::step()
 
 int GraphExecutionSandbox::run(int maxSteps)
 {
-    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Error)
+    if (m_status == RunStatus::Idle || m_status == RunStatus::Completed || m_status == RunStatus::Blocked || m_status == RunStatus::Error)
     {
         return 0;
     }
@@ -331,8 +342,16 @@ bool GraphExecutionSandbox::componentStateTyped(const QString &componentId,
 
 QVariantMap GraphExecutionSandbox::snapshotSummary() const
 {
+    const QStringList reachableComponentIds = m_engine->reachableComponentIds();
+    const QStringList ignoredComponentIds = m_engine->ignoredComponentIds();
+
     return QVariantMap
     {
+        { QStringLiteral("startComponentId"), m_graph ? m_graph->startComponentId() : QString() },
+        { QStringLiteral("resolvedStartComponentId"), m_engine->resolvedStartComponentId() },
+        { QStringLiteral("activeComponentCount"), reachableComponentIds.size() },
+        { QStringLiteral("ignoredComponentCount"), ignoredComponentIds.size() },
+        { QStringLiteral("reachableComponentIds"), reachableComponentIds },
         { QStringLiteral("componentCount"), m_engine->totalComponentCount() },
         { QStringLiteral("executedCount"), m_engine->executedCount() },
         { QStringLiteral("pendingCount"), m_engine->totalComponentCount() - m_engine->executedCount() },
@@ -472,6 +491,9 @@ QString GraphExecutionSandbox::statusToString(RunStatus status)
 
         case RunStatus::Completed:
             return QStringLiteral("completed");
+
+        case RunStatus::Blocked:
+            return QStringLiteral("blocked");
 
         case RunStatus::Error:
             return QStringLiteral("error");
@@ -683,7 +705,7 @@ bool GraphExecutionSandbox::executeOneStep()
     if (!m_engine->hasReadyWork())
     {
         finalizeIfNoReadyComponents();
-        return m_status != RunStatus::Error;
+        return m_status != RunStatus::Error && m_status != RunStatus::Blocked;
     }
 
     ExecutionContext context;
@@ -738,10 +760,10 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
         return;
     }
 
-    const int componentCount = m_engine->totalComponentCount();
+    const int activeComponentCount = m_engine->totalComponentCount();
     const int executedCount = m_engine->executedCount();
 
-    if (executedCount == componentCount)
+    if (executedCount == activeComponentCount)
     {
         appendTimelineEvent(TimelineEventKind::SimulationCompleted,
                             QVariantMap
@@ -752,15 +774,16 @@ void GraphExecutionSandbox::finalizeIfNoReadyComponents()
         return;
     }
 
-    if (m_status == RunStatus::Running || m_status == RunStatus::Paused)
+    if (executedCount < activeComponentCount &&
+            (m_status == RunStatus::Running || m_status == RunStatus::Paused))
     {
         appendTimelineEvent(TimelineEventKind::SimulationBlocked,
                             QVariantMap
         {
             { QStringLiteral("executedCount"), executedCount },
-            { QStringLiteral("remainingCount"), componentCount - executedCount }
+            { QStringLiteral("remainingCount"), activeComponentCount - executedCount }
         });
-        setStatus(RunStatus::Completed);
+        setStatus(RunStatus::Blocked);
     }
 }
 

@@ -210,6 +210,11 @@ namespace cme::adapter
             result["graphId"] = QString::fromStdString(proto.graph_id());
         }
 
+        if (!proto.start_component_id().empty())
+        {
+            result["startComponentId"] = QString::fromStdString(proto.start_component_id());
+        }
+
         QVariantList comps;
 
         for (int i = 0; i < proto.components_size(); ++i)

@@ -57,29 +57,10 @@ performance measurement report and reviewer approval.
 
 ## Frozen Contract Points
 
-### CommandGateway — Supported Commands (exact, ordered)
+### Graph editing boundary
 
-```
-addComponent
-removeComponent
-moveComponent
-addConnection
-removeConnection
-setComponentProperty
-setConnectionProperty
-```
-
-### CommandGateway — Request Key Allowlist per Command
-
-| Command | Allowed keys |
-|---|---|
-| addComponent | command, id, typeId, x, y |
-| removeComponent | command, id |
-| moveComponent | command, id, x, y |
-| addConnection | command, id, sourceId, targetId, label |
-| removeConnection | command, id |
-| setComponentProperty | command, id, property, value |
-| setConnectionProperty | command, id, property, value |
+Graph creation and editing are UI-only. External command gateway, capability
+mutation, command protobuf, and command transport are not part of the contract.
 
 ### GraphSchema — Canonical JSON Key Names
 
@@ -181,12 +162,7 @@ before any new code is merged. A failure means a regression was introduced.
 
 ---
 
-## Next Phase
+## Current boundary
 
-**Phase 1: Protobuf Contract Foundation**
-
-Entry condition: this report file and `tst_Phase0Baseline` exist and pass.
-
-First deliverable: add `proto/` directory with `command.proto`, `graph.proto`,
-`validation.proto`, `execution.proto`, and `policy.proto`; integrate protobuf
-codegen into CMake; add roundtrip encode/decode tests.
+The active contract keeps graph editing in the UI and retains read-only provider
+contracts, JSON persistence, and execution sandbox APIs.

@@ -98,7 +98,7 @@ void DynamicOptionsRegistry::refresh()
             const QString componentId = component->id().trimmed();
             const QString componentTitle = component->title();
 
-            options.push_back(QVariantMap{{QStringLiteral("text"), QString("%1 - %2").arg(componentTitle, componentId)},
+            options.push_back(QVariantMap{{QStringLiteral("text"), componentTitle},
                                           {QStringLiteral("value"), componentId},
                                           {QStringLiteral("key"), componentId},
                                           {QStringLiteral("title"), componentTitle}});

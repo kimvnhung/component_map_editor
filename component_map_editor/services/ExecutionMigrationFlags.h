@@ -11,8 +11,6 @@ class MigrationFlags
 public:
     static bool tokenTransportEnabled();
     static void setTokenTransportEnabled(bool enabled);
-    static void resetDefaults();
-    static bool compatibilityWindowOpen();
 
     // Plan 3 actor/mailbox engine cutover toggle. Default OFF - GraphExecutionSandbox keeps
     // using SequentialExecutionEngine until explicitly enabled.

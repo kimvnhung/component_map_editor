@@ -215,7 +215,6 @@ private slots:
 
 void tst_SequentialExecutionEngine::cleanup()
 {
-    cme::execution::MigrationFlags::resetDefaults();
 }
 
 void tst_SequentialExecutionEngine::prepareBuildsReadyQueueFromZeroInDegreeComponents()
