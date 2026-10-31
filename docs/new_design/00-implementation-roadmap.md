@@ -12,6 +12,20 @@ Runtime phải chạy độc lập với UI, nhận deployment document, route e
 
 ## Phạm vi cố định
 
+### Architecture decision: flattened runnable MVP
+
+Graph root và graph nested dùng chung `GraphDefinition`. Deployment mang toàn bộ dependency
+closure đã pin version. Compiler validate đệ quy rồi flatten thành execution plan deterministic;
+chỉ leaf component tạo actor trong một `RuntimeEngine` process. Composite chỉ giữ public-port
+contract, hierarchy metadata và aggregate status.
+
+MVP giữ fan-out nội bộ graph phẳng như Phase 3, cấm fan-out implicit tại composite boundary,
+không có implicit fan-in, không có event-flow cycle, không có structural recursion, không hot-swap
+và không chia một deployment qua nhiều process. Fan-in phải do explicit aggregator component
+thực hiện. Qualified path và `deployment_id` là identity của state/history.
+
+Multi-process scaling, broker, partitioning, service discovery và horizontal scaling là hậu MVP.
+
 ### Có trong MVP
 
 - runtime library và runtime process;

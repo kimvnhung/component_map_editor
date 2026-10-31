@@ -52,47 +52,87 @@ Runtime không include QML. UI hoặc test client chỉ gọi gRPC, không sở 
 - activate graph mới reset execution state;
 - không chuyển event pending sang graph mới.
 
-### Graph lồng nhau / composite component
+### Graph lồng nhau / composite component — flattened MVP
 
-Graph không chỉ là deployment root. Một graph version cũng có thể được đăng ký như
-một `component_type` dạng composite, sau đó được instantiate trong graph khác. Đây là
-quan hệ **containment**, không phải copy/paste các node vào editor:
+Graph có thể được dùng như component trong graph khác, nhưng graph hierarchy chỉ tồn tại
+ở deployment/model layer. Runtime compile toàn bộ graph tree thành execution plan phẳng
+trong **một process**:
+
+```text
+GraphDefinition hierarchy
+        ↓ validate + resolve parameters
+Deterministic flatten compiler
+        ↓
+Leaf actors + leaf-to-leaf routes
+        ↓
+One RuntimeEngine process
+```
+
+Ví dụ:
 
 ```text
 OrderGraph v7
-┌────────────────────────────────────────────┐
-│ input -> [fraud_check: FraudGraph v3] -> output │
-│              └── score -> decision          │
-└────────────────────────────────────────────┘
+  input -> [fraud_check: FraudGraph v3] -> output
+                  └── score -> decision
 ```
 
-Composite có contract port rõ ràng. Chỉ các port được khai báo là `exposed` mới nhìn
-thấy ở graph cha; route nội bộ không được nối trực tiếp từ graph ngoài. Runtime pin
-`graph_id + graph_version` của mỗi composite khi deploy, validate toàn bộ dependency
-closure rồi biên dịch thành execution plan phân cấp. Vì vậy cùng một graph có thể được
-instantiate nhiều lần với state, mailbox và metrics độc lập.
+Composite chỉ expose public ports; graph cha không được truy cập internal port. Composite
+không có actor, mailbox hay business state riêng. Chỉ leaf component có actor/state/mailbox.
+Boundary one-to-one được rewrite thành route leaf-to-leaf. Fan-out nội bộ graph phẳng vẫn
+được giữ, nhưng composite boundary không fan-out implicit; fan-in chỉ qua explicit aggregator.
 
-MVP mở rộng theo hướng:
+Graph definition immutable được pin bằng `graph_id + graph_version`. Deployment gửi kèm
+dependency closure và static parameters, sau đó runtime tạo qualified identity như
+`root/checkout/fraud_check/score`. Cùng definition được dùng nhiều lần nhưng mỗi path có
+state riêng. Structural recursion, event-flow cycle, hot-swap và multi-process scaling
+không thuộc runnable MVP.
 
-- graph definition immutable, có `graph_id`, `graph_version` và danh sách exposed ports;
-- component instance có thể là native handler hoặc composite graph reference;
-- identity runtime là hierarchical path (`root/checkout/fraud_check/score`), còn
-  `instance_id` chỉ cần unique trong scope chứa nó;
-- route băng qua composite boundary chỉ đi qua cặp exposed input/output port;
-- không cho cycle trong dependency graph của composite definitions; cycle dữ liệu trong
-  một graph chỉ được hỗ trợ nếu sau này có policy/bounded-loop rõ ràng;
-- deploy/activate là atomic cho root graph và toàn bộ dependency versions, không tự động
-  lấy version mới của graph con.
-
-Thiết kế chi tiết và migration được ghi trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
-Nếu triển khai ngay sau Phase 5, đây là Phase 6 của roadmap; các phase 1-5 vẫn giữ
-vertical slice phẳng để làm baseline.
+Thiết kế và các quyết định đầy đủ nằm trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+Các phase 1-5 vẫn là baseline graph phẳng; Phase 6 bổ sung compiler, boundary contract,
+persistence và query theo hierarchy.
 
 ### Phân biệt definition và instance
 
-`GraphDefinition` là immutable/versioned contract được registry quản lý. `GraphInstance`
-là một lần dùng definition trong graph cha, có `instance_id`, properties và state scope
-riêng. Không lưu một graph mutable duy nhất rồi dùng chung state giữa các nơi.
+`GraphDefinition` là immutable/versioned contract. `GraphInstance` là một lần dùng definition
+trong graph cha, có local `instance_id`, static parameters và scope riêng. Qualified path là
+runtime identity; không dùng chung state giữa các instance.
+
+### Architecture decision: flattened runnable MVP
+
+Một root deployment chạy trong một `RuntimeEngine` process. Điều này không cấm chạy nhiều
+runtime process độc lập cho nhiều deployment khác nhau, nhưng MVP chưa chia một execution
+plan qua nhiều process. Execution plan phẳng là nền tảng để hậu MVP thêm partition, worker,
+broker và horizontal scaling mà không đổi public graph contract.
+
+### Boundary semantics MVP
+
+- exposed port mapping explicit và one-to-one;
+- public ports derive từ graph definition;
+- `PublishEvent` chỉ xác nhận initial enqueue;
+- mỗi delivery có event ID riêng, giữ `root_event_id` và `causation_id`;
+- không implicit fan-in/fan-out tại composite boundary;
+- composite status là aggregate của leaf descendants;
+- activation atomic, đổi graph version reset toàn bộ execution state.
+
+### Graph
+
+- component type hoặc composite graph reference;
+- component instance id theo scope;
+- static parameters/properties;
+- input/output port và message type;
+- direct route;
+- graph version và validation code/field path.
+
+### Actor và event
+
+- chỉ leaf component có actor;
+- bounded FIFO mailbox;
+- `max_concurrency = 1` cho từng actor;
+- actor khác nhau có thể chạy song song;
+- direct leaf-to-leaf routing;
+- mailbox-full rejection;
+- opaque state bytes có schema version;
+- event lineage và idempotency key.
 
 ### Graph
 

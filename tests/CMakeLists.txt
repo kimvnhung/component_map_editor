@@ -844,3 +844,32 @@ add_test(
 )
 
 # Phase 5 intentionally uses localhost plaintext gRPC without streaming or TLS.
+
+# ── Phase 6: Nested graph / composite component contract ─────────────────────
+qt_add_executable(tst_RuntimeNestedGraphPhase6
+    tst_RuntimeNestedGraphPhase6.cpp
+)
+
+target_link_libraries(tst_RuntimeNestedGraphPhase6
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeNestedGraphPhase6
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeNestedGraphPhase6
+    COMMAND tst_RuntimeNestedGraphPhase6
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 6 currently validates the versioned composite contract and dependency graph.
+# Runtime flattening, boundary routing and hierarchical persistence follow next.
+
+# Phase 5 intentionally uses localhost plaintext gRPC without streaming or TLS.

@@ -1,5 +1,7 @@
 #include "GraphHelper.h"
 
+#include <QJsonDocument>
+
 namespace cme::helper::graph
 {
     QStringList getComponentIds(const cme::GraphSnapshot &graph)

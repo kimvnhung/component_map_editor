@@ -28,6 +28,25 @@ message ComponentInstance {
   map<string, string> properties = 3;
   uint32 state_schema_version = 4;
   repeated ComponentPort ports = 5;
+  // A composite component references an immutable graph definition. Empty means native handler.
+  string composite_graph_id = 6;
+  string composite_graph_version = 7;
+}
+
+message ExposedPort {
+  string port_id = 1;
+  PortDirection direction = 2;
+  string message_type = 3;
+  string internal_instance_id = 4;
+  string internal_port_id = 5;
+}
+
+message GraphDefinition {
+  string graph_id = 1;
+  string graph_version = 2;
+  repeated ExposedPort exposed_ports = 3;
+  repeated ComponentInstance components = 4;
+  repeated DirectRoute routes = 5;
 }
 
 message DirectRoute {
@@ -44,6 +63,8 @@ message DeploymentGraph {
   string graph_version = 1;
   repeated ComponentInstance components = 2;
   repeated DirectRoute routes = 3;
+  string graph_id = 4;
+  repeated GraphDefinition graph_definitions = 5;
 }
 
 message DeploymentValidationIssue {

@@ -3,6 +3,9 @@
 #include <QHash>
 #include <QSet>
 #include <QString>
+#include <functional>
+
+using cme::runtime::v1::GraphDefinition;
 
 namespace
 {
@@ -42,6 +45,59 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
     QHash<QString, QHash<QString, PortInfo>> portsByInstance;
     QSet<QString> componentIds;
     QSet<QString> connectionIds;
+    QHash<QString, const GraphDefinition *> definitions;
+    QHash<QString, QStringList> definitionDependencies;
+
+    for (int i = 0; i < graph.graph_definitions_size(); ++i)
+    {
+        const auto &definition = graph.graph_definitions(i);
+        const QString id = QString::fromStdString(definition.graph_id());
+        const QString version = QString::fromStdString(definition.graph_version());
+        const QString key = id + QStringLiteral("@") + version;
+        if (id.isEmpty() || version.isEmpty())
+        {
+            addIssue(&result, "GRAPH_DEFINITION_VERSION_REQUIRED",
+                     QStringLiteral("graph_definitions[%1]").arg(i).toUtf8().constData(),
+                     QStringLiteral("Graph definition id and version are required."));
+            continue;
+        }
+        if (definitions.contains(key))
+            addIssue(&result, "DUPLICATE_GRAPH_DEFINITION", "graph_definitions",
+                     QStringLiteral("Graph definition is duplicated."));
+        definitions.insert(key, &definition);
+        for (const auto &child : definition.components())
+        {
+            if (!child.composite_graph_id().empty() && !child.composite_graph_version().empty())
+                definitionDependencies[key].append(QString::fromStdString(child.composite_graph_id())
+                                                    + QStringLiteral("@")
+                                                    + QString::fromStdString(child.composite_graph_version()));
+        }
+    }
+
+    QSet<QString> visiting;
+    QSet<QString> visited;
+    std::function<void(const QString &)> visit = [&](const QString &key) {
+        if (visited.contains(key)) return;
+        if (visiting.contains(key))
+        {
+            addIssue(&result, "GRAPH_DEPENDENCY_CYCLE", "graph_definitions",
+                     QStringLiteral("Graph definition dependency cycle detected."));
+            return;
+        }
+        visiting.insert(key);
+        for (const auto &dependency : definitionDependencies.value(key))
+        {
+            if (!definitions.contains(dependency))
+                addIssue(&result, "GRAPH_DEFINITION_NOT_FOUND", "graph_definitions",
+                         QStringLiteral("Referenced graph definition was not supplied: %1").arg(dependency));
+            else
+                visit(dependency);
+        }
+        visiting.remove(key);
+        visited.insert(key);
+    };
+    for (auto it = definitions.cbegin(); it != definitions.cend(); ++it)
+        visit(it.key());
 
     if (graph.graph_version().empty())
     {
@@ -73,7 +129,28 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
         }
         componentIds.insert(instanceId);
 
-        if (component.component_type().empty())
+        const bool isComposite = !component.composite_graph_id().empty()
+                                 || !component.composite_graph_version().empty();
+        if (isComposite)
+        {
+            if (component.composite_graph_id().empty() || component.composite_graph_version().empty())
+            {
+                addIssue(&result, "GRAPH_REFERENCE_INCOMPLETE",
+                         (componentPath + QStringLiteral(".composite_graph_id")).toUtf8().constData(),
+                         QStringLiteral("Composite graph id and version must be provided together."));
+            }
+            else
+            {
+                const QString key = QString::fromStdString(component.composite_graph_id())
+                                    + QStringLiteral("@")
+                                    + QString::fromStdString(component.composite_graph_version());
+                if (!definitions.contains(key))
+                    addIssue(&result, "GRAPH_DEFINITION_NOT_FOUND",
+                             (componentPath + QStringLiteral(".composite_graph_version")).toUtf8().constData(),
+                             QStringLiteral("Referenced composite graph definition was not supplied."));
+            }
+        }
+        else if (component.component_type().empty())
         {
             addIssue(&result, "COMPONENT_TYPE_REQUIRED",
                      (componentPath + QStringLiteral(".component_type")).toUtf8().constData(),
@@ -84,6 +161,25 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
             addIssue(&result, "HANDLER_NOT_FOUND",
                      (componentPath + QStringLiteral(".component_type")).toUtf8().constData(),
                      QStringLiteral("Component type has no registered handler."));
+        }
+        if (isComposite)
+        {
+            const QString key = QString::fromStdString(component.composite_graph_id())
+                                + QStringLiteral("@")
+                                + QString::fromStdString(component.composite_graph_version());
+            const auto *definition = definitions.value(key, nullptr);
+            if (definition)
+            {
+                QSet<QString> exposedPorts;
+                for (const auto &port : definition->exposed_ports())
+                {
+                    const QString portId = QString::fromStdString(port.port_id());
+                    if (exposedPorts.contains(portId))
+                        addIssue(&result, "DUPLICATE_EXPOSED_PORT", componentPath.toUtf8().constData(),
+                                 QStringLiteral("Composite exposed port is duplicated."));
+                    exposedPorts.insert(portId);
+                }
+            }
         }
         if (component.state_schema_version() == 0)
         {
