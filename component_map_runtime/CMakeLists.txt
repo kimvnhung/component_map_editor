@@ -10,6 +10,7 @@ set(COMPONENT_MAP_RUNTIME_HEADERS
     include/component_map_runtime/RuntimeHandlerRegistry.h
     include/component_map_runtime/DeploymentValidator.h
     include/component_map_runtime/DeploymentManager.h
+    include/component_map_runtime/RuntimeCore.h
 )
 
 set(COMPONENT_MAP_RUNTIME_SOURCES
@@ -17,6 +18,7 @@ set(COMPONENT_MAP_RUNTIME_SOURCES
     src/RuntimeHandlerRegistry.cpp
     src/DeploymentValidator.cpp
     src/DeploymentManager.cpp
+    src/RuntimeCore.cpp
 )
 
 add_library(component_map_runtime STATIC

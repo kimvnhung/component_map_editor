@@ -107,3 +107,32 @@ Runtime không có retry loop, backoff scheduler hoặc dead-letter queue. Clien
 - Failure và rejection không bị silently dropped.
 - Không có retry scheduler hoặc dead-letter dependency.
 - Compatibility engine cũ vẫn build và test pass.
+
+## Trạng thái triển khai
+
+Phase 3 hiện có:
+
+- `RuntimeEngine` synchronous, transport-neutral và không phụ thuộc QML;
+- actor registry nội bộ với mailbox FIFO bounded và `max_concurrency = 1`;
+- direct route từ deployment graph, gồm route enabled/disabled và fan-out cơ bản;
+- `ComponentStateStore` in-memory với state riêng theo instance;
+- failure log có machine-readable code và rejection record cho delivery hoặc mailbox-full;
+- idempotency store in-memory cho duplicate, conflict và kết quả handler;
+- graceful stop không nhận event mới;
+- test vertical slice Producer -> Processor, FIFO, bounded mailbox, handler failure, route disabled, idempotency và stop.
+
+Chạy kiểm thử:
+
+```bash
+cmake --build build/phase1_runtime --target tst_RuntimeCorePhase3
+ctest --test-dir build/phase1_runtime \
+  -R '^tst_Runtime(CorePhase3|DeploymentPhase2|ServicePhase1)$' --output-on-failure
+```
+
+Phase 3 cố ý chưa có thread scheduler, retry, dead-letter, SQLite hoặc IPC. Các phần đó thuộc các phase sau.
+
+Mọi event được xử lý tuần tự trong `processAll()`. Duplicate idempotency đang chờ sẽ nhận lỗi `IDEMPOTENCY_IN_FLIGHT` và không được dispatch lần hai.
+
+Test Phase 3 không link QML hoặc editor target.
+
+Runtime core hiện dùng scheduler synchronous deterministic cho vertical slice trong test process. Actor boundary vẫn tách riêng để các phase sau có thể thay scheduler mà không đổi handler API.

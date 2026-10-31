@@ -764,3 +764,29 @@ add_test(
 )
 
 # Phase 1 runtime process remains optional and is intentionally not linked into tests.
+
+# ── Phase 3: Runtime core vertical slice ─────────────────────────────────────
+qt_add_executable(tst_RuntimeCorePhase3
+    tst_RuntimeCorePhase3.cpp
+)
+
+target_link_libraries(tst_RuntimeCorePhase3
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeCorePhase3
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeCorePhase3
+    COMMAND tst_RuntimeCorePhase3
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 3 is synchronous and transport-neutral. Persistence and IPC remain later phases.
