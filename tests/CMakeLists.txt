@@ -869,7 +869,9 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# Phase 6 currently validates the versioned composite contract and dependency graph.
-# Runtime flattening, boundary routing and hierarchical persistence follow next.
+# Phase 6 covers versioned composite validation and deterministic flatten compilation.
+# Hierarchical persistence and runtime status aggregation remain follow-up work.
+
+# Phase 6 compiler tests are included in tst_RuntimeNestedGraphPhase6.
 
 # Phase 5 intentionally uses localhost plaintext gRPC without streaming or TLS.

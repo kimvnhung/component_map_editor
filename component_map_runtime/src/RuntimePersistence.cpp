@@ -136,6 +136,52 @@ bool RuntimePersistence::saveGraph(const cme::runtime::v1::DeploymentGraph &grap
     return true;
 }
 
+bool RuntimePersistence::saveDeploymentSnapshot(const DeploymentSnapshot &snapshot, QString *error)
+{
+    if (!m_database) return setError(QStringLiteral("Database is not open."), error);
+    sqlite3_stmt *statement = nullptr;
+    const char *sql = "INSERT INTO deployment_snapshots(deployment_id, root_graph_id, root_graph_version, dependency_manifest, definition_hashes, execution_plan_hash, serialized_definitions, created_at) VALUES(?, ?, ?, ?, ?, ?, ?, strftime('%s','now')) ON CONFLICT(deployment_id) DO UPDATE SET root_graph_id=excluded.root_graph_id, root_graph_version=excluded.root_graph_version, dependency_manifest=excluded.dependency_manifest, definition_hashes=excluded.definition_hashes, execution_plan_hash=excluded.execution_plan_hash, serialized_definitions=excluded.serialized_definitions, created_at=excluded.created_at";
+    if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK
+        || !bindText(statement, 1, snapshot.deploymentId) || !bindText(statement, 2, snapshot.rootGraphId)
+        || !bindText(statement, 3, snapshot.rootGraphVersion) || !bindText(statement, 4, snapshot.dependencyManifest)
+        || !bindText(statement, 5, snapshot.definitionHashes) || !bindText(statement, 6, snapshot.executionPlanHash)
+        || !bindBytes(statement, 7, snapshot.serializedDefinitions) || sqlite3_step(statement) != SQLITE_DONE) {
+        if (statement) sqlite3_finalize(statement); return setError(sqliteError(), error);
+    }
+    sqlite3_finalize(statement); return true;
+}
+
+bool RuntimePersistence::loadDeploymentSnapshot(const QString &deploymentId, DeploymentSnapshot *snapshot, QString *error) const
+{
+    if (!m_database || !snapshot) return setError(QStringLiteral("Database is not open or snapshot is null."), error);
+    sqlite3_stmt *statement = nullptr;
+    if (sqlite3_prepare_v2(m_database, "SELECT deployment_id, root_graph_id, root_graph_version, dependency_manifest, definition_hashes, execution_plan_hash, serialized_definitions FROM deployment_snapshots WHERE deployment_id=?", -1, &statement, nullptr) != SQLITE_OK || !bindText(statement, 1, deploymentId)) {
+        if (statement) sqlite3_finalize(statement); return setError(sqliteError(), error);
+    }
+    const int result = sqlite3_step(statement);
+    if (result == SQLITE_ROW) { snapshot->deploymentId=columnText(statement,0); snapshot->rootGraphId=columnText(statement,1); snapshot->rootGraphVersion=columnText(statement,2); snapshot->dependencyManifest=columnText(statement,3); snapshot->definitionHashes=columnText(statement,4); snapshot->executionPlanHash=columnText(statement,5); snapshot->serializedDefinitions=columnBytes(statement,6); sqlite3_finalize(statement); return true; }
+    sqlite3_finalize(statement); return setError(QStringLiteral("Deployment snapshot not found."), error);
+}
+
+bool RuntimePersistence::saveComponentState(const QString &deploymentId, const QString &qualifiedPath,
+                                            const QString &componentType, const QByteArray &state,
+                                            int schemaVersion, QString *error)
+{
+    if (!m_database) return setError(QStringLiteral("Database is not open."), error);
+    sqlite3_stmt *statement = nullptr;
+    const char *sql = "INSERT INTO component_state_v2(deployment_id, qualified_path, component_type, state_blob, schema_version, updated_at) VALUES(?, ?, ?, ?, ?, strftime('%s','now')) ON CONFLICT(deployment_id, qualified_path) DO UPDATE SET component_type=excluded.component_type, state_blob=excluded.state_blob, schema_version=excluded.schema_version, updated_at=excluded.updated_at";
+    if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK || !bindText(statement,1,deploymentId) || !bindText(statement,2,qualifiedPath) || !bindText(statement,3,componentType) || !bindBytes(statement,4,state) || sqlite3_bind_int(statement,5,schemaVersion) != SQLITE_OK || sqlite3_step(statement) != SQLITE_DONE) { if (statement) sqlite3_finalize(statement); return setError(sqliteError(),error); }
+    sqlite3_finalize(statement); return true;
+}
+
+QList<PersistedComponentState> RuntimePersistence::loadComponentStateRecords(QString *error) const
+{
+    QList<PersistedComponentState> result; if (!m_database) { setError(QStringLiteral("Database is not open."),error); return result; }
+    sqlite3_stmt *statement=nullptr; if (sqlite3_prepare_v2(m_database,"SELECT deployment_id, qualified_path, component_type, state_blob, schema_version FROM component_state_v2",-1,&statement,nullptr)!=SQLITE_OK) { setError(sqliteError(),error); return result; }
+    while (sqlite3_step(statement)==SQLITE_ROW) result.append({columnText(statement,0),columnText(statement,1),columnText(statement,2),columnBytes(statement,3),sqlite3_column_int(statement,4)});
+    sqlite3_finalize(statement); return result;
+}
+
 bool RuntimePersistence::saveComponentState(const QString &instanceId,
                                             const QString &componentType,
                                             const QByteArray &state,
@@ -397,6 +443,8 @@ bool RuntimePersistence::migrate(QString *error)
 {
     return execute(QStringLiteral(
         "CREATE TABLE IF NOT EXISTS runtime_instances(runtime_id TEXT PRIMARY KEY, status TEXT NOT NULL, updated_at INTEGER NOT NULL);"
+        "CREATE TABLE IF NOT EXISTS deployment_snapshots(deployment_id TEXT PRIMARY KEY, root_graph_id TEXT NOT NULL, root_graph_version TEXT NOT NULL, dependency_manifest TEXT NOT NULL, definition_hashes TEXT NOT NULL, execution_plan_hash TEXT NOT NULL, serialized_definitions BLOB NOT NULL, created_at INTEGER NOT NULL);"
+        "CREATE TABLE IF NOT EXISTS component_state_v2(deployment_id TEXT NOT NULL, qualified_path TEXT NOT NULL, component_type TEXT NOT NULL, state_blob BLOB NOT NULL, schema_version INTEGER NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(deployment_id, qualified_path));"
         "CREATE TABLE IF NOT EXISTS graph_versions(graph_version TEXT PRIMARY KEY, graph_blob BLOB NOT NULL, active INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);"
         "CREATE TABLE IF NOT EXISTS component_state(instance_id TEXT PRIMARY KEY, component_type TEXT NOT NULL, state_blob BLOB NOT NULL, schema_version INTEGER NOT NULL, updated_at INTEGER NOT NULL);"
         "CREATE TABLE IF NOT EXISTS event_inbox(event_id TEXT PRIMARY KEY, idempotency_key TEXT, target_component_id TEXT NOT NULL, message_type TEXT NOT NULL, payload BLOB, status TEXT NOT NULL, created_at INTEGER NOT NULL);"

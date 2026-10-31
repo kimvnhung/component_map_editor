@@ -30,6 +30,26 @@ struct PersistedRuntimeLog
     qint64 createdAt = 0;
 };
 
+struct DeploymentSnapshot
+{
+    QString deploymentId;
+    QString rootGraphId;
+    QString rootGraphVersion;
+    QString dependencyManifest;
+    QString definitionHashes;
+    QString executionPlanHash;
+    QByteArray serializedDefinitions;
+};
+
+struct PersistedComponentState
+{
+    QString deploymentId;
+    QString qualifiedPath;
+    QString componentType;
+    QByteArray state;
+    int schemaVersion = 0;
+};
+
 class RuntimePersistence
 {
 public:
@@ -45,12 +65,19 @@ public:
     QString databasePath() const;
 
     bool saveGraph(const cme::runtime::v1::DeploymentGraph &graph, QString *error = nullptr);
+    bool saveDeploymentSnapshot(const DeploymentSnapshot &snapshot, QString *error = nullptr);
+    bool loadDeploymentSnapshot(const QString &deploymentId, DeploymentSnapshot *snapshot,
+                               QString *error = nullptr) const;
     bool saveComponentState(const QString &instanceId,
                             const QString &componentType,
                             const QByteArray &state,
                             int schemaVersion,
                             QString *error = nullptr);
     QHash<QString, QByteArray> loadComponentStates(QString *error = nullptr) const;
+    bool saveComponentState(const QString &deploymentId, const QString &qualifiedPath,
+                            const QString &componentType, const QByteArray &state,
+                            int schemaVersion, QString *error = nullptr);
+    QList<PersistedComponentState> loadComponentStateRecords(QString *error = nullptr) const;
 
     bool recordAcceptedEvent(const RuntimeEvent &event, QString *error = nullptr);
     bool recordEventCompletion(const QString &eventId, bool succeeded,
