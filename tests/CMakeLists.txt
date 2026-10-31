@@ -738,3 +738,29 @@ add_test(
     COMMAND tst_RuntimeServicePhase1
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 2: Deployment graph contract ──────────────────────────────────────
+qt_add_executable(tst_RuntimeDeploymentPhase2
+    tst_RuntimeDeploymentPhase2.cpp
+)
+
+target_link_libraries(tst_RuntimeDeploymentPhase2
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeDeploymentPhase2
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeDeploymentPhase2
+    COMMAND tst_RuntimeDeploymentPhase2
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 1 runtime process remains optional and is intentionally not linked into tests.

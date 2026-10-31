@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package cme.runtime.v1;
+
+// Immutable deployment graph consumed by the runtime boundary. It contains no
+// editor QObject or GraphModel references.
+enum PortDirection {
+  PORT_DIRECTION_UNSPECIFIED = 0;
+  PORT_DIRECTION_INPUT = 1;
+  PORT_DIRECTION_OUTPUT = 2;
+}
+
+enum DeploymentValidationSeverity {
+  DEPLOYMENT_VALIDATION_SEVERITY_UNSPECIFIED = 0;
+  DEPLOYMENT_VALIDATION_SEVERITY_ERROR = 1;
+  DEPLOYMENT_VALIDATION_SEVERITY_WARNING = 2;
+}
+
+message ComponentPort {
+  string port_id = 1;
+  PortDirection direction = 2;
+  string message_type = 3;
+}
+
+message ComponentInstance {
+  string instance_id = 1;
+  string component_type = 2;
+  map<string, string> properties = 3;
+  uint32 state_schema_version = 4;
+  repeated ComponentPort ports = 5;
+}
+
+message DirectRoute {
+  string connection_id = 1;
+  string source_instance_id = 2;
+  string source_port_id = 3;
+  string target_instance_id = 4;
+  string target_port_id = 5;
+  string message_type = 6;
+  bool enabled = 7;
+}
+
+message DeploymentGraph {
+  string graph_version = 1;
+  repeated ComponentInstance components = 2;
+  repeated DirectRoute routes = 3;
+}
+
+message DeploymentValidationIssue {
+  string code = 1;
+  DeploymentValidationSeverity severity = 2;
+  string field_path = 3;
+  string message = 4;
+}
+
+message DeploymentValidationResult {
+  bool valid = 1;
+  repeated DeploymentValidationIssue issues = 2;
+}

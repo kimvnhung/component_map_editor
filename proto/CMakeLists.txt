@@ -1,5 +1,5 @@
 # proto/CMakeLists.txt
-# Generates C++ protobuf code from the 5 .proto files and packages them into
+# Generates C++ protobuf code from the .proto files and packages them into
 # a static library (cme_proto) that other targets can link against.
 
 cmake_minimum_required(VERSION 3.21)

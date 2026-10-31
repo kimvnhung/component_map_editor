@@ -69,3 +69,29 @@ Tạo `proto/runtime/deployment.proto` và dùng package `cme.runtime.v1`. Khôn
 - Route hợp lệ resolve được source port, target port và message type.
 - Graph invalid trả validation code ổn định.
 - Activate graph mới bị từ chối nếu runtime chưa stopped.
+
+## Trạng thái triển khai
+
+Phase 2 hiện có:
+
+- `proto/deployment.proto` với deployment graph, component, port, route và validation issue;
+- `DeploymentValidator` độc lập với editor model;
+- `DeploymentManager` với staged graph, active graph và chính sách activate khi runtime stopped;
+- test round-trip protobuf cho fixture Producer -> Processor -> Sink;
+- test validation cho duplicate ID, port không tồn tại, sai direction, message type và handler thiếu;
+- test clone instance giữ cấu hình riêng;
+- test không cho redeploy graph version đang active.
+
+Chạy kiểm thử:
+
+```bash
+cmake --build build/phase1_runtime --target tst_RuntimeDeploymentPhase2
+ctest --test-dir build/phase1_runtime \
+  -R '^tst_Runtime(DeploymentPhase2|ServicePhase1)$' --output-on-failure
+```
+
+Phase 2 chưa tạo adapter từ `GraphModel`. Runtime chỉ nhận `DeploymentGraph` protobuf, phù hợp với boundary độc lập UI của thiết kế.
+
+Việc reset execution state và chuyển đổi pending work sẽ được hiện thực cùng runtime core ở Phase 3.
+
+Ghi chú: contract được đặt trực tiếp dưới `proto/` để giữ tương thích với cách build protobuf hiện tại; không tạo thêm thư mục lồng nhau.
