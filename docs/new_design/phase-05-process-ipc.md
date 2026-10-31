@@ -26,7 +26,7 @@ proto/runtime/
   status.proto
 ```
 
-`execution.proto` tiếp tục là compatibility contract. Chỉ thêm `query.proto` khi API query vượt quá phạm vi status/history nhỏ.
+`execution.proto` tiếp tục là compatibility contract.
 
 ## API MVP
 
@@ -57,7 +57,6 @@ Response phải phân biệt accepted, duplicate, validation failure, handler/de
 - `ListEventHistory`;
 - `ListRuntimeLogs`.
 
-Chưa triển khai streaming, cursor resume hoặc subscription.
 
 ## Client behavior
 
