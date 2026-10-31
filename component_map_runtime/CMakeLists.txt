@@ -6,10 +6,13 @@ find_package(Qt6 REQUIRED COMPONENTS Core)
 
 set(COMPONENT_MAP_RUNTIME_HEADERS
     include/component_map_runtime/RuntimeService.h
+    include/component_map_runtime/RuntimeTypes.h
+    include/component_map_runtime/RuntimeHandlerRegistry.h
 )
 
 set(COMPONENT_MAP_RUNTIME_SOURCES
     src/RuntimeService.cpp
+    src/RuntimeHandlerRegistry.cpp
 )
 
 add_library(component_map_runtime STATIC

@@ -114,7 +114,7 @@ bool RuntimeService::stop(QString *error)
 cme::runtime::v1::RuntimeStatusSnapshot RuntimeService::statusSnapshot() const
 {
     cme::runtime::v1::RuntimeStatusSnapshot snapshot;
-    *snapshot.mutable_descriptor() = m_descriptor;
+    *snapshot.mutable_runtime_descriptor() = m_descriptor;
     snapshot.set_status(m_status);
     snapshot.set_message(m_lastError.toStdString());
     return snapshot;
