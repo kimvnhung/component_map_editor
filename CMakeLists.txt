@@ -15,6 +15,7 @@ qt_standard_project_setup(REQUIRES 6.5)
 
 option(CME_BUILD_EXAMPLES "Build example applications" OFF)
 option(CME_BUILD_TESTS "Build test targets" OFF)
+option(CME_BUILD_RUNTIME "Build the Phase 1 runtime process skeleton" OFF)
 
 # ── Protobuf ────────────────────────────────────────────────────────────────
 find_package(protobuf CONFIG REQUIRED)
@@ -39,6 +40,7 @@ endif()
 add_subdirectory(qml_fontawesome)
 add_subdirectory(proto)
 add_subdirectory(base_log)
+add_subdirectory(component_map_runtime)
 add_subdirectory(component_map_editor)
 
 if(CME_BUILD_EXAMPLES)

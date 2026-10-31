@@ -714,3 +714,27 @@ add_test(
     COMMAND tst_PropertySchemaNormalizedRowBaseline
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 1: Runtime process boundary ───────────────────────────────────────
+qt_add_executable(tst_RuntimeServicePhase1
+    tst_RuntimeServicePhase1.cpp
+)
+
+target_link_libraries(tst_RuntimeServicePhase1
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeServicePhase1
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeServicePhase1
+    COMMAND tst_RuntimeServicePhase1
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

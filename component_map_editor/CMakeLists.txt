@@ -6,22 +6,218 @@ if(COMMAND qt_policy)
 endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 
-# set headers
-file(GLOB_RECURSE COMPONENT_MAP_EDITOR_HEADERS CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    *.h
+# Explicit ownership keeps the editor/QML target separate from the runtime target.
+set(COMPONENT_MAP_EDITOR_HEADERS
+    adapters/AdapterCommon.h
+    adapters/ExecutionAdapter.h
+    adapters/GraphAdapter.h
+    adapters/PolicyAdapter.h
+    adapters/ValidationAdapter.h
+    commands/GraphCommand.h
+    commands/GraphCommands.h
+    commands/UndoStack.h
+    componentmapeditormanager.h
+    extensions/common.h
+    extensions/contracts/ExtensionApiVersion.h
+    extensions/contracts/ExtensionContractRegistry.h
+    extensions/contracts/ExtensionManifest.h
+    extensions/contracts/IActionProvider.h
+    extensions/contracts/IComponentTypeProvider.h
+    extensions/contracts/IConnectionPolicyProvider.h
+    extensions/contracts/IExecutionSemanticsProvider.h
+    extensions/contracts/IExtensionPack.h
+    extensions/contracts/IPropertySchemaProvider.h
+    extensions/contracts/IValidationProvider.h
+    extensions/contracts/builders/ComponentTypeProviderBuilder.h
+    extensions/contracts/builders/ExecutionPlanBuilder.h
+    extensions/contracts/builders/ExtensionContractRegistryBuilder.h
+    extensions/contracts/builders/ExtensionPackBuilder.h
+    extensions/runtime/CompositeExecutionProvider.h
+    extensions/runtime/DynamicOptionsRegistry.h
+    extensions/runtime/ExtensionCompatibilityChecker.h
+    extensions/runtime/ExtensionManifestJson.h
+    extensions/runtime/ExtensionStartupLoader.h
+    extensions/runtime/GraphPropertySchemaProvider.h
+    extensions/runtime/PropertySchemaRegistry.h
+    extensions/runtime/PublicApiContractAdapter.h
+    extensions/runtime/SchemaFieldDefinition.h
+    extensions/runtime/SchemaOptionsSpec.h
+    extensions/runtime/SchemaSectionModel.h
+    extensions/runtime/TypeRegistry.h
+    extensions/runtime/rules/RuleBackedProviders.h
+    extensions/runtime/rules/RuleCompiler.h
+    extensions/runtime/rules/RuleDslTypes.h
+    extensions/runtime/rules/RuleHotReloadService.h
+    extensions/runtime/rules/RuleRuntimeEngine.h
+    extensions/runtime/rules/RuleRuntimeRegistry.h
+    extensions/runtime/templates/ComponentTypeTemplateAdapter.h
+    extensions/runtime/templates/ConnectionPolicyTemplateAdapter.h
+    extensions/runtime/templates/PropertySchemaTemplateAdapter.h
+    extensions/runtime/templates/TemplateProtoHelpers.h
+    extensions/runtime/templates/customizeexecutioncommon.h
+    extensions/sample_pack/SampleActionProvider.h
+    extensions/sample_pack/SampleComponentTypeProvider.h
+    extensions/sample_pack/SampleConnectionPolicyProvider.h
+    extensions/sample_pack/SampleExecutionSemanticsProvider.h
+    extensions/sample_pack/SampleExtensionPack.h
+    extensions/sample_pack/SamplePropertySchemaProvider.h
+    extensions/sample_pack/SampleValidationProvider.h
+    extensions/sample_pack/built_in_validation_providers/WorkflowConnectionValidationProvider.h
+    extensions/sample_pack/built_in_validation_providers/WorkflowStructureValidationProvider.h
+    extensions/sample_pack/built_in_validation_providers/WorkflowTopologyValidationProvider.h
+    extensions/sample_pack/built_in_validation_providers/WorkflowValidationProvider.h
+    models/ComponentModel.h
+    models/ConnectionModel.h
+    models/GraphModel.h
+    models/TimelineModel.h
+    routing/OrthogonalHeuristicStrategy.h
+    routing/RouteTypes.h
+    routing/RoutingEngine.h
+    routing/RoutingHelpers.h
+    services/ExecutionMigrationFlags.h
+    services/ExportService.h
+    services/GraphEditorController.h
+    services/GraphExecutionSandbox.h
+    services/GraphSchema.h
+    services/InvariantChecker.h
+    services/MemoryMonitor.h
+    services/PerformanceBudgets.h
+    services/TraversalEngine.h
+    services/ValidationService.h
+    services/execution_internal/ActorMailboxExecutionEngine.h
+    services/execution_internal/ExecutionContext.h
+    services/execution_internal/ExecutionPlan.h
+    services/execution_internal/ExecutionRequest.h
+    services/execution_internal/IExecutionEngine.h
+    services/execution_internal/ProviderResultValidation.h
+    services/execution_internal/SequentialExecutionEngine.h
+    services/execution_internal/actor_mailbox/Actor.h
+    services/execution_internal/actor_mailbox/ActorRegistry.h
+    services/execution_internal/actor_mailbox/ActorScheduler.h
+    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h
+    services/execution_internal/actor_mailbox/Mailbox.h
+    transport/GrpcTemplateDescriptorTransport.h
+    ui/GraphViewportItem.h
+    ui/rendering/ComponentRenderPass.h
+    ui/rendering/ConnectionRenderPass.h
+    ui/rendering/GridRenderPass.h
+    ui/rendering/LabelRenderPass.h
+    ui/rendering/LabelTextureBuilder.h
+    ui/rendering/LabelTextureNode.h
+    utils/GraphHelper.h
+    utils/PropertySchemaHelper.h
+    utils/common.h
 )
 
-# set sources
-file(GLOB_RECURSE COMPONENT_MAP_EDITOR_SOURCES CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    *.cpp
+set(COMPONENT_MAP_EDITOR_SOURCES
+    adapters/AdapterCommon.cpp
+    adapters/ExecutionAdapter.cpp
+    adapters/GraphAdapter.cpp
+    adapters/PolicyAdapter.cpp
+    adapters/ValidationAdapter.cpp
+    commands/GraphCommand.cpp
+    commands/GraphCommands.cpp
+    commands/UndoStack.cpp
+    componentmapeditormanager.cpp
+    extensions/common.cpp
+    extensions/contracts/ExtensionApiVersion.cpp
+    extensions/contracts/ExtensionContractRegistry.cpp
+    extensions/contracts/ExtensionManifest.cpp
+    extensions/contracts/IValidationProvider.cpp
+    extensions/contracts/builders/ComponentTypeProviderBuilder.cpp
+    extensions/contracts/builders/ExecutionPlanBuilder.cpp
+    extensions/contracts/builders/ExtensionContractRegistryBuilder.cpp
+    extensions/contracts/builders/ExtensionPackBuilder.cpp
+    extensions/runtime/CompositeExecutionProvider.cpp
+    extensions/runtime/DynamicOptionsRegistry.cpp
+    extensions/runtime/ExtensionCompatibilityChecker.cpp
+    extensions/runtime/ExtensionManifestJson.cpp
+    extensions/runtime/ExtensionStartupLoader.cpp
+    extensions/runtime/GraphPropertySchemaProvider.cpp
+    extensions/runtime/PropertySchemaRegistry.cpp
+    extensions/runtime/PublicApiContractAdapter.cpp
+    extensions/runtime/SchemaFieldDefinition.cpp
+    extensions/runtime/SchemaOptionsSpec.cpp
+    extensions/runtime/SchemaSectionModel.cpp
+    extensions/runtime/TypeRegistry.cpp
+    extensions/runtime/rules/RuleBackedProviders.cpp
+    extensions/runtime/rules/RuleCompiler.cpp
+    extensions/runtime/rules/RuleHotReloadService.cpp
+    extensions/runtime/rules/RuleRuntimeEngine.cpp
+    extensions/runtime/rules/RuleRuntimeRegistry.cpp
+    extensions/runtime/templates/ComponentTypeTemplateAdapter.cpp
+    extensions/runtime/templates/ConnectionPolicyTemplateAdapter.cpp
+    extensions/runtime/templates/PropertySchemaTemplateAdapter.cpp
+    extensions/runtime/templates/TemplateProtoHelpers.cpp
+    extensions/runtime/templates/customizeexecutioncommon.cpp
+    extensions/sample_pack/SampleActionProvider.cpp
+    extensions/sample_pack/SampleComponentTypeProvider.cpp
+    extensions/sample_pack/SampleConnectionPolicyProvider.cpp
+    extensions/sample_pack/SampleExecutionSemanticsProvider.cpp
+    extensions/sample_pack/SampleExtensionPack.cpp
+    extensions/sample_pack/SamplePropertySchemaProvider.cpp
+    extensions/sample_pack/SampleValidationProvider.cpp
+    extensions/sample_pack/built_in_validation_providers/WorkflowConnectionValidationProvider.cpp
+    extensions/sample_pack/built_in_validation_providers/WorkflowStructureValidationProvider.cpp
+    extensions/sample_pack/built_in_validation_providers/WorkflowTopologyValidationProvider.cpp
+    extensions/sample_pack/built_in_validation_providers/WorkflowValidationProvider.cpp
+    models/ComponentModel.cpp
+    models/ConnectionModel.cpp
+    models/GraphModel.cpp
+    models/TimelineModel.cpp
+    routing/OrthogonalHeuristicStrategy.cpp
+    routing/RoutingEngine.cpp
+    routing/RoutingHelpers.cpp
+    services/ExecutionMigrationFlags.cpp
+    services/ExportService.cpp
+    services/GraphEditorController.cpp
+    services/GraphExecutionSandbox.cpp
+    services/GraphSchema.cpp
+    services/InvariantChecker.cpp
+    services/MemoryMonitor.cpp
+    services/PerformanceBudgets.cpp
+    services/TraversalEngine.cpp
+    services/ValidationService.cpp
+    services/execution_internal/ActorMailboxExecutionEngine.cpp
+    services/execution_internal/ProviderResultValidation.cpp
+    services/execution_internal/SequentialExecutionEngine.cpp
+    services/execution_internal/actor_mailbox/Actor.cpp
+    services/execution_internal/actor_mailbox/ActorRegistry.cpp
+    services/execution_internal/actor_mailbox/ActorScheduler.cpp
+    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.cpp
+    services/execution_internal/actor_mailbox/Mailbox.cpp
+    transport/GrpcTemplateDescriptorTransport.cpp
+    ui/GraphViewportItem.cpp
+    ui/rendering/ComponentRenderPass.cpp
+    ui/rendering/ConnectionRenderPass.cpp
+    ui/rendering/GridRenderPass.cpp
+    ui/rendering/LabelRenderPass.cpp
+    ui/rendering/LabelTextureBuilder.cpp
+    utils/GraphHelper.cpp
+    utils/PropertySchemaHelper.cpp
 )
 
-file(GLOB_RECURSE COMPONENT_MAP_EDITOR_QML RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    ui/*.qml
+set(COMPONENT_MAP_EDITOR_QML
+    ui/qml/ComponentItem.qml
+    ui/qml/Connection.qml
+    ui/qml/ExecutionPanel.qml
+    ui/qml/GraphCanvas.qml
+    ui/qml/GraphStatusBar.qml
+    ui/qml/InteractionStateManager.qml
+    ui/qml/Palette.qml
+    ui/qml/PerformanceTelemetry.qml
+    ui/qml/PropertyPanel.qml
+    ui/qml/SchemaFormRenderer.qml
+    ui/qml/components/ConnectionHandler.qml
+    ui/qml/components/GraphIssueOverlay.qml
+    ui/qml/components/ReadOnlyPlainText.qml
+    ui/qml/components/ResizableItem.qml
+    ui/qml/items/Arrow.qml
+    ui/qml/items/TimelineItem.qml
+    ui/qml/panels/TimelinePanel.qml
 )
 
-file(GLOB_RECURSE COMPONENT_MAP_EDITOR_JS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    ui/*.js
+set(COMPONENT_MAP_EDITOR_JS
 )
 
 qt_add_qml_module(${PROJECT_NAME}
@@ -48,7 +244,7 @@ target_link_libraries(${PROJECT_NAME}
         QmlFontAwesome::QmlFontAwesome
 )
 
-# Copy HEADER_FILES to folder include in build directory
+# Copy public headers to the generated include directory.
 foreach(HEADER_FILE ${COMPONENT_MAP_EDITOR_HEADERS})
     get_filename_component(HEADER_FILE_NAME ${HEADER_FILE} NAME)
     configure_file(

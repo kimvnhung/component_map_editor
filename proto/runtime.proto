@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package cme.runtime.v1;
+
+// Phase 1 runtime-process contract. The messages describe lifecycle and
+// identity only; event routing and streaming are added by the runtime phase.
+enum RuntimeMode {
+  RUNTIME_MODE_UNSPECIFIED = 0;
+  RUNTIME_MODE_BACKGROUND = 1;
+  RUNTIME_MODE_EMBEDDED = 2;
+}
+
+enum RuntimeStatus {
+  RUNTIME_STATUS_UNSPECIFIED = 0;
+  RUNTIME_STATUS_STOPPED = 1;
+  RUNTIME_STATUS_STARTING = 2;
+  RUNTIME_STATUS_RUNNING = 3;
+  RUNTIME_STATUS_STOPPING = 4;
+  RUNTIME_STATUS_FAILED = 5;
+}
+
+message RuntimeDescriptor {
+  string runtime_id = 1;
+  string protocol_version = 2;
+  string graph_version = 3;
+  RuntimeMode mode = 4;
+}
+
+message RuntimeStatusSnapshot {
+  RuntimeDescriptor runtime_descriptor = 1;
+  RuntimeStatus status = 2;
+  string message = 3;
+}
+
+message RuntimeControlRequest {
+  RuntimeDescriptor runtime_descriptor = 1;
+  string reason = 2;
+}
+
+message RuntimeControlResponse {
+  bool success = 1;
+  RuntimeStatusSnapshot snapshot = 2;
+  string error_code = 3;
+  string error_message = 4;
+}
