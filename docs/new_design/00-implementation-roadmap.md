@@ -39,7 +39,34 @@ Runtime phải chạy độc lập với UI, nhận deployment document, route e
 | 3 | Runtime core vertical slice | Bước 1, 2 |
 | 4 | SQLite persistence và recovery | Bước 3 |
 | 5 | gRPC server, process và smoke client | Bước 4 |
-| 6 | Hoàn thiện kiểm chứng và tài liệu chạy | Bước 5 |
+| 6 | Graph lồng nhau / composite component | Bước 5 |
+| 7 | Hoàn thiện kiểm chứng và tài liệu chạy | Bước 6 |
+
+Bước 6 là phần mở rộng sau MVP phẳng; không làm thay đổi contract execution đã được
+kiểm chứng ở các bước 1-5. Chi tiết nằm trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+
+Các bước 1-5 vẫn là baseline bắt buộc để cô lập lỗi giữa runtime cơ bản và execution
+phân cấp.
+
+### Bước 6: Graph lồng nhau / composite component
+
+- thêm graph registry và immutable version resolver;
+- thêm composite component reference, exposed port và hierarchical component identity;
+- validate dependency closure, missing version, exposed port, duplicate path và cycle;
+- compile graph tree thành execution plan có boundary adapter;
+- route event qua exposed ports, giữ state/mailbox riêng cho từng GraphInstance;
+- mở rộng persistence, status, history và gRPC query theo hierarchical path;
+- test hai instance của cùng một graph con không chia sẻ state, pin version và restart.
+
+### Hoàn thành khi
+
+- root graph deploy được cùng toàn bộ dependency closure;
+- graph con được instantiate như component bình thường;
+- event vào/ra boundary đúng port và lỗi boundary không bị mất;
+- graph con được dùng hai lần với state độc lập;
+- cycle và dependency thiếu bị từ chối trước khi tạo actor;
+- restart giữ đúng state theo graph instance và không đổi version đã pin.
+
 
 ## Bước 1: Runtime boundary và test harness
 
@@ -208,15 +235,61 @@ proto/runtime/status.proto
 - Activate khi runtime running bị từ chối.
 - Không cần authentication, TLS hoặc streaming để chạy MVP.
 
-## Bước 6: Hoàn thiện kiểm chứng
+## Bước 7: Hoàn thiện kiểm chứng
 
 ### Công việc
 
 - Viết hướng dẫn build và chạy process.
 - Viết hướng dẫn chạy smoke client.
-- Thêm test matrix cho valid, invalid, failure, rejection, restart và reset.
+- Thêm test matrix cho valid, invalid, failure, rejection, restart, reset và nested graph.
 - Đo thời gian xử lý và độ ổn định cơ bản của vertical slice.
 - Ghi lại kết luận: mô hình phù hợp, cần điều chỉnh hoặc không phù hợp.
+
+### Definition of done
+
+MVP phẳng và nested-graph extension được coi là hoàn thành khi một người khác có thể:
+
+1. build project;
+2. khởi động runtime process;
+3. deploy và activate root graph cùng dependency closure;
+4. start runtime;
+5. publish event bằng smoke client;
+6. query status, history và logs theo hierarchical component path;
+7. stop, restart process;
+8. xác nhận state của từng GraphInstance được phục hồi độc lập.
+
+## Tệp dự kiến triển khai
+
+- `component_map_runtime/include/component_map_runtime/`;
+- `component_map_runtime/src/`;
+- `component_map_runtime/main.cpp`;
+- `proto/runtime/`;
+- `tests/tst_RuntimeCoreMvp.cpp`;
+- `tests/tst_RuntimePersistenceMvp.cpp`;
+- `tests/tst_RuntimeGrpcMvp.cpp`;
+- `tests/tst_RuntimeNestedGraphPhase6.cpp`.
+
+Tên test có thể thay đổi theo cấu trúc hiện tại, nhưng mỗi bước phải có test tự động tương ứng.
+
+Chi tiết Phase 6 nằm trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+
+Ở mọi trường hợp, không tự động nâng version graph con khi root graph đang active; phải tạo
+deployment root version mới và activate atomic.
+
+## Tệp dự kiến triển khai (MVP phẳng)
+
+Các tệp Phase 1-5 giữ nguyên; Phase 6 bổ sung contract, resolver, execution plan,
+persistence migration và test nested graph theo tài liệu riêng.
+
+Tên test có thể thay đổi theo cấu trúc hiện tại, nhưng mỗi bước phải có test tự động tương ứng.
+
+## Bước 6: Graph lồng nhau / composite component
+
+Xem [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+
+## Bước 7: Hoàn thiện kiểm chứng
+
+Các công việc kiểm chứng và tài liệu chạy nằm ở phần Bước 7 bên trên.
 
 ### Definition of done
 
@@ -239,6 +312,6 @@ MVP được coi là hoàn thành khi một người khác có thể:
 - `proto/runtime/`;
 - `tests/tst_RuntimeCoreMvp.cpp`;
 - `tests/tst_RuntimePersistenceMvp.cpp`;
-- `tests/tst_RuntimeGrpcMvp.cpp`.
+- `tests/tst_RuntimeGrpcMvp.cpp`;
 
 Tên test có thể thay đổi theo cấu trúc hiện tại, nhưng mỗi bước phải có test tự động tương ứng.

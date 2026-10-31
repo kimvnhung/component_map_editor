@@ -10,7 +10,10 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2)
+find_package(SQLite3 REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
 
+# SQLite is used by the runtime persistence layer; the core remains UI-free.
 qt_standard_project_setup(REQUIRES 6.5)
 
 option(CME_BUILD_EXAMPLES "Build example applications" OFF)
@@ -39,6 +42,7 @@ endif()
 
 add_subdirectory(qml_fontawesome)
 add_subdirectory(proto)
+add_subdirectory(proto/runtime)
 add_subdirectory(base_log)
 add_subdirectory(component_map_runtime)
 add_subdirectory(component_map_editor)

@@ -1,0 +1,21 @@
+syntax = "proto3";
+package cme.runtime.v1;
+
+import "deployment.proto";
+import "runtime.proto";
+
+message EmptyRequest {}
+message EmptyResponse { bool success = 1; string error_code = 2; string error_message = 3; }
+message DeployGraphRequest { DeploymentGraph graph = 1; }
+message ActivateGraphRequest { string graph_version = 1; }
+message ControlResponse { bool success = 1; string error_code = 2; string error_message = 3; RuntimeStatus status = 4; }
+message RuntimeStatusRequest {}
+message RuntimeStatusResponse { bool success = 1; RuntimeStatus status = 2; string runtime_id = 3; string graph_version = 4; string error_code = 5; string error_message = 6; }
+
+service RuntimeControl {
+  rpc DeployGraph(DeployGraphRequest) returns (ControlResponse);
+  rpc ActivateGraph(ActivateGraphRequest) returns (ControlResponse);
+  rpc StartRuntime(EmptyRequest) returns (ControlResponse);
+  rpc StopRuntime(EmptyRequest) returns (ControlResponse);
+  rpc GetRuntimeStatus(RuntimeStatusRequest) returns (RuntimeStatusResponse);
+}

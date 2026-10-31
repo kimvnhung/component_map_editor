@@ -14,6 +14,8 @@
 namespace cme::runtime
 {
 
+class RuntimePersistence;
+
 enum class ActorStatus
 {
     Idle,
@@ -82,7 +84,8 @@ public:
     RuntimeEngine(RuntimeService *runtimeService,
                   DeploymentManager *deploymentManager,
                   const RuntimeHandlerRegistry *handlerRegistry,
-                  qsizetype mailboxCapacity = 64);
+                  qsizetype mailboxCapacity = 64,
+                  RuntimePersistence *persistence = nullptr);
 
     bool start(QString *error = nullptr);
     bool stop(QString *error = nullptr);
@@ -99,6 +102,7 @@ public:
     qsizetype completedCount() const;
     qsizetype rejectedCount() const;
     bool isRunning() const;
+    bool recover(QString *error = nullptr);
 
 private:
     struct Actor
@@ -127,6 +131,7 @@ private:
     RuntimeService *m_runtimeService = nullptr;
     DeploymentManager *m_deploymentManager = nullptr;
     const RuntimeHandlerRegistry *m_handlerRegistry = nullptr;
+    RuntimePersistence *m_persistence = nullptr;
     qsizetype m_mailboxCapacity;
     QHash<QString, Actor> m_actors;
     QQueue<QString> m_readyActors;

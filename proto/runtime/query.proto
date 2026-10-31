@@ -1,0 +1,18 @@
+syntax = "proto3";
+package cme.runtime.v1;
+
+message QueryRequest { int32 limit = 1; }
+message EventHistoryItem { string event_id = 1; string status = 2; string failure_code = 3; string failure_message = 4; int64 created_at = 5; }
+message RuntimeLogItem { string level = 1; string code = 2; string message = 3; int64 created_at = 4; }
+message RejectionItem { string event_id = 1; string idempotency_key = 2; string target_component_id = 3; string route_id = 4; string reason_code = 5; int64 mailbox_depth = 6; int64 created_at = 7; }
+message ComponentStatusRequest { string component_id = 1; }
+message ComponentStatusResponse { bool found = 1; string component_id = 2; string component_type = 3; string status = 4; int64 mailbox_depth = 5; bytes state = 6; }
+message EventHistoryResponse { repeated EventHistoryItem items = 1; }
+message RuntimeLogsResponse { repeated RuntimeLogItem items = 1; }
+message RejectionsResponse { repeated RejectionItem items = 1; }
+service RuntimeQuery {
+  rpc GetComponentStatus(ComponentStatusRequest) returns (ComponentStatusResponse);
+  rpc ListEventHistory(QueryRequest) returns (EventHistoryResponse);
+  rpc ListRuntimeLogs(QueryRequest) returns (RuntimeLogsResponse);
+  rpc ListRejections(QueryRequest) returns (RejectionsResponse);
+}

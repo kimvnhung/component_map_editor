@@ -11,6 +11,8 @@ set(COMPONENT_MAP_RUNTIME_HEADERS
     include/component_map_runtime/DeploymentValidator.h
     include/component_map_runtime/DeploymentManager.h
     include/component_map_runtime/RuntimeCore.h
+    include/component_map_runtime/RuntimePersistence.h
+    include/component_map_runtime/RuntimeGrpcServer.h
 )
 
 set(COMPONENT_MAP_RUNTIME_SOURCES
@@ -19,6 +21,8 @@ set(COMPONENT_MAP_RUNTIME_SOURCES
     src/DeploymentValidator.cpp
     src/DeploymentManager.cpp
     src/RuntimeCore.cpp
+    src/RuntimePersistence.cpp
+    src/RuntimeGrpcServer.cpp
 )
 
 add_library(component_map_runtime STATIC
@@ -31,6 +35,9 @@ target_link_libraries(component_map_runtime
         Qt6::Core
         cme_proto
         base_log
+        SQLite::SQLite3
+        cme_runtime_proto
+        gRPC::grpc++
 )
 
 target_include_directories(component_map_runtime

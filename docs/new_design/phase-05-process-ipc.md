@@ -10,103 +10,127 @@
 - mặc định bind `127.0.0.1`;
 - không authentication hoặc TLS trong MVP;
 - remote bind không thuộc đường chạy mặc định;
-- timeout và message size limit cơ bản vẫn cần có.
+- process nhận address, database path và runtime ID qua command-line options.
 
-Runtime dùng plaintext cho bản MVP runnable.
-
-} assistant to=functions.Edit  (commentary  code)  (json) {
 ## Proto layout
 
-```text
-proto/runtime/
-  common.proto
-  deployment.proto
-  control.proto
-  event.proto
-  status.proto
-```
+Các contract Phase 5 nằm trong `proto/runtime/`:
+
+- `control.proto` cho deployment, activation, start, stop và status;
+- `event.proto` cho publish event;
+- `query.proto` cho component status, history, logs và rejection query.
 
 `execution.proto` tiếp tục là compatibility contract.
 
 ## API MVP
 
-### Deployment
+### Deployment và control
 
 - `DeployGraph`;
-- `ActivateGraph`.
-
-`ActivateGraph` chỉ thành công khi runtime stopped. Activate graph mới reset execution state và không chuyển event pending của graph cũ.
-
-### Control
-
+- `ActivateGraph`;
 - `StartRuntime`;
-- `StopRuntime`.
+- `StopRuntime`;
+- `GetRuntimeStatus`.
 
-
+`ActivateGraph` chỉ thành công khi runtime stopped. Runtime không tự retry event và không có dead-letter queue.
 
 ### Event
 
 - `PublishEvent`.
 
-Response phải phân biệt accepted, duplicate, validation failure, handler/delivery failure và mailbox-full rejection.
+Response phân biệt accepted, duplicate, validation failure, handler hoặc delivery failure và mailbox-full rejection qua machine-readable error code.
 
 ### Query bằng polling
 
-- `GetRuntimeStatus`;
 - `GetComponentStatus`;
 - `ListEventHistory`;
-- `ListRuntimeLogs`.
+- `ListRuntimeLogs`;
+- `ListRejections`.
 
+## Process
 
-## Client behavior
+Build và chạy process:
 
-- Client tạo idempotency key.
-- Client giữ key khi resubmit cùng request.
-- Cùng key và fingerprint giống nhau trả kết quả đã biết.
-- Cùng key nhưng fingerprint khác trả conflict.
-- Runtime không automatic retry.
-- Client tự quyết định có gọi lại `PublishEvent` hay không.
+```bash
+cmake --build build/phase1_runtime --target component_map_runtime_process
+build/phase1_runtime/component_map_runtime/component_map_runtime_process \
+  --address 127.0.0.1:50051 \
+  --database component_map_runtime.sqlite \
+  --runtime-id component-map-runtime
+```
 
-## Failure reporting
+Process không link QML hoặc editor target. Mặc định server dùng plaintext gRPC trên localhost.
 
-Mỗi failure phải:
+## Test
 
-- trả machine-readable code và message;
-- ghi structured log;
-- ghi event history hoặc rejection record;
-- không đi vào retry loop hoặc dead-letter queue.
+Smoke test gọi generated gRPC client stub qua TCP loopback:
 
-## Công việc
+```bash
+cmake --build build/phase1_runtime --target tst_RuntimeProcessPhase5
+ctest --test-dir build/phase1_runtime \
+  -R '^tst_Runtime(ProcessPhase5|PersistencePhase4|CorePhase3|DeploymentPhase2|ServicePhase1)$' \
+  --output-on-failure
+```
 
-1. Tạo các proto file trong `proto/runtime/`.
-2. Generate C++ target dùng chung cho server và test client.
-3. Implement gRPC server adapter gọi runtime core.
-4. Implement process config gồm TCP address, port, database path và runtime id.
-5. Implement health/readiness tối thiểu nếu cần cho smoke test.
-6. Implement graceful shutdown.
-7. Viết process-level smoke test.
-8. Viết polling client cho toàn bộ API MVP.
+Test kiểm tra deploy graph, activate, start, publish event, query history và stop qua gRPC.
 
-## Test matrix
+## Trạng thái triển khai
 
-- process chạy không cần editor;
-- deploy graph hợp lệ và không hợp lệ;
-- activate khi stopped;
-- activate khi running bị từ chối;
-- start/stop qua client;
-- publish event và query history;
-- handler failure query được;
-- mailbox-full rejection query được;
-- idempotency duplicate và conflict;
-- restart process đọc lại state;
-- plaintext TCP disconnect/reconnect;
-- protocol version không tương thích.
+Phase 5 đã có process độc lập, generated gRPC C++ target, control service, event service, polling history và runtime log query, cùng graceful shutdown qua `QCoreApplication`.
 
-## Exit criteria
+Các phần còn lại cần mở rộng ở phase sau gồm protocol version negotiation, timeout và message-size policy chặt hơn, restart process end-to-end, và query rejection đầy đủ.
 
-- Process chạy độc lập với UI và QML.
-- Client hoàn tất vertical slice Producer -> Processor -> Sink qua gRPC.
-- Client query được status, history, logs và rejection.
-- Restart process giữ được state cơ bản.
-- Không có streaming, authentication, TLS, retry scheduler hoặc dead-letter dependency bắt buộc.
-- Có tài liệu lệnh chạy smoke test.
+## Mở rộng API cho composite graph
+
+Phase F giữ nguyên API root nhưng mở rộng deployment document để mang `GraphDefinition`
+và dependency closure đã pin. Server phải validate/compile toàn bộ graph tree trước khi
+`ActivateGraph`; không resolve graph con theo `latest` trong lúc chạy.
+
+### Publish và query
+
+`PublishEvent` có thể nhận target là qualified path tới exposed port, ví dụ:
+
+```text
+root/checkout/in
+```
+
+Client không được publish trực tiếp tới `root/checkout/fraud_check/internal_score` nếu
+port đó không exposed. Event response và history phải giữ `root_event_id`, `causation_id`,
+execution-plan hash và qualified target để truy vết xuyên boundary.
+
+Các query mở rộng:
+
+- `GetComponentStatus(component_path, include_descendants)`;
+- `ListEventHistory(root_event_id, component_path, graph_version)`;
+- `ListRuntimeLogs(component_path)`;
+- `ListRejections(component_path)`.
+
+Status composite là aggregate của descendants; status leaf vẫn giữ semantics Phase 3.
+Client cũ không hiểu hierarchy vẫn dùng được graph phẳng qua root-level instance id.
+
+### Compatibility
+
+`execution.proto` và các field protobuf hiện tại không bị đổi số field hoặc enum value.
+Graph phẳng được biểu diễn như root scope không có composite reference. Adapter từ contract
+cũ sang deployment graph mới phải tạo qualified path deterministic nhưng giữ output/error
+semantics cũ cho client phẳng.
+
+### Test Phase F
+
+- deploy dependency closure thiếu definition/version bị reject;
+- activate pin đúng graph con dù registry có version mới;
+- publish tới exposed input và query output/history theo path;
+- publish trực tiếp tới internal port bị reject;
+- query subtree status và rejection không mất graph scope;
+- client cũ vẫn deploy/publish graph phẳng.
+
+Chi tiết model và execution-plan compiler nằm trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+Mọi thay đổi graph con khi runtime active đều phải đi qua root deployment version mới và activation
+atomic khi runtime stopped.
+
+## Exit criteria bổ sung cho Phase F
+
+- gRPC có thể deploy root cùng dependency closure;
+- boundary port được bảo vệ bởi validation;
+- history/log/rejection truy vấn được theo qualified path;
+- compatibility flat client vẫn hoạt động.

@@ -91,3 +91,72 @@ Event history và runtime logs giữ lại trong một ngày để kiểm tra l�
 - Reset graph không migrate state.
 - Không có retry scheduler hoặc dead-letter dependency.
 - Database dùng riêng cho từng runtime instance.
+
+## Trạng thái triển khai
+
+Phase 4 hiện có:
+
+- `RuntimePersistence` sở hữu một SQLite connection cho từng runtime instance;
+- SQLite WAL, foreign keys và migration schema tự động;
+- các bảng `runtime_instances`, `graph_versions`, `component_state`, `event_inbox`, `event_history`, `event_rejections` và `runtime_logs`;
+- lưu opaque component state và khôi phục state khi mở lại database;
+- lưu accepted event, completion history, rejection record và structured log;
+- reset execution state bằng cách xóa component state và pending inbox, đồng thời giữ history và logs;
+- test restart, state recovery, history, rejection, log và reset.
+
+Chạy kiểm thử:
+
+```bash
+cmake --build build/phase1_runtime --target tst_RuntimePersistencePhase4
+ctest --test-dir build/phase1_runtime \
+  -R '^tst_Runtime(PersistencePhase4|CorePhase3|DeploymentPhase2|ServicePhase1)$' --output-on-failure
+```
+
+Phase 4 chưa thêm retry scheduler, dead-letter queue hoặc IPC. Event accepted chưa hoàn tất vẫn được lưu trong `event_inbox` để các phase sau quyết định cơ chế recovery dispatch.
+
+Retention policy một ngày và audit log trước hoặc sau reset sẽ được hoàn thiện cùng policy service ở phase tiếp theo.
+
+## Mở rộng sau Phase 4: persistence cho graph lồng nhau
+
+Persistence phải định danh execution instance bằng qualified path, không chỉ bằng local
+`component_id`. Khi cùng một `GraphDefinition` được instantiate nhiều lần, các key sau
+phải khác nhau:
+
+```text
+root/checkout/fraud_check/score
+root/refund/fraud_check/score
+```
+
+Root deployment lưu dependency manifest và execution-plan hash. Manifest phải chứa chính
+xác `graph_id + graph_version` của mọi graph definition đã resolve; recovery không được
+resolve lại `latest` từ registry.
+
+Các cột/bảng cần mở rộng ở Phase F:
+
+- `graph_versions`: root graph id/version, dependency manifest, execution-plan hash;
+- `component_state`: `qualified_instance_path`, graph scope, definition id/version;
+- `event_inbox`, `event_history`, `event_rejections`: source/target path, root event id,
+  causation id, graph scope, hop count và plan version;
+- `runtime_logs`: qualified component path và boundary/connection id khi có.
+
+Recovery dựng execution plan từ snapshot trước rồi mới restore state. Activate root graph mới
+reset state, inbox và pending work của toàn bộ subtree; history/log vẫn giữ theo retention.
+Không migrate state giữa những root version khác nhau trong MVP.
+
+### Composite lifecycle
+
+Composite không có business handler riêng. Khi root graph start, runtime tạo các scope phân cấp
+rồi start leaf actor registry. Khi stop, runtime chặn ingress ở root và các boundary trước,
+ap dụng cùng một drain/reset policy cho toàn bộ subtree, sau đó flush state/history/log.
+Không hỗ trợ hot-swap graph con khi runtime đang chạy.
+
+Chi tiết test và schema migration nằm trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+Chỉ commit active manifest sau khi dependency closure và execution plan đã validate thành công,
+để không tạo runtime active nửa chừng.
+
+## Exit criteria bổ sung cho Phase F
+
+- restart phục hồi đúng state của từng GraphInstance;
+- pending event gắn với execution-plan version cũ không được route sang plan mới;
+- history/rejection/log query được theo qualified path;
+- activation atomic cho root graph và dependency snapshot.

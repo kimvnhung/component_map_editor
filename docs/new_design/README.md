@@ -46,9 +46,53 @@ Runtime không include QML. UI hoặc test client chỉ gọi gRPC, không sở 
 - runtime process `component_map_runtime_process`;
 - lifecycle `stopped`, `starting`, `running`, `stopping`, `failed`;
 - một graph version active;
+- graph có thể được dùng như một composite component trong graph khác;
+- graph reference được pin theo version và deploy theo dependency closure;
 - activate graph chỉ khi runtime stopped;
 - activate graph mới reset execution state;
 - không chuyển event pending sang graph mới.
+
+### Graph lồng nhau / composite component
+
+Graph không chỉ là deployment root. Một graph version cũng có thể được đăng ký như
+một `component_type` dạng composite, sau đó được instantiate trong graph khác. Đây là
+quan hệ **containment**, không phải copy/paste các node vào editor:
+
+```text
+OrderGraph v7
+┌────────────────────────────────────────────┐
+│ input -> [fraud_check: FraudGraph v3] -> output │
+│              └── score -> decision          │
+└────────────────────────────────────────────┘
+```
+
+Composite có contract port rõ ràng. Chỉ các port được khai báo là `exposed` mới nhìn
+thấy ở graph cha; route nội bộ không được nối trực tiếp từ graph ngoài. Runtime pin
+`graph_id + graph_version` của mỗi composite khi deploy, validate toàn bộ dependency
+closure rồi biên dịch thành execution plan phân cấp. Vì vậy cùng một graph có thể được
+instantiate nhiều lần với state, mailbox và metrics độc lập.
+
+MVP mở rộng theo hướng:
+
+- graph definition immutable, có `graph_id`, `graph_version` và danh sách exposed ports;
+- component instance có thể là native handler hoặc composite graph reference;
+- identity runtime là hierarchical path (`root/checkout/fraud_check/score`), còn
+  `instance_id` chỉ cần unique trong scope chứa nó;
+- route băng qua composite boundary chỉ đi qua cặp exposed input/output port;
+- không cho cycle trong dependency graph của composite definitions; cycle dữ liệu trong
+  một graph chỉ được hỗ trợ nếu sau này có policy/bounded-loop rõ ràng;
+- deploy/activate là atomic cho root graph và toàn bộ dependency versions, không tự động
+  lấy version mới của graph con.
+
+Thiết kế chi tiết và migration được ghi trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+Nếu triển khai ngay sau Phase 5, đây là Phase 6 của roadmap; các phase 1-5 vẫn giữ
+vertical slice phẳng để làm baseline.
+
+### Phân biệt definition và instance
+
+`GraphDefinition` là immutable/versioned contract được registry quản lý. `GraphInstance`
+là một lần dùng definition trong graph cha, có `instance_id`, properties và state scope
+riêng. Không lưu một graph mutable duy nhất rồi dùng chung state giữa các nơi.
 
 ### Graph
 

@@ -1,4 +1,5 @@
 #include "component_map_runtime/RuntimeCore.h"
+#include "component_map_runtime/RuntimePersistence.h"
 
 #include <QCryptographicHash>
 #include <QDataStream>
@@ -95,11 +96,13 @@ bool ComponentStateStore::contains(const QString &instanceId) const
 RuntimeEngine::RuntimeEngine(RuntimeService *runtimeService,
                              DeploymentManager *deploymentManager,
                              const RuntimeHandlerRegistry *handlerRegistry,
-                             qsizetype mailboxCapacity)
+                             qsizetype mailboxCapacity,
+                             RuntimePersistence *persistence)
     : m_runtimeService(runtimeService)
     , m_deploymentManager(deploymentManager)
     , m_handlerRegistry(handlerRegistry)
     , m_mailboxCapacity(mailboxCapacity)
+    , m_persistence(persistence)
 {
 }
 
@@ -138,6 +141,15 @@ bool RuntimeEngine::start(QString *error)
         m_runtimeService->stop();
         return false;
     }
+    if (m_persistence)
+    {
+        if (!m_persistence->saveGraph(m_deploymentManager->activeGraph(), error)
+            || !recover(error))
+        {
+            m_runtimeService->stop();
+            return false;
+        }
+    }
     m_running = true;
     if (error)
     {
@@ -161,6 +173,14 @@ bool RuntimeEngine::stop(QString *error)
         return true;
     }
     m_running = false;
+    if (m_persistence)
+    {
+        for (auto it = m_actors.cbegin(); it != m_actors.cend(); ++it)
+        {
+            m_persistence->saveComponentState(it.key(), it->componentType,
+                                              m_stateStore.value(it.key()), 1);
+        }
+    }
     m_readyActors.clear();
     for (auto it = m_actors.begin(); it != m_actors.end(); ++it)
     {
@@ -222,6 +242,16 @@ bool RuntimeEngine::publish(const RuntimeEvent &event, RuntimeFailure *failure)
 
     ++m_dispatchedCount;
     const bool accepted = enqueueToActor(event, event.targetComponentId, QString(), failure);
+    if (accepted && m_persistence)
+    {
+        QString persistenceError;
+        if (!m_persistence->recordAcceptedEvent(event, &persistenceError))
+        {
+            setFailure(failure, QStringLiteral("PERSISTENCE_FAILURE"), persistenceError,
+                       event, event.targetComponentId);
+            return false;
+        }
+    }
     if (!accepted && !event.idempotencyKey.isEmpty())
     {
         auto it = m_idempotency.find(event.idempotencyKey);
@@ -265,6 +295,22 @@ qsizetype RuntimeEngine::mailboxDepth(const QString &instanceId) const
 {
     const auto it = m_actors.constFind(instanceId);
     return it == m_actors.cend() ? 0 : it->mailbox.size();
+}
+
+bool RuntimeEngine::recover(QString *error)
+{
+    if (!m_persistence || !m_persistence->isOpen())
+    {
+        if (error) *error = QStringLiteral("Persistence is not open.");
+        return false;
+    }
+    const auto states = m_persistence->loadComponentStates(error);
+    if (error && !error->isEmpty()) return false;
+    for (auto it = states.cbegin(); it != states.cend(); ++it)
+    {
+        if (m_actors.contains(it.key())) m_stateStore.setValue(it.key(), it.value());
+    }
+    return true;
 }
 
 QByteArray RuntimeEngine::componentState(const QString &instanceId) const
@@ -343,7 +389,14 @@ void RuntimeEngine::recordRejection(const RuntimeEvent &event,
                                     const QString &reasonCode,
                                     qsizetype depth)
 {
-    m_rejections.append({event.eventId, event.idempotencyKey, targetId, routeId, reasonCode, depth});
+    const RejectionRecord record{event.eventId, event.idempotencyKey, targetId, routeId, reasonCode, depth};
+    m_rejections.append(record);
+    if (m_persistence)
+    {
+        m_persistence->recordRejection(record);
+        m_persistence->recordLog(QStringLiteral("warning"), reasonCode,
+                                 QStringLiteral("Runtime event rejected."));
+    }
     ++m_rejectedCount;
 }
 
@@ -386,6 +439,10 @@ bool RuntimeEngine::dispatchFromActor(const QString &instanceId)
             failure.componentId = instanceId;
         }
         recordFailure(failure, QString());
+        if (m_persistence)
+        {
+            m_persistence->recordEventCompletion(event.eventId, false, failure);
+        }
         if (!event.idempotencyKey.isEmpty())
         {
             auto idempotencyIt = m_idempotency.find(event.idempotencyKey);
@@ -428,6 +485,10 @@ bool RuntimeEngine::dispatchFromActor(const QString &instanceId)
         m_readyActors.enqueue(instanceId);
     }
     ++m_completedCount;
+    if (m_persistence)
+    {
+        m_persistence->recordEventCompletion(event.eventId, true);
+    }
     if (!event.idempotencyKey.isEmpty())
     {
         auto idempotencyIt = m_idempotency.find(event.idempotencyKey);

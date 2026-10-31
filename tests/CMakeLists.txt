@@ -790,3 +790,57 @@ add_test(
 )
 
 # Phase 3 is synchronous and transport-neutral. Persistence and IPC remain later phases.
+
+# ── Phase 4: SQLite persistence and recovery ─────────────────────────────────
+qt_add_executable(tst_RuntimePersistencePhase4
+    tst_RuntimePersistencePhase4.cpp
+)
+
+target_link_libraries(tst_RuntimePersistencePhase4
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+        cme_proto
+)
+
+target_include_directories(tst_RuntimePersistencePhase4
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimePersistencePhase4
+    COMMAND tst_RuntimePersistencePhase4
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 4 intentionally has no retry scheduler or dead-letter queue.
+
+# ── Phase 5: gRPC process boundary ───────────────────────────────────────────
+qt_add_executable(tst_RuntimeProcessPhase5
+    tst_RuntimeProcessPhase5.cpp
+)
+
+target_link_libraries(tst_RuntimeProcessPhase5
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+        cme_runtime_proto
+        gRPC::grpc++
+)
+
+target_include_directories(tst_RuntimeProcessPhase5
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+        ${CMAKE_BINARY_DIR}/proto/runtime
+)
+
+add_test(
+    NAME tst_RuntimeProcessPhase5
+    COMMAND tst_RuntimeProcessPhase5
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 5 intentionally uses localhost plaintext gRPC without streaming or TLS.

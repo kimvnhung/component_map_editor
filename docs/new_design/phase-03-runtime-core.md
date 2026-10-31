@@ -136,3 +136,52 @@ Mọi event được xử lý tuần tự trong `processAll()`. Duplicate idempo
 Test Phase 3 không link QML hoặc editor target.
 
 Runtime core hiện dùng scheduler synchronous deterministic cho vertical slice trong test process. Actor boundary vẫn tách riêng để các phase sau có thể thay scheduler mà không đổi handler API.
+
+## Mở rộng sau Phase 3: execution plan cho composite graph
+
+Runtime không nên xử lý composite graph như một handler lá đơn. Deployment compiler sẽ
+resolve graph hierarchy trước khi tạo actor:
+
+```text
+DeploymentGraph
+  -> resolve graph definitions và exposed ports
+  -> validate dependency/cycle/expansion limits
+  -> compile execution plan
+  -> create leaf actors và boundary routes
+```
+
+Execution plan giữ source path của node để trace, nhưng actor vẫn chỉ được tạo cho leaf
+component. Composite instance là một execution scope/container; nó không có business
+mailbox thứ hai. Event đi qua composite bằng boundary route từ exposed port tới endpoint
+nội bộ và ngược lại, tránh việc một event bị tính backpressure nhiều lần.
+
+Các invariant cần giữ:
+
+- leaf actor có mailbox, state và `max_concurrency = 1` như graph phẳng;
+- cùng graph definition được dùng nhiều lần nhưng mỗi qualified path có actor/state riêng;
+- route ngoài chỉ trỏ tới exposed port của composite;
+- `root_event_id`, `causation_id`, idempotency key và failure path được giữ qua boundary;
+- structural dependency cycle bị reject lúc compile, còn event-flow cycle chỉ được hỗ trợ
+  khi có hop limit rõ ràng.
+
+Phase 3 hiện chưa triển khai compiler này; đây là contract runtime cho Phase F.
+
+## Status và failure theo hierarchy
+
+Failure phải giữ `qualified_component_path` và `graph_scope` thay vì chỉ trả local
+`instance_id`. Status của composite là aggregate status của descendants; status leaf vẫn
+là actor status hiện có. Không khóa toàn bộ composite khi một child xử lý, để tránh làm
+mất concurrency giữa các leaf actor và tránh deadlock trên route cycle.
+
+Mở rộng này không thêm retry, dead-letter hoặc dynamic graph update.
+
+## Exit criteria bổ sung cho Phase F
+
+- execution plan deterministic với cùng root manifest;
+- boundary route không làm mất event metadata;
+- failure tại child truy vấn được bằng qualified path;
+- hai composite instance không dùng chung state hoặc mailbox.
+
+Chi tiết model, persistence và API nằm trong [phase-06-nested-graphs.md](phase-06-nested-graphs.md).
+Nếu triển khai graph lồng nhau, phải hoàn thành validation và execution-plan compilation trước
+khi tạo bất kỳ actor nào.
