@@ -15,6 +15,7 @@ ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
     , m_propertySchemaRegistry(new PropertySchemaRegistry())
     , m_dynamicOptionsRegistry(new DynamicOptionsRegistry())
     , m_executionSandbox(new GraphExecutionSandbox())
+    , m_runtimeClient(std::make_unique<cme::editor::RuntimeClient>())
 {
 }
 
@@ -28,6 +29,7 @@ ComponentMapEditorManager::~ComponentMapEditorManager()
     delete m_propertySchemaRegistry;
     delete m_dynamicOptionsRegistry;
     delete m_executionSandbox;
+    m_runtimeClient.reset();
 
     m_extensionStartupLoader = nullptr;
     m_componentTypeRegistry = nullptr;
@@ -44,6 +46,90 @@ void ComponentMapEditorManager::reloadComponentTypes()
     }
 
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
+}
+
+QString ComponentMapEditorManager::runtimeAddress() const
+{
+    return m_runtimeClient ? m_runtimeClient->address() : QString();
+}
+
+void ComponentMapEditorManager::setRuntimeAddress(const QString &address)
+{
+    if (!m_runtimeClient || address == m_runtimeClient->address())
+        return;
+
+    m_runtimeClient->setAddress(address);
+    m_runtimeStatus = QStringLiteral("unknown");
+    m_runtimeActiveGraphVersion.clear();
+    m_runtimeLastError.clear();
+
+    emit runtimeAddressChanged();
+    emit runtimeStatusChanged();
+}
+
+bool ComponentMapEditorManager::refreshRuntimeStatus()
+{
+    if (!m_runtimeClient)
+        return false;
+
+    if (m_runtimeClient->address().isEmpty())
+    {
+        m_runtimeStatus = QStringLiteral("unconfigured");
+        m_runtimeActiveGraphVersion.clear();
+        m_runtimeLastError = QStringLiteral("Runtime address is not configured.");
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    cme::runtime::v1::RuntimeStatusResponse response;
+    QString error;
+    if (!m_runtimeClient->runtimeStatus(&response, &error))
+    {
+        m_runtimeStatus = QStringLiteral("unreachable");
+        m_runtimeActiveGraphVersion.clear();
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    m_runtimeStatus = QString::fromStdString(
+        cme::runtime::v1::RuntimeStatus_Name(response.status())).toLower();
+    m_runtimeActiveGraphVersion = QString::fromStdString(response.graph_version());
+    m_runtimeLastError.clear();
+    emit runtimeStatusChanged();
+    return true;
+}
+
+bool ComponentMapEditorManager::startRuntime()
+{
+    if (!m_runtimeClient)
+        return false;
+
+    QString error;
+    if (!m_runtimeClient->startRuntime(nullptr, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    return refreshRuntimeStatus();
+}
+
+bool ComponentMapEditorManager::stopRuntime()
+{
+    if (!m_runtimeClient)
+        return false;
+
+    QString error;
+    if (!m_runtimeClient->stopRuntime(nullptr, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    return refreshRuntimeStatus();
 }
 
 void ComponentMapEditorManager::setExtensionContractRegistry(std::unique_ptr<ExtensionContractRegistry> registry)

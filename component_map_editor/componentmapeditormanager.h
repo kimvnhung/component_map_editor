@@ -10,6 +10,7 @@
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "services/ValidationService.h"
 #include "services/GraphExecutionSandbox.h"
+#include "services/RuntimeClient.h"
 #include <QObject>
 #include <QString>
 
@@ -24,6 +25,10 @@ class ComponentMapEditorManager : public QObject
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry READ propertySchemaRegistry CONSTANT)
     Q_PROPERTY(DynamicOptionsRegistry* dynamicOptionsRegistry READ dynamicOptionsRegistry CONSTANT)
     Q_PROPERTY(GraphExecutionSandbox* executionSandbox READ executionSandbox CONSTANT)
+    Q_PROPERTY(QString runtimeAddress READ runtimeAddress WRITE setRuntimeAddress NOTIFY runtimeAddressChanged)
+    Q_PROPERTY(QString runtimeStatus READ runtimeStatus NOTIFY runtimeStatusChanged)
+    Q_PROPERTY(QString runtimeActiveGraphVersion READ runtimeActiveGraphVersion NOTIFY runtimeStatusChanged)
+    Q_PROPERTY(QString runtimeLastError READ runtimeLastError NOTIFY runtimeStatusChanged)
 public:
     ComponentMapEditorManager(QObject *parent = nullptr);
 
@@ -33,9 +38,20 @@ public:
     PropertySchemaRegistry *propertySchemaRegistry() const { return m_propertySchemaRegistry; }
     DynamicOptionsRegistry *dynamicOptionsRegistry() const { return m_dynamicOptionsRegistry; }
     GraphExecutionSandbox *executionSandbox() const { return m_executionSandbox; }
+
+    QString runtimeAddress() const;
+    void setRuntimeAddress(const QString &address);
+    cme::editor::RuntimeClient *runtimeClient() const { return m_runtimeClient.get(); }
+
+    QString runtimeStatus() const { return m_runtimeStatus; }
+    QString runtimeActiveGraphVersion() const { return m_runtimeActiveGraphVersion; }
+    QString runtimeLastError() const { return m_runtimeLastError; }
 public:
     Q_INVOKABLE void reloadComponentTypes();
 
+    Q_INVOKABLE bool refreshRuntimeStatus();
+    Q_INVOKABLE bool startRuntime();
+    Q_INVOKABLE bool stopRuntime();
 
     void setExtensionContractRegistry(std::unique_ptr<ExtensionContractRegistry> registry);
     void setRuleFilePath(const QString &filePath);
@@ -46,6 +62,10 @@ public:
      */
     void registerPackFactoryEntry(PackFactoryEntry entry);
 
+signals:
+    void runtimeAddressChanged();
+    void runtimeStatusChanged();
+
 private:
     std::unique_ptr<ExtensionContractRegistry> m_extensionContracts{nullptr};
 
@@ -55,6 +75,11 @@ private:
     PropertySchemaRegistry *m_propertySchemaRegistry = nullptr;
     DynamicOptionsRegistry *m_dynamicOptionsRegistry = nullptr;
     GraphExecutionSandbox *m_executionSandbox = nullptr;
+    std::unique_ptr<cme::editor::RuntimeClient> m_runtimeClient{};
+
+    QString m_runtimeStatus{QStringLiteral("unknown")};
+    QString m_runtimeActiveGraphVersion{};
+    QString m_runtimeLastError{};
 
     QString m_manifestDir;
     QString m_ruleFilePath;

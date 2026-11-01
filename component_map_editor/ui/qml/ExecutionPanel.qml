@@ -5,22 +5,21 @@ import ComponentMapEditor
 
 ColumnLayout {
     id: root
-    property var executionSandbox: editorManager.executionSandbox
     property string selectedComponentId: ""
 
     Layout.fillWidth: true
     spacing: 10
     Layout.margins: 10
 
-    function prettyJson(value) {
-        if (value === undefined || value === null)
-            return "{}";
-        return JSON.stringify(value, null, 2);
+    function runtimeLabel() {
+        if (!editorManager || !editorManager.runtimeAddress || editorManager.runtimeAddress.length === 0)
+            return "not configured";
+        return editorManager.runtimeAddress;
     }
 
     Label {
         Layout.fillWidth: true
-        text: "Graph Execution"
+        text: "Runtime Execution"
         font.bold: true
         font.pixelSize: 13
         horizontalAlignment: Text.AlignHCenter
@@ -31,7 +30,7 @@ ColumnLayout {
         Layout.fillWidth: true
         wrapMode: Text.WordWrap
         color: "#666"
-        text: "Step through the graph using the loaded execution semantics.\nStart → Step nodes one by one, or Run to complete all at once."
+        text: "Execution is owned by the runtime process. Use these controls to inspect and control that runtime."
     }
 
     RowLayout {
@@ -39,53 +38,34 @@ ColumnLayout {
         spacing: 4
 
         Button {
+            text: "Refresh"
+            onClicked: refreshRequested()
+        }
+
+        Button {
             text: "Start"
-            onClicked: {
-                if (!executionSandbox)
-                    return;
-                if (executionSandbox.start()) {
-                    statusLabel.text = "Sandbox initialized";
-                    statusLabel.color = "#1565c0";
-                } else {
-                    statusLabel.text = "Start failed: " + executionSandbox.lastError;
-                    statusLabel.color = "#c62828";
-                }
-            }
+            onClicked: startRequested()
         }
 
         Button {
-            text: "Step"
-            enabled: executionSandbox && executionSandbox.status !== "completed" && executionSandbox.status !== "error"
-            onClicked: {
-                if (!executionSandbox)
-                    return;
-                if (executionSandbox.status === "idle")
-                    executionSandbox.start();
-                executionSandbox.step();
-            }
+            text: "Stop"
+            onClicked: stopRequested()
         }
+    }
 
-        Button {
-            text: "Run"
-            enabled: executionSandbox && executionSandbox.status !== "completed" && executionSandbox.status !== "error"
-            onClicked: {
-                if (!executionSandbox)
-                    return;
-                if (executionSandbox.status === "idle") {
-                    if (!executionSandbox.start())
-                        return;
-                }
-                executionSandbox.run();
-            }
-        }
+    function refreshRequested() {
+        if (editorManager)
+            editorManager.refreshRuntimeStatus();
+    }
 
-        Button {
-            text: "Reset"
-            onClicked: {
-                if (executionSandbox)
-                    executionSandbox.reset();
-            }
-        }
+    function startRequested() {
+        if (editorManager)
+            editorManager.startRuntime();
+    }
+
+    function stopRequested() {
+        if (editorManager)
+            editorManager.stopRuntime();
     }
 
     GridLayout {
@@ -95,78 +75,72 @@ ColumnLayout {
         rowSpacing: 4
 
         Label {
+            text: "Address"
+            font.bold: true
+        }
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: runtimeLabel()
+        }
+
+        Label {
             text: "Status"
             font.bold: true
         }
         Label {
-            text: executionSandbox ? executionSandbox.status : "unavailable"
+            text: editorManager ? editorManager.runtimeStatus : "unavailable"
         }
 
         Label {
-            text: "Tick"
+            text: "Active Graph"
             font.bold: true
         }
         Label {
-            text: executionSandbox ? String(executionSandbox.currentTick) : "0"
-        }
-
-        Label {
-            text: "Summary"
-            font.bold: true
-        }
-        ReadOnlyPlainText {
-            preferredHeight: 96
-            panelText: executionSandbox ? prettyJson(executionSandbox.snapshotSummary()) : "{}"
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: {
+                if (!editorManager || !editorManager.runtimeActiveGraphVersion)
+                    return "-";
+                return editorManager.runtimeActiveGraphVersion.length === 0
+                    ? "-"
+                    : editorManager.runtimeActiveGraphVersion;
+            }
         }
 
         Label {
             text: "Last Error"
             font.bold: true
-            visible: executionSandbox && executionSandbox.lastError.length > 0
+            visible: editorManager && editorManager.runtimeLastError && editorManager.runtimeLastError.length > 0
         }
         Label {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
             color: "#c62828"
-            visible: executionSandbox && executionSandbox.lastError.length > 0
-            text: executionSandbox ? executionSandbox.lastError : ""
+            visible: editorManager && editorManager.runtimeLastError && editorManager.runtimeLastError.length > 0
+            text: editorManager ? editorManager.runtimeLastError : ""
         }
-    }
 
-    Label {
-        Layout.fillWidth: true
-        text: "Execution State"
-        font.bold: true
-    }
+        Label {
+            text: "Selected Component"
+            font.bold: true
+        }
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: selectedComponentId.length > 0 ? selectedComponentId : "Select a component to inspect."
+        }
 
-    ReadOnlyPlainText {
-        preferredHeight: 140
-        panelText: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
-    }
-
-    Label {
-        Layout.fillWidth: true
-        text: "Selected Component State"
-        font.bold: true
-    }
-
-    ReadOnlyPlainText {
-        preferredHeight: 140
-        panelText: selectedComponentState()
-    }
-
-    TimelinePanel {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 250
-        model: executionSandbox ? executionSandbox.timeline : []
-    }
-
-    function selectedComponentState() {
-        if (!selectedComponentId || selectedComponentId.length === 0)
-            return "Select a component to inspect its execution state.";
-        var state = executionSandbox.componentState(root.selectedComponentId);
-        if (!state || Object.keys(state).length === 0)
-            return "No execution state for '" + root.selectedComponentId + "'.";
-        return prettyJson(state);
+        Label {
+            text: "Component Status"
+            font.bold: true
+        }
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: selectedComponentId.length > 0
+                ? "Not yet exposed through the runtime client."
+                : "-"
+        }
     }
 }
