@@ -84,9 +84,34 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_RuntimeClient
+    tst_RuntimeClient.cpp
+)
+
+target_link_libraries(tst_RuntimeClient
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+        cme_runtime_proto
+        gRPC::grpc++
+)
+
+target_include_directories(tst_RuntimeClient
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto/runtime
+)
+
+add_test(
+    NAME tst_RuntimeClient
+    COMMAND tst_RuntimeClient
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_PersistenceValidation
     tst_PersistenceValidation.cpp
 )
+
 
 target_link_libraries(tst_PersistenceValidation
     PRIVATE

@@ -78,6 +78,7 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     services/DeploymentGraphExporter.h
     services/ExportService.h
     services/GraphEditorController.h
+    services/RuntimeClient.h
     services/GraphExecutionSandbox.h
     services/GraphSchema.h
     services/InvariantChecker.h
@@ -173,6 +174,7 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     services/DeploymentGraphExporter.cpp
     services/ExportService.cpp
     services/GraphEditorController.cpp
+    services/RuntimeClient.cpp
     services/GraphExecutionSandbox.cpp
     services/GraphSchema.cpp
     services/InvariantChecker.cpp
@@ -241,7 +243,10 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Core
         Qt6::Quick
         cme_proto
+        cme_runtime_proto
         base_log
+
+        gRPC::grpc++
     PRIVATE
         QmlFontAwesome::QmlFontAwesome
 )
