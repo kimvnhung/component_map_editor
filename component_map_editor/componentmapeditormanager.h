@@ -50,8 +50,11 @@ public:
     Q_INVOKABLE void reloadComponentTypes();
 
     Q_INVOKABLE bool refreshRuntimeStatus();
+    Q_INVOKABLE bool deployAndActivate(GraphModel *graph, const QString &graphVersion);
     Q_INVOKABLE bool startRuntime();
     Q_INVOKABLE bool stopRuntime();
+    Q_INVOKABLE bool publishRuntimeEvent(const QString &eventId, const QString &componentId,
+                                         const QString &messageType, const QByteArray &payload);
 
     void setExtensionContractRegistry(std::unique_ptr<ExtensionContractRegistry> registry);
     void setRuleFilePath(const QString &filePath);

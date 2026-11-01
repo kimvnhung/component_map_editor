@@ -1,6 +1,6 @@
 #include "componentmapeditormanager.h"
 
-
+#include "services/DeploymentGraphExporter.h"
 #include <QDir>
 #include <base_log.h>
 #include "extensions/contracts/ExtensionContractRegistry.h"
@@ -95,6 +95,63 @@ bool ComponentMapEditorManager::refreshRuntimeStatus()
     m_runtimeStatus = QString::fromStdString(
         cme::runtime::v1::RuntimeStatus_Name(response.status())).toLower();
     m_runtimeActiveGraphVersion = QString::fromStdString(response.graph_version());
+    m_runtimeLastError.clear();
+    emit runtimeStatusChanged();
+    return true;
+}
+
+bool ComponentMapEditorManager::deployAndActivate(GraphModel *graph, const QString &graphVersion)
+{
+    if (!m_runtimeClient)
+        return false;
+
+    cme::editor::DeploymentGraphExporter::Options options;
+    options.graphVersion = graphVersion;
+
+    cme::runtime::v1::DeploymentGraph deployment;
+    QString error;
+    if (!cme::editor::DeploymentGraphExporter::exportGraph(graph, options, &deployment, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    cme::runtime::v1::ControlResponse response;
+    if (!m_runtimeClient->deployGraph(deployment, &response, &error)
+        || !m_runtimeClient->activateGraph(graphVersion, &response, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    m_runtimeLastError.clear();
+    return refreshRuntimeStatus();
+}
+
+bool ComponentMapEditorManager::publishRuntimeEvent(const QString &eventId,
+                                                    const QString &componentId,
+                                                    const QString &messageType,
+                                                    const QByteArray &payload)
+{
+    if (!m_runtimeClient)
+        return false;
+
+    cme::runtime::v1::PublishEventRequest request;
+    request.set_event_id(eventId.toStdString());
+    request.set_target_component_id(componentId.toStdString());
+    request.set_message_type(messageType.toStdString());
+    request.set_payload(payload.toStdString());
+
+    QString error;
+    if (!m_runtimeClient->publishEvent(request, nullptr, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+
     m_runtimeLastError.clear();
     emit runtimeStatusChanged();
     return true;

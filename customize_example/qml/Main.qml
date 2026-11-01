@@ -108,6 +108,26 @@ ApplicationWindow {
             }
 
             ToolButton {
+                text: "Deploy Runtime"
+                onClicked: {
+                    if (!editorManager.deployAndActivate(graph, graphVersionField.text)) {
+                        statusLabel.text = "✗ Runtime deploy failed: " + editorManager.runtimeLastError;
+                        statusLabel.color = "#c62828";
+                    } else {
+                        statusLabel.text = "✓ Graph deployed and activated";
+                        statusLabel.color = "#2e7d32";
+                    }
+                }
+            }
+
+            TextField {
+                id: graphVersionField
+                Layout.preferredWidth: 120
+                text: "v1"
+                placeholderText: "Graph version"
+            }
+
+            ToolButton {
                 text: "Export JSON"
                 onClicked: {
                     var json = exporter.exportToJson(graph);
