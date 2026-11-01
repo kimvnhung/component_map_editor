@@ -15,9 +15,17 @@ public:
     struct Options
     {
         QString graphVersion;
-        QString defaultSourcePort = QStringLiteral("out");
-        QString defaultTargetPort = QStringLiteral("in");
-        QString defaultMessageType = QStringLiteral("event");
+        // Component dynamic properties use QVariantList entries with keys:
+        // { id, messageType }. The exporter emits these as runtime ports.
+        QString inputPortsProperty = QStringLiteral("inputPorts");
+        QString outputPortsProperty = QStringLiteral("outputPorts");
+        QString stateSchemaVersionProperty = QStringLiteral("stateSchemaVersion");
+        QString compositeGraphIdProperty = QStringLiteral("compositeGraphId");
+        QString compositeGraphVersionProperty = QStringLiteral("compositeGraphVersion");
+        bool requireExplicitRouteMetadata = true;
+        QString sourcePortProperty = QStringLiteral("sourcePort");
+        QString targetPortProperty = QStringLiteral("targetPort");
+        QString messageTypeProperty = QStringLiteral("messageType");
         quint32 defaultStateSchemaVersion = 1;
     };
 

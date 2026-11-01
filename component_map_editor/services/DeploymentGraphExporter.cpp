@@ -2,15 +2,18 @@
 
 #include <QHash>
 #include <QSet>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace
 {
 
 using cme::runtime::v1::DeploymentGraph;
+using cme::runtime::v1::PortDirection;
 
 QString stringProperty(const QObject *object, const QString &name)
 {
-    if (!object)
+    if (!object || name.isEmpty())
         return {};
 
     const QByteArray key = name.toUtf8();
@@ -18,11 +21,9 @@ QString stringProperty(const QObject *object, const QString &name)
     return value.isValid() ? value.toString().trimmed() : QString();
 }
 
-quint32 positiveIntegerProperty(const QObject *object,
-                               const QString &name,
-                               quint32 fallback)
+quint32 positiveIntegerProperty(const QObject *object, const QString &name, quint32 fallback)
 {
-    if (!object)
+    if (!object || name.isEmpty())
         return fallback;
 
     const QByteArray key = name.toUtf8();
@@ -57,6 +58,76 @@ bool requireValue(const QString &value, const QString &path, QString *error)
 
     setError(error, QStringLiteral("Required deployment field is empty: %1").arg(path));
     return false;
+}
+
+QString messageTypeForPort(const QObject *object,
+                           const QString &portsProperty,
+                           const QString &portId)
+{
+    const QByteArray key = portsProperty.toUtf8();
+    const QVariant value = object->property(key.constData());
+    if (!value.isValid())
+        return {};
+
+    const QVariantList ports = value.toList();
+    for (const QVariant &entry : ports)
+    {
+        const QVariantMap port = entry.toMap();
+        if (port.value(QStringLiteral("id")).toString().trimmed() == portId)
+            return port.value(QStringLiteral("messageType")).toString().trimmed();
+    }
+    return {};
+}
+
+QString solePortId(const QObject *object, const QString &portsProperty)
+{
+    const QByteArray key = portsProperty.toUtf8();
+    const QVariant value = object->property(key.constData());
+    if (!value.isValid())
+        return {};
+
+    const QVariantList ports = value.toList();
+    if (ports.size() != 1)
+        return {};
+
+    return ports.first().toMap().value(QStringLiteral("id")).toString().trimmed();
+}
+
+bool appendPorts(const ComponentModel *component,
+                 const QString &propertyName,
+                 PortDirection direction,
+                 cme::runtime::v1::ComponentInstance *deploymentComponent,
+                 QSet<QString> *knownPorts,
+                 QString *error)
+{
+    const QByteArray key = propertyName.toUtf8();
+    const QVariant value = component->property(key.constData());
+    if (!value.isValid())
+        return true;
+
+    const QVariantList ports = value.toList();
+    for (const QVariant &entry : ports)
+    {
+        const QVariantMap port = entry.toMap();
+        const QString id = port.value(QStringLiteral("id")).toString().trimmed();
+        const QString messageType = port.value(QStringLiteral("messageType")).toString().trimmed();
+        if (!requireValue(id, propertyName + QStringLiteral("[].id"), error)
+            || !requireValue(messageType, propertyName + QStringLiteral("[].messageType"), error))
+            return false;
+        if (knownPorts->contains(id))
+        {
+            setError(error, QStringLiteral("Port %1 is declared more than once on component %2.")
+                                .arg(id, component->id().trimmed()));
+            return false;
+        }
+
+        knownPorts->insert(id);
+        auto *deploymentPort = deploymentComponent->add_ports();
+        deploymentPort->set_port_id(id.toStdString());
+        deploymentPort->set_direction(direction);
+        deploymentPort->set_message_type(messageType.toStdString());
+    }
+    return true;
 }
 
 } // namespace
@@ -122,13 +193,35 @@ bool DeploymentGraphExporter::exportGraph(const GraphModel *graph,
         deploymentComponent->set_instance_id(id.toStdString());
         deploymentComponent->set_component_type(type.toStdString());
         deploymentComponent->set_state_schema_version(
-            positiveIntegerProperty(component, QStringLiteral("stateSchemaVersion"),
+            positiveIntegerProperty(component, options.stateSchemaVersionProperty,
                                     options.defaultStateSchemaVersion));
+
+        const QString compositeId = stringProperty(component, options.compositeGraphIdProperty);
+        const QString compositeVersion = stringProperty(component, options.compositeGraphVersionProperty);
+        if (compositeId.isEmpty() != compositeVersion.isEmpty())
+        {
+            setError(error, QStringLiteral("Composite reference on %1 requires both graph id and version.")
+                                .arg(componentPath(i)));
+            return false;
+        }
+        deploymentComponent->set_composite_graph_id(compositeId.toStdString());
+        deploymentComponent->set_composite_graph_version(compositeVersion.toStdString());
+
+        QSet<QString> knownPorts;
+        if (!appendPorts(component, options.inputPortsProperty,
+                         cme::runtime::v1::PORT_DIRECTION_INPUT,
+                         deploymentComponent, &knownPorts, error)
+            || !appendPorts(component, options.outputPortsProperty,
+                            cme::runtime::v1::PORT_DIRECTION_OUTPUT,
+                            deploymentComponent, &knownPorts, error))
+            return false;
 
         for (const QByteArray &name : component->dynamicPropertyNames())
         {
             const QString key = QString::fromUtf8(name).trimmed();
             if (key.isEmpty())
+                continue;
+            if (key == options.inputPortsProperty || key == options.outputPortsProperty)
                 continue;
             deploymentComponent->mutable_properties()->insert(
                 {key.toStdString(), component->property(name.constData()).toString().toStdString()});
@@ -165,15 +258,35 @@ bool DeploymentGraphExporter::exportGraph(const GraphModel *graph,
         }
         routeIds.insert(id);
 
-        QString sourcePort = stringProperty(connection, QStringLiteral("sourcePort"));
-        QString targetPort = stringProperty(connection, QStringLiteral("targetPort"));
-        QString messageType = stringProperty(connection, QStringLiteral("messageType"));
-        if (sourcePort.isEmpty())
-            sourcePort = options.defaultSourcePort.trimmed();
-        if (targetPort.isEmpty())
-            targetPort = options.defaultTargetPort.trimmed();
+        QString sourcePort = stringProperty(connection, options.sourcePortProperty);
+        QString targetPort = stringProperty(connection, options.targetPortProperty);
+        QString messageType = stringProperty(connection, options.messageTypeProperty);
+        if (options.requireExplicitRouteMetadata
+            && !requireValue(sourcePort, routePath(i, QStringLiteral("source_port_id")), error))
+            return false;
+        if (options.requireExplicitRouteMetadata
+            && !requireValue(targetPort, routePath(i, QStringLiteral("target_port_id")), error))
+            return false;
+
+        if (!options.requireExplicitRouteMetadata)
+        {
+            if (sourcePort.isEmpty())
+                sourcePort = solePortId(componentsById.value(sourceId),
+                                        options.outputPortsProperty);
+            if (targetPort.isEmpty())
+                targetPort = solePortId(componentsById.value(targetId),
+                                        options.inputPortsProperty);
+        }
+
         if (messageType.isEmpty())
-            messageType = options.defaultMessageType.trimmed();
+        {
+            const QString fromSource = messageTypeForPort(componentsById.value(sourceId),
+                                                          options.outputPortsProperty, sourcePort);
+            const QString fromTarget = messageTypeForPort(componentsById.value(targetId),
+                                                          options.inputPortsProperty, targetPort);
+            messageType = fromSource.isEmpty() ? fromTarget : fromSource;
+        }
+
         if (!requireValue(sourcePort, routePath(i, QStringLiteral("source_port_id")), error)
             || !requireValue(targetPort, routePath(i, QStringLiteral("target_port_id")), error)
             || !requireValue(messageType, routePath(i, QStringLiteral("message_type")), error))
