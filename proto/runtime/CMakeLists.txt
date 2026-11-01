@@ -39,9 +39,18 @@ add_library(cme_runtime_proto STATIC
     ${RUNTIME_GRPC_HDRS}
 )
 
+# Runtime contracts import deployment.proto from the parent proto target.
+# Link it explicitly so its generated headers are available before runtime
+# protobuf sources compile, and so consumers inherit both include directories.
 target_include_directories(cme_runtime_proto PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/proto
 )
-target_link_libraries(cme_runtime_proto PUBLIC protobuf::libprotobuf gRPC::grpc++)
+target_link_libraries(cme_runtime_proto
+    PUBLIC
+        cme_proto
+        protobuf::libprotobuf
+        gRPC::grpc++
+)
+add_dependencies(cme_runtime_proto cme_proto)
 set_target_properties(cme_runtime_proto PROPERTIES POSITION_INDEPENDENT_CODE ON)

@@ -14,7 +14,6 @@ ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
     , m_componentTypeRegistry(new TypeRegistry())
     , m_propertySchemaRegistry(new PropertySchemaRegistry())
     , m_dynamicOptionsRegistry(new DynamicOptionsRegistry())
-    , m_executionSandbox(new GraphExecutionSandbox())
     , m_runtimeClient(std::make_unique<cme::editor::RuntimeClient>())
 {
 }
@@ -28,14 +27,12 @@ ComponentMapEditorManager::~ComponentMapEditorManager()
     delete m_componentTypeRegistry;
     delete m_propertySchemaRegistry;
     delete m_dynamicOptionsRegistry;
-    delete m_executionSandbox;
     m_runtimeClient.reset();
 
     m_extensionStartupLoader = nullptr;
     m_componentTypeRegistry = nullptr;
     m_propertySchemaRegistry = nullptr;
     m_dynamicOptionsRegistry = nullptr;
-    m_executionSandbox = nullptr;
 }
 
 void ComponentMapEditorManager::reloadComponentTypes()
@@ -157,6 +154,123 @@ bool ComponentMapEditorManager::publishRuntimeEvent(const QString &eventId,
     return true;
 }
 
+QVariantMap ComponentMapEditorManager::runtimeComponentStatus(const QString &componentId)
+{
+    QVariantMap result;
+    if (!m_runtimeClient)
+        return result;
+
+    cme::runtime::v1::ComponentStatusResponse response;
+    QString error;
+    if (!m_runtimeClient->componentStatus(componentId, &response, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return result;
+    }
+
+    result.insert(QStringLiteral("found"), response.found());
+    result.insert(QStringLiteral("componentId"), QString::fromStdString(response.component_id()));
+    result.insert(QStringLiteral("componentType"), QString::fromStdString(response.component_type()));
+    result.insert(QStringLiteral("status"), QString::fromStdString(response.status()));
+    result.insert(QStringLiteral("mailboxDepth"), QVariant::fromValue<qlonglong>(response.mailbox_depth()));
+    result.insert(QStringLiteral("state"), QByteArray(response.state().data(), static_cast<int>(response.state().size())));
+    m_runtimeLastError.clear();
+    emit runtimeStatusChanged();
+    return result;
+}
+
+QVariantList ComponentMapEditorManager::runtimeEventHistory(int limit)
+{
+    QVariantList result;
+    if (!m_runtimeClient)
+        return result;
+
+    cme::runtime::v1::EventHistoryResponse response;
+    QString error;
+    if (!m_runtimeClient->eventHistory(limit, &response, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return result;
+    }
+
+    for (const auto &item : response.items())
+    {
+        QVariantMap entry;
+        entry.insert(QStringLiteral("eventId"), QString::fromStdString(item.event_id()));
+        entry.insert(QStringLiteral("status"), QString::fromStdString(item.status()));
+        entry.insert(QStringLiteral("failureCode"), QString::fromStdString(item.failure_code()));
+        entry.insert(QStringLiteral("failureMessage"), QString::fromStdString(item.failure_message()));
+        entry.insert(QStringLiteral("createdAt"), QVariant::fromValue<qlonglong>(item.created_at()));
+        result.append(entry);
+    }
+    m_runtimeLastError.clear();
+    emit runtimeStatusChanged();
+    return result;
+}
+
+QVariantList ComponentMapEditorManager::runtimeLogs(int limit)
+{
+    QVariantList result;
+    if (!m_runtimeClient)
+        return result;
+
+    cme::runtime::v1::RuntimeLogsResponse response;
+    QString error;
+    if (!m_runtimeClient->runtimeLogs(limit, &response, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return result;
+    }
+
+    for (const auto &item : response.items())
+    {
+        QVariantMap entry;
+        entry.insert(QStringLiteral("level"), QString::fromStdString(item.level()));
+        entry.insert(QStringLiteral("code"), QString::fromStdString(item.code()));
+        entry.insert(QStringLiteral("message"), QString::fromStdString(item.message()));
+        entry.insert(QStringLiteral("createdAt"), QVariant::fromValue<qlonglong>(item.created_at()));
+        result.append(entry);
+    }
+    m_runtimeLastError.clear();
+    emit runtimeStatusChanged();
+    return result;
+}
+
+QVariantList ComponentMapEditorManager::runtimeRejections(int limit)
+{
+    QVariantList result;
+    if (!m_runtimeClient)
+        return result;
+
+    cme::runtime::v1::RejectionsResponse response;
+    QString error;
+    if (!m_runtimeClient->rejections(limit, &response, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return result;
+    }
+
+    for (const auto &item : response.items())
+    {
+        QVariantMap entry;
+        entry.insert(QStringLiteral("eventId"), QString::fromStdString(item.event_id()));
+        entry.insert(QStringLiteral("idempotencyKey"), QString::fromStdString(item.idempotency_key()));
+        entry.insert(QStringLiteral("targetComponentId"), QString::fromStdString(item.target_component_id()));
+        entry.insert(QStringLiteral("routeId"), QString::fromStdString(item.route_id()));
+        entry.insert(QStringLiteral("reasonCode"), QString::fromStdString(item.reason_code()));
+        entry.insert(QStringLiteral("mailboxDepth"), QVariant::fromValue<qlonglong>(item.mailbox_depth()));
+        entry.insert(QStringLiteral("createdAt"), QVariant::fromValue<qlonglong>(item.created_at()));
+        result.append(entry);
+    }
+    m_runtimeLastError.clear();
+    emit runtimeStatusChanged();
+    return result;
+}
+
 bool ComponentMapEditorManager::startRuntime()
 {
     if (!m_runtimeClient)
@@ -273,7 +387,6 @@ void ComponentMapEditorManager::setExtensionContractRegistry(std::unique_ptr<Ext
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
     m_dynamicOptionsRegistry->rebuildFromRegistry(*m_extensionContracts);
-    m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
 
 
 }
@@ -357,7 +470,6 @@ void ComponentMapEditorManager::setManifestDirectory(const QString &dirPath)
         // Rebuild registries to reflect the new contract registry.
         m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
         m_propertySchemaRegistry->rebuildFromRegistry(*m_extensionContracts);
-        m_executionSandbox->rebuildSemanticsFromRegistry(*m_extensionContracts);
     }
     else
     {

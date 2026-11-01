@@ -91,7 +91,7 @@ qt_add_executable(tst_RuntimeClient
 target_link_libraries(tst_RuntimeClient
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_runtime_client
         cme_runtime_proto
         gRPC::grpc++
 )
@@ -305,7 +305,7 @@ qt_add_executable(tst_ExecutionPlanBuilder
 target_link_libraries(tst_ExecutionPlanBuilder
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_ExecutionPlanBuilder
@@ -326,7 +326,7 @@ qt_add_executable(tst_SequentialExecutionEngine
 target_link_libraries(tst_SequentialExecutionEngine
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_SequentialExecutionEngine
@@ -347,7 +347,7 @@ qt_add_executable(tst_ActorMailboxEngine
 target_link_libraries(tst_ActorMailboxEngine
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_ActorMailboxEngine
@@ -368,7 +368,7 @@ qt_add_executable(tst_ActorEngineIntegration
 target_link_libraries(tst_ActorEngineIntegration
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_ActorEngineIntegration
@@ -454,7 +454,7 @@ qt_add_executable(tst_Phase1ExecutionSemanticsV2Compatibility
 target_link_libraries(tst_Phase1ExecutionSemanticsV2Compatibility
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase1ExecutionSemanticsV2Compatibility
@@ -478,7 +478,7 @@ qt_add_executable(tst_Phase2TokenRouting
 target_link_libraries(tst_Phase2TokenRouting
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase2TokenRouting
@@ -554,7 +554,7 @@ qt_add_executable(tst_Phase5ExecutionObservability
 target_link_libraries(tst_Phase5ExecutionObservability
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase5ExecutionObservability
@@ -607,7 +607,7 @@ target_link_libraries(tst_Phase6TypedExecutionEvents
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase6TypedExecutionEvents
@@ -633,6 +633,10 @@ target_link_libraries(tst_Phase6CutoverReadiness
     PRIVATE
         Qt6::Test
         libComponentMapEditor
+)
+
+target_compile_definitions(tst_Phase6CutoverReadiness PRIVATE
+    CME_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 target_include_directories(tst_Phase6CutoverReadiness

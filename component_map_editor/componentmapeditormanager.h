@@ -9,10 +9,15 @@
 #include "extensions/runtime/rules/RuleHotReloadService.h"
 #include "extensions/runtime/rules/RuleRuntimeRegistry.h"
 #include "services/ValidationService.h"
-#include "services/GraphExecutionSandbox.h"
 #include "services/RuntimeClient.h"
+
 #include <QObject>
 #include <QString>
+#include <QVariantList>
+#include <QVariantMap>
+
+#include <memory>
+#include <vector>
 
 class ExtensionContractRegistry;
 class IComponentTypeProvider;
@@ -24,7 +29,6 @@ class ComponentMapEditorManager : public QObject
     Q_PROPERTY(TypeRegistry* componentTypeRegistry READ componentTypeRegistry CONSTANT)
     Q_PROPERTY(PropertySchemaRegistry* propertySchemaRegistry READ propertySchemaRegistry CONSTANT)
     Q_PROPERTY(DynamicOptionsRegistry* dynamicOptionsRegistry READ dynamicOptionsRegistry CONSTANT)
-    Q_PROPERTY(GraphExecutionSandbox* executionSandbox READ executionSandbox CONSTANT)
     Q_PROPERTY(QString runtimeAddress READ runtimeAddress WRITE setRuntimeAddress NOTIFY runtimeAddressChanged)
     Q_PROPERTY(QString runtimeStatus READ runtimeStatus NOTIFY runtimeStatusChanged)
     Q_PROPERTY(QString runtimeActiveGraphVersion READ runtimeActiveGraphVersion NOTIFY runtimeStatusChanged)
@@ -37,7 +41,6 @@ public:
     TypeRegistry *componentTypeRegistry() const { return m_componentTypeRegistry; }
     PropertySchemaRegistry *propertySchemaRegistry() const { return m_propertySchemaRegistry; }
     DynamicOptionsRegistry *dynamicOptionsRegistry() const { return m_dynamicOptionsRegistry; }
-    GraphExecutionSandbox *executionSandbox() const { return m_executionSandbox; }
 
     QString runtimeAddress() const;
     void setRuntimeAddress(const QString &address);
@@ -55,6 +58,10 @@ public:
     Q_INVOKABLE bool stopRuntime();
     Q_INVOKABLE bool publishRuntimeEvent(const QString &eventId, const QString &componentId,
                                          const QString &messageType, const QByteArray &payload);
+    Q_INVOKABLE QVariantMap runtimeComponentStatus(const QString &componentId);
+    Q_INVOKABLE QVariantList runtimeEventHistory(int limit = 50);
+    Q_INVOKABLE QVariantList runtimeLogs(int limit = 50);
+    Q_INVOKABLE QVariantList runtimeRejections(int limit = 50);
 
     void setExtensionContractRegistry(std::unique_ptr<ExtensionContractRegistry> registry);
     void setRuleFilePath(const QString &filePath);
@@ -77,7 +84,6 @@ private:
     TypeRegistry *m_componentTypeRegistry = nullptr;
     PropertySchemaRegistry *m_propertySchemaRegistry = nullptr;
     DynamicOptionsRegistry *m_dynamicOptionsRegistry = nullptr;
-    GraphExecutionSandbox *m_executionSandbox = nullptr;
     std::unique_ptr<cme::editor::RuntimeClient> m_runtimeClient{};
 
     QString m_runtimeStatus{QStringLiteral("unknown")};

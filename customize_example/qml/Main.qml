@@ -16,38 +16,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     title: "My Graph Editor"
 
-    property var executionSandbox: editorManager.executionSandbox
     property int inspectorTabIndex: 0
-
-    function prettyJson(value) {
-        if (value === undefined || value === null)
-            return "{}";
-        return JSON.stringify(value, null, 2);
-    }
-
-    function timelineText(entries) {
-        if (!entries || entries.length === 0)
-            return "No execution events yet.";
-        var lines = [];
-        for (var i = 0; i < entries.length; ++i) {
-            var entry = entries[i];
-            var payload = {};
-            for (var key in entry) {
-                if (key === "event" || key === "tick")
-                    continue;
-                payload[key] = entry[key];
-            }
-            var suffix = Object.keys(payload).length ? "  " + JSON.stringify(payload) : "";
-            lines.push("[" + entry.tick + "] " + entry.event + suffix);
-        }
-        return lines.join("\n");
-    }
-
-    Component.onCompleted: {
-        if (executionSandbox) {
-            executionSandbox.graph = graph;
-        }
-    }
 
     GraphModel {
         id: graph

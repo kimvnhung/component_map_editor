@@ -181,6 +181,12 @@ bool DeploymentGraphExporter::exportGraph(const GraphModel *graph,
         if (!requireValue(id, componentPath(i, QStringLiteral("instance_id")), error)
             || !requireValue(type, componentPath(i, QStringLiteral("component_type")), error))
             return false;
+        if (options.validateWithKnownTypes && !options.validationTypeNames.contains(type))
+        {
+            setError(error, QStringLiteral("Unknown component type at %1.component_type: %2")
+                                .arg(componentPath(i), type));
+            return false;
+        }
         if (componentIds.contains(id))
         {
             setError(error, QStringLiteral("Duplicate component instance ID: %1").arg(id));
@@ -216,15 +222,24 @@ bool DeploymentGraphExporter::exportGraph(const GraphModel *graph,
                             deploymentComponent, &knownPorts, error))
             return false;
 
-        for (const QByteArray &name : component->dynamicPropertyNames())
+        for (const QString &key : options.runtimePropertyNames)
         {
-            const QString key = QString::fromUtf8(name).trimmed();
-            if (key.isEmpty())
+            const QString normalizedKey = key.trimmed();
+            if (normalizedKey.isEmpty()
+                || normalizedKey == options.inputPortsProperty
+                || normalizedKey == options.outputPortsProperty
+                || normalizedKey == options.stateSchemaVersionProperty
+                || normalizedKey == options.compositeGraphIdProperty
+                || normalizedKey == options.compositeGraphVersionProperty)
                 continue;
-            if (key == options.inputPortsProperty || key == options.outputPortsProperty)
+
+            const QByteArray propertyName = normalizedKey.toUtf8();
+            const QVariant value = component->property(propertyName.constData());
+            if (!value.isValid())
                 continue;
+
             deploymentComponent->mutable_properties()->insert(
-                {key.toStdString(), component->property(name.constData()).toString().toStdString()});
+                {normalizedKey.toStdString(), value.toString().toStdString()});
         }
     }
 

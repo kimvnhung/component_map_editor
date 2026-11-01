@@ -1,13 +1,15 @@
 #include <QFile>
 #include <QtTest>
 
-#include "services/ExecutionMigrationFlags.h"
+#ifndef CME_SOURCE_DIR
+#define CME_SOURCE_DIR "."
+#endif
 
 namespace {
 
-QString readTextFile(const QString &path)
+QString readTextFile(const QString &relativePath)
 {
-    QFile file(path);
+    QFile file(QStringLiteral(CME_SOURCE_DIR) + QStringLiteral("/") + relativePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return {};
     return QString::fromUtf8(file.readAll());
@@ -20,56 +22,48 @@ class tst_Phase6CutoverReadiness : public QObject
     Q_OBJECT
 
 private slots:
-    void tokenTransport_defaultOn_andCompatibilityWindowOpen();
-    void v1AdapterRetained_forReleaseWindow();
-    void canaryEntrypoints_enableDesignBExplicitly();
+    void managerDoesNotExposeSandbox();
+    void productionExampleUsesRuntimePanel();
+    void editorBuildSourcesExcludeExecutionStack();
 };
 
-void tst_Phase6CutoverReadiness::tokenTransport_defaultOn_andCompatibilityWindowOpen()
+void tst_Phase6CutoverReadiness::managerDoesNotExposeSandbox()
 {
-    QCOMPARE(cme::execution::MigrationFlags::tokenTransportEnabled(), true);
+    const QString header = readTextFile(QStringLiteral("component_map_editor/componentmapeditormanager.h"));
+    QVERIFY2(!header.isEmpty(), "Could not read component map editor manager header");
+    QVERIFY2(!header.contains(QStringLiteral("GraphExecutionSandbox")),
+             "Production manager must not expose the local execution sandbox");
+    QVERIFY2(!header.contains(QStringLiteral("executionSandbox")),
+             "Production manager must not expose an executionSandbox property");
 }
 
-void tst_Phase6CutoverReadiness::v1AdapterRetained_forReleaseWindow()
+void tst_Phase6CutoverReadiness::productionExampleUsesRuntimePanel()
 {
-    const QString contractPath =
-        QStringLiteral("/home/hungkv/projects/component_map_editor/component_map_editor/extensions/contracts/IExecutionSemanticsProvider.h");
-    // Legacy global-state fallback moved from GraphExecutionSandbox.cpp into the extracted
-    // SequentialExecutionEngine as part of the IExecutionEngine refactor (Plan 1).
-    const QString sandboxPath =
-        QStringLiteral("/home/hungkv/projects/component_map_editor/component_map_editor/services/execution_internal/SequentialExecutionEngine.cpp");
-
-    const QString contractSource = readTextFile(contractPath);
-    const QString sandboxSource = readTextFile(sandboxPath);
-
-    QVERIFY2(!contractSource.isEmpty(), "Could not read IExecutionSemanticsProvider.h");
-    QVERIFY2(!sandboxSource.isEmpty(), "Could not read GraphExecutionSandbox.cpp");
-
-    QVERIFY2(contractSource.contains(QStringLiteral("virtual bool executeComponent(")),
-             "Single token-aware executeComponent contract must be present after cutover");
-    QVERIFY2(!contractSource.contains(QStringLiteral("executeComponentV2(")),
-             "Legacy executeComponentV2 symbol should be removed after contract consolidation");
-    QVERIFY2(sandboxSource.contains(QStringLiteral("__legacy_global_state__")),
-             "Legacy global-state fallback path must remain until compatibility window closes");
+    const QString mainQml = readTextFile(QStringLiteral("customize_example/qml/Main.qml"));
+    QVERIFY2(!mainQml.isEmpty(), "Could not read customize example QML");
+    QVERIFY2(mainQml.contains(QStringLiteral("ExecutionPanel")),
+             "Customize example must retain the runtime execution panel");
+    QVERIFY2(!mainQml.contains(QStringLiteral("executionSandbox")),
+             "Customize example must not access the local execution sandbox");
 }
 
-void tst_Phase6CutoverReadiness::canaryEntrypoints_enableDesignBExplicitly()
+void tst_Phase6CutoverReadiness::editorBuildSourcesExcludeExecutionStack()
 {
-    const QString exampleMainPath =
-        QStringLiteral("/home/hungkv/projects/component_map_editor/example/main.cpp");
-    const QString customizeMainPath =
-        QStringLiteral("/home/hungkv/projects/component_map_editor/customize_example/main.cpp");
-
-    const QString exampleMain = readTextFile(exampleMainPath);
-    const QString customizeMain = readTextFile(customizeMainPath);
-
-    QVERIFY2(!exampleMain.isEmpty(), "Could not read example/main.cpp");
-    QVERIFY2(!customizeMain.isEmpty(), "Could not read customize_example/main.cpp");
-
-    QVERIFY2(exampleMain.contains(QStringLiteral("MigrationFlags::setTokenTransportEnabled(true)")),
-             "Example app should explicitly enable token transport for canary rollout");
-    QVERIFY2(customizeMain.contains(QStringLiteral("MigrationFlags::setTokenTransportEnabled(true)")),
-             "Customize app should explicitly enable token transport for canary rollout");
+    const QString cmake = readTextFile(QStringLiteral("component_map_editor/CMakeLists.txt"));
+    QVERIFY2(!cmake.isEmpty(), "Could not read editor CMake file");
+    const int compatIndex = cmake.indexOf(QStringLiteral("add_library(cme_editor_compat"));
+    QVERIFY2(compatIndex > 0, "Legacy simulator compatibility target is missing");
+    const QString productionTarget = cmake.left(compatIndex);
+    QVERIFY2(!productionTarget.contains(QStringLiteral("GraphExecutionSandbox.cpp")),
+             "Production editor target must not compile GraphExecutionSandbox");
+    QVERIFY2(!productionTarget.contains(QStringLiteral("ActorMailboxExecutionEngine.cpp")),
+             "Production editor target must not compile actor execution");
+    QVERIFY2(cmake.contains(QStringLiteral("cme_editor_compat")),
+             "Legacy simulator must be isolated in the compatibility target");
+    QVERIFY2(cmake.contains(QStringLiteral("GraphExecutionSandbox.cpp")),
+             "Compatibility target must retain simulator sources for legacy tests");
+    QVERIFY2(cmake.contains(QStringLiteral("ActorMailboxExecutionEngine.cpp")),
+             "Compatibility target must retain actor sources for legacy tests");
 }
 
 QTEST_MAIN(tst_Phase6CutoverReadiness)

@@ -9,7 +9,6 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 # Explicit ownership keeps the editor/QML target separate from the runtime target.
 set(COMPONENT_MAP_EDITOR_HEADERS
     adapters/AdapterCommon.h
-    adapters/ExecutionAdapter.h
     adapters/GraphAdapter.h
     adapters/PolicyAdapter.h
     adapters/ValidationAdapter.h
@@ -29,10 +28,8 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     extensions/contracts/IPropertySchemaProvider.h
     extensions/contracts/IValidationProvider.h
     extensions/contracts/builders/ComponentTypeProviderBuilder.h
-    extensions/contracts/builders/ExecutionPlanBuilder.h
     extensions/contracts/builders/ExtensionContractRegistryBuilder.h
     extensions/contracts/builders/ExtensionPackBuilder.h
-    extensions/runtime/CompositeExecutionProvider.h
     extensions/runtime/DynamicOptionsRegistry.h
     extensions/runtime/ExtensionCompatibilityChecker.h
     extensions/runtime/ExtensionManifestJson.h
@@ -74,30 +71,15 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     routing/RouteTypes.h
     routing/RoutingEngine.h
     routing/RoutingHelpers.h
-    services/ExecutionMigrationFlags.h
     services/DeploymentGraphExporter.h
     services/ExportService.h
     services/GraphEditorController.h
-    services/RuntimeClient.h
-    services/GraphExecutionSandbox.h
     services/GraphSchema.h
     services/InvariantChecker.h
     services/MemoryMonitor.h
     services/PerformanceBudgets.h
     services/TraversalEngine.h
     services/ValidationService.h
-    services/execution_internal/ActorMailboxExecutionEngine.h
-    services/execution_internal/ExecutionContext.h
-    services/execution_internal/ExecutionPlan.h
-    services/execution_internal/ExecutionRequest.h
-    services/execution_internal/IExecutionEngine.h
-    services/execution_internal/ProviderResultValidation.h
-    services/execution_internal/SequentialExecutionEngine.h
-    services/execution_internal/actor_mailbox/Actor.h
-    services/execution_internal/actor_mailbox/ActorRegistry.h
-    services/execution_internal/actor_mailbox/ActorScheduler.h
-    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h
-    services/execution_internal/actor_mailbox/Mailbox.h
     transport/GrpcTemplateDescriptorTransport.h
     ui/GraphViewportItem.h
     ui/rendering/ComponentRenderPass.h
@@ -113,7 +95,6 @@ set(COMPONENT_MAP_EDITOR_HEADERS
 
 set(COMPONENT_MAP_EDITOR_SOURCES
     adapters/AdapterCommon.cpp
-    adapters/ExecutionAdapter.cpp
     adapters/GraphAdapter.cpp
     adapters/PolicyAdapter.cpp
     adapters/ValidationAdapter.cpp
@@ -127,10 +108,8 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     extensions/contracts/ExtensionManifest.cpp
     extensions/contracts/IValidationProvider.cpp
     extensions/contracts/builders/ComponentTypeProviderBuilder.cpp
-    extensions/contracts/builders/ExecutionPlanBuilder.cpp
     extensions/contracts/builders/ExtensionContractRegistryBuilder.cpp
     extensions/contracts/builders/ExtensionPackBuilder.cpp
-    extensions/runtime/CompositeExecutionProvider.cpp
     extensions/runtime/DynamicOptionsRegistry.cpp
     extensions/runtime/ExtensionCompatibilityChecker.cpp
     extensions/runtime/ExtensionManifestJson.cpp
@@ -170,26 +149,15 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     routing/OrthogonalHeuristicStrategy.cpp
     routing/RoutingEngine.cpp
     routing/RoutingHelpers.cpp
-    services/ExecutionMigrationFlags.cpp
     services/DeploymentGraphExporter.cpp
     services/ExportService.cpp
     services/GraphEditorController.cpp
-    services/RuntimeClient.cpp
-    services/GraphExecutionSandbox.cpp
     services/GraphSchema.cpp
     services/InvariantChecker.cpp
     services/MemoryMonitor.cpp
     services/PerformanceBudgets.cpp
     services/TraversalEngine.cpp
     services/ValidationService.cpp
-    services/execution_internal/ActorMailboxExecutionEngine.cpp
-    services/execution_internal/ProviderResultValidation.cpp
-    services/execution_internal/SequentialExecutionEngine.cpp
-    services/execution_internal/actor_mailbox/Actor.cpp
-    services/execution_internal/actor_mailbox/ActorRegistry.cpp
-    services/execution_internal/actor_mailbox/ActorScheduler.cpp
-    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.cpp
-    services/execution_internal/actor_mailbox/Mailbox.cpp
     transport/GrpcTemplateDescriptorTransport.cpp
     ui/GraphViewportItem.cpp
     ui/rendering/ComponentRenderPass.cpp
@@ -224,6 +192,32 @@ set(COMPONENT_MAP_EDITOR_QML
 set(COMPONENT_MAP_EDITOR_JS
 )
 
+# Runtime lifecycle/query transport is a separate boundary from the editor.
+add_library(cme_runtime_client STATIC
+    services/RuntimeClient.h
+    services/RuntimeClient.cpp
+)
+
+target_include_directories(cme_runtime_client
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/services
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_BINARY_DIR}/proto/runtime
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(cme_runtime_client
+    PUBLIC
+        Qt6::Core
+        cme_runtime_proto
+        gRPC::grpc++
+)
+
+set_target_properties(cme_runtime_client PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
 qt_add_qml_module(${PROJECT_NAME}
     URI ComponentMapEditor
     VERSION 1.0
@@ -244,9 +238,9 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Quick
         cme_proto
         cme_runtime_proto
+        cme_runtime_client
         base_log
 
-        gRPC::grpc++
     PRIVATE
         QmlFontAwesome::QmlFontAwesome
 )
@@ -271,3 +265,74 @@ target_compile_definitions(${PROJECT_NAME}
     PRIVATE
         LOG_TAG="ComponentMapEditor"
 )
+
+# Optional compatibility target for the legacy local execution simulator.
+# The production editor target intentionally does not compile or link these files.
+set(CME_EDITOR_COMPAT_HEADERS
+    adapters/ExecutionAdapter.h
+    extensions/contracts/builders/ExecutionPlanBuilder.h
+    extensions/runtime/CompositeExecutionProvider.h
+    services/ExecutionMigrationFlags.h
+    services/GraphExecutionSandbox.h
+    services/execution_internal/ActorMailboxExecutionEngine.h
+    services/execution_internal/ExecutionContext.h
+    services/execution_internal/ExecutionPlan.h
+    services/execution_internal/ExecutionRequest.h
+    services/execution_internal/IExecutionEngine.h
+    services/execution_internal/ProviderResultValidation.h
+    services/execution_internal/SequentialExecutionEngine.h
+    services/execution_internal/actor_mailbox/Actor.h
+    services/execution_internal/actor_mailbox/ActorRegistry.h
+    services/execution_internal/actor_mailbox/ActorScheduler.h
+    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h
+    services/execution_internal/actor_mailbox/Mailbox.h
+)
+
+set(CME_EDITOR_COMPAT_SOURCES
+    adapters/ExecutionAdapter.cpp
+    extensions/contracts/builders/ExecutionPlanBuilder.cpp
+    extensions/runtime/CompositeExecutionProvider.cpp
+    services/ExecutionMigrationFlags.cpp
+    services/GraphExecutionSandbox.cpp
+    services/execution_internal/ActorMailboxExecutionEngine.cpp
+    services/execution_internal/ProviderResultValidation.cpp
+    services/execution_internal/SequentialExecutionEngine.cpp
+    services/execution_internal/actor_mailbox/Actor.cpp
+    services/execution_internal/actor_mailbox/ActorRegistry.cpp
+    services/execution_internal/actor_mailbox/ActorScheduler.cpp
+    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.cpp
+    services/execution_internal/actor_mailbox/Mailbox.cpp
+)
+
+add_library(cme_editor_compat STATIC
+    ${CME_EDITOR_COMPAT_HEADERS}
+    ${CME_EDITOR_COMPAT_SOURCES}
+)
+
+target_include_directories(cme_editor_compat
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_BINARY_DIR}/proto
+        ${CMAKE_BINARY_DIR}/proto/runtime
+)
+
+target_link_libraries(cme_editor_compat
+    PUBLIC
+        libComponentMapEditor
+        cme_proto
+        cme_runtime_proto
+        Qt6::Core
+)
+
+target_compile_definitions(cme_editor_compat
+    PRIVATE
+        LOG_TAG="ComponentMapEditorCompat"
+)
+
+set_target_properties(cme_editor_compat PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
+# Keep simulator code available only to explicitly opted-in compatibility users.
+add_library(cme_editor_compat_alias ALIAS cme_editor_compat)

@@ -12,7 +12,10 @@ private slots:
     void rejectsMissingRequiredGraphData();
     void rejectsRoutesWithoutExplicitMetadata();
     void exportsCompositeReference();
+    void filtersRuntimePropertiesByAllowlist();
     void doesNotOverwriteOutputOnFailure();
+    void rejectsUnknownComponentTypeWhenConfigured();
+    void rejectsInvalidPortMetadata();
 };
 
 void DeploymentGraphExporterTests::exportsComponentsRoutesAndProperties()
@@ -43,6 +46,7 @@ void DeploymentGraphExporterTests::exportsComponentsRoutesAndProperties()
 
     cme::editor::DeploymentGraphExporter::Options options;
     options.graphVersion = QStringLiteral("v1");
+    options.runtimePropertyNames = {QStringLiteral("threshold")};
 
     cme::runtime::v1::DeploymentGraph deployment;
     QString error;
@@ -179,6 +183,65 @@ void DeploymentGraphExporterTests::rejectsMissingRequiredGraphData()
     error.clear();
     QVERIFY(!cme::editor::DeploymentGraphExporter::exportGraph(&graph, options, &deployment, &error));
     QVERIFY(error.contains(QStringLiteral("graph_version")));
+}
+
+void DeploymentGraphExporterTests::filtersRuntimePropertiesByAllowlist()
+{
+    GraphModel graph;
+    graph.setId(QStringLiteral("filtered"));
+    auto *component = new ComponentModel(QStringLiteral("node"), QString(), 100.0, 200.0,
+                                          QStringLiteral("#fff"), QStringLiteral("type"));
+    component->setDynamicProperty(QStringLiteral("runtimeTimeout"), 2500);
+    component->setDynamicProperty(QStringLiteral("color"), QStringLiteral("#fff"));
+    graph.addComponent(component);
+
+    cme::editor::DeploymentGraphExporter::Options options;
+    options.graphVersion = QStringLiteral("v1");
+    options.runtimePropertyNames = {QStringLiteral("runtimeTimeout"), QStringLiteral("color")};
+
+    cme::runtime::v1::DeploymentGraph deployment;
+    QString error;
+    QVERIFY2(cme::editor::DeploymentGraphExporter::exportGraph(&graph, options, &deployment, &error),
+             qPrintable(error));
+    QVERIFY(deployment.components(0).properties().contains("runtimeTimeout"));
+    QVERIFY(!deployment.components(0).properties().contains("color"));
+}
+
+void DeploymentGraphExporterTests::rejectsUnknownComponentTypeWhenConfigured()
+{
+    GraphModel graph;
+    graph.setId(QStringLiteral("typed"));
+    graph.addComponent(new ComponentModel(QStringLiteral("node"), QString(), 0.0, 0.0,
+                                           QString(), QStringLiteral("unknown")));
+
+    cme::editor::DeploymentGraphExporter::Options options;
+    options.graphVersion = QStringLiteral("v1");
+    options.validateWithKnownTypes = true;
+    options.validationTypeNames = {QStringLiteral("known")};
+
+    cme::runtime::v1::DeploymentGraph deployment;
+    QString error;
+    QVERIFY(!cme::editor::DeploymentGraphExporter::exportGraph(&graph, options, &deployment, &error));
+    QVERIFY(error.contains(QStringLiteral("component_type")));
+}
+
+void DeploymentGraphExporterTests::rejectsInvalidPortMetadata()
+{
+    GraphModel graph;
+    graph.setId(QStringLiteral("invalid-port"));
+    auto *component = new ComponentModel(QStringLiteral("node"), QString(), 0.0, 0.0,
+                                          QString(), QStringLiteral("type"));
+    component->setDynamicProperty(QStringLiteral("outputPorts"), QVariantList{
+        QVariantMap{{QStringLiteral("id"), QStringLiteral("out")}}
+    });
+    graph.addComponent(component);
+
+    cme::editor::DeploymentGraphExporter::Options options;
+    options.graphVersion = QStringLiteral("v1");
+    cme::runtime::v1::DeploymentGraph deployment;
+    QString error;
+    QVERIFY(!cme::editor::DeploymentGraphExporter::exportGraph(&graph, options, &deployment, &error));
+    QVERIFY(error.contains(QStringLiteral("messageType")));
 }
 
 void DeploymentGraphExporterTests::doesNotOverwriteOutputOnFailure()

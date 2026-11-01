@@ -6,6 +6,10 @@ import ComponentMapEditor
 ColumnLayout {
     id: root
     property string selectedComponentId: ""
+    property var selectedStatus: ({})
+    property var history: []
+    property var logs: []
+    property var rejections: []
 
     Layout.fillWidth: true
     spacing: 10
@@ -54,8 +58,16 @@ ColumnLayout {
     }
 
     function refreshRequested() {
-        if (editorManager)
-            editorManager.refreshRuntimeStatus();
+        if (!editorManager)
+            return;
+        editorManager.refreshRuntimeStatus();
+        history = editorManager.runtimeEventHistory(50);
+        logs = editorManager.runtimeLogs(50);
+        rejections = editorManager.runtimeRejections(50);
+        if (selectedComponentId.length > 0)
+            selectedStatus = editorManager.runtimeComponentStatus(selectedComponentId);
+        else
+            selectedStatus = ({});
     }
 
     function startRequested() {
@@ -138,9 +150,50 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            text: selectedComponentId.length > 0
-                ? "Not yet exposed through the runtime client."
+            text: selectedComponentId.length === 0
+                ? "-"
+                : (selectedStatus.found ? selectedStatus.status : "Component not found")
+        }
+
+        Label {
+            text: "Mailbox Depth"
+            font.bold: true
+        }
+        Label {
+            Layout.fillWidth: true
+            text: selectedComponentId.length > 0 && selectedStatus.found
+                ? String(selectedStatus.mailboxDepth)
                 : "-"
+        }
+
+        Label {
+            text: "Event History"
+            font.bold: true
+        }
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: history.length > 0 ? String(history.length) + " events" : "No events"
+        }
+
+        Label {
+            text: "Runtime Logs"
+            font.bold: true
+        }
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: logs.length > 0 ? String(logs.length) + " entries" : "No logs"
+        }
+
+        Label {
+            text: "Rejections"
+            font.bold: true
+        }
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: rejections.length > 0 ? String(rejections.length) : "None"
         }
     }
 }

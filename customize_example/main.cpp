@@ -9,12 +9,9 @@
 
 #include "extensions/factory_pack/providers/FactoryComponentTypeProvider.h"
 #include "extensions/factory_pack/providers/FactoryPropertySchemaProvider.h"
-#include "extensions/factory_pack/providers/FactoryExecutionSemanticsProvider.h"
 #include "extensions/providers/customizecomponenttypeprovider.h"
-#include "extensions/providers/customizeexecutionsanticsprovider.h"
 #include "extensions/providers/customizepropertyschemaprovider.h"
 
-#include <services/ExecutionMigrationFlags.h>
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
 #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
@@ -28,41 +25,19 @@ int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
 
-    cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 
     std::unique_ptr<ComponentMapEditorManager> manager;
 
     try
     {
-        // manager = ComponentMapEditorManagerBuilder()
-        //           .withPackFactoryEntry(ExtensionPackBuilder()
-        //                                 .withExtensionId("manifest.factory.pack")
-        //                                 .withCapabilities(
-        //                                     static_cast<extensions::Capability>(
-        //                                         extensions::Capability_ComponentTypes |
-        //                                         extensions::Capability_PropertySchema |
-        //                                         extensions::Capability_ExecutionSemantics))
-        //                                 .withComponentProviderFactory(utils::makeFactory<FactoryComponentTypeProvider>())
-        //                                 .withPropertySchemaProviderFactory(utils::makeFactory<FactoryPropertySchemaProvider>())
-        //                                 .withExecutionSemanticsFactory(utils::makeFactory<FactoryExecutionSemanticsProvider>())
-        //                                 .build())
-        //           .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
-        //           .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
-        //           .withExtensionContractRegistry(
-        //               ExtensionContractRegistryBuilder()
-        //               .build()
-        //           )
-        //           .build();
         manager = ComponentMapEditorManagerBuilder()
                       .withPackFactoryEntry(
                           ExtensionPackBuilder()
                               .withExtensionId("customize.workflow")
                               .withCapabilities(static_cast<extensions::Capability>(
-                                  extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema |
-                                  extensions::Capability_ExecutionSemantics))
+                                  extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema))
                               .withComponentProviderFactory(utils::makeFactory<CustomizeComponentTypeProvider>())
                               .withPropertySchemaProviderFactory(utils::makeFactory<CustomizePropertySchemaProvider>())
-                              .withExecutionSemanticsFactory(utils::makeFactory<CustomizeExecutionSemanticsProvider>())
                               .build())
                       .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
                       .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)

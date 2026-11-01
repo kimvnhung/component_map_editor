@@ -2,6 +2,7 @@
 #define DEPLOYMENTGRAPHEXPORTER_H
 
 #include <QString>
+#include <QStringList>
 
 #include "models/GraphModel.h"
 #include "deployment.pb.h"
@@ -26,7 +27,12 @@ public:
         QString sourcePortProperty = QStringLiteral("sourcePort");
         QString targetPortProperty = QStringLiteral("targetPort");
         QString messageTypeProperty = QStringLiteral("messageType");
+        // Only these dynamic properties are copied into the runtime properties map.
+        // UI/editor metadata remains in the editor document and never crosses the boundary.
+        QStringList runtimePropertyNames;
         quint32 defaultStateSchemaVersion = 1;
+        QStringList validationTypeNames;
+        bool validateWithKnownTypes = false;
     };
 
     // Converts the editor model into the runtime-owned deployment contract.
