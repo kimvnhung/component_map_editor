@@ -75,6 +75,7 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     routing/RoutingEngine.h
     routing/RoutingHelpers.h
     services/ExecutionMigrationFlags.h
+    services/DeploymentGraphExporter.h
     services/ExportService.h
     services/GraphEditorController.h
     services/GraphExecutionSandbox.h
@@ -169,6 +170,7 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     routing/RoutingEngine.cpp
     routing/RoutingHelpers.cpp
     services/ExecutionMigrationFlags.cpp
+    services/DeploymentGraphExporter.cpp
     services/ExportService.cpp
     services/GraphEditorController.cpp
     services/GraphExecutionSandbox.cpp

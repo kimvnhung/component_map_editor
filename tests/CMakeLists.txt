@@ -62,6 +62,28 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_DeploymentGraphExporter
+    tst_DeploymentGraphExporter.cpp
+)
+
+target_link_libraries(tst_DeploymentGraphExporter
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_DeploymentGraphExporter
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_DeploymentGraphExporter
+    COMMAND tst_DeploymentGraphExporter
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_PersistenceValidation
     tst_PersistenceValidation.cpp
 )
