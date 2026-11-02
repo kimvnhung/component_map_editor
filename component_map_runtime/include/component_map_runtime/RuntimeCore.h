@@ -3,6 +3,7 @@
 
 #include "component_map_runtime/DeploymentManager.h"
 #include "component_map_runtime/RuntimeHandlerRegistry.h"
+#include "component_map_runtime/RuntimeActorScheduler.h"
 
 #include <QHash>
 #include <QList>
@@ -86,9 +87,12 @@ public:
                   const RuntimeHandlerRegistry *handlerRegistry,
                   qsizetype mailboxCapacity = 64,
                   RuntimePersistence *persistence = nullptr);
+    ~RuntimeEngine();
 
     bool start(QString *error = nullptr);
     bool stop(QString *error = nullptr);
+    void setBackgroundExecution(bool enabled, int maxConcurrency = 1);
+    bool backgroundExecution() const;
     bool publish(const RuntimeEvent &event, RuntimeFailure *failure = nullptr);
     qsizetype processAll();
 
@@ -127,6 +131,7 @@ private:
     bool dispatchFromActor(const QString &instanceId);
     QByteArray fingerprint(const RuntimeEvent &event) const;
     bool resolveActors(QString *error);
+    bool submitToScheduler(const QString &actorId);
 
     RuntimeService *m_runtimeService = nullptr;
     DeploymentManager *m_deploymentManager = nullptr;
@@ -142,6 +147,8 @@ private:
     qsizetype m_dispatchedCount = 0;
     qsizetype m_completedCount = 0;
     qsizetype m_rejectedCount = 0;
+    std::unique_ptr<RuntimeActorScheduler> m_scheduler;
+    bool m_backgroundExecution = false;
     bool m_running = false;
 };
 

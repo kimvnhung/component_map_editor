@@ -171,7 +171,8 @@ grpc::Status RuntimeGrpcServer::EventService::PublishEvent(
         response->set_duplicate(failure.code == QStringLiteral("IDEMPOTENCY_IN_FLIGHT"));
         return grpc::Status::OK;
     }
-    m_owner->m_engine->processAll();
+    if (!m_owner->m_engine->backgroundExecution())
+        m_owner->m_engine->processAll();
     response->set_accepted(true);
     response->set_duplicate(false);
     return grpc::Status::OK;

@@ -123,8 +123,33 @@ private slots:
     void disabledRouteAndDeliveryFailureAreRecorded();
     void idempotencyDuplicateAndConflict();
     void actorsProcessFifoIndependently();
+    void backgroundRuntimeProcessesWithoutProcessAll();
     void stoppedRuntimeRejectsNewEvents();
+
 };
+
+void tst_RuntimeCorePhase3::backgroundRuntimeProcessesWithoutProcessAll()
+{
+    RuntimeFixture fixture;
+    registerType(&fixture.registry, "processor");
+    QVERIFY(fixture.deployment.deploy(graphFor({"processor"})).valid());
+    QVERIFY(fixture.deployment.activate().valid());
+    fixture.engine.setBackgroundExecution(true, 1);
+    QString error;
+    QVERIFY2(fixture.engine.start(&error), qPrintable(error));
+
+    cme::runtime::RuntimeEvent event;
+    event.eventId = "background-event";
+    event.messageType = "test.event";
+    event.targetComponentId = "node-1";
+    event.payload = "background";
+    QVERIFY(fixture.engine.publish(event));
+
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.engine.componentState("node-1"),
+                              QByteArray("background"), 2000);
+    QCOMPARE(fixture.engine.completedCount(), qsizetype(1));
+    QVERIFY(fixture.engine.stop(&error));
+}
 
 void tst_RuntimeCorePhase3::verticalSliceRoutesAndStoresState()
 {

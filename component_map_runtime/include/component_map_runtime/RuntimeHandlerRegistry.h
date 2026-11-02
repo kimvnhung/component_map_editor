@@ -29,11 +29,15 @@ public:
     const QByteArray &state() const { return m_state; }
     void setState(const QByteArray &state) { m_state = state; }
     bool isCancelled() const { return m_cancelled && *m_cancelled; }
+    void setFailure(const RuntimeFailure &failure) { m_failure = failure; }
+    bool hasFailure() const { return m_failure.isValid(); }
+    const RuntimeFailure &failure() const { return m_failure; }
 
 private:
     QString m_componentId;
     QString m_componentType;
     QByteArray m_state;
+    RuntimeFailure m_failure;
     bool *m_cancelled = nullptr;
 };
 
@@ -71,6 +75,10 @@ public:
             context.setState(state);
             if (!output.eventId.isEmpty()) emitter.emitEvent(output);
         }
+        else
+        {
+            context.setFailure(failure);
+        }
     }
     virtual void onStop(RuntimeContext &) {}
 };
@@ -87,7 +95,7 @@ inline RuntimeHandlerResult invokeHandler(RuntimeHandler &handler, const Runtime
 {
     RuntimeEmitter emitter;
     handler.onEvent(event, context, emitter);
-    return {true, {}, emitter.outputs()};
+    return {!context.hasFailure(), context.failure(), emitter.outputs()};
 }
 
 class RuntimeHandlerRegistry

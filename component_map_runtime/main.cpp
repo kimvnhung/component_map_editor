@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     cme::runtime::RuntimeEngine engine(&service, &deployment, &registry, 64, &persistence);
+    engine.setBackgroundExecution(true, 1);
     cme::runtime::RuntimeGrpcServer server(&engine, &deployment, &service, &persistence);
     if (!server.start(parser.value(addressOption), &error))
     {

@@ -106,6 +106,43 @@ RuntimeEngine::RuntimeEngine(RuntimeService *runtimeService,
 {
 }
 
+RuntimeEngine::~RuntimeEngine()
+{
+    stop(nullptr);
+}
+
+void RuntimeEngine::setBackgroundExecution(bool enabled, int maxConcurrency)
+{
+    if (m_running)
+        return;
+    m_backgroundExecution = enabled;
+    if (enabled)
+        m_scheduler = std::make_unique<RuntimeActorScheduler>(maxConcurrency, m_mailboxCapacity);
+    else
+        m_scheduler.reset();
+}
+
+bool RuntimeEngine::backgroundExecution() const
+{
+    return m_backgroundExecution;
+}
+
+bool RuntimeEngine::submitToScheduler(const QString &actorId)
+{
+    if (!m_scheduler)
+        return false;
+    return m_scheduler->submit(actorId, [this, actorId] {
+        auto it = m_actors.find(actorId);
+        if (it == m_actors.end())
+            return;
+        it->queuedForScheduling = false;
+        dispatchFromActor(actorId);
+        it = m_actors.find(actorId);
+        if (it != m_actors.end() && !it->mailbox.empty())
+            submitToScheduler(actorId);
+    });
+}
+
 bool RuntimeEngine::start(QString *error)
 {
     if (!m_runtimeService || !m_deploymentManager || !m_handlerRegistry)
@@ -151,6 +188,17 @@ bool RuntimeEngine::start(QString *error)
         }
     }
     m_running = true;
+    if (m_backgroundExecution)
+    {
+        if (!m_scheduler)
+            m_scheduler = std::make_unique<RuntimeActorScheduler>(1, m_mailboxCapacity);
+        m_scheduler->start();
+        for (auto it = m_actors.cbegin(); it != m_actors.cend(); ++it)
+        {
+            if (!it->mailbox.empty())
+                submitToScheduler(it.key());
+        }
+    }
     if (error)
     {
         error->clear();
@@ -173,6 +221,11 @@ bool RuntimeEngine::stop(QString *error)
         return true;
     }
     m_running = false;
+    if (m_scheduler)
+    {
+        m_scheduler->stop();
+        m_scheduler.reset();
+    }
     if (m_persistence)
     {
         for (auto it = m_actors.cbegin(); it != m_actors.cend(); ++it)
@@ -412,7 +465,10 @@ bool RuntimeEngine::enqueueToActor(const RuntimeEvent &event,
     if (!actorIt->queuedForScheduling)
     {
         actorIt->queuedForScheduling = true;
-        m_readyActors.enqueue(targetId);
+        if (m_backgroundExecution)
+            submitToScheduler(targetId);
+        else
+            m_readyActors.enqueue(targetId);
     }
     return true;
 }
