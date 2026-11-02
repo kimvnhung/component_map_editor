@@ -63,7 +63,9 @@ file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/
 )
 
 # Execution semantics providers belong to the runtime/simulator boundary.
-list(FILTER SOURCE_FILES EXCLUDE REGEX ".*(ExecutionSemanticsProvider|customizeexecutionsanticsprovider).*\\.(cpp|h)$")
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*(ExecutionSemanticsProvider|customizeexecutionsanticsprovider|customizeextensionpack).*\\.(cpp|h)$")
+# Runtime execution handlers are registered by the runtime extension boundary.
+# The example app owns authoring providers and UI, not execution state.
 
 qt_add_qml_module(customize_example_app
     URI customize_example

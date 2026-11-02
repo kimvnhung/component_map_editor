@@ -2,6 +2,50 @@ cmake_minimum_required(VERSION 3.21)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickTest Test)
 
+# Public editor facade contract covers generic authoring operations.
+qt_add_executable(tst_EditorFacadeContract
+    tst_EditorFacadeContract.cpp
+)
+
+target_link_libraries(tst_EditorFacadeContract
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+add_test(
+    NAME tst_EditorFacadeContract
+    COMMAND tst_EditorFacadeContract
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Example-app domain authoring workflow uses only the editor public facade.
+qt_add_executable(tst_CustomizeExampleAuthoring
+    tst_CustomizeExampleAuthoring.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizecomponenttypeprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizeconnectionpolicyprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizevalidationprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/validators/workflowvalidationprovider.cpp
+)
+
+target_link_libraries(tst_CustomizeExampleAuthoring
+    PRIVATE
+        Qt6::Test
+        libComponentMapEditor
+)
+
+target_include_directories(tst_CustomizeExampleAuthoring
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/customize_example/src
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_CustomizeExampleAuthoring
+    COMMAND tst_CustomizeExampleAuthoring
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # QML module contract test verifies the library's public import surface.
 qt_add_executable(tst_EditorQmlModuleContract
     tst_EditorQmlModuleContract.cpp

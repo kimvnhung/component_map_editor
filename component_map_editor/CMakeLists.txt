@@ -16,6 +16,7 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     commands/GraphCommands.h
     commands/UndoStack.h
     componentmapeditormanager.h
+    EditorFacade.h
     extensions/common.h
     extensions/contracts/ExtensionApiVersion.h
     extensions/contracts/ExtensionContractRegistry.h
@@ -102,6 +103,7 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     commands/GraphCommands.cpp
     commands/UndoStack.cpp
     componentmapeditormanager.cpp
+    EditorFacade.cpp
     extensions/common.cpp
     extensions/contracts/ExtensionApiVersion.cpp
     extensions/contracts/ExtensionContractRegistry.cpp
@@ -169,6 +171,12 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     utils/PropertySchemaHelper.cpp
 )
 
+# Editor core owns graph models, authoring services, contracts, and facade.
+add_library(cme_editor_core STATIC
+    ${COMPONENT_MAP_EDITOR_HEADERS}
+    ${COMPONENT_MAP_EDITOR_SOURCES}
+)
+
 set(COMPONENT_MAP_EDITOR_QML
     ui/qml/ComponentItem.qml
     ui/qml/Connection.qml
@@ -231,11 +239,22 @@ qt_add_qml_module(${PROJECT_NAME}
         ${COMPONENT_MAP_EDITOR_JS}
     SOURCES
         ${COMPONENT_MAP_EDITOR_HEADERS}
-        ${COMPONENT_MAP_EDITOR_SOURCES}
+)
+
+target_link_libraries(cme_editor_core
+    PUBLIC
+        Qt6::Core
+        Qt6::Quick
+        cme_proto
+        cme_runtime_proto
+        cme_runtime_client
+        base_log
+        QmlFontAwesome::QmlFontAwesome
 )
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
+        cme_editor_core
         Qt6::Core
         Qt6::Quick
         cme_proto
@@ -247,6 +266,10 @@ target_link_libraries(${PROJECT_NAME}
         QmlFontAwesome::QmlFontAwesome
 )
 
+# QML target depends on core but never owns core implementation sources.
+add_library(cme_editor_qml INTERFACE)
+target_link_libraries(cme_editor_qml INTERFACE ${PROJECT_NAME} cme_editor_core)
+
 # Copy public headers to the generated include directory.
 foreach(HEADER_FILE ${COMPONENT_MAP_EDITOR_HEADERS})
     get_filename_component(HEADER_FILE_NAME ${HEADER_FILE} NAME)
@@ -255,6 +278,13 @@ foreach(HEADER_FILE ${COMPONENT_MAP_EDITOR_HEADERS})
         ${CMAKE_CURRENT_BINARY_DIR}/include/${HEADER_FILE_NAME}
         COPYONLY)
 endforeach()
+
+target_include_directories(cme_editor_core
+    PUBLIC
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_BINARY_DIR}/proto
+)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

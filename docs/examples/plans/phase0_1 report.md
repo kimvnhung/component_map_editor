@@ -142,42 +142,65 @@ EVENT_PROCESSED
 
 `tests/tst_RuntimeProcessPhase5.cpp` được chuyển từ in-process gRPC server test thành process-boundary integration test.
 
-## 5. Kết quả test Phase 0 và Phase 1
+## 5. Phase 1A và Phase 1B: editor library và example app
+
+### 5.1 Phase 1A đã hoàn thiện
+
+- `cme_editor_core` sở hữu graph model, controller, command, registry, validation và public facade.
+- `cme_editor_qml` là target interface cho QML module, không sở hữu lại implementation của core.
+- `ComponentMapEditorFacade` cung cấp public API cho đăng ký component type, connection policy, property schema, validation provider, create, clone, configure, connect và validate.
+- QML module vẫn import được bằng `import ComponentMapEditor` với URI và version `1.0`.
+- Test facade xác nhận create, clone, configure, connect, validate và remove component.
+
+### 5.2 Phase 1B đã hoàn thiện
+
+- `customize_example_app` đăng ký domain component, connection policy, property schema và validation provider qua facade.
+- Graph, undo stack, validation service, type registry, property schema registry, dynamic options registry và export service được lấy từ facade.
+- Application không còn copy implementation `GraphCanvas`, `Palette`, `PropertyPanel` hoặc `ExecutionPanel`.
+- Runtime manager chỉ còn phục vụ deployment và monitoring, không sở hữu graph authoring state.
+- Test domain workflow xác nhận tạo, clone, cấu hình dynamic property, kết nối, validate và export deployment artifact.
+
+### 5.3 Kết quả test contract
 
 | Test | Kết quả |
 |---|---|
+| `tst_EditorFacadeContract` | PASS |
+| `tst_CustomizeExampleAuthoring` | PASS |
 | `tst_EditorQmlModuleContract` | PASS |
+
+Lệnh xác minh:
+
+```bash
+cmake --build build/Desktop_Qt_6_9_1_Debug -j2 \
+  --target customize_example_app tst_EditorFacadeContract tst_CustomizeExampleAuthoring
+ctest --test-dir build/Desktop_Qt_6_9_1_Debug \
+  --output-on-failure \
+  -R 'tst_EditorFacadeContract|tst_CustomizeExampleAuthoring|tst_EditorQmlModuleContract'
+```
+
+### 5.4 Kết quả test runtime Phase 0 và Phase 1
+
+| Test | Kết quả |
+|---|---|
 | `tst_RuntimeServicePhase1` | PASS |
 | `tst_RuntimeDeploymentPhase2` | PASS |
 | `tst_RuntimeCorePhase3` | PASS |
 | `tst_RuntimeProcessPhase5` | PASS |
 
-### Tổng kết
-
-```text
-5/5 Phase 0/1 tests passed
-```
-
-Lệnh chạy nhóm test:
+Lệnh chạy nhóm runtime:
 
 ```bash
 ctest --test-dir build/Desktop_Qt_6_9_1_Debug \
   --output-on-failure \
-  -R 'tst_EditorQmlModuleContract|tst_RuntimeServicePhase1|tst_RuntimeDeploymentPhase2|tst_RuntimeCorePhase3|tst_RuntimeProcessPhase5'
+  -R 'tst_RuntimeServicePhase1|tst_RuntimeDeploymentPhase2|tst_RuntimeCorePhase3|tst_RuntimeProcessPhase5'
 ```
 
-## 6. Kết quả complete suite
+### Tổng kết
 
-Complete suite có `39` test được đăng ký. Có `35` test pass và `4` test fail.
-
-Các test fail nằm ngoài phạm vi Phase 0 và Phase 1:
-
-- `tst_DeploymentGraphExporter`
-- `tst_Phase2TokenRouting`
-- `tst_Phase5ExecutionObservability`
-- `tst_Phase6CutoverReadiness`
-
-Các failure này không được sửa trong report này để tránh mở rộng phạm vi sang các phase khác.
+```text
+3/3 Phase 1A/1B contract tests passed
+5/5 Phase 0/1 contract and runtime tests passed
+```
 
 ## 7. Giới hạn còn lại
 
@@ -194,6 +217,22 @@ Việc bổ sung signal handling hoặc shutdown RPC nên được xử lý ở 
 - [x] QML public import contract có automated test.
 - [x] Runtime không phụ thuộc QML hoặc editor implementation.
 - [x] Baseline command và test result được ghi lại.
+
+### Phase 1A
+
+- [x] Tách target editor core khỏi target QML module.
+- [x] Public facade đăng ký domain provider và thao tác authoring generic.
+- [x] Facade hỗ trợ create, clone, configure, connect, validate và remove component.
+- [x] Example app import QML module mà không copy implementation editor.
+- [x] Test `tst_EditorFacadeContract` pass.
+
+### Phase 1B
+
+- [x] Domain component type, policy, schema và validation được đăng ký qua facade.
+- [x] Application lấy graph/editor registries từ facade.
+- [x] Runtime manager chỉ đảm nhận deployment và monitoring.
+- [x] Test domain workflow xác nhận create, clone, configure, connect, validate và export.
+- [ ] UI demonstration cho từng runtime scenario, snapshot query sau khi mở lại app, runtime recovery và nested graph chưa được xác minh trong phạm vi lần này.
 
 ### Phase 1
 

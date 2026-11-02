@@ -18,17 +18,16 @@ ApplicationWindow {
 
     property int inspectorTabIndex: 0
 
-    GraphModel {
-        id: graph
-    }
+    property GraphModel graph: editorFacade.graph
+    property UndoStack undoStack: editorFacade.undoStack
+    property ValidationService validator: editorFacade.validationService
+    property ExportService exporter: editorFacade.exportService
+    property TypeRegistry componentTypeRegistry: editorFacade.typeRegistry
+    property PropertySchemaRegistry propertySchemaRegistry: editorFacade.propertySchemaRegistry
+    property DynamicOptionsRegistry dynamicOptionsRegistry: editorFacade.dynamicOptionsRegistry
 
-    ValidationService {
-        id: validator
-    }
 
-    ExportService {
-        id: exporter
-    }
+    // ExportService is owned by the public editor facade.
 
     // -----------------------------------------------------------------------
     // Toolbar

@@ -3,15 +3,21 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <componentmapeditormanager.h>
-#include <extensions/contracts/builders/ExtensionPackBuilder.h>
+#include <EditorFacade.h>
+#include <extensions/providers/customizecomponenttypeprovider.h>
+#include <extensions/providers/customizeconnectionpolicyprovider.h>
+#include <extensions/providers/customizepropertyschemaprovider.h>
+#include <extensions/providers/customizevalidationprovider.h>
+
 #include <extensions/contracts/builders/ExtensionContractRegistryBuilder.h>
-#include <extensions/sample_pack/SampleComponentTypeProvider.h>
+#include <extensions/contracts/builders/ExtensionPackBuilder.h>
+#include <extensions/contracts/IPropertySchemaProvider.h>
+#include <extensions/contracts/IConnectionPolicyProvider.h>
+#include <extensions/contracts/IValidationProvider.h>
 
-#include "extensions/factory_pack/providers/FactoryComponentTypeProvider.h"
-#include "extensions/factory_pack/providers/FactoryPropertySchemaProvider.h"
-#include "extensions/providers/customizecomponenttypeprovider.h"
-#include "extensions/providers/customizepropertyschemaprovider.h"
-
+#include <QDebug>
+#include <memory>
+#include <stdexcept>
 
 #ifndef EXAMPLE_EXTENSION_MANIFEST_DIR
 #define EXAMPLE_EXTENSION_MANIFEST_DIR ""
@@ -21,37 +27,46 @@
 #define EXAMPLE_EXTENSION_RULE_FILE ""
 #endif
 
+#ifndef COMPONENT_TYPES_DEFINITION_FILE
+#define COMPONENT_TYPES_DEFINITION_FILE ""
+#endif
+
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
 
+    ComponentMapEditorFacade facade;
+    CustomizeComponentTypeProvider componentTypes;
+    CustomizeConnectionPolicyProvider connectionPolicies;
+    CustomizePropertySchemaProvider propertySchemas;
+    CustomizeValidationProvider validation;
+    QString providerError;
+    if (!facade.registerComponentType(&componentTypes, &providerError)
+        || !facade.registerConnectionPolicy(&connectionPolicies, &providerError)
+        || !facade.registerPropertySchemaProvider(&propertySchemas, &providerError)
+        || !facade.registerValidationProvider(&validation, &providerError))
+    {
+        qCritical() << "Failed to initialize editor facade:" << providerError;
+        return -1;
+    }
 
     std::unique_ptr<ComponentMapEditorManager> manager;
-
     try
     {
         manager = ComponentMapEditorManagerBuilder()
-                      .withPackFactoryEntry(
-                          ExtensionPackBuilder()
-                              .withExtensionId("customize.workflow")
-                              .withCapabilities(static_cast<extensions::Capability>(
-                                  extensions::Capability_ComponentTypes | extensions::Capability_PropertySchema))
-                              .withComponentProviderFactory(utils::makeFactory<CustomizeComponentTypeProvider>())
-                              .withPropertySchemaProviderFactory(utils::makeFactory<CustomizePropertySchemaProvider>())
-                              .build())
-                      .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
-                      .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
                       .withExtensionContractRegistry(ExtensionContractRegistryBuilder().build())
+                      .withRuleFilePath(EXAMPLE_EXTENSION_RULE_FILE)
+                      .withManifestDirectory(EXAMPLE_EXTENSION_MANIFEST_DIR)
                       .build();
     }
-    catch (std::runtime_error& e)
+    catch (const std::runtime_error& error)
     {
-        qCritical() << "Failed to initialize ComponentMapEditorManager:" << e.what();
+        qCritical() << "Failed to initialize runtime client:" << error.what();
         return -1;
     }
 
     QQmlApplicationEngine engine;
-
+    engine.rootContext()->setContextProperty(QStringLiteral("editorFacade"), &facade);
     engine.rootContext()->setContextProperty(QStringLiteral("editorManager"), manager.get());
 
     QObject::connect(
@@ -61,3 +76,7 @@ int main(int argc, char* argv[])
 
     return QCoreApplication::exec();
 }
+
+/** The example app keeps runtime transport separate from editor authoring. */
+// The runtime manager is exposed only for deployment and monitoring operations.
+// All graph authoring providers and models are owned by editorFacade above.
