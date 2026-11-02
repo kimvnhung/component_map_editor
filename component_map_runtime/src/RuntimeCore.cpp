@@ -245,7 +245,7 @@ bool RuntimeEngine::publish(const RuntimeEvent &event, RuntimeFailure *failure)
     if (accepted && m_persistence)
     {
         QString persistenceError;
-        if (!m_persistence->recordAcceptedEvent(event, &persistenceError))
+        if (!m_persistence->recordAcceptedEvent(event, fingerprint(event), &persistenceError))
         {
             setFailure(failure, QStringLiteral("PERSISTENCE_FAILURE"), persistenceError,
                        event, event.targetComponentId);
@@ -304,11 +304,45 @@ bool RuntimeEngine::recover(QString *error)
         if (error) *error = QStringLiteral("Persistence is not open.");
         return false;
     }
+
+    m_idempotency.clear();
     const auto states = m_persistence->loadComponentStates(error);
     if (error && !error->isEmpty()) return false;
     for (auto it = states.cbegin(); it != states.cend(); ++it)
     {
         if (m_actors.contains(it.key())) m_stateStore.setValue(it.key(), it.value());
+    }
+
+    const auto inbox = m_persistence->loadInboxEvents(error);
+    if (error && !error->isEmpty()) return false;
+    for (const auto &persisted : inbox)
+    {
+        if (!persisted.event.idempotencyKey.isEmpty())
+        {
+            IdempotencyRecord record;
+            record.requestFingerprint = persisted.requestFingerprint.isEmpty()
+                                            ? fingerprint(persisted.event)
+                                            : persisted.requestFingerprint;
+            record.completed = persisted.status == QStringLiteral("completed")
+                               || persisted.status == QStringLiteral("failed");
+            record.succeeded = persisted.status == QStringLiteral("completed");
+            record.failure = persisted.failure;
+            m_idempotency.insert(persisted.event.idempotencyKey, record);
+        }
+
+        if (persisted.status == QStringLiteral("accepted")
+            || persisted.status == QStringLiteral("processing"))
+        {
+            RuntimeFailure failure;
+            if (!enqueueToActor(persisted.event, persisted.event.targetComponentId,
+                                QString(), &failure))
+            {
+                if (error)
+                    *error = QStringLiteral("Unable to restore event %1: %2")
+                                 .arg(persisted.event.eventId, failure.message);
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -419,6 +453,17 @@ bool RuntimeEngine::dispatchFromActor(const QString &instanceId)
         return false;
     }
     actorIt->status = ActorStatus::Busy;
+    if (m_persistence)
+    {
+        QString persistenceError;
+        if (!m_persistence->markEventProcessing(event.eventId, &persistenceError))
+        {
+            actorIt->status = ActorStatus::Failed;
+            recordFailure({QStringLiteral("PERSISTENCE_FAILURE"), persistenceError,
+                           event.eventId, instanceId}, QString());
+            return false;
+        }
+    }
     RuntimeEvent output;
     RuntimeFailure failure;
     QByteArray state = m_stateStore.value(instanceId);
@@ -457,6 +502,21 @@ bool RuntimeEngine::dispatchFromActor(const QString &instanceId)
     }
     m_stateStore.setValue(instanceId, state);
 
+    if (m_persistence)
+    {
+        QString persistenceError;
+        if (!m_persistence->saveEventResult(event.eventId, QString(), instanceId,
+                                            actorIt->componentType, state, 1, true,
+                                            {}, &persistenceError))
+        {
+            RuntimeFailure persistenceFailure{QStringLiteral("PERSISTENCE_FAILURE"),
+                                               persistenceError, event.eventId, instanceId};
+            recordFailure(persistenceFailure, QString());
+            actorIt->status = ActorStatus::Failed;
+            return false;
+        }
+    }
+
     const auto &graph = m_deploymentManager->activeGraph();
     for (const auto &route : graph.routes())
     {
@@ -487,7 +547,6 @@ bool RuntimeEngine::dispatchFromActor(const QString &instanceId)
     ++m_completedCount;
     if (m_persistence)
     {
-        m_persistence->recordEventCompletion(event.eventId, true);
         m_persistence->recordLog(QStringLiteral("info"), QStringLiteral("EVENT_PROCESSED"),
                                  QStringLiteral("Runtime event processed by component %1.").arg(instanceId));
     }

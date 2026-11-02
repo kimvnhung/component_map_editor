@@ -902,7 +902,29 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# Phase 3 is synchronous and transport-neutral. Persistence and IPC remain later phases.
+# Phase 3 scheduler contract: actor serialization, parallelism and backpressure.
+qt_add_executable(tst_RuntimeActorSchedulerPhase3
+    tst_RuntimeActorSchedulerPhase3.cpp
+)
+
+target_link_libraries(tst_RuntimeActorSchedulerPhase3
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+)
+
+target_include_directories(tst_RuntimeActorSchedulerPhase3
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RuntimeActorSchedulerPhase3
+    COMMAND tst_RuntimeActorSchedulerPhase3
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Persistence and IPC remain later Phase 3 integration work.
 
 # ── Phase 4: SQLite persistence and recovery ─────────────────────────────────
 qt_add_executable(tst_RuntimePersistencePhase4

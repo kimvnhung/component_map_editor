@@ -30,6 +30,15 @@ struct PersistedRuntimeLog
     qint64 createdAt = 0;
 };
 
+struct PersistedInboxEvent
+{
+    RuntimeEvent event;
+    QString status;
+    QByteArray requestFingerprint;
+    RuntimeFailure failure;
+    qint64 createdAt = 0;
+};
+
 struct DeploymentSnapshot
 {
     QString deploymentId;
@@ -79,9 +88,28 @@ public:
                             int schemaVersion, QString *error = nullptr);
     QList<PersistedComponentState> loadComponentStateRecords(QString *error = nullptr) const;
 
-    bool recordAcceptedEvent(const RuntimeEvent &event, QString *error = nullptr);
+    bool recordAcceptedEvent(const RuntimeEvent &event,
+                             const QByteArray &requestFingerprint = {},
+                             QString *error = nullptr);
+    bool recordAcceptedEvent(const RuntimeEvent &event, QString *error)
+    {
+        return recordAcceptedEvent(event, QByteArray(), error);
+    }
+    QList<PersistedInboxEvent> loadInboxEvents(QString *error = nullptr) const;
+    QList<PersistedInboxEvent> loadIncompleteEvents(QString *error = nullptr) const;
+    bool markEventProcessing(const QString &eventId, QString *error = nullptr);
     bool recordEventCompletion(const QString &eventId, bool succeeded,
                                const RuntimeFailure &failure = {}, QString *error = nullptr);
+
+    bool beginTransaction(QString *error = nullptr);
+    bool commitTransaction(QString *error = nullptr);
+    bool rollbackTransaction(QString *error = nullptr);
+    bool saveEventResult(const QString &eventId, const QString &deploymentId,
+                         const QString &qualifiedPath, const QString &componentType,
+                         const QByteArray &state, int schemaVersion, bool succeeded,
+                         const RuntimeFailure &failure = {}, QString *error = nullptr);
+    bool markRuntimeStatus(const QString &status, QString *error = nullptr);
+    QString runtimeStatus(QString *error = nullptr) const;
     bool recordRejection(const RejectionRecord &record, QString *error = nullptr);
     bool recordFailure(const FailureRecord &record, QString *error = nullptr);
     bool recordLog(const QString &level, const QString &code,

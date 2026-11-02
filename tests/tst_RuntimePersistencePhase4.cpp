@@ -63,8 +63,49 @@ class tst_RuntimePersistencePhase4 : public QObject
 private slots:
     void stateAndHistorySurviveRestart();
     void rejectionAndLogSurviveRestart();
+    void inboxAndIdempotencySurviveRestart();
     void resetClearsExecutionButKeepsHistoryAndLogs();
+
+private:
+    static cme::runtime::RuntimeEvent persistedEvent();
 };
+
+cme::runtime::RuntimeEvent tst_RuntimePersistencePhase4::persistedEvent()
+{
+    cme::runtime::RuntimeEvent event;
+    event.eventId = QStringLiteral("inbox-event");
+    event.idempotencyKey = QStringLiteral("inbox-key");
+    event.messageType = QStringLiteral("test.event");
+    event.targetComponentId = QStringLiteral("processor-01");
+    event.payload = QByteArrayLiteral("pending");
+    return event;
+}
+
+void tst_RuntimePersistencePhase4::inboxAndIdempotencySurviveRestart()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString databasePath = directory.filePath(QStringLiteral("runtime.sqlite"));
+    QString error;
+    const auto event = persistedEvent();
+
+    cme::runtime::RuntimePersistence persistence;
+    QVERIFY2(persistence.open(databasePath, QStringLiteral("inbox-runtime"), &error), qPrintable(error));
+    const QByteArray fingerprint = QByteArrayLiteral("request-fingerprint");
+    QVERIFY2(persistence.recordAcceptedEvent(event, fingerprint, &error), qPrintable(error));
+    QVERIFY2(persistence.markEventProcessing(event.eventId, &error), qPrintable(error));
+    persistence.close();
+
+    cme::runtime::RuntimePersistence reopened;
+    QVERIFY2(reopened.open(databasePath, QStringLiteral("inbox-runtime"), &error), qPrintable(error));
+    const auto incomplete = reopened.loadIncompleteEvents(&error);
+    QCOMPARE(incomplete.size(), 1);
+    QCOMPARE(incomplete.first().status, QStringLiteral("processing"));
+    QCOMPARE(incomplete.first().requestFingerprint, fingerprint);
+    QVERIFY2(reopened.recordAcceptedEvent(event, fingerprint, &error), qPrintable(error));
+    QVERIFY(!reopened.recordAcceptedEvent(event, QByteArrayLiteral("different"), &error));
+    QCOMPARE(error, QStringLiteral("IDEMPOTENCY_CONFLICT"));
+}
 
 void tst_RuntimePersistencePhase4::stateAndHistorySurviveRestart()
 {

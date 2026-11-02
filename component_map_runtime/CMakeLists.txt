@@ -14,6 +14,7 @@ set(COMPONENT_MAP_RUNTIME_HEADERS
     include/component_map_runtime/RuntimePersistence.h
     include/component_map_runtime/RuntimeGrpcServer.h
     include/component_map_runtime/FlattenCompiler.h
+    include/component_map_runtime/RuntimeActorScheduler.h
 )
 
 set(COMPONENT_MAP_RUNTIME_SOURCES
@@ -25,6 +26,7 @@ set(COMPONENT_MAP_RUNTIME_SOURCES
     src/RuntimePersistence.cpp
     src/RuntimeGrpcServer.cpp
     src/FlattenCompiler.cpp
+    src/RuntimeActorScheduler.cpp
 )
 
 add_library(component_map_runtime STATIC

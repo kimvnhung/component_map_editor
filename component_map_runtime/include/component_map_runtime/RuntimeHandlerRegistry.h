@@ -5,11 +5,48 @@
 
 #include <functional>
 #include <memory>
+#include <utility>
 #include <QHash>
 #include <QStringList>
 
 namespace cme::runtime
 {
+
+class RuntimeContext
+{
+public:
+    RuntimeContext(QString componentId, QString componentType, QByteArray state,
+                   bool *cancelled = nullptr)
+        : m_componentId(std::move(componentId))
+        , m_componentType(std::move(componentType))
+        , m_state(std::move(state))
+        , m_cancelled(cancelled)
+    {
+    }
+
+    const QString &componentId() const { return m_componentId; }
+    const QString &componentType() const { return m_componentType; }
+    const QByteArray &state() const { return m_state; }
+    void setState(const QByteArray &state) { m_state = state; }
+    bool isCancelled() const { return m_cancelled && *m_cancelled; }
+
+private:
+    QString m_componentId;
+    QString m_componentType;
+    QByteArray m_state;
+    bool *m_cancelled = nullptr;
+};
+
+class RuntimeEmitter
+{
+public:
+    void emitEvent(const RuntimeEvent &event) { m_outputs.append(event); }
+    void emitDelayed(const RuntimeEvent &event, qint64) { m_outputs.append(event); }
+    const QList<RuntimeEvent> &outputs() const { return m_outputs; }
+
+private:
+    QList<RuntimeEvent> m_outputs;
+};
 
 class RuntimeHandler
 {
@@ -21,7 +58,37 @@ public:
                          QByteArray &state,
                          RuntimeEvent *output,
                          RuntimeFailure *failure) = 0;
+
+    virtual void onStart(RuntimeContext &) {}
+    virtual void onEvent(const RuntimeEvent &event, RuntimeContext &context,
+                         RuntimeEmitter &emitter)
+    {
+        QByteArray state = context.state();
+        RuntimeEvent output;
+        RuntimeFailure failure;
+        if (process(event, state, &output, &failure))
+        {
+            context.setState(state);
+            if (!output.eventId.isEmpty()) emitter.emitEvent(output);
+        }
+    }
+    virtual void onStop(RuntimeContext &) {}
 };
+
+struct RuntimeHandlerResult
+{
+    bool succeeded = true;
+    RuntimeFailure failure;
+    QList<RuntimeEvent> outputs;
+};
+
+inline RuntimeHandlerResult invokeHandler(RuntimeHandler &handler, const RuntimeEvent &event,
+                                          RuntimeContext &context)
+{
+    RuntimeEmitter emitter;
+    handler.onEvent(event, context, emitter);
+    return {true, {}, emitter.outputs()};
+}
 
 class RuntimeHandlerRegistry
 {

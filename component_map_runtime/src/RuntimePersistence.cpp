@@ -238,18 +238,48 @@ QHash<QString, QByteArray> RuntimePersistence::loadComponentStates(QString *erro
     return states;
 }
 
-bool RuntimePersistence::recordAcceptedEvent(const RuntimeEvent &event, QString *error)
+bool RuntimePersistence::recordAcceptedEvent(const RuntimeEvent &event,
+                                               const QByteArray &requestFingerprint,
+                                               QString *error)
 {
     if (!m_database) return setError(QStringLiteral("Database is not open."), error);
+
+    // An idempotency key is a durable request identity.  Reusing it with a
+    // different fingerprint must never silently turn into a second request.
+    if (!event.idempotencyKey.isEmpty())
+    {
+        sqlite3_stmt *existing = nullptr;
+        const char *lookup = "SELECT request_fingerprint FROM event_inbox "
+                             "WHERE idempotency_key=? ORDER BY created_at DESC LIMIT 1";
+        if (sqlite3_prepare_v2(m_database, lookup, -1, &existing, nullptr) != SQLITE_OK
+            || !bindText(existing, 1, event.idempotencyKey))
+        {
+            if (existing) sqlite3_finalize(existing);
+            return setError(sqliteError(), error);
+        }
+        const int result = sqlite3_step(existing);
+        if (result == SQLITE_ROW)
+        {
+            const QByteArray stored = columnBytes(existing, 0);
+            sqlite3_finalize(existing);
+            if (stored != requestFingerprint)
+                return setError(QStringLiteral("IDEMPOTENCY_CONFLICT"), error);
+            return true;
+        }
+        sqlite3_finalize(existing);
+    }
+
     sqlite3_stmt *statement = nullptr;
-    const char *sql = "INSERT OR IGNORE INTO event_inbox(event_id, idempotency_key, target_component_id, "
-                      "message_type, payload, status, created_at) VALUES(?, ?, ?, ?, ?, 'accepted', strftime('%s','now'))";
+    const char *sql = "INSERT OR IGNORE INTO event_inbox(event_id, idempotency_key, "
+                      "request_fingerprint, target_component_id, message_type, payload, status, created_at) "
+                      "VALUES(?, ?, ?, ?, ?, ?, 'accepted', strftime('%s','now'))";
     if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK
         || !bindText(statement, 1, event.eventId)
         || !bindText(statement, 2, event.idempotencyKey)
-        || !bindText(statement, 3, event.targetComponentId)
-        || !bindText(statement, 4, event.messageType)
-        || !bindBytes(statement, 5, event.payload)
+        || !bindBytes(statement, 3, requestFingerprint)
+        || !bindText(statement, 4, event.targetComponentId)
+        || !bindText(statement, 5, event.messageType)
+        || !bindBytes(statement, 6, event.payload)
         || sqlite3_step(statement) != SQLITE_DONE)
     {
         if (statement) sqlite3_finalize(statement);
@@ -259,15 +289,138 @@ bool RuntimePersistence::recordAcceptedEvent(const RuntimeEvent &event, QString 
     return true;
 }
 
+QList<PersistedInboxEvent> RuntimePersistence::loadInboxEvents(QString *error) const
+{
+    QList<PersistedInboxEvent> result;
+    if (!m_database) { setError(QStringLiteral("Database is not open."), error); return result; }
+    sqlite3_stmt *statement = nullptr;
+    const char *sql = "SELECT event_id, idempotency_key, target_component_id, message_type, payload, "
+                      "status, request_fingerprint, failure_code, failure_message, created_at "
+                      "FROM event_inbox ORDER BY created_at, event_id";
+    if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK)
+    { setError(sqliteError(), error); return result; }
+    while (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        PersistedInboxEvent item;
+        item.event.eventId = columnText(statement, 0);
+        item.event.idempotencyKey = columnText(statement, 1);
+        item.event.targetComponentId = columnText(statement, 2);
+        item.event.messageType = columnText(statement, 3);
+        item.event.payload = columnBytes(statement, 4);
+        item.status = columnText(statement, 5);
+        item.requestFingerprint = columnBytes(statement, 6);
+        item.failure.code = columnText(statement, 7);
+        item.failure.message = columnText(statement, 8);
+        item.failure.eventId = item.event.eventId;
+        item.failure.componentId = item.event.targetComponentId;
+        item.createdAt = sqlite3_column_int64(statement, 9);
+        result.append(item);
+    }
+    sqlite3_finalize(statement);
+    return result;
+}
+
+QList<PersistedInboxEvent> RuntimePersistence::loadIncompleteEvents(QString *error) const
+{
+    QList<PersistedInboxEvent> result;
+    const auto all = loadInboxEvents(error);
+    for (const auto &item : all)
+    {
+        if (item.status == QStringLiteral("accepted") || item.status == QStringLiteral("processing"))
+            result.append(item);
+    }
+    return result;
+}
+
+bool RuntimePersistence::markEventProcessing(const QString &eventId, QString *error)
+{
+    if (!m_database) return setError(QStringLiteral("Database is not open."), error);
+    sqlite3_stmt *statement = nullptr;
+    if (sqlite3_prepare_v2(m_database,
+                           "UPDATE event_inbox SET status='processing' WHERE event_id=? AND status='accepted'",
+                           -1, &statement, nullptr) != SQLITE_OK
+        || !bindText(statement, 1, eventId) || sqlite3_step(statement) != SQLITE_DONE)
+    { if (statement) sqlite3_finalize(statement); return setError(sqliteError(), error); }
+    sqlite3_finalize(statement);
+    return true;
+}
+
+bool RuntimePersistence::beginTransaction(QString *error)
+{
+    return execute(QStringLiteral("BEGIN IMMEDIATE TRANSACTION;"), error);
+}
+
+bool RuntimePersistence::commitTransaction(QString *error)
+{
+    return execute(QStringLiteral("COMMIT;"), error);
+}
+
+bool RuntimePersistence::rollbackTransaction(QString *error)
+{
+    return execute(QStringLiteral("ROLLBACK;"), error);
+}
+
+bool RuntimePersistence::saveEventResult(const QString &eventId, const QString &deploymentId,
+                                         const QString &qualifiedPath,
+                                         const QString &componentType, const QByteArray &state,
+                                         int schemaVersion, bool succeeded,
+                                         const RuntimeFailure &failure, QString *error)
+{
+    if (!beginTransaction(error)) return false;
+    if (!saveComponentState(deploymentId, qualifiedPath, componentType, state, schemaVersion, error)
+        || !saveComponentState(qualifiedPath, componentType, state, schemaVersion, error)
+        || !recordEventCompletion(eventId, succeeded, failure, error))
+    {
+        rollbackTransaction(nullptr);
+        return false;
+    }
+    if (!commitTransaction(error))
+    {
+        rollbackTransaction(nullptr);
+        return false;
+    }
+    return true;
+}
+
+bool RuntimePersistence::markRuntimeStatus(const QString &status, QString *error)
+{
+    if (!m_database) return setError(QStringLiteral("Database is not open."), error);
+    sqlite3_stmt *statement = nullptr;
+    const char *sql = "UPDATE runtime_instances SET status=?, updated_at=strftime('%s','now') WHERE runtime_id=?";
+    if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK
+        || !bindText(statement, 1, status) || !bindText(statement, 2, m_runtimeId)
+        || sqlite3_step(statement) != SQLITE_DONE)
+    { if (statement) sqlite3_finalize(statement); return setError(sqliteError(), error); }
+    sqlite3_finalize(statement);
+    return true;
+}
+
+QString RuntimePersistence::runtimeStatus(QString *error) const
+{
+    if (!m_database) { setError(QStringLiteral("Database is not open."), error); return {}; }
+    sqlite3_stmt *statement = nullptr;
+    if (sqlite3_prepare_v2(m_database, "SELECT status FROM runtime_instances WHERE runtime_id=?",
+                           -1, &statement, nullptr) != SQLITE_OK
+        || !bindText(statement, 1, m_runtimeId))
+    { if (statement) sqlite3_finalize(statement); setError(sqliteError(), error); return {}; }
+    const bool found = sqlite3_step(statement) == SQLITE_ROW;
+    const QString status = found ? columnText(statement, 0) : QString();
+    sqlite3_finalize(statement);
+    if (!found) setError(QStringLiteral("Runtime instance not found."), error);
+    return status;
+}
+
 bool RuntimePersistence::recordEventCompletion(const QString &eventId, bool succeeded,
                                                const RuntimeFailure &failure, QString *error)
 {
     if (!m_database) return setError(QStringLiteral("Database is not open."), error);
     sqlite3_stmt *statement = nullptr;
-    const char *sql = "UPDATE event_inbox SET status=? WHERE event_id=?";
+    const char *sql = "UPDATE event_inbox SET status=?, failure_code=?, failure_message=? WHERE event_id=?";
     if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK
         || !bindText(statement, 1, succeeded ? QStringLiteral("completed") : QStringLiteral("failed"))
-        || !bindText(statement, 2, eventId)
+        || !bindText(statement, 2, failure.code)
+        || !bindText(statement, 3, failure.message)
+        || !bindText(statement, 4, eventId)
         || sqlite3_step(statement) != SQLITE_DONE)
     {
         if (statement) sqlite3_finalize(statement);
@@ -447,10 +600,31 @@ bool RuntimePersistence::migrate(QString *error)
         "CREATE TABLE IF NOT EXISTS component_state_v2(deployment_id TEXT NOT NULL, qualified_path TEXT NOT NULL, component_type TEXT NOT NULL, state_blob BLOB NOT NULL, schema_version INTEGER NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(deployment_id, qualified_path));"
         "CREATE TABLE IF NOT EXISTS graph_versions(graph_version TEXT PRIMARY KEY, graph_blob BLOB NOT NULL, active INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);"
         "CREATE TABLE IF NOT EXISTS component_state(instance_id TEXT PRIMARY KEY, component_type TEXT NOT NULL, state_blob BLOB NOT NULL, schema_version INTEGER NOT NULL, updated_at INTEGER NOT NULL);"
-        "CREATE TABLE IF NOT EXISTS event_inbox(event_id TEXT PRIMARY KEY, idempotency_key TEXT, target_component_id TEXT NOT NULL, message_type TEXT NOT NULL, payload BLOB, status TEXT NOT NULL, created_at INTEGER NOT NULL);"
+        "CREATE TABLE IF NOT EXISTS event_inbox(event_id TEXT PRIMARY KEY, idempotency_key TEXT, request_fingerprint BLOB, target_component_id TEXT NOT NULL, message_type TEXT NOT NULL, payload BLOB, status TEXT NOT NULL CHECK(status IN ('accepted','processing','completed','failed','rejected')), failure_code TEXT, failure_message TEXT, created_at INTEGER NOT NULL);"
+        "CREATE INDEX IF NOT EXISTS idx_event_inbox_status ON event_inbox(status);"
+        "CREATE INDEX IF NOT EXISTS idx_event_inbox_idempotency ON event_inbox(idempotency_key);"
+        "CREATE TABLE IF NOT EXISTS event_outbox(id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL, target_component_id TEXT NOT NULL, message_type TEXT NOT NULL, payload BLOB, status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL);"
+        "CREATE INDEX IF NOT EXISTS idx_event_outbox_status ON event_outbox(status);"
         "CREATE TABLE IF NOT EXISTS event_history(id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL, status TEXT NOT NULL, failure_code TEXT, failure_message TEXT, created_at INTEGER NOT NULL);"
+        "CREATE TABLE IF NOT EXISTS component_history(id INTEGER PRIMARY KEY AUTOINCREMENT, deployment_id TEXT, qualified_path TEXT NOT NULL, state_blob BLOB NOT NULL, created_at INTEGER NOT NULL);"
         "CREATE TABLE IF NOT EXISTS event_rejections(id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT, idempotency_key TEXT, target_component_id TEXT, route_id TEXT, reason_code TEXT NOT NULL, mailbox_depth INTEGER NOT NULL, created_at INTEGER NOT NULL);"
-        "CREATE TABLE IF NOT EXISTS runtime_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, level TEXT NOT NULL, code TEXT NOT NULL, message TEXT NOT NULL, created_at INTEGER NOT NULL);"), error);
+        "CREATE TABLE IF NOT EXISTS runtime_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, level TEXT NOT NULL, code TEXT NOT NULL, message TEXT NOT NULL, created_at INTEGER NOT NULL);"), error); /* migration continues below */
+
+    if (!m_database) return false;
+    sqlite3_stmt *columns = nullptr;
+    bool hasFingerprint = false;
+    if (sqlite3_prepare_v2(m_database, "PRAGMA table_info(event_inbox)", -1, &columns, nullptr) != SQLITE_OK)
+        return setError(sqliteError(), error);
+    while (sqlite3_step(columns) == SQLITE_ROW)
+    {
+        if (columnText(columns, 1) == QStringLiteral("request_fingerprint"))
+            hasFingerprint = true;
+    }
+    sqlite3_finalize(columns);
+    if (!hasFingerprint
+        && !execute(QStringLiteral("ALTER TABLE event_inbox ADD COLUMN request_fingerprint BLOB;"), error))
+        return false;
+    return true;
 }
 
 bool RuntimePersistence::setError(const QString &message, QString *error) const
