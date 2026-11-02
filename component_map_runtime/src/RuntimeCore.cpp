@@ -488,6 +488,8 @@ bool RuntimeEngine::dispatchFromActor(const QString &instanceId)
     if (m_persistence)
     {
         m_persistence->recordEventCompletion(event.eventId, true);
+        m_persistence->recordLog(QStringLiteral("info"), QStringLiteral("EVENT_PROCESSED"),
+                                 QStringLiteral("Runtime event processed by component %1.").arg(instanceId));
     }
     if (!event.idempotencyKey.isEmpty())
     {

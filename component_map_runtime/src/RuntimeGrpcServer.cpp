@@ -189,6 +189,17 @@ grpc::Status RuntimeGrpcServer::QueryService::GetComponentStatus(
     }
     response->set_found(true);
     response->set_status(QString::number(static_cast<int>(m_owner->m_engine->actorStatus(componentId))).toStdString());
+    if (m_owner->m_deploymentManager->hasActiveGraph())
+    {
+        for (const auto &component : m_owner->m_deploymentManager->activeGraph().components())
+        {
+            if (component.instance_id() == request->component_id())
+            {
+                response->set_component_type(component.component_type());
+                break;
+            }
+        }
+    }
     response->set_mailbox_depth(m_owner->m_engine->mailboxDepth(componentId));
     response->set_state(m_owner->m_engine->componentState(componentId).constData(),
                         m_owner->m_engine->componentState(componentId).size());

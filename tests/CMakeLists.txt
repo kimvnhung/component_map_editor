@@ -2,6 +2,24 @@ cmake_minimum_required(VERSION 3.21)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickTest Test)
 
+# QML module contract test verifies the library's public import surface.
+qt_add_executable(tst_EditorQmlModuleContract
+    tst_EditorQmlModuleContract.cpp
+)
+
+target_link_libraries(tst_EditorQmlModuleContract
+    PRIVATE
+        Qt6::Test
+        Qt6::Quick
+        libComponentMapEditor
+)
+
+add_test(
+    NAME tst_EditorQmlModuleContract
+    COMMAND tst_EditorQmlModuleContract
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # The ComponentMapEditor QML module output lives one level above its
 # auto-generated sub-folder (e.g. <build>/component_map_editor/ contains
 # the ComponentMapEditor/ dir).  Pass that parent path to the test binary so
@@ -875,18 +893,18 @@ qt_add_executable(tst_RuntimeProcessPhase5
 
 target_link_libraries(tst_RuntimeProcessPhase5
     PRIVATE
+        Qt6::Core
         Qt6::Test
-        component_map_runtime
         cme_runtime_proto
         gRPC::grpc++
 )
 
-target_include_directories(tst_RuntimeProcessPhase5
+target_compile_definitions(tst_RuntimeProcessPhase5
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
-        ${CMAKE_BINARY_DIR}/proto
-        ${CMAKE_BINARY_DIR}/proto/runtime
+        COMPONENT_MAP_RUNTIME_PROCESS_EXECUTABLE="$<TARGET_FILE:component_map_runtime_process>"
 )
+
+add_dependencies(tst_RuntimeProcessPhase5 component_map_runtime_process)
 
 add_test(
     NAME tst_RuntimeProcessPhase5

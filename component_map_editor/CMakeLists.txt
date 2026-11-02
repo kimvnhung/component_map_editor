@@ -6,7 +6,7 @@ if(COMMAND qt_policy)
 endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 
-# Explicit ownership keeps the editor/QML target separate from the runtime target.
+# Explicit ownership keeps the reusable editor/QML module separate from the runtime.
 set(COMPONENT_MAP_EDITOR_HEADERS
     adapters/AdapterCommon.h
     adapters/GraphAdapter.h
@@ -224,6 +224,8 @@ qt_add_qml_module(${PROJECT_NAME}
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ComponentMapEditor"
     IMPORTS
         QmlFontAwesome
+    TYPEINFO
+        "ComponentMapEditor.qmltypes"
     QML_FILES
         ${COMPONENT_MAP_EDITOR_QML}
         ${COMPONENT_MAP_EDITOR_JS}
