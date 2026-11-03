@@ -3,27 +3,8 @@
 #include <QDebug>
 
 #include "component_map_runtime/RuntimeGrpcServer.h"
+#include "component_map_runtime/BuiltinFactoryExtension.h"
 
-namespace
-{
-class BuiltinHandler final : public cme::runtime::RuntimeHandler
-{
-public:
-    explicit BuiltinHandler(QString type) : m_type(std::move(type)) {}
-    QString componentType() const override { return m_type; }
-    bool process(const cme::runtime::RuntimeEvent &event, QByteArray &state,
-                 cme::runtime::RuntimeEvent *output,
-                 cme::runtime::RuntimeFailure *) override
-    {
-        state.append(event.payload);
-        *output = event;
-        output->sourceComponentId = event.targetComponentId;
-        return true;
-    }
-private:
-    QString m_type;
-};
-}
 
 int main(int argc, char *argv[])
 {
@@ -44,13 +25,14 @@ int main(int argc, char *argv[])
     descriptor.set_mode(cme::runtime::v1::RUNTIME_MODE_BACKGROUND);
     cme::runtime::RuntimeService service(descriptor);
     cme::runtime::RuntimeHandlerRegistry registry;
-    for (const QString &type : {QStringLiteral("producer"), QStringLiteral("processor"), QStringLiteral("sink")})
+    QString error;
+    if (!registry.registerExtension(cme::runtime::makeBuiltinFactoryExtension(), &error))
     {
-        registry.registerFactory(type, [type] { return std::make_unique<BuiltinHandler>(type); });
+        qCritical().noquote() << error;
+        return 1;
     }
     cme::runtime::DeploymentManager deployment(&service, &registry);
     cme::runtime::RuntimePersistence persistence;
-    QString error;
     if (!persistence.open(parser.value(databaseOption), parser.value(runtimeOption), &error))
     {
         qCritical().noquote() << error;

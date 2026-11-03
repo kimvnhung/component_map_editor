@@ -950,8 +950,31 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# Phase 4 intentionally has no retry scheduler or dead-letter queue.
+# Phase 4: runtime extension pack and handler registry contract.
+qt_add_executable(tst_RuntimeExtensionPhase4
+    tst_RuntimeExtensionPhase4.cpp
+)
 
+target_link_libraries(tst_RuntimeExtensionPhase4
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+)
+
+target_include_directories(tst_RuntimeExtensionPhase4
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RuntimeExtensionPhase4
+    COMMAND tst_RuntimeExtensionPhase4
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 4 remains static-loading for MVP.
+
+# Phase 4 intentionally has no retry scheduler or dead-letter queue.
 # ── Phase 5: gRPC process boundary ───────────────────────────────────────────
 qt_add_executable(tst_RuntimeProcessPhase5
     tst_RuntimeProcessPhase5.cpp

@@ -98,19 +98,44 @@ inline RuntimeHandlerResult invokeHandler(RuntimeHandler &handler, const Runtime
     return {!context.hasFailure(), context.failure(), emitter.outputs()};
 }
 
+struct RuntimeComponentDefinition
+{
+    QString componentType;
+    QString handlerId;
+    QString version = QStringLiteral("1.0.0");
+    int stateSchemaVersion = 1;
+    QStringList inputMessageTypes;
+    QStringList outputMessageTypes;
+};
+
+struct RuntimeExtensionPack
+{
+    QString extensionId;
+    QString version = QStringLiteral("1.0.0");
+    QList<RuntimeComponentDefinition> components;
+    QHash<QString, std::function<std::unique_ptr<RuntimeHandler>()>> factories;
+};
+
 class RuntimeHandlerRegistry
 {
 public:
     using Factory = std::function<std::unique_ptr<RuntimeHandler>()>;
 
     bool registerFactory(const QString &componentType, Factory factory);
+    bool registerExtension(const RuntimeExtensionPack &extension, QString *error = nullptr);
     bool contains(const QString &componentType) const;
     std::unique_ptr<RuntimeHandler> create(const QString &componentType) const;
     QStringList componentTypes() const;
+    RuntimeComponentDefinition definition(const QString &componentType) const;
+    QString extensionFor(const QString &componentType) const;
 
 private:
     QHash<QString, Factory> m_factories;
+    QHash<QString, RuntimeComponentDefinition> m_definitions;
+    QHash<QString, QString> m_extensions;
 };
+
+RuntimeExtensionPack makeBuiltinFactoryExtension();
 
 } // namespace cme::runtime
 
