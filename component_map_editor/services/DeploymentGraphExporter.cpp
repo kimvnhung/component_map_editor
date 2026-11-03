@@ -234,6 +234,11 @@ bool DeploymentGraphExporter::exportGraph(const GraphModel *graph,
                 continue;
 
             const QByteArray propertyName = normalizedKey.toUtf8();
+            // Only dynamic properties are part of the runtime extension contract. Built-in
+            // QObject properties such as color and geometry belong to the editor document.
+            if (!component->dynamicPropertyNames().contains(propertyName))
+                continue;
+
             const QVariant value = component->property(propertyName.constData());
             if (!value.isValid())
                 continue;

@@ -4,6 +4,34 @@
 #include "compatibility/execution_internal/ProviderResultValidation.h"
 #include "compatibility/execution_internal/SequentialExecutionEngine.h"
 
+#include <algorithm>
+
+#include "utils/GraphHelper.h"
+
+namespace {
+
+void recordTelemetry(const cme::GraphSnapshot &snapshot, const ExecutionContext &ctx,
+                     const ExecuteResult &result, qint64 *bytesRead, qint64 *bytesWritten,
+                     qint64 *maxBytes, int *tokenReads, int *tokenWrites)
+{
+    for (const QVariantMap &payload : ctx.incomingTokens)
+    {
+        const qint64 bytes = cme::helper::graph::estimatePayloadBytes(payload);
+        *bytesRead += bytes;
+        *maxBytes = qMax(*maxBytes, bytes);
+        ++*tokenReads;
+    }
+    for (const cme::ConnectionData &edge : cme::helper::graph::getConnectionsBySourceId(snapshot, ctx.componentId))
+    {
+        const qint64 bytes = cme::helper::graph::estimatePayloadBytes(result.output);
+        *bytesWritten += bytes;
+        *maxBytes = qMax(*maxBytes, bytes);
+        ++*tokenWrites;
+    }
+}
+
+} // namespace
+
 using cme::actor::ActorScheduler;
 using cme::actor::GraphSnapshotActorAdapter;
 
@@ -61,7 +89,15 @@ bool ActorMailboxExecutionEngine::prepare(GraphModel *graph,
     }
 
     m_scheduler->start();
-    m_scheduler->seedEntryComponents({ resolvedStartComponentId }, request.inputSnapshot);
+    QStringList entryComponentIds;
+    for (const auto &component : m_graphSnapshot.components())
+    {
+        const QString componentId = QString::fromStdString(component.id());
+        if (cme::helper::graph::getConnectionsByTargetId(m_graphSnapshot, componentId).isEmpty())
+            entryComponentIds.append(componentId);
+    }
+    std::sort(entryComponentIds.begin(), entryComponentIds.end());
+    m_scheduler->seedEntryComponents(entryComponentIds, request.inputSnapshot);
     return true;
 }
 
@@ -169,6 +205,14 @@ IExecutionEngine::Telemetry ActorMailboxExecutionEngine::telemetry() const
 
 void ActorMailboxExecutionEngine::onActorStep(const ExecutionContext &ctx, const ExecuteResult &result)
 {
+    if (result.status == ExecuteResult::Status::Ok)
+    {
+        for (const cme::ConnectionData &edge : cme::helper::graph::getConnectionsBySourceId(m_graphSnapshot, ctx.componentId))
+        {
+            cme::helper::graph::setPayload(m_graphSnapshot, QString::fromStdString(edge.id()), result.output);
+        }
+    }
+
     std::lock_guard<std::mutex> lock(m_completedMutex);
     m_completedSteps.emplace_back(ctx, result);
     m_completedAvailable.notify_one();
@@ -259,6 +303,8 @@ IExecutionEngine::StepOutcome ActorMailboxExecutionEngine::executeNext(const QVa
         return StepOutcome::ValidationError;
     }
 
+    recordTelemetry(m_graphSnapshot, ctx, result, &m_payloadBytesRead, &m_payloadBytesWritten,
+                    &m_maxPayloadBytes, &m_tokenReadCount, &m_tokenWriteCount);
     ++m_executedCount;
     return StepOutcome::Committed;
 }
@@ -278,6 +324,11 @@ void ActorMailboxExecutionEngine::reset()
     m_reachableComponentIds.clear();
     m_ignoredComponentIds.clear();
     m_activeConnectionCount = 0;
+    m_payloadBytesRead = 0;
+    m_payloadBytesWritten = 0;
+    m_maxPayloadBytes = 0;
+    m_tokenReadCount = 0;
+    m_tokenWriteCount = 0;
 
     std::lock_guard<std::mutex> lock(m_completedMutex);
     m_completedSteps.clear();

@@ -150,6 +150,26 @@ bool ExecutionPlanBuilder::build(GraphModel *graph,
         }
     }
 
+    // A reachable join may have additional root branches that do not descend from the
+    // configured start component. Include those upstream branches so fan-in receives every
+    // declared edge token instead of silently dropping a branch.
+    bool addedUpstream = true;
+    while (addedUpstream)
+    {
+        addedUpstream = false;
+        for (ConnectionModel *connection : graph->connectionList())
+        {
+            const QString sourceId = connection->sourceId().trimmed();
+            const QString targetId = connection->targetId().trimmed();
+            if (plan->reachableComponentIds.contains(targetId)
+                && !plan->reachableComponentIds.contains(sourceId))
+            {
+                plan->reachableComponentIds.insert(sourceId);
+                addedUpstream = true;
+            }
+        }
+    }
+
     for (const QString &componentId : componentsById.keys())
     {
         if (!plan->reachableComponentIds.contains(componentId))
@@ -171,6 +191,7 @@ bool ExecutionPlanBuilder::build(GraphModel *graph,
         if (plan->reachableComponentIds.contains(sourceId)
             && plan->reachableComponentIds.contains(targetId))
         {
+            plan->activeConnectionIds.insert(connection->id().trimmed());
             plan->pendingInDegree[targetId] = plan->pendingInDegree.value(targetId) + 1;
         }
     }
