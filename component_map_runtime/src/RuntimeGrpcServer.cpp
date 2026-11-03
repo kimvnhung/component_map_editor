@@ -147,6 +147,7 @@ grpc::Status RuntimeGrpcServer::ControlService::GetRuntimeStatus(
     response->set_success(true);
     response->set_status(m_owner->m_runtimeService->status());
     response->set_runtime_id(m_owner->m_runtimeService->descriptor().runtime_id());
+    response->set_protocol_version(m_owner->m_runtimeService->descriptor().protocol_version());
     if (m_owner->m_deploymentManager->hasActiveGraph())
     {
         response->set_graph_version(m_owner->m_deploymentManager->activeGraph().graph_version());

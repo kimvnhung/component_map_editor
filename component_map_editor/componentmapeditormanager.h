@@ -12,15 +12,21 @@
 #include "services/RuntimeClient.h"
 
 #include <QObject>
+#include <QTimer>
 #include <QString>
+
 #include <QVariantList>
+
 #include <QVariantMap>
 
 #include <memory>
+
 #include <vector>
 
 class ExtensionContractRegistry;
+
 class IComponentTypeProvider;
+
 class ExtensionPackBuilder;
 
 class ComponentMapEditorManager : public QObject
@@ -33,6 +39,8 @@ class ComponentMapEditorManager : public QObject
     Q_PROPERTY(QString runtimeStatus READ runtimeStatus NOTIFY runtimeStatusChanged)
     Q_PROPERTY(QString runtimeActiveGraphVersion READ runtimeActiveGraphVersion NOTIFY runtimeStatusChanged)
     Q_PROPERTY(QString runtimeLastError READ runtimeLastError NOTIFY runtimeStatusChanged)
+    Q_PROPERTY(QString runtimeChannelState READ runtimeChannelState NOTIFY runtimeStatusChanged)
+    Q_PROPERTY(bool runtimeConnected READ runtimeConnected NOTIFY runtimeStatusChanged)
 public:
     ComponentMapEditorManager(QObject *parent = nullptr);
 
@@ -49,6 +57,12 @@ public:
     QString runtimeStatus() const { return m_runtimeStatus; }
     QString runtimeActiveGraphVersion() const { return m_runtimeActiveGraphVersion; }
     QString runtimeLastError() const { return m_runtimeLastError; }
+    QString runtimeChannelState() const;
+    bool runtimeConnected() const;
+    int runtimePollIntervalMs() const { return m_runtimePollIntervalMs; }
+    void setRuntimePollIntervalMs(int intervalMs);
+
+    Q_INVOKABLE bool reconnectRuntime();
 public:
     Q_INVOKABLE void reloadComponentTypes();
 
@@ -66,10 +80,6 @@ public:
     void setExtensionContractRegistry(std::unique_ptr<ExtensionContractRegistry> registry);
     void setRuleFilePath(const QString &filePath);
     void setManifestDirectory(const QString &dirPath);
-    /**
-     * @brief registerPackFactoryEntry: Registers a pack factory entry with the extension startup loader
-     * @param entry
-     */
     void registerPackFactoryEntry(PackFactoryEntry entry);
 
 signals:
@@ -89,6 +99,8 @@ private:
     QString m_runtimeStatus{QStringLiteral("unknown")};
     QString m_runtimeActiveGraphVersion{};
     QString m_runtimeLastError{};
+    int m_runtimePollIntervalMs = 2000;
+    QTimer *m_runtimePollTimer = nullptr;
 
     QString m_manifestDir;
     QString m_ruleFilePath;
@@ -109,7 +121,6 @@ public:
     ComponentMapEditorManagerBuilder &withRuleFilePath(const QString &filePath);
     ComponentMapEditorManagerBuilder &withManifestDirectory(const QString &dirPath);
     ComponentMapEditorManagerBuilder &withPackFactoryEntry(std::unique_ptr<PackFactoryEntry> entry);
-
 
     std::unique_ptr<ComponentMapEditorManager> build();
 private:

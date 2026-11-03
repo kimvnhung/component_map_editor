@@ -195,6 +195,12 @@ set(COMPONENT_MAP_EDITOR_QML
     ui/qml/items/Arrow.qml
     ui/qml/items/TimelineItem.qml
     ui/qml/panels/TimelinePanel.qml
+    ui/qml/panels/RuntimeOverviewPanel.qml
+    ui/qml/panels/DeploymentPanel.qml
+    ui/qml/panels/ComponentStatusPanel.qml
+    ui/qml/panels/EventHistoryPanel.qml
+    ui/qml/panels/RuntimeLogPanel.qml
+    ui/qml/panels/RejectionPanel.qml
 )
 
 set(COMPONENT_MAP_EDITOR_JS

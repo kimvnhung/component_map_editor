@@ -2,6 +2,7 @@
 
 #include "services/DeploymentGraphExporter.h"
 #include <QDir>
+#include <QTimer>
 #include <base_log.h>
 #include "extensions/contracts/ExtensionContractRegistry.h"
 
@@ -15,7 +16,13 @@ ComponentMapEditorManager::ComponentMapEditorManager(QObject *parent)
     , m_propertySchemaRegistry(new PropertySchemaRegistry())
     , m_dynamicOptionsRegistry(new DynamicOptionsRegistry())
     , m_runtimeClient(std::make_unique<cme::editor::RuntimeClient>())
+    , m_runtimePollTimer(new QTimer(this))
 {
+    m_runtimePollTimer->setInterval(m_runtimePollIntervalMs);
+    connect(m_runtimePollTimer, &QTimer::timeout, this, [this] {
+        refreshRuntimeStatus();
+    });
+    m_runtimePollTimer->start();
 }
 
 ComponentMapEditorManager::~ComponentMapEditorManager()
@@ -48,6 +55,40 @@ void ComponentMapEditorManager::reloadComponentTypes()
 QString ComponentMapEditorManager::runtimeAddress() const
 {
     return m_runtimeClient ? m_runtimeClient->address() : QString();
+}
+
+QString ComponentMapEditorManager::runtimeChannelState() const
+{
+    return m_runtimeClient
+        ? cme::editor::runtimeChannelStateName(m_runtimeClient->channelState())
+        : QStringLiteral("unknown");
+}
+
+bool ComponentMapEditorManager::runtimeConnected() const
+{
+    return m_runtimeClient
+        && m_runtimeClient->channelState() == cme::editor::RuntimeChannelState::Ready;
+}
+
+void ComponentMapEditorManager::setRuntimePollIntervalMs(int intervalMs)
+{
+    m_runtimePollIntervalMs = qMax(250, intervalMs);
+    if (m_runtimePollTimer)
+        m_runtimePollTimer->setInterval(m_runtimePollIntervalMs);
+}
+
+bool ComponentMapEditorManager::reconnectRuntime()
+{
+    if (!m_runtimeClient)
+        return false;
+    QString error;
+    if (!m_runtimeClient->reconnect(&error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+    return refreshRuntimeStatus();
 }
 
 void ComponentMapEditorManager::setRuntimeAddress(const QString &address)

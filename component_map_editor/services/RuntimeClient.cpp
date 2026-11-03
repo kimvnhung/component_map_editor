@@ -1,8 +1,9 @@
 #include "RuntimeClient.h"
 
+#include <chrono>
+
 namespace
 {
-
 void clearError(QString *error)
 {
     if (error)
@@ -14,11 +15,24 @@ void setError(QString *error, const QString &message)
     if (error)
         *error = message;
 }
-
-} // namespace
+}
 
 namespace cme::editor
 {
+
+QString runtimeChannelStateName(RuntimeChannelState state)
+{
+    switch (state)
+    {
+    case RuntimeChannelState::Idle: return QStringLiteral("idle");
+    case RuntimeChannelState::Connecting: return QStringLiteral("connecting");
+    case RuntimeChannelState::Ready: return QStringLiteral("ready");
+    case RuntimeChannelState::TransientFailure: return QStringLiteral("transient_failure");
+    case RuntimeChannelState::Shutdown: return QStringLiteral("shutdown");
+    case RuntimeChannelState::Unknown: return QStringLiteral("unknown");
+    }
+    return QStringLiteral("unknown");
+}
 
 RuntimeClient::RuntimeClient(const QString &address)
     : m_address(address.trimmed())
@@ -36,10 +50,57 @@ void RuntimeClient::setAddress(const QString &address)
     if (m_address == normalized)
         return;
     m_address = normalized;
+    cancelPendingCalls();
+}
+
+void RuntimeClient::setTimeoutMs(int timeoutMs)
+{
+    m_timeoutMs = qMax(1, timeoutMs);
+}
+
+void RuntimeClient::setExpectedProtocolVersion(const QString &version)
+{
+    m_expectedProtocolVersion = version.trimmed();
+}
+
+RuntimeChannelState RuntimeClient::channelState() const
+{
+    if (!m_channel)
+        return RuntimeChannelState::Idle;
+    switch (m_channel->GetState(false))
+    {
+    case GRPC_CHANNEL_IDLE: return RuntimeChannelState::Idle;
+    case GRPC_CHANNEL_CONNECTING: return RuntimeChannelState::Connecting;
+    case GRPC_CHANNEL_READY: return RuntimeChannelState::Ready;
+    case GRPC_CHANNEL_TRANSIENT_FAILURE: return RuntimeChannelState::TransientFailure;
+    case GRPC_CHANNEL_SHUTDOWN: return RuntimeChannelState::Shutdown;
+    }
+    return RuntimeChannelState::Unknown;
+}
+
+bool RuntimeClient::reconnect(QString *error) const
+{
+    if (!checkAddress(error))
+        return false;
+    cancelPendingCalls();
+    rebuildStubs();
+    m_channel->GetState(true);
+    clearError(error);
+    return true;
+}
+
+void RuntimeClient::cancelPendingCalls() const
+{
     m_channel.reset();
     m_control.reset();
     m_events.reset();
     m_query.reset();
+}
+
+void RuntimeClient::configureContext(grpc::ClientContext *context) const
+{
+    context->set_deadline(std::chrono::system_clock::now()
+                          + std::chrono::milliseconds(m_timeoutMs));
 }
 
 bool RuntimeClient::checkAddress(QString *error) const
@@ -54,7 +115,6 @@ void RuntimeClient::rebuildStubs() const
 {
     if (m_channel)
         return;
-
     m_channel = grpc::CreateChannel(m_address.toStdString(), grpc::InsecureChannelCredentials());
     m_control = cme::runtime::v1::RuntimeControl::NewStub(m_channel);
     m_events = cme::runtime::v1::RuntimeEvents::NewStub(m_channel);
@@ -68,10 +128,9 @@ bool RuntimeClient::checkRpc(const grpc::Status &status, QString *error)
         clearError(error);
         return true;
     }
-
     setError(error, QStringLiteral("Runtime RPC failed (%1): %2")
-                        .arg(static_cast<int>(status.error_code()))
-                        .arg(QString::fromStdString(status.error_message())));
+                       .arg(static_cast<int>(status.error_code()))
+                       .arg(QString::fromStdString(status.error_message())));
     return false;
 }
 
@@ -83,9 +142,18 @@ bool RuntimeClient::checkApplication(bool success, const QString &code,
         clearError(error);
         return true;
     }
-
     const QString detail = message.isEmpty() ? code : QStringLiteral("%1: %2").arg(code, message);
     setError(error, detail.isEmpty() ? QStringLiteral("Runtime operation was rejected.") : detail);
+    return false;
+}
+
+bool RuntimeClient::checkProtocol(const QString &actual, QString *error) const
+{
+    if (m_expectedProtocolVersion.isEmpty() || actual.isEmpty()
+        || actual == m_expectedProtocolVersion)
+        return true;
+    setError(error, QStringLiteral("Runtime protocol mismatch. Expected %1, received %2.")
+                       .arg(m_expectedProtocolVersion, actual));
     return false;
 }
 
@@ -93,18 +161,15 @@ bool RuntimeClient::deployGraph(const cme::runtime::v1::DeploymentGraph &graph,
                                 cme::runtime::v1::ControlResponse *response,
                                 QString *error) const
 {
-    if (!checkAddress(error))
-        return false;
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::DeployGraphRequest request;
     *request.mutable_graph() = graph;
     cme::runtime::v1::ControlResponse local;
     grpc::ClientContext context;
-    const grpc::Status status = m_control->DeployGraph(&context, request, &local);
-    if (!checkRpc(status, error))
-        return false;
-    if (response)
-        *response = local;
+    configureContext(&context);
+    if (!checkRpc(m_control->DeployGraph(&context, request, &local), error)) return false;
+    if (response) *response = local;
     return checkApplication(local.success(), QString::fromStdString(local.error_code()),
                             QString::fromStdString(local.error_message()), error);
 }
@@ -113,52 +178,43 @@ bool RuntimeClient::activateGraph(const QString &graphVersion,
                                   cme::runtime::v1::ControlResponse *response,
                                   QString *error) const
 {
-    if (!checkAddress(error))
-        return false;
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::ActivateGraphRequest request;
     request.set_graph_version(graphVersion.toStdString());
     cme::runtime::v1::ControlResponse local;
     grpc::ClientContext context;
-    const grpc::Status status = m_control->ActivateGraph(&context, request, &local);
-    if (!checkRpc(status, error))
-        return false;
-    if (response)
-        *response = local;
+    configureContext(&context);
+    if (!checkRpc(m_control->ActivateGraph(&context, request, &local), error)) return false;
+    if (response) *response = local;
     return checkApplication(local.success(), QString::fromStdString(local.error_code()),
                             QString::fromStdString(local.error_message()), error);
 }
 
 bool RuntimeClient::startRuntime(cme::runtime::v1::ControlResponse *response, QString *error) const
 {
-    if (!checkAddress(error))
-        return false;
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::EmptyRequest request;
     cme::runtime::v1::ControlResponse local;
     grpc::ClientContext context;
-    const grpc::Status status = m_control->StartRuntime(&context, request, &local);
-    if (!checkRpc(status, error))
-        return false;
-    if (response)
-        *response = local;
+    configureContext(&context);
+    if (!checkRpc(m_control->StartRuntime(&context, request, &local), error)) return false;
+    if (response) *response = local;
     return checkApplication(local.success(), QString::fromStdString(local.error_code()),
                             QString::fromStdString(local.error_message()), error);
 }
 
 bool RuntimeClient::stopRuntime(cme::runtime::v1::ControlResponse *response, QString *error) const
 {
-    if (!checkAddress(error))
-        return false;
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::EmptyRequest request;
     cme::runtime::v1::ControlResponse local;
     grpc::ClientContext context;
-    const grpc::Status status = m_control->StopRuntime(&context, request, &local);
-    if (!checkRpc(status, error))
-        return false;
-    if (response)
-        *response = local;
+    configureContext(&context);
+    if (!checkRpc(m_control->StopRuntime(&context, request, &local), error)) return false;
+    if (response) *response = local;
     return checkApplication(local.success(), QString::fromStdString(local.error_code()),
                             QString::fromStdString(local.error_message()), error);
 }
@@ -166,19 +222,14 @@ bool RuntimeClient::stopRuntime(cme::runtime::v1::ControlResponse *response, QSt
 bool RuntimeClient::runtimeStatus(cme::runtime::v1::RuntimeStatusResponse *response,
                                   QString *error) const
 {
-    if (!response)
-    {
-        setError(error, QStringLiteral("Runtime status response must not be null."));
-        return false;
-    }
-    if (!checkAddress(error))
-        return false;
+    if (!response) { setError(error, QStringLiteral("Runtime status response must not be null.")); return false; }
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::RuntimeStatusRequest request;
     grpc::ClientContext context;
-    const grpc::Status status = m_control->GetRuntimeStatus(&context, request, response);
-    if (!checkRpc(status, error))
-        return false;
+    configureContext(&context);
+    if (!checkRpc(m_control->GetRuntimeStatus(&context, request, response), error)) return false;
+    if (!checkProtocol(QString::fromStdString(response->protocol_version()), error)) return false;
     return checkApplication(response->success(), QString::fromStdString(response->error_code()),
                             QString::fromStdString(response->error_message()), error);
 }
@@ -187,16 +238,13 @@ bool RuntimeClient::publishEvent(const cme::runtime::v1::PublishEventRequest &re
                                  cme::runtime::v1::PublishEventResponse *response,
                                  QString *error) const
 {
-    if (!checkAddress(error))
-        return false;
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::PublishEventResponse local;
     grpc::ClientContext context;
-    const grpc::Status status = m_events->PublishEvent(&context, request, &local);
-    if (!checkRpc(status, error))
-        return false;
-    if (response)
-        *response = local;
+    configureContext(&context);
+    if (!checkRpc(m_events->PublishEvent(&context, request, &local), error)) return false;
+    if (response) *response = local;
     return checkApplication(local.accepted(), QString::fromStdString(local.error_code()),
                             QString::fromStdString(local.error_message()), error);
 }
@@ -205,17 +253,13 @@ bool RuntimeClient::componentStatus(const QString &componentId,
                                     cme::runtime::v1::ComponentStatusResponse *response,
                                     QString *error) const
 {
-    if (!response)
-    {
-        setError(error, QStringLiteral("Component status response must not be null."));
-        return false;
-    }
-    if (!checkAddress(error))
-        return false;
+    if (!response) { setError(error, QStringLiteral("Component status response must not be null.")); return false; }
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::ComponentStatusRequest request;
     request.set_component_id(componentId.toStdString());
     grpc::ClientContext context;
+    configureContext(&context);
     return checkRpc(m_query->GetComponentStatus(&context, request, response), error);
 }
 
@@ -223,17 +267,13 @@ bool RuntimeClient::eventHistory(int limit,
                                  cme::runtime::v1::EventHistoryResponse *response,
                                  QString *error) const
 {
-    if (!response)
-    {
-        setError(error, QStringLiteral("Event history response must not be null."));
-        return false;
-    }
-    if (!checkAddress(error))
-        return false;
+    if (!response) { setError(error, QStringLiteral("Event history response must not be null.")); return false; }
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::QueryRequest request;
     request.set_limit(limit);
     grpc::ClientContext context;
+    configureContext(&context);
     return checkRpc(m_query->ListEventHistory(&context, request, response), error);
 }
 
@@ -241,17 +281,13 @@ bool RuntimeClient::runtimeLogs(int limit,
                                 cme::runtime::v1::RuntimeLogsResponse *response,
                                 QString *error) const
 {
-    if (!response)
-    {
-        setError(error, QStringLiteral("Runtime logs response must not be null."));
-        return false;
-    }
-    if (!checkAddress(error))
-        return false;
+    if (!response) { setError(error, QStringLiteral("Runtime logs response must not be null.")); return false; }
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::QueryRequest request;
     request.set_limit(limit);
     grpc::ClientContext context;
+    configureContext(&context);
     return checkRpc(m_query->ListRuntimeLogs(&context, request, response), error);
 }
 
@@ -259,17 +295,13 @@ bool RuntimeClient::rejections(int limit,
                                cme::runtime::v1::RejectionsResponse *response,
                                QString *error) const
 {
-    if (!response)
-    {
-        setError(error, QStringLiteral("Rejections response must not be null."));
-        return false;
-    }
-    if (!checkAddress(error))
-        return false;
+    if (!response) { setError(error, QStringLiteral("Rejections response must not be null.")); return false; }
+    if (!checkAddress(error)) return false;
     rebuildStubs();
     cme::runtime::v1::QueryRequest request;
     request.set_limit(limit);
     grpc::ClientContext context;
+    configureContext(&context);
     return checkRpc(m_query->ListRejections(&context, request, response), error);
 }
 
