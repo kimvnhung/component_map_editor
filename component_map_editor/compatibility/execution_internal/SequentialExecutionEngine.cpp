@@ -1,8 +1,8 @@
 #include "SequentialExecutionEngine.h"
 
-#include "extensions/contracts/builders/ExecutionPlanBuilder.h"
-#include "services/ExecutionMigrationFlags.h"
-#include "services/execution_internal/ProviderResultValidation.h"
+#include "compatibility/builders/ExecutionPlanBuilder.h"
+#include "compatibility/ExecutionMigrationFlags.h"
+#include "compatibility/execution_internal/ProviderResultValidation.h"
 #include "utils/GraphHelper.h"
 #include "adapters/GraphAdapter.h"
 

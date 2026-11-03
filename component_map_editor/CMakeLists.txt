@@ -306,43 +306,45 @@ target_compile_definitions(${PROJECT_NAME}
 
 # Optional compatibility target for the legacy local execution simulator.
 # The production editor target intentionally does not compile or link these files.
+add_library(cme_editor_compat STATIC)
+
 set(CME_EDITOR_COMPAT_HEADERS
     adapters/ExecutionAdapter.h
-    extensions/contracts/builders/ExecutionPlanBuilder.h
-    extensions/runtime/CompositeExecutionProvider.h
-    services/ExecutionMigrationFlags.h
-    services/GraphExecutionSandbox.h
-    services/execution_internal/ActorMailboxExecutionEngine.h
-    services/execution_internal/ExecutionContext.h
-    services/execution_internal/ExecutionPlan.h
-    services/execution_internal/ExecutionRequest.h
-    services/execution_internal/IExecutionEngine.h
-    services/execution_internal/ProviderResultValidation.h
-    services/execution_internal/SequentialExecutionEngine.h
-    services/execution_internal/actor_mailbox/Actor.h
-    services/execution_internal/actor_mailbox/ActorRegistry.h
-    services/execution_internal/actor_mailbox/ActorScheduler.h
-    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h
-    services/execution_internal/actor_mailbox/Mailbox.h
+    compatibility/builders/ExecutionPlanBuilder.h
+    compatibility/extensions/CompositeExecutionProvider.h
+    compatibility/ExecutionMigrationFlags.h
+    preview/GraphExecutionSandbox.h
+    compatibility/execution_internal/ActorMailboxExecutionEngine.h
+    compatibility/execution_internal/ExecutionContext.h
+    compatibility/execution_internal/ExecutionPlan.h
+    compatibility/execution_internal/ExecutionRequest.h
+    compatibility/execution_internal/IExecutionEngine.h
+    compatibility/execution_internal/ProviderResultValidation.h
+    compatibility/execution_internal/SequentialExecutionEngine.h
+    compatibility/execution_internal/actor_mailbox/Actor.h
+    compatibility/execution_internal/actor_mailbox/ActorRegistry.h
+    compatibility/execution_internal/actor_mailbox/ActorScheduler.h
+    compatibility/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h
+    compatibility/execution_internal/actor_mailbox/Mailbox.h
 )
 
 set(CME_EDITOR_COMPAT_SOURCES
     adapters/ExecutionAdapter.cpp
-    extensions/contracts/builders/ExecutionPlanBuilder.cpp
-    extensions/runtime/CompositeExecutionProvider.cpp
-    services/ExecutionMigrationFlags.cpp
-    services/GraphExecutionSandbox.cpp
-    services/execution_internal/ActorMailboxExecutionEngine.cpp
-    services/execution_internal/ProviderResultValidation.cpp
-    services/execution_internal/SequentialExecutionEngine.cpp
-    services/execution_internal/actor_mailbox/Actor.cpp
-    services/execution_internal/actor_mailbox/ActorRegistry.cpp
-    services/execution_internal/actor_mailbox/ActorScheduler.cpp
-    services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.cpp
-    services/execution_internal/actor_mailbox/Mailbox.cpp
+    compatibility/builders/ExecutionPlanBuilder.cpp
+    compatibility/extensions/CompositeExecutionProvider.cpp
+    compatibility/ExecutionMigrationFlags.cpp
+    preview/GraphExecutionSandbox.cpp
+    compatibility/execution_internal/ActorMailboxExecutionEngine.cpp
+    compatibility/execution_internal/ProviderResultValidation.cpp
+    compatibility/execution_internal/SequentialExecutionEngine.cpp
+    compatibility/execution_internal/actor_mailbox/Actor.cpp
+    compatibility/execution_internal/actor_mailbox/ActorRegistry.cpp
+    compatibility/execution_internal/actor_mailbox/ActorScheduler.cpp
+    compatibility/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.cpp
+    compatibility/execution_internal/actor_mailbox/Mailbox.cpp
 )
 
-add_library(cme_editor_compat STATIC
+target_sources(cme_editor_compat PRIVATE
     ${CME_EDITOR_COMPAT_HEADERS}
     ${CME_EDITOR_COMPAT_SOURCES}
 )

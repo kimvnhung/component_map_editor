@@ -2,8 +2,8 @@
 #define EXECUTIONPLANBUILDER_H
 
 #include "models/GraphModel.h"
-#include "services/execution_internal/ExecutionPlan.h"
-#include "services/execution_internal/ExecutionRequest.h"
+#include "compatibility/execution_internal/ExecutionPlan.h"
+#include "compatibility/execution_internal/ExecutionRequest.h"
 
 class ExecutionPlanBuilder
 {

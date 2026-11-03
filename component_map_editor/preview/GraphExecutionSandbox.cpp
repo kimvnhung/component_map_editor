@@ -7,9 +7,9 @@
 #include "adapters/GraphAdapter.h"
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "extensions/runtime/PublicApiContractAdapter.h"
-#include "services/ExecutionMigrationFlags.h"
-#include "services/execution_internal/ActorMailboxExecutionEngine.h"
-#include "services/execution_internal/SequentialExecutionEngine.h"
+#include "compatibility/ExecutionMigrationFlags.h"
+#include "compatibility/execution_internal/ActorMailboxExecutionEngine.h"
+#include "compatibility/execution_internal/SequentialExecutionEngine.h"
 #include "utils/GraphHelper.h"
 
 GraphExecutionSandbox::GraphExecutionSandbox(QObject *parent)

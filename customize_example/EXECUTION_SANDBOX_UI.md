@@ -29,7 +29,7 @@ There are three layers:
 
 | Layer | File | Role |
 |-------|------|------|
-| **Service** | `component_map_editor/services/GraphExecutionSandbox.h/.cpp` | Owns execution state, tick counter, timeline |
+| **Service** | `component_map_editor/preview/GraphExecutionSandbox.h/.cpp` | Owns execution state, tick counter, timeline |
 | **Wiring** | `customize_example/main.cpp` | Creates sandbox, injects semantics, exposes as QML context property |
 | **UI** | `customize_example/qml/Main.qml` | Binds to Q_PROPERTYs, calls Q_INVOKABLEs |
 
@@ -239,4 +239,4 @@ New QML additions (all in `customize_example/qml/Main.qml`):
 |------|--------------------|
 | `customize_example/qml/Main.qml` | Added `inspectorTabIndex`, 3 helper functions, replaced bare `PropertyPanel` with TabBar+StackLayout containing Execution panel |
 | `customize_example/main.cpp` | No change — sandbox already created, wired, and exposed |
-| `component_map_editor/services/GraphExecutionSandbox.h` | No change — public API is stable |
+| `component_map_editor/preview/GraphExecutionSandbox.h` | No change — public API is stable |

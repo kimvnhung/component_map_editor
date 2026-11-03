@@ -1,8 +1,8 @@
 #include "ActorMailboxExecutionEngine.h"
 
 #include "actor_mailbox/GraphSnapshotActorAdapter.h"
-#include "services/execution_internal/ProviderResultValidation.h"
-#include "services/execution_internal/SequentialExecutionEngine.h"
+#include "compatibility/execution_internal/ProviderResultValidation.h"
+#include "compatibility/execution_internal/SequentialExecutionEngine.h"
 
 using cme::actor::ActorScheduler;
 using cme::actor::GraphSnapshotActorAdapter;

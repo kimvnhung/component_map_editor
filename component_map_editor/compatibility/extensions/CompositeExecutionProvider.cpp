@@ -5,7 +5,7 @@
 
 #include "models/ComponentModel.h"
 #include "models/GraphModel.h"
-#include "services/GraphExecutionSandbox.h"
+#include "preview/GraphExecutionSandbox.h"
 
 namespace {
 

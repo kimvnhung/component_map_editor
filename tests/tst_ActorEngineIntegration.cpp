@@ -1,12 +1,12 @@
 #include <QtTest>
 
 #include "extensions/contracts/IExecutionSemanticsProvider.h"
-#include "extensions/runtime/CompositeExecutionProvider.h"
+#include "compatibility/extensions/CompositeExecutionProvider.h"
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"
-#include "services/ExecutionMigrationFlags.h"
-#include "services/GraphExecutionSandbox.h"
+#include "compatibility/ExecutionMigrationFlags.h"
+#include "preview/GraphExecutionSandbox.h"
 
 namespace {
 

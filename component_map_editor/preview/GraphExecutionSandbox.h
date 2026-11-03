@@ -18,8 +18,8 @@
 #include "models/GraphModel.h"
 #include "models/TimelineModel.h"
 
-#include "services/execution_internal/ExecutionContext.h"
-#include "services/execution_internal/IExecutionEngine.h"
+#include "compatibility/execution_internal/ExecutionContext.h"
+#include "compatibility/execution_internal/IExecutionEngine.h"
 
 class ExtensionContractRegistry;
 

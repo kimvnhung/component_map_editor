@@ -1,7 +1,7 @@
 #include "Actor.h"
 
 #include "adapters/GraphAdapter.h"
-#include "services/ExecutionMigrationFlags.h"
+#include "compatibility/ExecutionMigrationFlags.h"
 #include "utils/GraphHelper.h"
 
 namespace cme::actor

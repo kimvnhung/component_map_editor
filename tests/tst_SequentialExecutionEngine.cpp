@@ -4,9 +4,9 @@
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"
-#include "services/ExecutionMigrationFlags.h"
-#include "services/execution_internal/IExecutionEngine.h"
-#include "services/execution_internal/SequentialExecutionEngine.h"
+#include "compatibility/ExecutionMigrationFlags.h"
+#include "compatibility/execution_internal/IExecutionEngine.h"
+#include "compatibility/execution_internal/SequentialExecutionEngine.h"
 
 namespace {
 
