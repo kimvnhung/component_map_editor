@@ -56,3 +56,5 @@ _codeql_detected_source_root
 build/*
 .github/*
 graphify-out/
+.ua/
+.vite/
