@@ -1,6 +1,7 @@
 #ifndef COMPONENT_MAP_RUNTIME_DEPLOYMENT_MANAGER_H
 #define COMPONENT_MAP_RUNTIME_DEPLOYMENT_MANAGER_H
 
+#include "component_map_runtime/FlattenCompiler.h"
 #include "component_map_runtime/RuntimeHandlerRegistry.h"
 #include "component_map_runtime/RuntimeService.h"
 
@@ -23,13 +24,18 @@ public:
     bool hasActiveGraph() const;
     const cme::runtime::v1::DeploymentGraph &stagedGraph() const;
     const cme::runtime::v1::DeploymentGraph &activeGraph() const;
+    const ExecutionPlan &activePlan() const;
 
 private:
     RuntimeService *m_runtimeService = nullptr;
     const RuntimeHandlerRegistry *m_registry = nullptr;
     cme::runtime::v1::DeploymentGraph m_stagedGraph;
     cme::runtime::v1::DeploymentGraph m_activeGraph;
+    ExecutionPlan m_stagedPlan;
+    ExecutionPlan m_activePlan;
     bool m_hasStagedGraph = false;
+    bool m_hasStagedPlan = false;
+    bool m_hasActivePlan = false;
     bool m_hasActiveGraph = false;
 };
 
