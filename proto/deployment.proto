@@ -10,6 +10,18 @@ enum PortDirection {
   PORT_DIRECTION_OUTPUT = 2;
 }
 
+enum PortCardinality {
+  PORT_CARDINALITY_UNSPECIFIED = 0;
+  PORT_CARDINALITY_SINGLE = 1;
+  PORT_CARDINALITY_MULTI = 2;
+}
+
+enum DeliveryMode {
+  DELIVERY_MODE_UNSPECIFIED = 0;
+  DELIVERY_MODE_AT_MOST_ONCE = 1;
+  DELIVERY_MODE_AT_LEAST_ONCE = 2;
+}
+
 enum DeploymentValidationSeverity {
   DEPLOYMENT_VALIDATION_SEVERITY_UNSPECIFIED = 0;
   DEPLOYMENT_VALIDATION_SEVERITY_ERROR = 1;
@@ -20,6 +32,9 @@ message ComponentPort {
   string port_id = 1;
   PortDirection direction = 2;
   string message_type = 3;
+  PortCardinality cardinality = 4;
+  bool required = 5;
+  string token_key = 6;
 }
 
 message ComponentInstance {
@@ -57,6 +72,10 @@ message DirectRoute {
   string target_port_id = 5;
   string message_type = 6;
   bool enabled = 7;
+  DeliveryMode delivery_mode = 8;
+  string ordering_key = 9;
+  string filter = 10;
+  string token_key = 11;
 }
 
 message DeploymentGraph {

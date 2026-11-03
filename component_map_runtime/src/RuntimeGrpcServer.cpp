@@ -173,6 +173,8 @@ grpc::Status RuntimeGrpcServer::EventService::PublishEvent(
     }
     if (!m_owner->m_engine->backgroundExecution())
         m_owner->m_engine->processAll();
+    else
+        m_owner->m_engine->waitForIdle(5000);
     response->set_accepted(true);
     response->set_duplicate(false);
     return grpc::Status::OK;

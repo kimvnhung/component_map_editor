@@ -14,11 +14,12 @@ using namespace cme::runtime::v1;
 void addIssue(DeploymentValidationResult *result,
               const char *code,
               const char *path,
-              const QString &message)
+              const QString &message,
+              DeploymentValidationSeverity severity = DEPLOYMENT_VALIDATION_SEVERITY_ERROR)
 {
     auto *issue = result->add_issues();
     issue->set_code(code);
-    issue->set_severity(DEPLOYMENT_VALIDATION_SEVERITY_ERROR);
+    issue->set_severity(severity);
     issue->set_field_path(path);
     issue->set_message(message.toStdString());
 }
@@ -205,18 +206,28 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
                 addIssue(&result, "DUPLICATE_PORT_ID", portPath.toUtf8().constData(),
                          QStringLiteral("Port ID is duplicated within the component."));
             }
-            ports.insert(portId, {port.direction(), QString::fromStdString(port.message_type())});
+            const QString portMessageType = port.message_type().empty()
+                                                ? QString::fromStdString(port.token_key())
+                                                : QString::fromStdString(port.message_type());
+            ports.insert(portId, {port.direction(), portMessageType});
             if (port.direction() == PORT_DIRECTION_UNSPECIFIED)
             {
                 addIssue(&result, "PORT_DIRECTION_REQUIRED",
                          (portPath + QStringLiteral(".direction")).toUtf8().constData(),
                          QStringLiteral("Port direction must be specified."));
             }
-            if (port.message_type().empty())
+            if (port.message_type().empty() && port.token_key().empty())
             {
                 addIssue(&result, "MESSAGE_TYPE_REQUIRED",
                          (portPath + QStringLiteral(".message_type")).toUtf8().constData(),
                          QStringLiteral("Port message type must not be empty."));
+            }
+            if (port.cardinality() == PORT_CARDINALITY_UNSPECIFIED && !graph.graph_id().empty())
+            {
+                addIssue(&result, "PORT_CARDINALITY_DEFAULTED",
+                         (portPath + QStringLiteral(".cardinality")).toUtf8().constData(),
+                         QStringLiteral("Port cardinality is unspecified and defaults to single."),
+                         DEPLOYMENT_VALIDATION_SEVERITY_WARNING);
             }
         }
     }
@@ -231,6 +242,39 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
         const QString sourcePort = QString::fromStdString(route.source_port_id());
         const QString targetPort = QString::fromStdString(route.target_port_id());
         const QString messageType = QString::fromStdString(route.message_type());
+        const QString routeMessageType = messageType.isEmpty()
+                                             ? QString::fromStdString(route.token_key())
+                                             : messageType;
+        const bool legacyRoute = messageType.isEmpty() && !route.token_key().empty();
+        if (legacyRoute && !graph.graph_id().empty())
+        {
+            addIssue(&result, "TOKEN_KEY_DEPRECATED", routePath.toUtf8().constData(),
+                     QStringLiteral("tokenKey is deprecated; use message_type."),
+                     DEPLOYMENT_VALIDATION_SEVERITY_WARNING);
+        } else if (messageType.isEmpty() && route.token_key().empty())
+        {
+            addIssue(&result, "ROUTE_MESSAGE_TYPE_REQUIRED",
+                     (routePath + QStringLiteral(".message_type")).toUtf8().constData(),
+                     QStringLiteral("Route message type must not be empty."));
+        }
+        if (!route.enabled())
+        {
+            addIssue(&result, "ROUTE_DISABLED", routePath.toUtf8().constData(),
+                     QStringLiteral("Route is disabled."),
+                     DEPLOYMENT_VALIDATION_SEVERITY_WARNING);
+        }
+        if (route.delivery_mode() == DELIVERY_MODE_UNSPECIFIED && !graph.graph_id().empty())
+        {
+            addIssue(&result, "DELIVERY_MODE_DEFAULTED",
+                     (routePath + QStringLiteral(".delivery_mode")).toUtf8().constData(),
+                     QStringLiteral("Delivery mode is unspecified and defaults to at-most-once."),
+                     DEPLOYMENT_VALIDATION_SEVERITY_WARNING);
+        }
+        if (!route.ordering_key().empty() && routeMessageType.isEmpty())
+        {
+            addIssue(&result, "ORDERING_KEY_WITHOUT_MESSAGE_TYPE", routePath.toUtf8().constData(),
+                     QStringLiteral("Ordering key requires a message type."));
+        }
 
         if (connectionId.isEmpty())
         {
@@ -285,21 +329,21 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
                      (routePath + QStringLiteral(".target_port_id")).toUtf8().constData(),
                      QStringLiteral("Route target port must be an input port."));
         }
-        if (messageType.isEmpty())
+        if (routeMessageType.isEmpty())
         {
             addIssue(&result, "ROUTE_MESSAGE_TYPE_REQUIRED",
                      (routePath + QStringLiteral(".message_type")).toUtf8().constData(),
                      QStringLiteral("Route message type must not be empty."));
         }
         if (sourcePorts.contains(sourcePort) && targetPorts.contains(targetPort)
-            && sourcePorts.value(sourcePort).messageType != messageType)
+            && sourcePorts.value(sourcePort).messageType != routeMessageType)
         {
             addIssue(&result, "SOURCE_MESSAGE_TYPE_MISMATCH",
                      (routePath + QStringLiteral(".message_type")).toUtf8().constData(),
                      QStringLiteral("Route message type does not match source port."));
         }
         if (sourcePorts.contains(sourcePort) && targetPorts.contains(targetPort)
-            && targetPorts.value(targetPort).messageType != messageType)
+            && targetPorts.value(targetPort).messageType != routeMessageType)
         {
             addIssue(&result, "TARGET_MESSAGE_TYPE_MISMATCH",
                      (routePath + QStringLiteral(".message_type")).toUtf8().constData(),
@@ -307,7 +351,16 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
         }
     }
 
-    result.set_valid(result.issues_size() == 0);
+    bool hasError = false;
+    for (const auto &issue : result.issues())
+    {
+        if (issue.severity() == DEPLOYMENT_VALIDATION_SEVERITY_ERROR)
+        {
+            hasError = true;
+            break;
+        }
+    }
+    result.set_valid(!hasError);
     return result;
 }
 

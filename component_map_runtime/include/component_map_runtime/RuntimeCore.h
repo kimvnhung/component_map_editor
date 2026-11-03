@@ -95,6 +95,7 @@ public:
     bool backgroundExecution() const;
     bool publish(const RuntimeEvent &event, RuntimeFailure *failure = nullptr);
     qsizetype processAll();
+    bool waitForIdle(int timeoutMs = -1);
 
     ActorStatus actorStatus(const QString &instanceId) const;
     qsizetype mailboxDepth(const QString &instanceId) const;

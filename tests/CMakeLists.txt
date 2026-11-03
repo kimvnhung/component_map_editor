@@ -974,6 +974,29 @@ add_test(
 
 # Phase 4 remains static-loading for MVP.
 
+# Phase 5: graph, port and route contract validation.
+qt_add_executable(tst_RuntimeRouteContractPhase5
+    tst_RuntimeRouteContractPhase5.cpp
+)
+
+target_link_libraries(tst_RuntimeRouteContractPhase5
+    PRIVATE
+        Qt6::Test
+        component_map_runtime
+)
+
+target_include_directories(tst_RuntimeRouteContractPhase5
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeRouteContractPhase5
+    COMMAND tst_RuntimeRouteContractPhase5
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Phase 4 intentionally has no retry scheduler or dead-letter queue.
 # ── Phase 5: gRPC process boundary ───────────────────────────────────────────
 qt_add_executable(tst_RuntimeProcessPhase5

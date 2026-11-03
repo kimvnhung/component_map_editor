@@ -318,6 +318,13 @@ bool RuntimeEngine::publish(const RuntimeEvent &event, RuntimeFailure *failure)
     return accepted;
 }
 
+bool RuntimeEngine::waitForIdle(int timeoutMs)
+{
+    if (!m_backgroundExecution || !m_scheduler)
+        return true;
+    return m_scheduler->waitForIdle(timeoutMs);
+}
+
 qsizetype RuntimeEngine::processAll()
 {
     qsizetype processed = 0;

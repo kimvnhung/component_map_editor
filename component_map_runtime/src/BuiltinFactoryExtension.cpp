@@ -46,7 +46,11 @@ RuntimeExtensionPack makeBuiltinFactoryExtension()
              std::pair{QStringLiteral("factory/fruit_producer"), QStringLiteral("factory.fruit_producer")},
              std::pair{QStringLiteral("factory/store"), QStringLiteral("factory.store")},
              std::pair{QStringLiteral("factory/wash_machine"), QStringLiteral("factory.wash_machine")},
-             std::pair{QStringLiteral("factory/seller"), QStringLiteral("factory.seller")}})
+             std::pair{QStringLiteral("factory/seller"), QStringLiteral("factory.seller")},
+             // Compatibility fixture types used by the process-boundary vertical slice.
+             std::pair{QStringLiteral("producer"), QStringLiteral("compat.producer")},
+             std::pair{QStringLiteral("processor"), QStringLiteral("compat.processor")},
+             std::pair{QStringLiteral("sink"), QStringLiteral("compat.sink")}})
     {
         extension.components.append(definition(entry.first, entry.second));
         extension.factories.insert(entry.first, [type = entry.first] {
