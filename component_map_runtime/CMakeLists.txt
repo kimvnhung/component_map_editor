@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(component_map_runtime VERSION 1.0.0 LANGUAGES CXX)
+project(cme_runtime_core VERSION 1.0.0 LANGUAGES CXX)
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
 
@@ -31,12 +31,12 @@ set(COMPONENT_MAP_RUNTIME_SOURCES
     src/BuiltinFactoryExtension.cpp
 )
 
-add_library(component_map_runtime STATIC
+add_library(cme_runtime_core STATIC
     ${COMPONENT_MAP_RUNTIME_HEADERS}
     ${COMPONENT_MAP_RUNTIME_SOURCES}
 )
 
-target_link_libraries(component_map_runtime
+target_link_libraries(cme_runtime_core
     PUBLIC
         Qt6::Core
         cme_proto
@@ -46,27 +46,31 @@ target_link_libraries(component_map_runtime
         gRPC::grpc++
 )
 
-target_include_directories(component_map_runtime
+target_include_directories(cme_runtime_core
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_features(component_map_runtime PUBLIC cxx_std_17)
-target_compile_definitions(component_map_runtime PRIVATE LOG_TAG="ComponentMapRuntime")
+target_compile_features(cme_runtime_core PUBLIC cxx_std_17)
+target_compile_definitions(cme_runtime_core PRIVATE LOG_TAG="ComponentMapRuntime")
 
 if(CME_BUILD_RUNTIME)
-    qt_add_executable(component_map_runtime_process
+    qt_add_executable(cme_runtime_server
         main.cpp
     )
 
-    target_link_libraries(component_map_runtime_process
-        PRIVATE
-            Qt6::Core
-            component_map_runtime
+    set_target_properties(cme_runtime_server PROPERTIES
+        OUTPUT_NAME cme_runtime_server
     )
 
-    target_compile_definitions(component_map_runtime_process
+    target_link_libraries(cme_runtime_server
         PRIVATE
-            LOG_TAG="ComponentMapRuntimeProcess"
+            Qt6::Core
+            cme_runtime_core
+    )
+
+    target_compile_definitions(cme_runtime_server
+        PRIVATE
+            LOG_TAG="ComponentMapRuntimeServer"
     )
 endif()

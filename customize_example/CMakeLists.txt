@@ -91,7 +91,7 @@ target_link_libraries(customize_example_app
     PRIVATE
         Qt6::Core
         Qt6::Quick
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(customize_example_app

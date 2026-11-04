@@ -10,7 +10,7 @@ qt_add_executable(tst_EditorFacadeContract
 target_link_libraries(tst_EditorFacadeContract
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 add_test(
@@ -31,7 +31,7 @@ qt_add_executable(tst_CustomizeExampleAuthoring
 target_link_libraries(tst_CustomizeExampleAuthoring
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_CustomizeExampleAuthoring
@@ -55,7 +55,7 @@ target_link_libraries(tst_EditorQmlModuleContract
     PRIVATE
         Qt6::Test
         Qt6::Quick
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 add_test(
@@ -69,7 +69,7 @@ add_test(
 # the ComponentMapEditor/ dir).  Pass that parent path to the test binary so
 # the QML engine can resolve the import.
 set(COMPONENT_MAP_EDITOR_IMPORT_DIR
-    "$<TARGET_FILE_DIR:libComponentMapEditor>/../.."
+    "$<TARGET_FILE_DIR:cme_editor_ui_module>/../.."
     CACHE INTERNAL "")
 
 qt_add_executable(tst_InteractionStateManager
@@ -115,7 +115,7 @@ target_link_libraries(tst_InteractionStateManager
     PRIVATE
         Qt6::Quick
         Qt6::QuickTest
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 add_test(
@@ -131,7 +131,7 @@ qt_add_executable(tst_DeploymentGraphExporter
 target_link_libraries(tst_DeploymentGraphExporter
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_DeploymentGraphExporter
@@ -178,7 +178,7 @@ qt_add_executable(tst_PersistenceValidation
 target_link_libraries(tst_PersistenceValidation
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_PersistenceValidation
@@ -199,7 +199,7 @@ qt_add_executable(tst_ExtensionContractRegistry
 target_link_libraries(tst_ExtensionContractRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_ExtensionContractRegistry
@@ -220,7 +220,7 @@ qt_add_executable(tst_ExtensionStartupLoader
 target_link_libraries(tst_ExtensionStartupLoader
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_ExtensionStartupLoader
@@ -241,7 +241,7 @@ qt_add_executable(tst_TypeRegistry
 target_link_libraries(tst_TypeRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_TypeRegistry
@@ -262,7 +262,7 @@ qt_add_executable(tst_GraphEditorController
 target_link_libraries(tst_GraphEditorController
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_GraphEditorController
@@ -283,7 +283,7 @@ qt_add_executable(tst_PropertySchemaRegistry
 target_link_libraries(tst_PropertySchemaRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_PropertySchemaRegistry
@@ -304,7 +304,7 @@ qt_add_executable(tst_DynamicOptionsRegistry
 target_link_libraries(tst_DynamicOptionsRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_DynamicOptionsRegistry
@@ -325,7 +325,7 @@ qt_add_executable(tst_RuleCompilerRuntime
 target_link_libraries(tst_RuleCompilerRuntime
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_RuleCompilerRuntime
@@ -346,7 +346,7 @@ qt_add_executable(tst_TraversalEngine
 target_link_libraries(tst_TraversalEngine
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_TraversalEngine
@@ -451,7 +451,7 @@ qt_add_executable(tst_CompatibilityMigrationToolkit
 target_link_libraries(tst_CompatibilityMigrationToolkit
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_CompatibilityMigrationToolkit
@@ -472,7 +472,7 @@ qt_add_executable(tst_QaMatrixRunner
 target_link_libraries(tst_QaMatrixRunner
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_QaMatrixRunner
@@ -488,7 +488,7 @@ add_test(
 
 # ── Phase 1: Protobuf Contract Foundation ─────────────────────────────────
 # Encode/decode roundtrip tests for every proto message type defined in proto/.
-# Links only cme_proto (no libComponentMapEditor dependency) — these are pure
+# Links only cme_proto (no cme_editor_ui_module dependency) — these are pure
 # protobuf contract tests, independent of Qt runtime.
 qt_add_executable(tst_Phase1ProtoContracts
     tst_Phase1ProtoContracts.cpp
@@ -565,7 +565,7 @@ target_link_libraries(tst_Phase3ConnectionTransportMetadata
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase3ConnectionTransportMetadata
@@ -591,7 +591,7 @@ target_link_libraries(tst_Phase4PolicyMigration
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase4PolicyMigration
@@ -642,7 +642,7 @@ target_link_libraries(tst_Phase5ValidationMigration
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase5ValidationMigration
@@ -694,7 +694,7 @@ qt_add_executable(tst_Phase6CutoverReadiness
 target_link_libraries(tst_Phase6CutoverReadiness
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_compile_definitions(tst_Phase6CutoverReadiness PRIVATE
@@ -722,7 +722,7 @@ target_link_libraries(tst_Phase7ExtensionContractV2Parallel
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase7ExtensionContractV2Parallel
@@ -748,7 +748,7 @@ target_link_libraries(tst_Phase10CutoverLegacyRetirement
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase10CutoverLegacyRetirement
@@ -774,7 +774,7 @@ target_link_libraries(tst_Phase11TemplateDescriptorTransport
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase11TemplateDescriptorTransport
@@ -806,7 +806,7 @@ target_link_libraries(tst_PropertySchemaNormalizedRowBaseline
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_PropertySchemaNormalizedRowBaseline
@@ -836,7 +836,7 @@ qt_add_executable(tst_RuntimeServicePhase1
 target_link_libraries(tst_RuntimeServicePhase1
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
         cme_proto
 )
 
@@ -860,7 +860,7 @@ qt_add_executable(tst_RuntimeDeploymentPhase2
 target_link_libraries(tst_RuntimeDeploymentPhase2
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
         cme_proto
 )
 
@@ -886,7 +886,7 @@ qt_add_executable(tst_RuntimeCorePhase3
 target_link_libraries(tst_RuntimeCorePhase3
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
         cme_proto
 )
 
@@ -910,7 +910,7 @@ qt_add_executable(tst_RuntimeActorSchedulerPhase3
 target_link_libraries(tst_RuntimeActorSchedulerPhase3
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
 )
 
 target_include_directories(tst_RuntimeActorSchedulerPhase3
@@ -934,7 +934,7 @@ qt_add_executable(tst_RuntimePersistencePhase4
 target_link_libraries(tst_RuntimePersistencePhase4
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
         cme_proto
 )
 
@@ -958,7 +958,7 @@ qt_add_executable(tst_RuntimeExtensionPhase4
 target_link_libraries(tst_RuntimeExtensionPhase4
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
 )
 
 target_include_directories(tst_RuntimeExtensionPhase4
@@ -982,7 +982,7 @@ qt_add_executable(tst_RuntimeRouteContractPhase5
 target_link_libraries(tst_RuntimeRouteContractPhase5
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
 )
 
 target_include_directories(tst_RuntimeRouteContractPhase5
@@ -1013,10 +1013,10 @@ target_link_libraries(tst_RuntimeProcessPhase5
 
 target_compile_definitions(tst_RuntimeProcessPhase5
     PRIVATE
-        COMPONENT_MAP_RUNTIME_PROCESS_EXECUTABLE="$<TARGET_FILE:component_map_runtime_process>"
+        COMPONENT_MAP_RUNTIME_PROCESS_EXECUTABLE="$<TARGET_FILE:cme_runtime_server>"
 )
 
-add_dependencies(tst_RuntimeProcessPhase5 component_map_runtime_process)
+add_dependencies(tst_RuntimeProcessPhase5 cme_runtime_server)
 
 add_test(
     NAME tst_RuntimeProcessPhase5
@@ -1034,7 +1034,7 @@ qt_add_executable(tst_RuntimeNestedGraphPhase6
 target_link_libraries(tst_RuntimeNestedGraphPhase6
     PRIVATE
         Qt6::Test
-        component_map_runtime
+        cme_runtime_core
         cme_proto
 )
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(libComponentMapEditor VERSION 1.0.0 LANGUAGES CXX)
+project(cme_editor_ui_module VERSION 1.0.0 LANGUAGES CXX)
 if(COMMAND qt_policy)
     qt_policy(SET QTP0004 NEW)
 endif()
@@ -232,7 +232,7 @@ set_target_properties(cme_runtime_client PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-qt_add_qml_module(${PROJECT_NAME}
+qt_add_qml_module(cme_editor_ui_module
     URI ComponentMapEditor
     VERSION 1.0
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ComponentMapEditor"
@@ -258,7 +258,7 @@ target_link_libraries(cme_editor_core
         QmlFontAwesome::QmlFontAwesome
 )
 
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(cme_editor_ui_module
     PUBLIC
         cme_editor_core
         Qt6::Core
@@ -274,7 +274,7 @@ target_link_libraries(${PROJECT_NAME}
 
 # QML target depends on core but never owns core implementation sources.
 add_library(cme_editor_qml INTERFACE)
-target_link_libraries(cme_editor_qml INTERFACE ${PROJECT_NAME} cme_editor_core)
+target_link_libraries(cme_editor_qml INTERFACE cme_editor_ui_module cme_editor_core)
 
 # Copy public headers to the generated include directory.
 foreach(HEADER_FILE ${COMPONENT_MAP_EDITOR_HEADERS})
@@ -292,14 +292,14 @@ target_include_directories(cme_editor_core
         ${CMAKE_BINARY_DIR}/proto
 )
 
-target_include_directories(${PROJECT_NAME}
+target_include_directories(cme_editor_ui_module
     PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_BINARY_DIR}/proto
 )
 
-target_compile_definitions(${PROJECT_NAME}
+target_compile_definitions(cme_editor_ui_module
     PRIVATE
         LOG_TAG="ComponentMapEditor"
 )
@@ -359,7 +359,7 @@ target_include_directories(cme_editor_compat
 
 target_link_libraries(cme_editor_compat
     PUBLIC
-        libComponentMapEditor
+        cme_editor_ui_module
         cme_proto
         cme_runtime_proto
         Qt6::Core
