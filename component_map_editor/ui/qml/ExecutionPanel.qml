@@ -23,7 +23,7 @@ ScrollView {
         anchors.bottom: parent.bottom
 
         RuntimeOverviewPanel { manager: editorManager }
-        DeploymentPanel { manager: editorManager; graph: graph; graphVersion: "v1" }
+        DeploymentPanel { manager: editorManager; graph: root.graph; graphVersion: "v1" }
         ComponentStatusPanel {
             manager: editorManager
             componentId: root.selectedComponentId

@@ -169,7 +169,7 @@ ApplicationWindow {
             id: palettePanel
             Layout.preferredWidth: 250
             Layout.fillHeight: true
-            graph: graph
+            graph: window.graph
             canvas: canvas
             componentTypeRegistry: editorManager.componentTypeRegistry
         }
@@ -185,7 +185,7 @@ ApplicationWindow {
             id: canvas
             Layout.fillWidth: true
             Layout.fillHeight: true
-            graph: graph
+            graph: window.graph
             componentTypeRegistry: editorManager.componentTypeRegistry
         }
 
@@ -229,7 +229,7 @@ ApplicationWindow {
                         id: propertyPanel
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        graph: graph
+                        graph: window.graph
                         item: canvas ? (canvas.selectedConnection !== null ? canvas.selectedConnection : canvas.selectedComponent) : null
                         undoStack: canvas ? canvas.undoStack : null
                         propertySchemaRegistry: editorManager.propertySchemaRegistry
@@ -240,6 +240,7 @@ ApplicationWindow {
                         id: executionPanel
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        graph: window.graph
                         selectedComponentId: canvas ? (canvas.selectedComponent ? canvas.selectedComponent.id : "") : ""
                     }
                 }

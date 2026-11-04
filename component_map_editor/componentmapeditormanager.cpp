@@ -72,9 +72,14 @@ bool ComponentMapEditorManager::runtimeConnected() const
 
 void ComponentMapEditorManager::setRuntimePollIntervalMs(int intervalMs)
 {
-    m_runtimePollIntervalMs = qMax(250, intervalMs);
+    const int normalizedIntervalMs = qMax(250, intervalMs);
+    if (m_runtimePollIntervalMs == normalizedIntervalMs)
+        return;
+
+    m_runtimePollIntervalMs = normalizedIntervalMs;
     if (m_runtimePollTimer)
         m_runtimePollTimer->setInterval(m_runtimePollIntervalMs);
+    emit runtimePollIntervalMsChanged();
 }
 
 bool ComponentMapEditorManager::reconnectRuntime()

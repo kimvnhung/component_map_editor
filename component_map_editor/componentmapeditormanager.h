@@ -41,6 +41,7 @@ class ComponentMapEditorManager : public QObject
     Q_PROPERTY(QString runtimeLastError READ runtimeLastError NOTIFY runtimeStatusChanged)
     Q_PROPERTY(QString runtimeChannelState READ runtimeChannelState NOTIFY runtimeStatusChanged)
     Q_PROPERTY(bool runtimeConnected READ runtimeConnected NOTIFY runtimeStatusChanged)
+    Q_PROPERTY(int runtimePollIntervalMs READ runtimePollIntervalMs WRITE setRuntimePollIntervalMs NOTIFY runtimePollIntervalMsChanged)
 public:
     ComponentMapEditorManager(QObject *parent = nullptr);
 
@@ -85,6 +86,7 @@ public:
 signals:
     void runtimeAddressChanged();
     void runtimeStatusChanged();
+    void runtimePollIntervalMsChanged();
 
 private:
     std::unique_ptr<ExtensionContractRegistry> m_extensionContracts{nullptr};
