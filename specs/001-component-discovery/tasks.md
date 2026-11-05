@@ -113,8 +113,10 @@ property/port values, and verify corresponding validation diagnostics before exe
 
 ### Implementation
 
-- [ ] T033 [US3] Add graph component identity/version resolution fields and optional metadata snapshot handling in `proto/graph.proto`
-- [ ] T034 [US3] Implement catalog-backed component lookup and explicit identity/version resolution in `component_map_runtime/src/ComponentCatalog.cpp`
+- [X] T033 [US3] Add graph component identity/version resolution fields and optional metadata snapshot handling in `proto/graph.proto`
+- [X] T034 [US3] Implement catalog-backed component lookup and explicit identity/version resolution in `component_map_runtime/src/ComponentCatalog.cpp` (**Implementation note:** explicit resolution rejects missing, unknown, and ambiguous identity/version references.)
+
+**Implementation note:** Graph protobuf fields use new field numbers and preserve existing graph message fields.
 - [ ] T035 [US3] Extend deployment validation to resolve descriptor metadata and validate instance properties, defaults, required fields, and constraints in `component_map_runtime/src/DeploymentValidator.cpp`
 - [ ] T036 [US3] Extend port compatibility validation to compare descriptor port payload type, direction, cardinality, and requiredness before execution in `component_map_runtime/src/DeploymentValidator.cpp`
 - [ ] T037 [US3] Prevent execution of unavailable, rejected, untrusted, or contract-incompatible component references and return structured diagnostics in `component_map_runtime/src/DeploymentManager.cpp`

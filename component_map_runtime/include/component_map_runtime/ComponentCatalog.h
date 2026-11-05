@@ -34,6 +34,8 @@ public:
     QList<ComponentDescriptor> snapshot(const CatalogFilter &filter = {}) const;
     ComponentDescriptor find(const QString &identity, const QString &version,
                              const QString &sourceId = {}) const;
+    ComponentDescriptor resolve(const QString &identity, const QString &version,
+                                QString *error = nullptr) const;
     QList<ComponentDiagnostic> diagnostics(const ComponentKey &key) const;
     quint64 snapshotVersion() const;
 

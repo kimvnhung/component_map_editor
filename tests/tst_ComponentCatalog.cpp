@@ -12,6 +12,9 @@ private slots:
     void equivalentRegistrationIsIdempotent();
     void conflictingRegistrationIsRejected();
     void filteringAndStatusTransitionsWork();
+    void resolvesExplicitIdentityAndVersion();
+    void rejectsMissingOrUnknownVersion();
+    void rejectsAmbiguousSources();
 };
 
 static ComponentDescriptor descriptor(const QString &identity, const QString &sourceId)
@@ -85,6 +88,43 @@ void ComponentCatalogTests::filteringAndStatusTransitionsWork()
     QCOMPARE(catalog.snapshot(filter).size(), 1);
     QVERIFY(catalog.remove(key));
     QVERIFY(catalog.snapshot().isEmpty());
+}
+
+void ComponentCatalogTests::resolvesExplicitIdentityAndVersion()
+{
+    ComponentCatalog catalog;
+    const auto v1 = descriptor(QStringLiteral("shared.identity"), QStringLiteral("source"));
+    auto v2 = v1;
+    v2.version = QStringLiteral("2.0.0");
+    QVERIFY(catalog.registerDescriptor(v1));
+    QVERIFY(catalog.registerDescriptor(v2));
+    QString error;
+    const auto resolved = catalog.resolve(QStringLiteral("shared.identity"), QStringLiteral("2.0.0"), &error);
+    QCOMPARE(resolved.version, QStringLiteral("2.0.0"));
+    QVERIFY(error.isEmpty());
+}
+
+void ComponentCatalogTests::rejectsMissingOrUnknownVersion()
+{
+    ComponentCatalog catalog;
+    QString error;
+    QVERIFY(catalog.resolve(QString(), QStringLiteral("1.0.0"), &error).identity.isEmpty());
+    QVERIFY(!error.isEmpty());
+    error.clear();
+    QVERIFY(catalog.resolve(QStringLiteral("missing"), QStringLiteral("1.0.0"), &error).identity.isEmpty());
+    QVERIFY(error.contains(QStringLiteral("not found")));
+}
+
+void ComponentCatalogTests::rejectsAmbiguousSources()
+{
+    ComponentCatalog catalog;
+    auto first = descriptor(QStringLiteral("shared.identity"), QStringLiteral("source-a"));
+    auto second = descriptor(QStringLiteral("shared.identity"), QStringLiteral("source-b"));
+    QVERIFY(catalog.registerDescriptor(first));
+    QVERIFY(catalog.registerDescriptor(second));
+    QString error;
+    QVERIFY(catalog.resolve(first.identity, first.version, &error).identity.isEmpty());
+    QVERIFY(error.contains(QStringLiteral("multiple sources")));
 }
 
 QTEST_MAIN(ComponentCatalogTests)

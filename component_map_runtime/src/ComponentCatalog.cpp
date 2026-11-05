@@ -148,6 +148,47 @@ ComponentDescriptor ComponentCatalog::find(const QString &identity, const QStrin
     return {};
 }
 
+ComponentDescriptor ComponentCatalog::resolve(const QString &identity, const QString &version,
+                                              QString *error) const
+{
+    const QString normalizedIdentity = identity.trimmed();
+    const QString normalizedVersion = version.trimmed();
+    if (normalizedIdentity.isEmpty() || normalizedVersion.isEmpty())
+    {
+        if (error) *error = QStringLiteral("Component identity and version are required.");
+        return {};
+    }
+
+    QReadLocker locker(&m_lock);
+    ComponentDescriptor match;
+    bool found = false;
+    for (const auto &entry : m_entries)
+    {
+        const auto &descriptor = entry.descriptor;
+        if (descriptor.identity != normalizedIdentity)
+            continue;
+        if (descriptor.version == normalizedVersion)
+        {
+            if (!found)
+            {
+                match = descriptor;
+                found = true;
+            }
+            else if (descriptor.sourceId != match.sourceId)
+            {
+                if (error) *error = QStringLiteral("Component identity/version resolves to multiple sources.");
+                return {};
+            }
+        }
+    }
+    if (!found)
+    {
+        if (error) *error = QStringLiteral("Component identity/version was not found.");
+        return {};
+    }
+    return match;
+}
+
 QList<ComponentDiagnostic> ComponentCatalog::diagnostics(const ComponentKey &key) const
 {
     QReadLocker locker(&m_lock);
