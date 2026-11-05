@@ -1,6 +1,7 @@
 #include <QtTest>
 
 #include "EditorFacade.h"
+#include "models/ComponentModel.h"
 #include "extensions/sample_pack/SampleComponentTypeProvider.h"
 
 class tst_EditorFacadeContract : public QObject
@@ -49,8 +50,22 @@ private slots:
         descriptor.insert(QStringLiteral("version"), QStringLiteral("2.1.0"));
         descriptor.insert(QStringLiteral("source"), QStringLiteral("network"));
         descriptor.insert(QStringLiteral("title"), QStringLiteral("Runtime Transform"));
+        descriptor.insert(QStringLiteral("properties"), QVariantList{
+            QVariantMap{{QStringLiteral("id"), QStringLiteral("mode")},
+                        {QStringLiteral("type"), QStringLiteral("string")},
+                        {QStringLiteral("required"), true}}});
+        descriptor.insert(QStringLiteral("outputProperties"), QVariantList{
+            QVariantMap{{QStringLiteral("id"), QStringLiteral("result")},
+                        {QStringLiteral("type"), QStringLiteral("string")}}});
+        descriptor.insert(QStringLiteral("ports"), QVariantList{
+            QVariantMap{{QStringLiteral("id"), QStringLiteral("input")},
+                        {QStringLiteral("direction"), QStringLiteral("input")},
+                        {QStringLiteral("payloadType"), QStringLiteral("event")}}});
+        descriptor.insert(QStringLiteral("execution"),
+                         QVariantMap{{QStringLiteral("mode"), 2},
+                                     {QStringLiteral("protocol"), QStringLiteral("grpc")}});
         descriptor.insert(QStringLiteral("defaultProperties"),
-                         QVariantMap{{QStringLiteral("mode"), QStringLiteral("safe")}});
+                         QVariantMap{{QStringLiteral("mode"), QStringLiteral("safe")} });
 
         facade.replaceComponentTypesFromRuntimeCatalog(QVariantList{descriptor});
 
@@ -59,11 +74,54 @@ private slots:
                  QStringList{QStringLiteral("runtime.network.transform")});
         QCOMPARE(facade.typeRegistry()->componentTypeDescriptor(
                      QStringLiteral("runtime.network.transform")), descriptor);
-        QCOMPARE(facade.typeRegistry()->defaultComponentProperties(
-                     QStringLiteral("runtime.network.transform")).value(QStringLiteral("mode")),
+
+        ComponentModel component;
+        QVERIFY(component.applyRuntimeDescriptor(descriptor));
+        QCOMPARE(component.componentIdentity(), QStringLiteral("runtime.network.transform"));
+        QCOMPARE(component.componentVersion(), QStringLiteral("2.1.0"));
+        QCOMPARE(component.properties().size(), 1);
+        QCOMPARE(component.outputProperties().size(), 1);
+        QCOMPARE(component.ports().size(), 1);
+        QCOMPARE(component.executionMetadata().value(QStringLiteral("protocol")),
+                 QVariant(QStringLiteral("grpc")));
+        QCOMPARE(component.dynamicPropertyValue(QStringLiteral("mode")),
                  QVariant(QStringLiteral("safe")));
+        QCOMPARE(component.runtimeDescriptor().value(QStringLiteral("identity")),
+                 QVariant(QStringLiteral("runtime.network.transform")));
         QVERIFY(!facade.typeRegistry()->hasComponentType(
             QLatin1String(SampleComponentTypeProvider::TypeProcess)));
+    }
+
+    void runtimeDescriptorRequiresIdentityAndVersion()
+    {
+        ComponentModel component;
+        QVERIFY(!component.applyRuntimeDescriptor(
+            QVariantMap{{QStringLiteral("identity"), QStringLiteral("missing.version")}}));
+    }
+
+    void runtimeDescriptorCanDriveNodeMetadata()
+    {
+        ComponentModel component;
+        component.setId(QStringLiteral("node-1"));
+        QVERIFY(component.applyRuntimeDescriptor(
+            QVariantMap{{QStringLiteral("identity"), QStringLiteral("builtin.transform")},
+                        {QStringLiteral("version"), QStringLiteral("1.0.0")},
+                        {QStringLiteral("defaultWidth"), 160.0},
+                        {QStringLiteral("defaultHeight"), 90.0}}));
+        QCOMPARE(component.type(), QStringLiteral("builtin.transform"));
+        QCOMPARE(component.width(), 160.0);
+        QCOMPARE(component.height(), 90.0);
+    }
+
+    void runtimeMetadataPropertiesAreAvailableToQml()
+    {
+        ComponentModel component;
+        QVERIFY(component.metaObject()->indexOfProperty("componentIdentity") >= 0);
+        QVERIFY(component.metaObject()->indexOfProperty("componentVersion") >= 0);
+        QVERIFY(component.metaObject()->indexOfProperty("properties") >= 0);
+        QVERIFY(component.metaObject()->indexOfProperty("outputProperties") >= 0);
+        QVERIFY(component.metaObject()->indexOfProperty("ports") >= 0);
+        QVERIFY(component.metaObject()->indexOfProperty("executionMetadata") >= 0);
     }
 };
 

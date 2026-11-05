@@ -59,6 +59,7 @@ bool ComponentMapEditorFacade::registerPropertySchemaProvider(
 void ComponentMapEditorFacade::replaceComponentTypesFromRuntimeCatalog(const QVariantList &descriptors)
 {
     m_typeRegistry.replaceFromRuntimeCatalog(descriptors);
+    m_propertySchemaRegistry.replaceFromRuntimeCatalog(descriptors);
 }
 
 QString ComponentMapEditorFacade::createComponent(const QString &typeId, qreal x, qreal y)

@@ -1,6 +1,7 @@
 #include "RuntimeClient.h"
 
 #include <chrono>
+#include <QRegularExpression>
 
 namespace
 {
@@ -172,6 +173,95 @@ bool RuntimeClient::deployGraph(const cme::runtime::v1::DeploymentGraph &graph,
     if (response) *response = local;
     return checkApplication(local.success(), QString::fromStdString(local.error_code()),
                             QString::fromStdString(local.error_message()), error);
+}
+
+QString RuntimeClient::stableDiagnosticCode(const QString &code)
+{
+    QString normalized = code.trimmed().toUpper();
+    normalized.replace(QRegularExpression(QStringLiteral("[^A-Z0-9_]+")), QStringLiteral("_"));
+    return normalized;
+}
+
+QVariantMap RuntimeClient::deploymentValidationIssueMap(
+    const cme::runtime::v1::DeploymentValidationIssue &issue)
+{
+    QVariantMap result;
+    const QString fieldPath = QString::fromStdString(issue.field_path());
+    result.insert(QStringLiteral("code"), stableDiagnosticCode(QString::fromStdString(issue.code())));
+    result.insert(QStringLiteral("severity"), static_cast<int>(issue.severity()));
+    result.insert(QStringLiteral("fieldPath"), fieldPath);
+    result.insert(QStringLiteral("message"), QString::fromStdString(issue.message()));
+    if (!issue.component_identity().empty())
+        result.insert(QStringLiteral("componentIdentity"), QString::fromStdString(issue.component_identity()));
+    if (!issue.component_version().empty())
+        result.insert(QStringLiteral("componentVersion"), QString::fromStdString(issue.component_version()));
+    if (fieldPath.contains(QStringLiteral(".properties.")))
+        result.insert(QStringLiteral("propertyPath"), fieldPath.section(QStringLiteral(".properties."), 1));
+    if (fieldPath.contains(QStringLiteral(".ports.")))
+        result.insert(QStringLiteral("portPath"), fieldPath.section(QStringLiteral(".ports."), 1));
+    return result;
+}
+
+QVariantList RuntimeClient::deploymentValidationIssues(
+    const cme::runtime::v1::DeploymentValidationResult &result)
+{
+    QVariantList issues;
+    issues.reserve(result.issues_size());
+    for (const auto &issue : result.issues())
+        issues.append(deploymentValidationIssueMap(issue));
+    return issues;
+}
+
+QVariantMap RuntimeClient::validationIssueMap(const cme::ValidationIssue &issue)
+{
+    QVariantMap result;
+    result.insert(QStringLiteral("code"), stableDiagnosticCode(QString::fromStdString(issue.code())));
+    result.insert(QStringLiteral("severity"), static_cast<int>(issue.severity()));
+    result.insert(QStringLiteral("message"), QString::fromStdString(issue.message()));
+    result.insert(QStringLiteral("componentId"), QString::fromStdString(issue.component_id()));
+    result.insert(QStringLiteral("connectionId"), QString::fromStdString(issue.connection_id()));
+    return result;
+}
+
+QVariantList RuntimeClient::validationIssues(const cme::GraphValidationResult &result)
+{
+    QVariantList issues;
+    issues.reserve(result.issues_size());
+    for (const auto &issue : result.issues())
+        issues.append(validationIssueMap(issue));
+    return issues;
+}
+
+QString RuntimeClient::componentPathFromFieldPath(const QString &fieldPath)
+{
+    const int componentStart = fieldPath.indexOf(QStringLiteral("components["));
+    if (componentStart < 0)
+        return {};
+    const int end = fieldPath.indexOf(QLatin1Char(']'), componentStart);
+    return end < 0 ? fieldPath.mid(componentStart) : fieldPath.mid(componentStart, end - componentStart + 1);
+}
+
+QString RuntimeClient::propertyPathFromFieldPath(const QString &fieldPath)
+{
+    return fieldPath.contains(QStringLiteral(".properties."))
+        ? fieldPath.section(QStringLiteral(".properties."), 1) : QString();
+}
+
+QString RuntimeClient::portPathFromFieldPath(const QString &fieldPath)
+{
+    return fieldPath.contains(QStringLiteral(".ports."))
+        ? fieldPath.section(QStringLiteral(".ports."), 1) : QString();
+}
+
+QVariantMap RuntimeClient::enrichValidationIssue(const QVariantMap &issue)
+{
+    QVariantMap result = issue;
+    const QString fieldPath = issue.value(QStringLiteral("fieldPath")).toString();
+    if (!result.contains(QStringLiteral("propertyPath")))
+        result.insert(QStringLiteral("propertyPath"), propertyPathFromFieldPath(fieldPath));
+    if (!result.contains(QStringLiteral("portPath")))
+        result.insert(QStringLiteral("portPath"), portPathFromFieldPath(fieldPath));
+    return result;
 }
 
 bool RuntimeClient::activateGraph(const QString &graphVersion,

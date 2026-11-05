@@ -18,8 +18,11 @@ message ComponentStatusResponse { bool found = 1; string component_id = 2; strin
 message EventHistoryResponse { repeated EventHistoryItem items = 1; }
 message RuntimeLogsResponse { repeated RuntimeLogItem items = 1; }
 message RejectionsResponse { repeated RejectionItem items = 1; }
+message ComponentDiscoveryLifecycleRequest { ComponentDiscoveryLifecycleQuery query = 1; }
+message ComponentDiscoveryLifecycleResponse { ComponentDiscoveryLifecycleHistory history = 1; }
 service RuntimeQuery {
   rpc ListComponentCatalog(ComponentCatalogRequest) returns (ComponentCatalogResponse);
+  rpc ListComponentDiscoveryLifecycle(ComponentDiscoveryLifecycleRequest) returns (ComponentDiscoveryLifecycleResponse);
   rpc GetComponentStatus(ComponentStatusRequest) returns (ComponentStatusResponse);
   rpc ListEventHistory(QueryRequest) returns (EventHistoryResponse);
   rpc ListRuntimeLogs(QueryRequest) returns (RuntimeLogsResponse);

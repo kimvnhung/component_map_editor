@@ -2,6 +2,10 @@ syntax = "proto3";
 
 package cme.runtime.v1;
 
+import "component.proto";
+
+// Phase 1 runtime-process contract. The messages describe lifecycle and
+// identity only; event routing and streaming are added by the runtime phase.
 // Phase 1 runtime-process contract. The messages describe lifecycle and
 // identity only; event routing and streaming are added by the runtime phase.
 enum RuntimeMode {
@@ -67,6 +71,15 @@ message ComponentCatalogQueryResponse {
   repeated string diagnostics = 2;
 }
 
+enum ComponentDiscoveryLifecycleKind {
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_UNSPECIFIED = 0;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REGISTERED = 1;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REFRESHED = 2;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_UNAVAILABLE = 3;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REJECTED = 4;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REMOVED = 5;
+}
+
 message ComponentDiscoveryLifecycleEvent {
   string event_id = 1;
   string source_id = 2;
@@ -74,4 +87,37 @@ message ComponentDiscoveryLifecycleEvent {
   string version = 4;
   string kind = 5;
   string status = 6;
+  int64 occurred_at_unix_ms = 7;
+  string contract_version = 8;
+  repeated cme.ComponentDiagnostic diagnostics = 9;
+}
+
+message ComponentDiscoveryLifecycleQuery {
+  string source_id = 1;
+  string component_identity = 2;
+  string version = 3;
+  string kind = 4;
+  int32 limit = 5;
+  string page_token = 6;
+}
+
+message ComponentDiscoveryLifecycleHistory {
+  repeated ComponentDiscoveryLifecycleEvent events = 1;
+  string next_page_token = 2;
+}
+
+message ComponentDiscoveryLifecycleSubscription {
+  ComponentDiscoveryLifecycleQuery query = 1;
+}
+
+message ComponentDiscoveryLifecycleBatch {
+  repeated ComponentDiscoveryLifecycleEvent events = 1;
+}
+
+enum ComponentDiscoveryLifecycleStatus {
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_UNSPECIFIED = 0;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_ACTIVE = 1;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_UNAVAILABLE = 2;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_REJECTED = 3;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_REMOVED = 4;
 }

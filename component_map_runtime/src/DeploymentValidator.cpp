@@ -15,13 +15,19 @@ void addIssue(DeploymentValidationResult *result,
               const char *code,
               const char *path,
               const QString &message,
-              DeploymentValidationSeverity severity = DEPLOYMENT_VALIDATION_SEVERITY_ERROR)
+              DeploymentValidationSeverity severity = DEPLOYMENT_VALIDATION_SEVERITY_ERROR,
+              const QString &identity = {},
+              const QString &version = {})
 {
     auto *issue = result->add_issues();
     issue->set_code(code);
     issue->set_severity(severity);
     issue->set_field_path(path);
     issue->set_message(message.toStdString());
+    if (!identity.isEmpty())
+        issue->set_component_identity(identity.toStdString());
+    if (!version.isEmpty())
+        issue->set_component_version(version.toStdString());
 }
 
 struct PortInfo
@@ -191,13 +197,17 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
                     if (resolved.status != ComponentStatus::Available)
                         addIssue(&result, "COMPONENT_UNAVAILABLE",
                                  componentPath.toUtf8().constData(),
-                                 QStringLiteral("Component descriptor is not available for execution."));
+                                 QStringLiteral("Component descriptor is not available for execution."),
+                                 DEPLOYMENT_VALIDATION_SEVERITY_ERROR,
+                                 componentIdentity, componentVersion);
                     if (resolved.source == ComponentSource::Network
                         && resolved.trustState != TrustState::Trusted)
                     {
                         addIssue(&result, "COMPONENT_UNTRUSTED",
                                  componentPath.toUtf8().constData(),
-                                 QStringLiteral("Network component descriptor is not trusted."));
+                                 QStringLiteral("Network component descriptor is not trusted."),
+                                 DEPLOYMENT_VALIDATION_SEVERITY_ERROR,
+                                 componentIdentity, componentVersion);
                     }
                     for (const auto &schema : resolved.properties)
                     {
@@ -207,13 +217,33 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
                         if (schema.required && !hasValue && schema.defaultValue.isEmpty())
                             addIssue(&result, "REQUIRED_PROPERTY_MISSING", propertyPath.toUtf8().constData(),
                                      QStringLiteral("Required component property is missing."));
-                        if (hasValue && schema.constraints.contains(QStringLiteral("enum"))
-                            && !schema.constraints.value(QStringLiteral("enum"))
-                                   .split(',', Qt::SkipEmptyParts)
-                                   .contains(QString::fromStdString(propertyIt->second)))
+                        if (hasValue)
                         {
-                            addIssue(&result, "PROPERTY_ENUM_INVALID", propertyPath.toUtf8().constData(),
-                                     QStringLiteral("Component property value is not in the allowed enum."));
+                            const QString rawValue = QString::fromStdString(propertyIt->second);
+                            const QString type = schema.type.trimmed().toLower();
+                            bool typeValid = true;
+                            if (type == QStringLiteral("boolean") || type == QStringLiteral("bool"))
+                                typeValid = rawValue == QStringLiteral("true") || rawValue == QStringLiteral("false");
+                            else if (type == QStringLiteral("number") || type == QStringLiteral("double"))
+                                rawValue.toDouble(&typeValid);
+                            else if (type == QStringLiteral("integer") || type == QStringLiteral("int"))
+                                rawValue.toLongLong(&typeValid);
+                            if (!typeValid)
+                                addIssue(&result, "PROPERTY_TYPE_INVALID", propertyPath.toUtf8().constData(),
+                                         QStringLiteral("Component property value has an invalid type."),
+                                         DEPLOYMENT_VALIDATION_SEVERITY_ERROR,
+                                         componentIdentity, componentVersion);
+
+                            if (schema.constraints.contains(QStringLiteral("enum"))
+                                && !schema.constraints.value(QStringLiteral("enum"))
+                                       .split(',', Qt::SkipEmptyParts)
+                                       .contains(rawValue))
+                            {
+                                addIssue(&result, "PROPERTY_ENUM_INVALID", propertyPath.toUtf8().constData(),
+                                         QStringLiteral("Component property value is not in the allowed enum."),
+                                         DEPLOYMENT_VALIDATION_SEVERITY_ERROR,
+                                         componentIdentity, componentVersion);
+                            }
                         }
                     }
                     for (const auto &portSchema : resolved.ports)
@@ -229,8 +259,10 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
                                     : QString::fromStdString(port.message_type());
                                 if (actualType != portSchema.payloadType)
                                     addIssue(&result, "COMPONENT_PORT_TYPE_MISMATCH",
-                                             componentPath.toUtf8().constData(),
-                                             QStringLiteral("Component port payload type does not match descriptor."));
+                                             (componentPath + QStringLiteral(".ports.") + portSchema.id).toUtf8().constData(),
+                                             QStringLiteral("Component port payload type does not match descriptor."),
+                                             DEPLOYMENT_VALIDATION_SEVERITY_ERROR,
+                                             componentIdentity, componentVersion);
                                 break;
                             }
                         }

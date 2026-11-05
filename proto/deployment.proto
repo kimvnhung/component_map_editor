@@ -94,6 +94,8 @@ message DeploymentValidationIssue {
   DeploymentValidationSeverity severity = 2;
   string field_path = 3;
   string message = 4;
+  string component_identity = 5;
+  string component_version = 6;
 }
 
 message DeploymentValidationResult {

@@ -143,7 +143,49 @@ class RuntimeClientTests : public QObject
 private slots:
     void callsControlEventAndQueryServices();
     void reportsInvalidConfiguration();
+    void mapsDeploymentDiagnosticsWithStablePaths();
+    void normalizesDiagnosticCodes();
 };
+
+void RuntimeClientTests::mapsDeploymentDiagnosticsWithStablePaths()
+{
+    cme::runtime::v1::DeploymentValidationResult result;
+    auto *issue = result.add_issues();
+    issue->set_code("required_property_missing");
+    issue->set_severity(cme::runtime::v1::DEPLOYMENT_VALIDATION_SEVERITY_ERROR);
+    issue->set_field_path("components[2].properties.mode");
+    issue->set_message("Mode is required.");
+    issue->set_component_identity("runtime.transform");
+    issue->set_component_version("2.1.0");
+
+    const QVariantList mapped = cme::editor::RuntimeClient::deploymentValidationIssues(result);
+    QCOMPARE(mapped.size(), 1);
+    const QVariantMap issueMap = mapped.first().toMap();
+    QCOMPARE(issueMap.value(QStringLiteral("code")).toString(),
+             QStringLiteral("REQUIRED_PROPERTY_MISSING"));
+    QCOMPARE(issueMap.value(QStringLiteral("fieldPath")).toString(),
+             QStringLiteral("components[2].properties.mode"));
+    QCOMPARE(issueMap.value(QStringLiteral("propertyPath")).toString(), QStringLiteral("mode"));
+    QCOMPARE(issueMap.value(QStringLiteral("componentIdentity")).toString(),
+             QStringLiteral("runtime.transform"));
+    QCOMPARE(issueMap.value(QStringLiteral("componentVersion")).toString(),
+             QStringLiteral("2.1.0"));
+}
+
+void RuntimeClientTests::normalizesDiagnosticCodes()
+{
+    QCOMPARE(cme::editor::RuntimeClient::stableDiagnosticCode(
+                 QStringLiteral("component-port/type mismatch")),
+             QStringLiteral("COMPONENT_PORT_TYPE_MISMATCH"));
+    QCOMPARE(cme::editor::RuntimeClient::componentPathFromFieldPath(
+                 QStringLiteral("components[4].ports.input")),
+             QStringLiteral("components[4]"));
+    QCOMPARE(cme::editor::RuntimeClient::portPathFromFieldPath(
+                 QStringLiteral("components[4].ports.input")),
+             QStringLiteral("input"));
+}
+
+
 
 void RuntimeClientTests::callsControlEventAndQueryServices()
 {

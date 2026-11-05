@@ -1,7 +1,7 @@
 #include <QtTest>
-#include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QMetaObject>
 
 #include "componentmapeditormanager.h"
@@ -12,6 +12,7 @@ class EditorQmlModuleContractTest : public QObject
 
 private slots:
     void moduleDeclaresReusableEditorTypes();
+    void catalogDescriptorDrivesQmlComponentModel();
 };
 
 void EditorQmlModuleContractTest::moduleDeclaresReusableEditorTypes()
@@ -83,6 +84,60 @@ void EditorQmlModuleContractTest::moduleDeclaresReusableEditorTypes()
     auto *graph = root->property("graphModel").value<QObject *>();
     QVERIFY(graph);
     QCOMPARE(graph->property("componentCount").toInt(), 1);
+    delete root;
+}
+
+void EditorQmlModuleContractTest::catalogDescriptorDrivesQmlComponentModel()
+{
+    ComponentMapEditorManager manager;
+    QQmlEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("editorManager"), &manager);
+
+    QVariantMap descriptor{
+        {QStringLiteral("identity"), QStringLiteral("runtime.qml.transform")},
+        {QStringLiteral("version"), QStringLiteral("3.0.0")},
+        {QStringLiteral("properties"), QVariantList{
+            QVariantMap{{QStringLiteral("id"), QStringLiteral("enabled")},
+                        {QStringLiteral("type"), QStringLiteral("boolean")},
+                        {QStringLiteral("required"), true}}
+        }},
+        {QStringLiteral("ports"), QVariantList{
+            QVariantMap{{QStringLiteral("id"), QStringLiteral("input")},
+                        {QStringLiteral("direction"), QStringLiteral("input")},
+                        {QStringLiteral("payloadType"), QStringLiteral("event")}}
+        }},
+        {QStringLiteral("execution"), QVariantMap{{QStringLiteral("mode"), 2}}}
+    };
+    manager.componentTypeRegistry()->replaceFromRuntimeCatalog({descriptor});
+    manager.propertySchemaRegistry()->replaceFromRuntimeCatalog({descriptor});
+
+    QQmlComponent component(&engine);
+    component.setData(R"QML(
+        import QtQuick
+        import ComponentMapEditor
+        Item {
+            ComponentModel {
+                id: node
+                objectName: "catalogNode"
+            }
+            Component.onCompleted: node.applyRuntimeDescriptor({
+                identity: "runtime.qml.transform",
+                version: "3.0.0",
+                properties: [{id: "enabled", type: "boolean", required: true}],
+                ports: [{id: "input", direction: "input", payloadType: "event"}],
+                execution: {mode: 2}
+            })
+        }
+    )QML", QUrl(QStringLiteral("qrc:/runtime-catalog-model.qml")));
+
+    QObject *root = component.create();
+    QVERIFY2(root, qPrintable(component.errorString()));
+    auto *node = root->findChild<QObject *>(QStringLiteral("catalogNode"));
+    QVERIFY(node);
+    QCOMPARE(node->property("componentIdentity").toString(), QStringLiteral("runtime.qml.transform"));
+    QCOMPARE(node->property("componentVersion").toString(), QStringLiteral("3.0.0"));
+    QCOMPARE(node->property("properties").toList().size(), 1);
+    QCOMPARE(node->property("ports").toList().size(), 1);
     delete root;
 }
 

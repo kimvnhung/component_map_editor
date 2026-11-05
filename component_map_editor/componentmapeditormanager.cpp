@@ -72,6 +72,8 @@ bool ComponentMapEditorManager::refreshRuntimeCatalog()
 
     m_runtimeCatalog = descriptors;
     m_componentTypeRegistry->replaceFromRuntimeCatalog(m_runtimeCatalog);
+    if (m_propertySchemaRegistry)
+        m_propertySchemaRegistry->replaceFromRuntimeCatalog(m_runtimeCatalog);
     m_runtimeLastError.clear();
     emit runtimeStatusChanged();
     return true;

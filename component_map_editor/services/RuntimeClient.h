@@ -5,6 +5,8 @@
 #include <QString>
 
 #include <component.pb.h>
+#include <deployment.pb.h>
+#include <validation.pb.h>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -58,6 +60,18 @@ public:
     bool deployGraph(const cme::runtime::v1::DeploymentGraph &graph,
                      cme::runtime::v1::ControlResponse *response = nullptr,
                      QString *error = nullptr) const;
+    static QVariantMap deploymentValidationIssueMap(
+        const cme::runtime::v1::DeploymentValidationIssue &issue);
+    static QVariantList deploymentValidationIssues(
+        const cme::runtime::v1::DeploymentValidationResult &result);
+    static QString stableDiagnosticCode(const QString &code);
+
+    static QVariantMap validationIssueMap(const cme::ValidationIssue &issue);
+    static QVariantList validationIssues(const cme::GraphValidationResult &result);
+    static QString componentPathFromFieldPath(const QString &fieldPath);
+    static QString propertyPathFromFieldPath(const QString &fieldPath);
+    static QString portPathFromFieldPath(const QString &fieldPath);
+    static QVariantMap enrichValidationIssue(const QVariantMap &issue);
     bool activateGraph(const QString &graphVersion,
                        cme::runtime::v1::ControlResponse *response = nullptr,
                        QString *error = nullptr) const;

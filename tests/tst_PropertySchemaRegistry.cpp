@@ -196,6 +196,40 @@ private slots:
         QVERIFY(normalized.value(QStringLiteral("schemaError")).toString().isEmpty());
     }
 
+    void runtimeCatalogPropertiesBecomeSchemaRows()
+    {
+        PropertySchemaRegistry schemas;
+        const QVariantList descriptors{
+            QVariantMap{
+                {QStringLiteral("identity"), QStringLiteral("runtime.transform")},
+                {QStringLiteral("version"), QStringLiteral("1.2.0")},
+                {QStringLiteral("properties"), QVariantList{
+                    QVariantMap{{QStringLiteral("id"), QStringLiteral("enabled")},
+                                {QStringLiteral("type"), QStringLiteral("boolean")},
+                                {QStringLiteral("required"), true},
+                                {QStringLiteral("label"), QStringLiteral("Enabled")}}
+                }}
+            }
+        };
+
+        schemas.replaceFromRuntimeCatalog(descriptors);
+        QVERIFY(schemas.hasRuntimeCatalog());
+        const QVariantList rows = schemas.componentSchemaRows(QStringLiteral("runtime.transform"));
+        QCOMPARE(rows.size(), 1);
+        const QVariantMap row = rows.first().toMap();
+        QCOMPARE(row.value(QStringLiteral("key")).toString(), QStringLiteral("enabled"));
+        QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("checkbox"));
+        QVERIFY(row.value(QStringLiteral("required")).toBool());
+    }
+
+    void runtimeCatalogDoesNotUseLegacyFallbackForUnknownComponent()
+    {
+        PropertySchemaRegistry schemas;
+        schemas.replaceFromRuntimeCatalog({});
+        QVERIFY(schemas.hasRuntimeCatalog());
+        QVERIFY(schemas.componentSchemaRows(QStringLiteral("missing")).isEmpty());
+    }
+
     void typedSectionModel_isExposedAlongsideLegacySections()
     {
         ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});

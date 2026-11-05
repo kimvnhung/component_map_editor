@@ -106,6 +106,10 @@ private slots:
     void activeGraphVersionCannotBeRedeployed();
     void clonedInstanceKeepsIndependentConfiguration();
     void catalogValidationRejectsInvalidComponentConfiguration();
+    void catalogValidationRejectsInvalidPropertyType();
+    void catalogValidationRejectsInvalidEnumValue();
+    void catalogValidationRejectsIncompatiblePortPayload();
+    void deploymentManagerRejectsCatalogComponentBeforeExecution();
     void catalogValidationRejectsUnavailableComponent();
     void catalogValidationRejectsUntrustedComponent();
 };
@@ -193,6 +197,96 @@ void tst_RuntimeDeploymentPhase2::catalogValidationRejectsInvalidComponentConfig
     auto result = cme::runtime::DeploymentValidator(&registry, &catalog).validate(graph);
     QVERIFY(hasIssueCode(result, "REQUIRED_PROPERTY_MISSING"));
     QVERIFY(hasIssueCode(result, "REQUIRED_PORT_MISSING"));
+}
+
+void tst_RuntimeDeploymentPhase2::catalogValidationRejectsInvalidPropertyType()
+{
+    auto graph = validFixture();
+    auto *instance = graph.mutable_components(0);
+    instance->set_component_identity("catalog.producer");
+    instance->set_component_version("1.0.0");
+    (*instance->mutable_properties())["mode"] = "not-a-boolean";
+
+    cme::runtime::RuntimeHandlerRegistry registry;
+    registerHandlers(&registry);
+    cme::runtime::ComponentCatalog catalog;
+    auto value = descriptor(QStringLiteral("catalog.producer"), cme::runtime::ComponentStatus::Available,
+                            cme::runtime::TrustState::Trusted);
+    value.properties[0].type = QStringLiteral("boolean");
+    QVERIFY(catalog.registerDescriptor(value));
+
+    const auto result = cme::runtime::DeploymentValidator(&registry, &catalog).validate(graph);
+    QVERIFY(hasIssueCode(result, "PROPERTY_TYPE_INVALID"));
+}
+
+void tst_RuntimeDeploymentPhase2::catalogValidationRejectsInvalidEnumValue()
+{
+    auto graph = validFixture();
+    auto *instance = graph.mutable_components(0);
+    instance->set_component_identity("catalog.producer");
+    instance->set_component_version("1.0.0");
+    (*instance->mutable_properties())["mode"] = "unsafe";
+
+    cme::runtime::RuntimeHandlerRegistry registry;
+    registerHandlers(&registry);
+    cme::runtime::ComponentCatalog catalog;
+    auto value = descriptor(QStringLiteral("catalog.producer"), cme::runtime::ComponentStatus::Available,
+                            cme::runtime::TrustState::Trusted);
+    value.properties[0].required = false;
+    value.properties[0].constraints.insert(QStringLiteral("enum"), QStringLiteral("safe,fast"));
+    QVERIFY(catalog.registerDescriptor(value));
+
+    const auto result = cme::runtime::DeploymentValidator(&registry, &catalog).validate(graph);
+    QVERIFY(hasIssueCode(result, "PROPERTY_ENUM_INVALID"));
+}
+
+void tst_RuntimeDeploymentPhase2::catalogValidationRejectsIncompatiblePortPayload()
+{
+    auto graph = validFixture();
+    auto *instance = graph.mutable_components(0);
+    instance->set_component_identity("catalog.producer");
+    instance->set_component_version("1.0.0");
+    instance->mutable_ports(0)->set_port_id("input");
+    instance->mutable_ports(0)->set_message_type("other.event");
+
+    cme::runtime::RuntimeHandlerRegistry registry;
+    registerHandlers(&registry);
+    cme::runtime::ComponentCatalog catalog;
+    auto value = descriptor(QStringLiteral("catalog.producer"), cme::runtime::ComponentStatus::Available,
+                            cme::runtime::TrustState::Trusted);
+    value.properties[0].required = false;
+    value.ports[0].required = false;
+    QVERIFY(catalog.registerDescriptor(value));
+
+    const auto result = cme::runtime::DeploymentValidator(&registry, &catalog).validate(graph);
+    QVERIFY(hasIssueCode(result, "COMPONENT_PORT_TYPE_MISMATCH"));
+    const auto issue = std::find_if(result.issues().begin(), result.issues().end(), [](const auto &item) {
+        return item.code() == "COMPONENT_PORT_TYPE_MISMATCH";
+    });
+    QVERIFY(issue != result.issues().end());
+    QCOMPARE(QString::fromStdString(issue->field_path()), QStringLiteral("components[0].ports.input"));
+    QCOMPARE(QString::fromStdString(issue->component_identity()), QStringLiteral("catalog.producer"));
+}
+
+void tst_RuntimeDeploymentPhase2::deploymentManagerRejectsCatalogComponentBeforeExecution()
+{
+    auto graph = validFixture();
+    graph.mutable_components(0)->set_component_identity("catalog.producer");
+    graph.mutable_components(0)->set_component_version("1.0.0");
+
+    cme::runtime::RuntimeHandlerRegistry registry;
+    registerHandlers(&registry);
+    cme::runtime::ComponentCatalog catalog;
+    QVERIFY(catalog.registerDescriptor(descriptor(QStringLiteral("catalog.producer"),
+                                                   cme::runtime::ComponentStatus::Unavailable,
+                                                   cme::runtime::TrustState::Trusted)));
+    cme::runtime::RuntimeService service;
+    cme::runtime::DeploymentManager manager(&service, &registry, &catalog);
+
+    const auto result = manager.deploy(graph);
+    QVERIFY(!result.valid());
+    QVERIFY(hasIssueCode(result, "COMPONENT_UNAVAILABLE"));
+    QVERIFY(!manager.hasStagedGraph());
 }
 
 void tst_RuntimeDeploymentPhase2::catalogValidationRejectsUnavailableComponent()
