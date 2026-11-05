@@ -65,6 +65,7 @@ private slots:
     void rejectionAndLogSurviveRestart();
     void inboxAndIdempotencySurviveRestart();
     void resetClearsExecutionButKeepsHistoryAndLogs();
+    void discoveryLifecycleSurvivesRestartAndFilters();
 
 private:
     static cme::runtime::RuntimeEvent persistedEvent();
@@ -197,6 +198,52 @@ void tst_RuntimePersistencePhase4::resetClearsExecutionButKeepsHistoryAndLogs()
     QCOMPARE(persistence.pendingEventCount(&error), 0);
     QCOMPARE(persistence.eventHistoryCount(&error), 1);
     QCOMPARE(persistence.logCount(&error), 1);
+}
+
+void tst_RuntimePersistencePhase4::discoveryLifecycleSurvivesRestartAndFilters()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString path = directory.filePath(QStringLiteral("runtime.sqlite"));
+    QString error;
+
+    cme::runtime::RuntimePersistence persistence;
+    QVERIFY2(persistence.open(path, QStringLiteral("discovery-runtime"), &error), qPrintable(error));
+    cme::runtime::DiscoveryEvent registered;
+    registered.eventId = QStringLiteral("discovery-registered");
+    registered.timestamp = QDateTime::fromMSecsSinceEpoch(1000, Qt::UTC);
+    registered.component = {QStringLiteral("runtime.transform"), QStringLiteral("network.source"),
+                           QStringLiteral("2.1.0")};
+    registered.kind = cme::runtime::DiscoveryEvent::Kind::Registered;
+    registered.status = cme::runtime::ComponentStatus::Available;
+    QVERIFY2(persistence.recordDiscoveryLifecycleEvent(registered, QStringLiteral("1.0"), &error),
+             qPrintable(error));
+
+    cme::runtime::DiscoveryEvent unavailable = registered;
+    unavailable.eventId = QStringLiteral("discovery-unavailable");
+    unavailable.timestamp = QDateTime::fromMSecsSinceEpoch(2000, Qt::UTC);
+    unavailable.kind = cme::runtime::DiscoveryEvent::Kind::Unavailable;
+    unavailable.status = cme::runtime::ComponentStatus::Unavailable;
+    unavailable.diagnostics.append({QStringLiteral("source_timeout"),
+                                    QStringLiteral("Source timed out."), {}, true});
+    QVERIFY2(persistence.recordDiscoveryLifecycleEvent(unavailable, QStringLiteral("1.0"), &error),
+             qPrintable(error));
+    persistence.close();
+
+    cme::runtime::RuntimePersistence reopened;
+    QVERIFY2(reopened.open(path, QStringLiteral("discovery-runtime"), &error), qPrintable(error));
+    cme::runtime::PersistedDiscoveryLifecycleQuery query;
+    query.sourceId = QStringLiteral("network.source");
+    query.componentIdentity = QStringLiteral("runtime.transform");
+    query.version = QStringLiteral("2.1.0");
+    query.limit = 10;
+    const auto history = reopened.discoveryLifecycleHistory(query, &error);
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+    QCOMPARE(history.events.size(), 2);
+    QCOMPARE(history.events.at(0).kind, QStringLiteral("registered"));
+    QCOMPARE(history.events.at(1).kind, QStringLiteral("unavailable"));
+    QCOMPARE(history.events.at(1).diagnostics.size(), 1);
+    QCOMPARE(history.events.at(1).diagnostics.first().code, QStringLiteral("source_timeout"));
 }
 
 QTEST_MAIN(tst_RuntimePersistencePhase4)

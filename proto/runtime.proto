@@ -6,8 +6,7 @@ import "component.proto";
 
 // Phase 1 runtime-process contract. The messages describe lifecycle and
 // identity only; event routing and streaming are added by the runtime phase.
-// Phase 1 runtime-process contract. The messages describe lifecycle and
-// identity only; event routing and streaming are added by the runtime phase.
+
 enum RuntimeMode {
   RUNTIME_MODE_UNSPECIFIED = 0;
   RUNTIME_MODE_BACKGROUND = 1;

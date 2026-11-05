@@ -27,6 +27,31 @@ QString columnText(sqlite3_stmt *statement, int column)
     return text ? QString::fromUtf8(reinterpret_cast<const char *>(text)) : QString();
 }
 
+QString discoveryKindName(cme::runtime::DiscoveryEvent::Kind kind)
+{
+    return cme::runtime::discoveryEventKindName(kind);
+}
+
+QString discoveryStatusName(cme::runtime::ComponentStatus status)
+{
+    switch (status)
+    {
+    case cme::runtime::ComponentStatus::Registered: return QStringLiteral("registered");
+    case cme::runtime::ComponentStatus::Available: return QStringLiteral("available");
+    case cme::runtime::ComponentStatus::Unavailable: return QStringLiteral("unavailable");
+    case cme::runtime::ComponentStatus::Rejected: return QStringLiteral("rejected");
+    case cme::runtime::ComponentStatus::Removed: return QStringLiteral("removed");
+    }
+    return QStringLiteral("unknown");
+}
+
+bool bindNullableText(sqlite3_stmt *statement, int index, const QString &value)
+{
+    if (value.isEmpty())
+        return sqlite3_bind_null(statement, index) == SQLITE_OK;
+    return bindText(statement, index, value);
+}
+
 QByteArray columnBytes(sqlite3_stmt *statement, int column)
 {
     const auto *bytes = sqlite3_column_blob(statement, column);
@@ -490,6 +515,135 @@ bool RuntimePersistence::recordLog(const QString &level, const QString &code,
     return true;
 }
 
+bool RuntimePersistence::recordDiscoveryLifecycleEvent(const DiscoveryEvent &event,
+                                                       const QString &contractVersion,
+                                                       QString *error)
+{
+    if (!m_database)
+        return setError(QStringLiteral("Database is not open."), error);
+
+    if (event.eventId.trimmed().isEmpty() || event.component.sourceId.trimmed().isEmpty())
+        return setError(QStringLiteral("Discovery lifecycle event is invalid."), error);
+
+    sqlite3_stmt *statement = nullptr;
+    const char *sql =
+        "INSERT OR IGNORE INTO discovery_lifecycle_events("
+        "event_id, source_id, component_identity, version, kind, status, occurred_at, contract_version) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+    if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK
+        || !bindText(statement, 1, event.eventId)
+        || !bindText(statement, 2, event.component.sourceId)
+        || !bindText(statement, 3, event.component.identity)
+        || !bindText(statement, 4, event.component.version)
+        || !bindText(statement, 5, discoveryKindName(event.kind))
+        || !bindText(statement, 6, discoveryStatusName(event.status))
+        || sqlite3_bind_int64(statement, 7,
+                              event.timestamp.isValid()
+                                  ? event.timestamp.toMSecsSinceEpoch()
+                                  : QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()) != SQLITE_OK
+        || bindNullableText(statement, 8, contractVersion) == false
+        || sqlite3_step(statement) != SQLITE_DONE)
+    {
+        if (statement) sqlite3_finalize(statement);
+        return setError(sqliteError(), error);
+    }
+    sqlite3_finalize(statement);
+
+    const qint64 occurredAt = event.timestamp.isValid()
+                                  ? event.timestamp.toMSecsSinceEpoch()
+                                  : QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
+    for (const auto &diagnostic : event.diagnostics)
+    {
+        sqlite3_stmt *diagnosticStatement = nullptr;
+        const char *diagnosticSql =
+            "INSERT OR IGNORE INTO discovery_lifecycle_diagnostics("
+            "event_id, code, message, field_path, retryable) VALUES(?, ?, ?, ?, ?)";
+        if (sqlite3_prepare_v2(m_database, diagnosticSql, -1, &diagnosticStatement, nullptr) != SQLITE_OK
+            || !bindText(diagnosticStatement, 1, event.eventId)
+            || !bindText(diagnosticStatement, 2, diagnostic.code)
+            || !bindText(diagnosticStatement, 3, diagnostic.message)
+            || bindNullableText(diagnosticStatement, 4, diagnostic.fieldPath) == false
+            || sqlite3_bind_int(diagnosticStatement, 5, diagnostic.retryable ? 1 : 0) != SQLITE_OK
+            || sqlite3_step(diagnosticStatement) != SQLITE_DONE)
+        {
+            if (diagnosticStatement) sqlite3_finalize(diagnosticStatement);
+            return setError(sqliteError(), error);
+        }
+        sqlite3_finalize(diagnosticStatement);
+    }
+    Q_UNUSED(occurredAt);
+    return true;
+}
+
+PersistedDiscoveryLifecycleHistory RuntimePersistence::discoveryLifecycleHistory(
+    const PersistedDiscoveryLifecycleQuery &query, QString *error) const
+{
+    PersistedDiscoveryLifecycleHistory result;
+    if (!m_database)
+    {
+        setError(QStringLiteral("Database is not open."), error);
+        return result;
+    }
+
+    const int limit = qBound(1, query.limit, 1000);
+    const int offset = qMax(0, query.offset);
+    sqlite3_stmt *statement = nullptr;
+    const char *sql =
+        "SELECT event_id, source_id, component_identity, version, kind, status, occurred_at, contract_version "
+        "FROM discovery_lifecycle_events "
+        "WHERE (? = '' OR source_id = ?) AND (? = '' OR component_identity = ?) "
+        "AND (? = '' OR version = ?) AND (? = '' OR kind = ?) "
+        "ORDER BY occurred_at ASC, id ASC LIMIT ? OFFSET ?";
+    if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK
+        || !bindText(statement, 1, query.sourceId) || !bindText(statement, 2, query.sourceId)
+        || !bindText(statement, 3, query.componentIdentity) || !bindText(statement, 4, query.componentIdentity)
+        || !bindText(statement, 5, query.version) || !bindText(statement, 6, query.version)
+        || !bindText(statement, 7, query.kind) || !bindText(statement, 8, query.kind)
+        || sqlite3_bind_int(statement, 9, limit) != SQLITE_OK
+        || sqlite3_bind_int(statement, 10, offset) != SQLITE_OK)
+    {
+        if (statement) sqlite3_finalize(statement);
+        setError(sqliteError(), error);
+        return result;
+    }
+    while (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        PersistedDiscoveryLifecycleEvent event;
+        event.eventId = columnText(statement, 0);
+        event.sourceId = columnText(statement, 1);
+        event.componentIdentity = columnText(statement, 2);
+        event.version = columnText(statement, 3);
+        event.kind = columnText(statement, 4);
+        event.status = columnText(statement, 5);
+        event.occurredAt = sqlite3_column_int64(statement, 6);
+        event.contractVersion = columnText(statement, 7);
+        result.events.append(event);
+    }
+    sqlite3_finalize(statement);
+
+    for (auto &event : result.events)
+    {
+        sqlite3_stmt *diagnosticStatement = nullptr;
+        const char *diagnosticSql =
+            "SELECT code, message, field_path, retryable FROM discovery_lifecycle_diagnostics "
+            "WHERE event_id = ? ORDER BY id ASC";
+        if (sqlite3_prepare_v2(m_database, diagnosticSql, -1, &diagnosticStatement, nullptr) != SQLITE_OK
+            || !bindText(diagnosticStatement, 1, event.eventId))
+        {
+            if (diagnosticStatement) sqlite3_finalize(diagnosticStatement);
+            setError(sqliteError(), error);
+            return {};
+        }
+        while (sqlite3_step(diagnosticStatement) == SQLITE_ROW)
+            event.diagnostics.append({columnText(diagnosticStatement, 0), columnText(diagnosticStatement, 1),
+                                      columnText(diagnosticStatement, 2), sqlite3_column_int(diagnosticStatement, 3) != 0});
+        sqlite3_finalize(diagnosticStatement);
+    }
+    if (result.events.size() == limit)
+        result.nextOffset = offset + limit;
+    return result;
+}
+
 QList<PersistedEventHistory> RuntimePersistence::eventHistory(int limit, QString *error) const
 {
     QList<PersistedEventHistory> items;
@@ -608,7 +762,11 @@ bool RuntimePersistence::migrate(QString *error)
         "CREATE TABLE IF NOT EXISTS event_history(id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL, status TEXT NOT NULL, failure_code TEXT, failure_message TEXT, created_at INTEGER NOT NULL);"
         "CREATE TABLE IF NOT EXISTS component_history(id INTEGER PRIMARY KEY AUTOINCREMENT, deployment_id TEXT, qualified_path TEXT NOT NULL, state_blob BLOB NOT NULL, created_at INTEGER NOT NULL);"
         "CREATE TABLE IF NOT EXISTS event_rejections(id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT, idempotency_key TEXT, target_component_id TEXT, route_id TEXT, reason_code TEXT NOT NULL, mailbox_depth INTEGER NOT NULL, created_at INTEGER NOT NULL);"
-        "CREATE TABLE IF NOT EXISTS runtime_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, level TEXT NOT NULL, code TEXT NOT NULL, message TEXT NOT NULL, created_at INTEGER NOT NULL);"), error); /* migration continues below */
+        "CREATE TABLE IF NOT EXISTS runtime_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, level TEXT NOT NULL, code TEXT NOT NULL, message TEXT NOT NULL, created_at INTEGER NOT NULL);"
+        "CREATE TABLE IF NOT EXISTS discovery_lifecycle_events(id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL UNIQUE, source_id TEXT NOT NULL, component_identity TEXT NOT NULL, version TEXT NOT NULL, kind TEXT NOT NULL, status TEXT NOT NULL, occurred_at INTEGER NOT NULL, contract_version TEXT NOT NULL DEFAULT '');"
+        "CREATE INDEX IF NOT EXISTS idx_discovery_lifecycle_time ON discovery_lifecycle_events(occurred_at, id);"
+        "CREATE INDEX IF NOT EXISTS idx_discovery_lifecycle_component ON discovery_lifecycle_events(source_id, component_identity, version, kind);"
+        "CREATE TABLE IF NOT EXISTS discovery_lifecycle_diagnostics(id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL, code TEXT NOT NULL, message TEXT NOT NULL, field_path TEXT, retryable INTEGER NOT NULL DEFAULT 0, UNIQUE(event_id, code, message, field_path), FOREIGN KEY(event_id) REFERENCES discovery_lifecycle_events(event_id) ON DELETE CASCADE);"), error); /* migration continues below */
 
     if (!m_database) return false;
     sqlite3_stmt *columns = nullptr;

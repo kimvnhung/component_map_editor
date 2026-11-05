@@ -494,6 +494,65 @@ bool RuntimeClient::eventHistory(int limit,
     return checkRpc(m_query->ListEventHistory(&context, request, response), error);
 }
 
+QVariantMap RuntimeClient::discoveryLifecycleEventMap(
+    const cme::runtime::v1::ComponentDiscoveryLifecycleEvent &event)
+{
+    QVariantMap result;
+    result.insert(QStringLiteral("eventId"), QString::fromStdString(event.event_id()));
+    result.insert(QStringLiteral("sourceId"), QString::fromStdString(event.source_id()));
+    result.insert(QStringLiteral("componentIdentity"), QString::fromStdString(event.component_identity()));
+    result.insert(QStringLiteral("componentVersion"), QString::fromStdString(event.version()));
+    result.insert(QStringLiteral("kind"), QString::fromStdString(event.kind()));
+    result.insert(QStringLiteral("status"), QString::fromStdString(event.status()));
+    result.insert(QStringLiteral("occurredAtUnixMs"),
+                  QVariant::fromValue<qlonglong>(event.occurred_at_unix_ms()));
+    result.insert(QStringLiteral("contractVersion"), QString::fromStdString(event.contract_version()));
+
+    QVariantList diagnostics;
+    for (const auto &diagnostic : event.diagnostics())
+    {
+        QVariantMap item;
+        item.insert(QStringLiteral("code"), stableDiagnosticCode(QString::fromStdString(diagnostic.code())));
+        item.insert(QStringLiteral("message"), QString::fromStdString(diagnostic.message()));
+        item.insert(QStringLiteral("fieldPath"), QString::fromStdString(diagnostic.field_path()));
+        item.insert(QStringLiteral("retryable"), diagnostic.retryable());
+        diagnostics.append(item);
+    }
+    result.insert(QStringLiteral("diagnostics"), diagnostics);
+    return result;
+}
+
+QVariantList RuntimeClient::discoveryLifecycleEventMaps(
+    const cme::runtime::v1::ComponentDiscoveryLifecycleResponse &response)
+{
+    QVariantList result;
+    if (!response.has_history())
+        return result;
+    for (const auto &event : response.history().events())
+        result.append(discoveryLifecycleEventMap(event));
+    return result;
+}
+
+bool RuntimeClient::discoveryLifecycle(
+    const cme::runtime::v1::ComponentDiscoveryLifecycleQuery &query,
+    cme::runtime::v1::ComponentDiscoveryLifecycleResponse *response,
+    QString *error) const
+{
+    if (!response)
+    {
+        setError(error, QStringLiteral("Discovery lifecycle response must not be null."));
+        return false;
+    }
+    if (!checkAddress(error))
+        return false;
+    rebuildStubs();
+    cme::runtime::v1::ComponentDiscoveryLifecycleRequest request;
+    *request.mutable_query() = query;
+    grpc::ClientContext context;
+    configureContext(&context);
+    return checkRpc(m_query->ListComponentDiscoveryLifecycle(&context, request, response), error);
+}
+
 bool RuntimeClient::runtimeLogs(int limit,
                                 cme::runtime::v1::RuntimeLogsResponse *response,
                                 QString *error) const

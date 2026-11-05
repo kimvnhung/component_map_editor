@@ -15,6 +15,7 @@ namespace cme::runtime
 
 class ComponentCatalog;
 class NetworkComponentSource;
+class RuntimePersistence;
 
 enum class DiscoverySourceKind
 {
@@ -79,6 +80,7 @@ public:
     }
 
     void setCatalog(ComponentCatalog *catalog) { m_catalog = catalog; }
+    void setPersistence(RuntimePersistence *persistence) { m_persistence = persistence; }
     bool addSource(NetworkComponentSource *source, QString *error = nullptr);
     bool removeSource(const QString &sourceId);
     QList<DiscoveryRefreshResult> refreshAll();
@@ -100,6 +102,7 @@ private:
     mutable QMutex m_mutex;
     QHash<QString, SourceEntry> m_sources;
     ComponentCatalog *m_catalog = nullptr; // non-owning runtime catalog
+    RuntimePersistence *m_persistence = nullptr; // non-owning runtime persistence
 
 };
 

@@ -84,12 +84,37 @@ public:
         return grpc::Status::OK;
     }
 
+    grpc::Status ListComponentDiscoveryLifecycle(
+        grpc::ServerContext *,
+        const cme::runtime::v1::ComponentDiscoveryLifecycleRequest *request,
+        cme::runtime::v1::ComponentDiscoveryLifecycleResponse *response) override
+    {
+        receivedSource = QString::fromStdString(request->query().source_id());
+        auto *event = response->mutable_history()->add_events();
+        event->set_event_id("discovery-1");
+        event->set_source_id("network.source");
+        event->set_component_identity("runtime.transform");
+        event->set_version("2.1.0");
+        event->set_kind("unavailable");
+        event->set_status("unavailable");
+        event->set_occurred_at_unix_ms(1234);
+        event->set_contract_version("1.0");
+        auto *diagnostic = event->add_diagnostics();
+        diagnostic->set_code("source-timeout");
+        diagnostic->set_message("Source timed out.");
+        diagnostic->set_retryable(true);
+        response->mutable_history()->set_next_page_token("10");
+        return grpc::Status::OK;
+    }
+
     grpc::Status ListEventHistory(grpc::ServerContext *, const cme::runtime::v1::QueryRequest *,
                                   cme::runtime::v1::EventHistoryResponse *response) override
     {
         response->add_items()->set_event_id("event-1");
         return grpc::Status::OK;
     }
+
+    QString receivedSource;
 
     grpc::Status ListRuntimeLogs(grpc::ServerContext *, const cme::runtime::v1::QueryRequest *,
                                  cme::runtime::v1::RuntimeLogsResponse *response) override
@@ -145,7 +170,31 @@ private slots:
     void reportsInvalidConfiguration();
     void mapsDeploymentDiagnosticsWithStablePaths();
     void normalizesDiagnosticCodes();
+    void mapsDiscoveryLifecycleEvents();
 };
+
+void RuntimeClientTests::mapsDiscoveryLifecycleEvents()
+{
+    FakeServer server;
+    QVERIFY(server.server != nullptr);
+    cme::editor::RuntimeClient client(server.address());
+    cme::runtime::v1::ComponentDiscoveryLifecycleQuery query;
+    query.set_source_id("network.source");
+    query.set_component_identity("runtime.transform");
+    query.set_limit(10);
+    cme::runtime::v1::ComponentDiscoveryLifecycleResponse response;
+    QString error;
+    QVERIFY2(client.discoveryLifecycle(query, &response, &error), qPrintable(error));
+    QCOMPARE(server.query.receivedSource, QStringLiteral("network.source"));
+    const auto mapped = cme::editor::RuntimeClient::discoveryLifecycleEventMaps(response);
+    QCOMPARE(mapped.size(), 1);
+    const auto item = mapped.first().toMap();
+    QCOMPARE(item.value(QStringLiteral("componentIdentity")).toString(),
+             QStringLiteral("runtime.transform"));
+    QCOMPARE(item.value(QStringLiteral("componentVersion")).toString(), QStringLiteral("2.1.0"));
+    QCOMPARE(item.value(QStringLiteral("kind")).toString(), QStringLiteral("unavailable"));
+    QCOMPARE(item.value(QStringLiteral("diagnostics")).toList().size(), 1);
+}
 
 void RuntimeClientTests::mapsDeploymentDiagnosticsWithStablePaths()
 {

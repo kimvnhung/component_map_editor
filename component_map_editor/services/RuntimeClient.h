@@ -105,6 +105,14 @@ public:
     bool eventHistory(int limit,
                       cme::runtime::v1::EventHistoryResponse *response,
                       QString *error = nullptr) const;
+    bool discoveryLifecycle(
+        const cme::runtime::v1::ComponentDiscoveryLifecycleQuery &query,
+        cme::runtime::v1::ComponentDiscoveryLifecycleResponse *response,
+        QString *error = nullptr) const;
+    static QVariantMap discoveryLifecycleEventMap(
+        const cme::runtime::v1::ComponentDiscoveryLifecycleEvent &event);
+    static QVariantList discoveryLifecycleEventMaps(
+        const cme::runtime::v1::ComponentDiscoveryLifecycleResponse &response);
     bool runtimeLogs(int limit,
                      cme::runtime::v1::RuntimeLogsResponse *response,
                      QString *error = nullptr) const;

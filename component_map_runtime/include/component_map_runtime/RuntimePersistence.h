@@ -2,6 +2,7 @@
 #define COMPONENT_MAP_RUNTIME_RUNTIME_PERSISTENCE_H
 
 #include "component_map_runtime/RuntimeCore.h"
+#include "component_map_runtime/ComponentDiscoveryTypes.h"
 
 #include <QHash>
 #include <QString>
@@ -28,6 +29,43 @@ struct PersistedRuntimeLog
     QString code;
     QString message;
     qint64 createdAt = 0;
+};
+
+struct PersistedDiscoveryDiagnostic
+{
+    QString code;
+    QString message;
+    QString fieldPath;
+    bool retryable = false;
+};
+
+struct PersistedDiscoveryLifecycleEvent
+{
+    QString eventId;
+    QString sourceId;
+    QString componentIdentity;
+    QString version;
+    QString kind;
+    QString status;
+    qint64 occurredAt = 0;
+    QString contractVersion;
+    QList<PersistedDiscoveryDiagnostic> diagnostics;
+};
+
+struct PersistedDiscoveryLifecycleQuery
+{
+    QString sourceId;
+    QString componentIdentity;
+    QString version;
+    QString kind;
+    int limit = 100;
+    int offset = 0;
+};
+
+struct PersistedDiscoveryLifecycleHistory
+{
+    QList<PersistedDiscoveryLifecycleEvent> events;
+    int nextOffset = -1;
 };
 
 struct PersistedInboxEvent
@@ -114,6 +152,12 @@ public:
     bool recordFailure(const FailureRecord &record, QString *error = nullptr);
     bool recordLog(const QString &level, const QString &code,
                    const QString &message, QString *error = nullptr);
+    bool recordDiscoveryLifecycleEvent(const DiscoveryEvent &event,
+                                       const QString &contractVersion = {},
+                                       QString *error = nullptr);
+    PersistedDiscoveryLifecycleHistory discoveryLifecycleHistory(
+        const PersistedDiscoveryLifecycleQuery &query = {},
+        QString *error = nullptr) const;
 
     QList<PersistedEventHistory> eventHistory(int limit = 100, QString *error = nullptr) const;
     QList<PersistedRuntimeLog> runtimeLogs(int limit = 100, QString *error = nullptr) const;

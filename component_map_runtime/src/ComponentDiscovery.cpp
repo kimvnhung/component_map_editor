@@ -2,8 +2,10 @@
 
 #include "component_map_runtime/NetworkComponentSource.h"
 #include "component_map_runtime/ComponentCatalog.h"
+#include "component_map_runtime/RuntimePersistence.h"
 
 #include <QMutexLocker>
+#include <QDateTime>
 
 namespace cme::runtime
 {
@@ -120,11 +122,34 @@ DiscoveryRefreshResult ComponentDiscovery::refreshEntry(const QString &sourceId,
     result.sourceId = sourceId;
     const DiscoverySourceConfig config = entry.provider->configuration();
 
+    auto persistEvent = [this](const QString &eventId,
+                                         const ComponentKey &component,
+                                         DiscoveryEvent::Kind kind,
+                                         ComponentStatus status,
+                                         const QString &contractVersion,
+                                         const QList<ComponentDiagnostic> &diagnostics = {}) {
+        if (!m_persistence)
+            return;
+        DiscoveryEvent event;
+        event.eventId = eventId;
+        event.timestamp = QDateTime::currentDateTimeUtc();
+        event.component = component;
+        event.kind = kind;
+        event.status = status;
+        event.diagnostics = diagnostics;
+        QString ignored;
+        m_persistence->recordDiscoveryLifecycleEvent(event, contractVersion, &ignored);
+    };
+
     if (!config.trusted)
     {
         result.health = DiscoveryHealth::Unavailable;
         appendDiagnostic(result, QStringLiteral("untrusted_source"),
                          QStringLiteral("Network discovery is deny-by-default until trusted."));
+        for (const auto &diagnostic : result.diagnostics)
+            persistEvent(QStringLiteral("%1:unavailable").arg(sourceId),
+                         {QStringLiteral("*"), sourceId, {}}, DiscoveryEvent::Kind::Unavailable,
+                         ComponentStatus::Unavailable, {}, {diagnostic});
         return result;
     }
 
@@ -145,17 +170,41 @@ DiscoveryRefreshResult ComponentDiscovery::refreshEntry(const QString &sourceId,
         appendDiagnostic(result, QStringLiteral("discovery_failed"),
                          QStringLiteral("Discovery provider failed after retry attempts."), true);
 
+    if (!result.success)
+    {
+        for (const auto &diagnostic : result.diagnostics)
+        {
+            persistEvent(QStringLiteral("%1:%2").arg(sourceId, diagnostic.code),
+                         {QStringLiteral("*"), sourceId, {}}, DiscoveryEvent::Kind::Rejected,
+                         ComponentStatus::Rejected, {}, {diagnostic});
+        }
+    }
+
     if (result.success && m_catalog)
     {
         for (const ComponentDescriptor &descriptor : result.descriptors)
         {
+            const bool existed = !m_catalog->find(descriptor.identity, descriptor.version,
+                                                   descriptor.sourceId).identity.isEmpty();
             ComponentDiagnostic diagnostic;
             if (!m_catalog->refreshDescriptor(descriptor, &diagnostic))
             {
                 result.success = false;
                 result.health = DiscoveryHealth::Degraded;
                 result.diagnostics.append(diagnostic);
+                persistEvent(QStringLiteral("%1:%2:rejected").arg(sourceId, descriptor.identity),
+                             componentKey(descriptor), DiscoveryEvent::Kind::Rejected,
+                             ComponentStatus::Rejected, descriptor.contractVersion, {diagnostic});
+                continue;
             }
+
+            persistEvent(QStringLiteral("%1:%2:%3").arg(sourceId, descriptor.identity,
+                                                        existed ? QStringLiteral("refreshed")
+                                                                : QStringLiteral("registered")),
+                         componentKey(descriptor),
+                         existed ? DiscoveryEvent::Kind::Refreshed
+                                 : DiscoveryEvent::Kind::Registered,
+                         descriptor.status, descriptor.contractVersion);
         }
     }
     return result;

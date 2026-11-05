@@ -2,6 +2,7 @@ syntax = "proto3";
 package cme.runtime.v1;
 
 import "component.proto";
+import "runtime.proto";
 
 message QueryRequest { int32 limit = 1; }
 message ComponentCatalogRequest { cme.ComponentCatalogQuery query = 1; }

@@ -309,6 +309,60 @@ grpc::Status RuntimeGrpcServer::QueryService::ListComponentCatalog(
     return grpc::Status::OK;
 }
 
+grpc::Status RuntimeGrpcServer::QueryService::ListComponentDiscoveryLifecycle(
+    grpc::ServerContext *, const ComponentDiscoveryLifecycleRequest *request,
+    ComponentDiscoveryLifecycleResponse *response)
+{
+    if (!m_owner->m_persistence)
+        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                            "Persistence is not configured.");
+
+    PersistedDiscoveryLifecycleQuery query;
+    if (request->has_query())
+    {
+        const auto &input = request->query();
+        query.sourceId = QString::fromStdString(input.source_id());
+        query.componentIdentity = QString::fromStdString(input.component_identity());
+        query.version = QString::fromStdString(input.version());
+        query.kind = QString::fromStdString(input.kind());
+        query.limit = input.limit() > 0 ? input.limit() : 100;
+        bool validPageToken = false;
+        query.offset = QString::fromStdString(input.page_token()).toInt(&validPageToken);
+        if (!validPageToken)
+            query.offset = 0;
+    }
+
+    QString error;
+    const auto history = m_owner->m_persistence->discoveryLifecycleHistory(query, &error);
+    if (!error.isEmpty())
+        return grpc::Status(grpc::StatusCode::INTERNAL, error.toStdString());
+
+    auto *outputHistory = response->mutable_history();
+    if (history.nextOffset >= 0)
+        outputHistory->set_next_page_token(QString::number(history.nextOffset).toStdString());
+    for (const auto &item : history.events)
+    {
+        auto *event = outputHistory->add_events();
+        event->set_event_id(item.eventId.toStdString());
+        event->set_source_id(item.sourceId.toStdString());
+        event->set_component_identity(item.componentIdentity.toStdString());
+        event->set_version(item.version.toStdString());
+        event->set_kind(item.kind.toStdString());
+        event->set_status(item.status.toStdString());
+        event->set_occurred_at_unix_ms(item.occurredAt);
+        event->set_contract_version(item.contractVersion.toStdString());
+        for (const auto &diagnostic : item.diagnostics)
+        {
+            auto *outputDiagnostic = event->add_diagnostics();
+            outputDiagnostic->set_code(diagnostic.code.toStdString());
+            outputDiagnostic->set_message(diagnostic.message.toStdString());
+            outputDiagnostic->set_field_path(diagnostic.fieldPath.toStdString());
+            outputDiagnostic->set_retryable(diagnostic.retryable);
+        }
+    }
+    return grpc::Status::OK;
+}
+
 grpc::Status RuntimeGrpcServer::QueryService::ListEventHistory(
     grpc::ServerContext *, const QueryRequest *request, EventHistoryResponse *response)
 {

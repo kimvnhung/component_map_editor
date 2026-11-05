@@ -67,6 +67,9 @@ private:
                                         cme::runtime::v1::ComponentStatusResponse *) override;
         grpc::Status ListComponentCatalog(grpc::ServerContext *, const cme::runtime::v1::ComponentCatalogRequest *,
                                           cme::runtime::v1::ComponentCatalogResponse *) override;
+        grpc::Status ListComponentDiscoveryLifecycle(
+            grpc::ServerContext *, const cme::runtime::v1::ComponentDiscoveryLifecycleRequest *,
+            cme::runtime::v1::ComponentDiscoveryLifecycleResponse *) override;
         grpc::Status ListEventHistory(grpc::ServerContext *, const cme::runtime::v1::QueryRequest *,
                                       cme::runtime::v1::EventHistoryResponse *) override;
         grpc::Status ListRuntimeLogs(grpc::ServerContext *, const cme::runtime::v1::QueryRequest *,
