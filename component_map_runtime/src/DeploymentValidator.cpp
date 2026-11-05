@@ -34,8 +34,9 @@ struct PortInfo
 namespace cme::runtime
 {
 
-DeploymentValidator::DeploymentValidator(const RuntimeHandlerRegistry *registry)
-    : m_registry(registry)
+DeploymentValidator::DeploymentValidator(const RuntimeHandlerRegistry *registry,
+                                             const ComponentCatalog *catalog)
+    : m_registry(registry), m_catalog(catalog)
 {
 }
 
@@ -162,6 +163,83 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
             addIssue(&result, "HANDLER_NOT_FOUND",
                      (componentPath + QStringLiteral(".component_type")).toUtf8().constData(),
                      QStringLiteral("Component type has no registered handler."));
+        }
+
+        const QString componentIdentity = QString::fromStdString(component.component_identity());
+        const QString componentVersion = QString::fromStdString(component.component_version());
+        if (m_catalog && !componentIdentity.isEmpty())
+        {
+            if (componentVersion.isEmpty())
+            {
+                addIssue(&result, "COMPONENT_VERSION_REQUIRED",
+                         (componentPath + QStringLiteral(".component_version")).toUtf8().constData(),
+                         QStringLiteral("Component version is required when component identity is specified."));
+            }
+            else
+            {
+                QString resolutionError;
+                const ComponentDescriptor resolved =
+                    m_catalog->resolve(componentIdentity, componentVersion, &resolutionError);
+                if (resolved.identity.isEmpty())
+                {
+                    addIssue(&result, "COMPONENT_DESCRIPTOR_NOT_FOUND",
+                             (componentPath + QStringLiteral(".component_version")).toUtf8().constData(),
+                             resolutionError);
+                }
+                else
+                {
+                    if (resolved.status != ComponentStatus::Available)
+                        addIssue(&result, "COMPONENT_UNAVAILABLE",
+                                 componentPath.toUtf8().constData(),
+                                 QStringLiteral("Component descriptor is not available for execution."));
+                    if (resolved.source == ComponentSource::Network
+                        && resolved.trustState != TrustState::Trusted)
+                    {
+                        addIssue(&result, "COMPONENT_UNTRUSTED",
+                                 componentPath.toUtf8().constData(),
+                                 QStringLiteral("Network component descriptor is not trusted."));
+                    }
+                    for (const auto &schema : resolved.properties)
+                    {
+                        const QString propertyPath = componentPath + QStringLiteral(".properties.") + schema.id;
+                        const auto propertyIt = component.properties().find(schema.id.toStdString());
+                        const bool hasValue = propertyIt != component.properties().end();
+                        if (schema.required && !hasValue && schema.defaultValue.isEmpty())
+                            addIssue(&result, "REQUIRED_PROPERTY_MISSING", propertyPath.toUtf8().constData(),
+                                     QStringLiteral("Required component property is missing."));
+                        if (hasValue && schema.constraints.contains(QStringLiteral("enum"))
+                            && !schema.constraints.value(QStringLiteral("enum"))
+                                   .split(',', Qt::SkipEmptyParts)
+                                   .contains(QString::fromStdString(propertyIt->second)))
+                        {
+                            addIssue(&result, "PROPERTY_ENUM_INVALID", propertyPath.toUtf8().constData(),
+                                     QStringLiteral("Component property value is not in the allowed enum."));
+                        }
+                    }
+                    for (const auto &portSchema : resolved.ports)
+                    {
+                        bool present = false;
+                        for (const auto &port : component.ports())
+                        {
+                            if (QString::fromStdString(port.port_id()) == portSchema.id)
+                            {
+                                present = true;
+                                const QString actualType = port.message_type().empty()
+                                    ? QString::fromStdString(port.token_key())
+                                    : QString::fromStdString(port.message_type());
+                                if (actualType != portSchema.payloadType)
+                                    addIssue(&result, "COMPONENT_PORT_TYPE_MISMATCH",
+                                             componentPath.toUtf8().constData(),
+                                             QStringLiteral("Component port payload type does not match descriptor."));
+                                break;
+                            }
+                        }
+                        if (portSchema.required && !present)
+                            addIssue(&result, "REQUIRED_PORT_MISSING", componentPath.toUtf8().constData(),
+                                     QStringLiteral("Required component port is missing."));
+                    }
+                }
+            }
         }
         if (isComposite)
         {

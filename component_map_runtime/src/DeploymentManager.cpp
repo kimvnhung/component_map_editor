@@ -35,16 +35,18 @@ namespace cme::runtime
 {
 
 DeploymentManager::DeploymentManager(RuntimeService *runtimeService,
-                                     const RuntimeHandlerRegistry *registry)
+                                     const RuntimeHandlerRegistry *registry,
+                                     const ComponentCatalog *catalog)
     : m_runtimeService(runtimeService)
     , m_registry(registry)
+    , m_catalog(catalog)
 {
 }
 
 cme::runtime::v1::DeploymentValidationResult DeploymentManager::deploy(
     const cme::runtime::v1::DeploymentGraph &graph)
 {
-    DeploymentValidator validator(m_registry);
+    DeploymentValidator validator(m_registry, m_catalog);
     auto result = validator.validate(graph);
     if (!result.valid())
         return result;

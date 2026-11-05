@@ -46,6 +46,9 @@ message ComponentInstance {
   // A composite component references an immutable graph definition. Empty means native handler.
   string composite_graph_id = 6;
   string composite_graph_version = 7;
+  string component_identity = 8;
+  string component_version = 9;
+  string metadata_snapshot = 10;
 }
 
 message ExposedPort {

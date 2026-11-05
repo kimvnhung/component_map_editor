@@ -35,14 +35,14 @@ int main(int argc, char *argv[])
     }
     for (const auto &componentType : registry.componentTypes())
     {
-        const auto descriptor = registry.descriptor(componentType);
-        if (!catalog.registerDescriptor(descriptor, nullptr))
+        const auto componentDescriptor = registry.descriptor(componentType);
+        if (!catalog.registerDescriptor(componentDescriptor, nullptr))
         {
             qCritical().noquote() << "Unable to register built-in descriptor:" << componentType;
             return 1;
         }
     }
-    cme::runtime::DeploymentManager deployment(&service, &registry);
+    cme::runtime::DeploymentManager deployment(&service, &registry, &catalog);
     cme::runtime::RuntimePersistence persistence;
     if (!persistence.open(parser.value(databaseOption), parser.value(runtimeOption), &error))
     {

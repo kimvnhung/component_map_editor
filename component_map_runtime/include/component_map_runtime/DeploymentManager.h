@@ -1,6 +1,7 @@
 #ifndef COMPONENT_MAP_RUNTIME_DEPLOYMENT_MANAGER_H
 #define COMPONENT_MAP_RUNTIME_DEPLOYMENT_MANAGER_H
 
+#include "component_map_runtime/ComponentCatalog.h"
 #include "component_map_runtime/FlattenCompiler.h"
 #include "component_map_runtime/RuntimeHandlerRegistry.h"
 #include "component_map_runtime/RuntimeService.h"
@@ -14,7 +15,8 @@ class DeploymentManager
 {
 public:
     explicit DeploymentManager(RuntimeService *runtimeService,
-                               const RuntimeHandlerRegistry *registry = nullptr);
+                               const RuntimeHandlerRegistry *registry = nullptr,
+                               const ComponentCatalog *catalog = nullptr);
 
     cme::runtime::v1::DeploymentValidationResult deploy(
         const cme::runtime::v1::DeploymentGraph &graph);
@@ -29,6 +31,7 @@ public:
 private:
     RuntimeService *m_runtimeService = nullptr;
     const RuntimeHandlerRegistry *m_registry = nullptr;
+    const ComponentCatalog *m_catalog = nullptr;
     cme::runtime::v1::DeploymentGraph m_stagedGraph;
     cme::runtime::v1::DeploymentGraph m_activeGraph;
     ExecutionPlan m_stagedPlan;
