@@ -61,6 +61,9 @@ bool SequentialExecutionEngine::prepare(GraphModel *graph,
         snap->set_id(componentId.toStdString());
         snap->set_type_id(component->type().toStdString());
         snap->set_title(component->title().toStdString());
+        snap->set_component_identity(component->componentIdentity().toStdString());
+        snap->set_component_version(component->componentVersion().toStdString());
+        snap->set_metadata_snapshot(component->metadataSnapshot().toStdString());
 
         auto *properties = snap->mutable_properties();
         (*properties)["x"] = QString::number(component->x()).toStdString();

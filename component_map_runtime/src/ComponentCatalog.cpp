@@ -1,9 +1,31 @@
 #include "component_map_runtime/ComponentCatalog.h"
 
+#include <QRegularExpression>
 #include <algorithm>
 
 namespace cme::runtime
 {
+
+namespace
+{
+int compareSemanticVersion(const QString &left, const QString &right)
+{
+    const QStringList leftParts = left.split(QLatin1Char('.'));
+    const QStringList rightParts = right.split(QLatin1Char('.'));
+    for (int i = 0; i < 3; ++i)
+    {
+        const int leftValue = i < leftParts.size()
+            ? leftParts.at(i).section(QRegularExpression(QStringLiteral("[-+]")), 0, 0).toInt()
+            : 0;
+        const int rightValue = i < rightParts.size()
+            ? rightParts.at(i).section(QRegularExpression(QStringLiteral("[-+]")), 0, 0).toInt()
+            : 0;
+        if (leftValue != rightValue)
+            return leftValue < rightValue ? -1 : 1;
+    }
+    return 0;
+}
+}
 
 void ComponentCatalog::setDiagnostic(ComponentDiagnostic *target, const QString &code,
                                      const QString &message, const QString &fieldPath)
@@ -161,12 +183,15 @@ ComponentDescriptor ComponentCatalog::resolve(const QString &identity, const QSt
 
     QReadLocker locker(&m_lock);
     ComponentDescriptor match;
+    QString newestVersion;
     bool found = false;
     for (const auto &entry : m_entries)
     {
         const auto &descriptor = entry.descriptor;
         if (descriptor.identity != normalizedIdentity)
             continue;
+        if (newestVersion.isEmpty() || compareSemanticVersion(newestVersion, descriptor.version) < 0)
+            newestVersion = descriptor.version;
         if (descriptor.version == normalizedVersion)
         {
             if (!found)
@@ -183,7 +208,13 @@ ComponentDescriptor ComponentCatalog::resolve(const QString &identity, const QSt
     }
     if (!found)
     {
-        if (error) *error = QStringLiteral("Component identity/version was not found.");
+        if (error)
+        {
+            *error = QStringLiteral("Component identity/version was not found.");
+            if (!newestVersion.isEmpty() && compareSemanticVersion(normalizedVersion, newestVersion) < 0)
+                *error += QStringLiteral(" A newer version (%1) exists; silent version substitution is not allowed.")
+                               .arg(newestVersion);
+        }
         return {};
     }
     return match;

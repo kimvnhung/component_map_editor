@@ -92,6 +92,21 @@ const QString& componentType()
     static const QString key = QStringLiteral("type");
     return key;
 }
+const QString& componentIdentity()
+{
+    static const QString key = QStringLiteral("componentIdentity");
+    return key;
+}
+const QString& componentVersion()
+{
+    static const QString key = QStringLiteral("componentVersion");
+    return key;
+}
+const QString& componentMetadataSnapshot()
+{
+    static const QString key = QStringLiteral("metadataSnapshot");
+    return key;
+}
 
 const QString& properties()
 {
@@ -152,7 +167,11 @@ QStringList componentFieldOrder()
 {
     return {Keys::componentId(),    Keys::componentTitle(), Keys::componentContent(), Keys::componentIcon(),
             Keys::componentX(),     Keys::componentY(),     Keys::componentWidth(),   Keys::componentHeight(),
-            Keys::componentShape(), Keys::componentColor(), Keys::componentType()};
+            Keys::componentShape(), Keys::componentColor(), Keys::componentType(),
+            Keys::componentIdentity(), Keys::componentVersion(), Keys::componentMetadataSnapshot()};
+
+// Identity, version, and metadata snapshot are persisted independently from
+// dynamic instance properties so unavailable descriptors remain reproducible.
 }
 
 QStringList connectionFieldOrder()
@@ -194,6 +213,12 @@ QJsonObject componentToJson(const ComponentModel* component)
     obj[Keys::componentShape()] = component->shape();
     obj[Keys::componentColor()] = component->color();
     obj[Keys::componentType()] = component->type();
+    if (!component->componentIdentity().isEmpty())
+        obj[Keys::componentIdentity()] = component->componentIdentity();
+    if (!component->componentVersion().isEmpty())
+        obj[Keys::componentVersion()] = component->componentVersion();
+    if (!component->metadataSnapshot().isEmpty())
+        obj[Keys::componentMetadataSnapshot()] = component->metadataSnapshot();
 
     const QList<QByteArray> dynNames = component->dynamicPropertyNames();
     if (!dynNames.isEmpty())
@@ -251,6 +276,9 @@ ComponentModel* componentFromCanonicalJson(const QJsonObject& obj)
     component->setTitle(title);
     component->setContent(obj[Keys::componentContent()].toString());
     component->setIcon(obj[Keys::componentIcon()].toString());
+    component->setComponentIdentity(obj[Keys::componentIdentity()].toString());
+    component->setComponentVersion(obj[Keys::componentVersion()].toString());
+    component->setMetadataSnapshot(obj[Keys::componentMetadataSnapshot()].toString());
 
     const QJsonObject propsObj = obj[Keys::properties()].toObject();
     for (auto it = propsObj.begin(); it != propsObj.end(); ++it)

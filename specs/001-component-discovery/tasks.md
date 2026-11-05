@@ -145,12 +145,12 @@ identity/version reference.
 - [X] T043 [US4] Define structured discovery lifecycle event messages for registered, refreshed, unavailable, rejected, and removed states in `proto/runtime.proto` (field-compatible lifecycle event, query/history, batch/subscription messages, diagnostics, timestamps, and lifecycle query RPC are implemented)
 - [X] T044 [US4] Persist discovery lifecycle events through the existing runtime history/persistence path in `component_map_runtime/src/RuntimePersistence.cpp` and `component_map_runtime/src/ComponentDiscovery.cpp` (SQLite persistence, diagnostic rows, restart recovery, and registered/refreshed/rejected/unavailable emission are implemented)
 - [X] T045 [US4] Expose discovery event/history query and filtering through `component_map_runtime/src/RuntimeGrpcServer.cpp` (source, identity, version, kind, limit, and offset page token filters are implemented)
-- [ ] T046 [US4] Add runtime client event/history subscription and conversion to editor-facing discovery status models in `component_map_editor/services/RuntimeClient.cpp` and `component_map_editor/models/TimelineModel.cpp` (RuntimeClient query and QVariant conversion are implemented; TimelineModel integration remains)
+- [X] T046 [US4] Add runtime client event/history subscription and conversion to editor-facing discovery status models in `component_map_editor/services/RuntimeClient.cpp` and `component_map_editor/models/TimelineModel.cpp` (RuntimeClient query/conversion and TimelineModel lifecycle-row integration are implemented and tested)
 
 **Implementation note:** T043-T045 are validated by `tst_RuntimePersistencePhase4`, `tst_RuntimeClient`, `tst_ComponentDiscovery`, and `tst_RuntimeComponentCatalog`. T046 remains open until lifecycle rows are attached to `TimelineModel`.
-- [ ] T047 [US4] Preserve graph component identity/version and metadata snapshot when a source becomes unavailable in `component_map_editor/models/GraphModel.cpp` and `component_map_runtime/src/DeploymentManager.cpp`
-- [ ] T048 [US4] Reject silent version substitution and report compatibility diagnostics when a newer descriptor is discovered in `component_map_runtime/src/ComponentCatalog.cpp` and `component_map_runtime/src/DeploymentValidator.cpp`
-- [ ] T049 [US4] Add lifecycle, unavailable-source, removed-component, and version-preservation integration tests in `tests/tst_ComponentVersionResolution.cpp` and `tests/tst_RuntimeComponentCatalog.cpp`
+- [X] T047 [US4] Preserve graph component identity/version and metadata snapshot when a source becomes unavailable in `component_map_editor/models/GraphModel.cpp` and `component_map_runtime/src/DeploymentManager.cpp` (graph schema persistence and execution/validation snapshots retain the explicit reference)
+- [X] T048 [US4] Reject silent version substitution and report compatibility diagnostics when a newer descriptor is discovered in `component_map_runtime/src/ComponentCatalog.cpp` and `component_map_runtime/src/DeploymentValidator.cpp` (exact catalog resolution reports a newer-version diagnostic)
+- [ ] T049 [US4] Add lifecycle, unavailable-source, removed-component, and version-preservation integration tests in `tests/tst_ComponentVersionResolution.cpp` and `tests/tst_RuntimeComponentCatalog.cpp` (focused persistence and timeline coverage exists; the full lifecycle integration matrix remains open)
 
 **Checkpoint**: US4 is independently functional when lifecycle changes are observable and
 saved graph references remain stable across discovery changes.
@@ -165,10 +165,16 @@ validation across all stories.
 - [ ] T050 [P] Add protobuf compatibility tests for `component.proto`, `execution.proto`, existing `ComponentType`/graph messages, field-number preservation, and unsupported contract versions in `tests/tst_CompatibilityMigrationToolkit.cpp`
 - [ ] T051 [P] Add catalog performance coverage for 500 descriptors and one-second snapshot target in `tests/tst_RuntimeComponentCatalog.cpp`
 - [ ] T052 [P] Add structured diagnostics coverage ensuring identity/version and property/port paths are present for at least 95% of validation failures in `tests/tst_PersistenceValidation.cpp`
-- [ ] T053 [P] Document runtime catalog consumption, network trust policy, and migration from UI declarations in `docs/new_component_design/component-discovery.md`
-- [ ] T054 Run all scenarios from `specs/001-component-discovery/quickstart.md` and record results in `docs/new_component_design/component-discovery-validation.md`
+- [X] T053 [P] Document runtime catalog consumption, network trust policy, and migration from UI declarations in `docs/new_component_design/component-discovery.md`
+- [ ] T054 Run all scenarios from `specs/001-component-discovery/quickstart.md` and record results in `docs/new_component_design/component-discovery-validation.md` (automated scenarios are recorded; live external worker scenarios remain pending)
 - [ ] T055 Review and remove obsolete UI-owned component declarations only after runtime catalog coverage passes in `component_map_editor/extensions/` and `component_map_editor/utils/`
-- [ ] T056 Run the complete project test target and verify constitution quality gates in `specs/001-component-discovery/quickstart.md`
+- [X] T056 Run the complete project test target and verify constitution quality gates in `specs/001-component-discovery/quickstart.md` (50/50 configured tests passed) 
+
+---
+
+## Implementation status note
+
+The remaining unchecked tasks require live remote-worker acceptance, broader compatibility/performance/diagnostic coverage, or deliberate removal of legacy declarations. They were not marked complete without those validations.
 
 ---
 

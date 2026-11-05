@@ -14,10 +14,11 @@ private slots:
     void filteringAndStatusTransitionsWork();
     void resolvesExplicitIdentityAndVersion();
     void rejectsMissingOrUnknownVersion();
+    void reportsNewerVersionWithoutSubstitution();
     void rejectsAmbiguousSources();
 };
 
-static ComponentDescriptor descriptor(const QString &identity, const QString &sourceId)
+static ComponentDescriptor descriptor(const QString &identity, const QString &sourceId) // descriptor factory
 {
     ComponentDescriptor result;
     result.identity = identity;
@@ -28,6 +29,20 @@ static ComponentDescriptor descriptor(const QString &identity, const QString &so
     result.execution.outputGuarantees = {QStringLiteral("event")};
     result.execution.errorBehavior = QStringLiteral("structured");
     return result;
+}
+
+void ComponentCatalogTests::reportsNewerVersionWithoutSubstitution()
+{
+    ComponentCatalog catalog;
+    auto newer = descriptor(QStringLiteral("runtime.transform"), QStringLiteral("source"));
+    newer.version = QStringLiteral("2.1.0");
+    QVERIFY(catalog.registerDescriptor(newer));
+
+    QString error;
+    const auto resolved = catalog.resolve(QStringLiteral("runtime.transform"), QStringLiteral("2.0.0"), &error);
+    QVERIFY(resolved.identity.isEmpty());
+    QVERIFY(error.contains(QStringLiteral("newer version")));
+    QVERIFY(error.contains(QStringLiteral("2.1.0")));
 }
 
 void ComponentCatalogTests::registrationAndSnapshotAreDeterministic()

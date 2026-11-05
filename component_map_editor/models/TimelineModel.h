@@ -67,6 +67,7 @@ public:
     // Flattened {event, tick, ...payload} view of every visible row, for callers that
     // need a plain snapshot instead of binding to the QAbstractListModel roles.
     Q_INVOKABLE QVariantList toVariantList() const;
+    Q_INVOKABLE void appendDiscoveryLifecycleEvents(const QVariantList &events);
 
 private:
 

@@ -2,6 +2,26 @@ cmake_minimum_required(VERSION 3.21)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickTest Test)
 
+# Runtime discovery lifecycle events are exposed as timeline rows without changing
+# the saved component identity/version reference.
+qt_add_executable(tst_TimelineDiscoveryLifecycle
+    tst_TimelineDiscoveryLifecycle.cpp
+)
+
+target_include_directories(tst_TimelineDiscoveryLifecycle
+    PRIVATE ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+target_link_libraries(tst_TimelineDiscoveryLifecycle
+    PRIVATE Qt6::Test cme_editor_core
+)
+
+add_test(
+    NAME tst_TimelineDiscoveryLifecycle
+    COMMAND tst_TimelineDiscoveryLifecycle
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Public editor facade contract covers generic authoring operations.
 qt_add_executable(tst_EditorFacadeContract
     tst_EditorFacadeContract.cpp
