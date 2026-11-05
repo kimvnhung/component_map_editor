@@ -66,8 +66,10 @@ public:
     Q_INVOKABLE bool reconnectRuntime();
 public:
     Q_INVOKABLE void reloadComponentTypes();
+    Q_INVOKABLE bool refreshRuntimeCatalog();
 
     Q_INVOKABLE bool refreshRuntimeStatus();
+    QVariantList runtimeCatalog() const { return m_runtimeCatalog; }
     Q_INVOKABLE bool deployAndActivate(GraphModel *graph, const QString &graphVersion);
     Q_INVOKABLE bool startRuntime();
     Q_INVOKABLE bool stopRuntime();
@@ -101,6 +103,7 @@ private:
     QString m_runtimeStatus{QStringLiteral("unknown")};
     QString m_runtimeActiveGraphVersion{};
     QString m_runtimeLastError{};
+    QVariantList m_runtimeCatalog;
     int m_runtimePollIntervalMs = 2000;
     QTimer *m_runtimePollTimer = nullptr;
 

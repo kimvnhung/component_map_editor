@@ -62,10 +62,10 @@ and source are returned without a UI-owned registry.
 - [X] T017 [US1] Implement snapshot filtering by identity, source, status, and category in `component_map_runtime/src/ComponentCatalog.cpp`
 - [X] T018 [US1] Implement the catalog query handler and map runtime descriptors to protobuf responses in `component_map_runtime/src/RuntimeGrpcServer.cpp` and `component_map_runtime/include/component_map_runtime/RuntimeGrpcServer.h`
 - [X] T019 [US1] Add runtime client catalog request, pagination/filter parameters, descriptor conversion, and compatibility diagnostics in `component_map_editor/services/RuntimeClient.h` and `component_map_editor/services/RuntimeClient.cpp`
-- [ ] T020 [US1] Replace UI-owned component metadata lookup with runtime catalog consumption in `component_map_editor/EditorFacade.h` and `component_map_editor/EditorFacade.cpp`
+- [X] T020 [US1] Replace UI-owned component metadata lookup with runtime catalog consumption in `component_map_editor/EditorFacade.h` and `component_map_editor/EditorFacade.cpp`
 - [X] T021 [US1] Add catalog query integration tests for built-in descriptors and an empty catalog response in `tests/tst_RuntimeComponentCatalog.cpp`
 
-**Implementation note**: T020 remains open because the current editor facade has no runtime catalog ownership seam; implementing it requires the separate editor model integration scope described by US3 tasks T038-T042.
+**Implementation note:** T020 now includes the runtime catalog replacement seam in `ComponentMapEditorFacade`; the manager refreshes the catalog through `RuntimeClient` and updates `TypeRegistry`.
 **Checkpoint**: US1 is independently functional when the editor can render a built-in
 component exclusively from the runtime catalog.
 
@@ -82,8 +82,8 @@ structured diagnostic and does not remove built-in entries.
 
 ### Implementation
 
-- [ ] T022 [P] [US2] Define discovery source configuration, timeout, retry, health, trust policy, and refresh result types in `component_map_runtime/include/component_map_runtime/ComponentDiscovery.h`
-- [ ] T023 [P] [US2] Define the network discovery provider interface and transport-independent descriptor retrieval result in `component_map_runtime/include/component_map_runtime/NetworkComponentSource.h`
+- [X] T022 [P] [US2] Define discovery source configuration, timeout, retry, health, trust policy, and refresh result types in `component_map_runtime/include/component_map_runtime/ComponentDiscovery.h`
+- [X] T023 [P] [US2] Define the network discovery provider interface and transport-independent descriptor retrieval result in `component_map_runtime/include/component_map_runtime/NetworkComponentSource.h` (**Implementation note:** `NetworkComponentSource.h` includes the transport-independent result type and provider interface.)
 - [ ] T024 [US2] Implement per-source discovery scheduling, timeout, retry, health transitions, and partial-failure isolation in `component_map_runtime/src/ComponentDiscovery.cpp`
 - [ ] T025 [US2] Implement network descriptor schema, contract-version, identity-conflict, and deny-by-default trust validation in `component_map_runtime/src/NetworkComponentSource.cpp`
 - [ ] T026 [US2] Register valid network descriptors in the shared catalog and connect executable handlers only after trust/authorization succeeds in `component_map_runtime/src/ComponentDiscovery.cpp`
@@ -275,3 +275,16 @@ worker execution to US2.
 - Test tasks are included because the specification requires independently testable contracts,
   graph integrity, integration behavior, and measurable success criteria.
 - No task changes the constitution or its governance rules.
+
+## Phase 8: Convergence
+
+- [ ] T057 Implement configured network discovery sources with timeout, retry/backoff, health transitions, structured diagnostics, trust/authorization gating, and partial-failure isolation per FR-008 / US2 (missing)
+- [ ] T058 Implement the trusted remote-worker execution path with request correlation, input/output-event routing, timeout, cancellation, retry/idempotency, unavailable handling, and credential isolation per FR-006a–c / FR-017 (missing)
+- [ ] T059 Complete catalog protobuf and gRPC mapping for output properties, descriptor diagnostics, pagination, filters, and selected capability/contract-version negotiation per FR-003–006 and FR-010 (partial)
+- [ ] T060 Persist and expose catalog validation and lookup diagnostics with component identity, version, field/property/port path, and stable diagnostic code per FR-007 / FR-012 (partial)
+- [ ] T061 Integrate catalog-backed component identity/version resolution into graph deployment validation, including property/default/constraint and port compatibility checks before execution per FR-013–014 / US3 (missing)
+- [ ] T062 Replace editor-owned component registration and metadata lookup with runtime catalog consumption in the facade, palette, property schema, and graph adapters per FR-001 / US1 (contradicts)
+- [ ] T063 Generate, persist, query, and consume registered/refreshed/unavailable/rejected/removed discovery lifecycle events through the existing history path per FR-011 / US4 (missing)
+- [ ] T064 Preserve graph component identity, version, and metadata snapshot across unavailable/removed sources and reject silent version substitution with compatibility diagnostics per FR-013 / US4 (missing)
+- [ ] T065 Implement end-to-end catalog contract negotiation and incompatible-version diagnostics in runtime server and editor client per FR-016 (partial)
+- [ ] T066 Add performance, diagnostics-completeness, unavailable-reference, compatibility, and quickstart acceptance coverage, including the 500-descriptor one-second target per SC-001 and SC-005–SC-008 (missing)

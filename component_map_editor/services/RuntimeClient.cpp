@@ -290,6 +290,106 @@ bool RuntimeClient::componentCatalog(const QString &identityFilter,
     return componentCatalog(request, response, error);
 }
 
+QVariantMap RuntimeClient::componentDescriptorMap(const cme::ComponentDescriptor &descriptor)
+{
+    QVariantMap result;
+    result.insert(QStringLiteral("identity"), QString::fromStdString(descriptor.identity()));
+    result.insert(QStringLiteral("version"), QString::fromStdString(descriptor.version()));
+    result.insert(QStringLiteral("contractVersion"), QString::fromStdString(descriptor.contract_version()));
+    result.insert(QStringLiteral("source"), static_cast<int>(descriptor.source()));
+    result.insert(QStringLiteral("sourceId"), QString::fromStdString(descriptor.source_id()));
+    result.insert(QStringLiteral("status"), static_cast<int>(descriptor.status()));
+    result.insert(QStringLiteral("trustState"), static_cast<int>(descriptor.trust_state()));
+    result.insert(QStringLiteral("title"), QString::fromStdString(descriptor.title()));
+    result.insert(QStringLiteral("category"), QString::fromStdString(descriptor.category()));
+    result.insert(QStringLiteral("icon"), QString::fromStdString(descriptor.icon()));
+    result.insert(QStringLiteral("shape"), QString::fromStdString(descriptor.shape()));
+    result.insert(QStringLiteral("description"), QString::fromStdString(descriptor.description()));
+    result.insert(QStringLiteral("defaultWidth"), descriptor.default_width());
+    result.insert(QStringLiteral("defaultHeight"), descriptor.default_height());
+    QVariantList properties;
+    for (const auto &property : descriptor.properties())
+    {
+        QVariantMap item;
+        item.insert(QStringLiteral("id"), QString::fromStdString(property.id()));
+        item.insert(QStringLiteral("type"), QString::fromStdString(property.type()));
+        item.insert(QStringLiteral("required"), property.required());
+        item.insert(QStringLiteral("default"), QString::fromStdString(property.default_value()));
+        item.insert(QStringLiteral("label"), QString::fromStdString(property.label()));
+        item.insert(QStringLiteral("description"), QString::fromStdString(property.description()));
+        properties.append(item);
+    }
+    result.insert(QStringLiteral("properties"), properties);
+    QVariantMap defaultProperties;
+    for (const auto &property : descriptor.properties())
+    {
+        const QString id = QString::fromStdString(property.id());
+        if (!id.isEmpty() && !property.default_value().empty())
+            defaultProperties.insert(id, QString::fromStdString(property.default_value()));
+    }
+    result.insert(QStringLiteral("defaultProperties"), defaultProperties);
+    QVariantList outputs;
+    for (const auto &property : descriptor.output_properties())
+    {
+        QVariantMap item;
+        item.insert(QStringLiteral("id"), QString::fromStdString(property.id()));
+        item.insert(QStringLiteral("type"), QString::fromStdString(property.type()));
+        item.insert(QStringLiteral("required"), property.required());
+        outputs.append(item);
+    }
+    result.insert(QStringLiteral("outputProperties"), outputs);
+    QVariantList ports;
+    for (const auto &port : descriptor.ports())
+    {
+        QVariantMap item;
+        item.insert(QStringLiteral("id"), QString::fromStdString(port.id()));
+        item.insert(QStringLiteral("direction"), QString::fromStdString(port.direction()));
+        item.insert(QStringLiteral("payloadType"), QString::fromStdString(port.payload_type()));
+        item.insert(QStringLiteral("cardinality"), QString::fromStdString(port.cardinality()));
+        item.insert(QStringLiteral("required"), port.required());
+        ports.append(item);
+    }
+    result.insert(QStringLiteral("ports"), ports);
+    QVariantMap execution;
+    execution.insert(QStringLiteral("mode"), static_cast<int>(descriptor.execution().mode()));
+    execution.insert(QStringLiteral("protocol"), QString::fromStdString(descriptor.execution().protocol()));
+    execution.insert(QStringLiteral("workerCapabilityReference"), QString::fromStdString(descriptor.execution().worker_capability_reference()));
+    execution.insert(QStringLiteral("timeoutMs"), descriptor.execution().timeout_ms());
+    execution.insert(QStringLiteral("supportsCancellation"), descriptor.execution().supports_cancellation());
+    execution.insert(QStringLiteral("retryable"), descriptor.execution().retryable());
+    execution.insert(QStringLiteral("idempotent"), descriptor.execution().idempotent());
+    result.insert(QStringLiteral("execution"), execution);
+    return result;
+}
+
+QVariantList RuntimeClient::componentDescriptorMaps(const cme::runtime::v1::ComponentCatalogResponse &response)
+{
+    QVariantList result;
+    if (!response.has_catalog())
+        return result;
+    for (const auto &descriptor : response.catalog().components())
+        result.append(componentDescriptorMap(descriptor));
+    return result;
+}
+
+bool RuntimeClient::componentCatalog(const QString &identityFilter,
+                                     const QString &sourceFilter,
+                                     const QString &statusFilter,
+                                     QVariantList *descriptors,
+                                     QString *error) const
+{
+    if (!descriptors)
+    {
+        setError(error, QStringLiteral("Component catalog descriptors must not be null."));
+        return false;
+    }
+    cme::runtime::v1::ComponentCatalogResponse response;
+    if (!componentCatalog(identityFilter, sourceFilter, statusFilter, &response, error))
+        return false;
+    *descriptors = componentDescriptorMaps(response);
+    return true;
+}
+
 bool RuntimeClient::eventHistory(int limit,
                                  cme::runtime::v1::EventHistoryResponse *response,
                                  QString *error) const

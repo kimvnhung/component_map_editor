@@ -53,6 +53,7 @@ public:
                                                 QString *error = nullptr);
     Q_INVOKABLE bool registerPropertySchemaProvider(const IPropertySchemaProvider *provider,
                                                      QString *error = nullptr);
+    void replaceComponentTypesFromRuntimeCatalog(const QVariantList &descriptors);
     Q_INVOKABLE QString createComponent(const QString &typeId, qreal x, qreal y);
     Q_INVOKABLE QString cloneComponent(const QString &sourceId,
                                        qreal offsetX = 40.0,

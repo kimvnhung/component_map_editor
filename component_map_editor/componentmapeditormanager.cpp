@@ -52,6 +52,31 @@ void ComponentMapEditorManager::reloadComponentTypes()
     m_componentTypeRegistry->rebuildFromRegistry(*m_extensionContracts);
 }
 
+bool ComponentMapEditorManager::refreshRuntimeCatalog()
+{
+    if (!m_runtimeClient || !m_componentTypeRegistry)
+    {
+        m_runtimeLastError = QStringLiteral("Runtime catalog is not configured.");
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    QVariantList descriptors;
+    QString error;
+    if (!m_runtimeClient->componentCatalog(QString(), QString(), QString(), &descriptors, &error))
+    {
+        m_runtimeLastError = error;
+        emit runtimeStatusChanged();
+        return false;
+    }
+
+    m_runtimeCatalog = descriptors;
+    m_componentTypeRegistry->replaceFromRuntimeCatalog(m_runtimeCatalog);
+    m_runtimeLastError.clear();
+    emit runtimeStatusChanged();
+    return true;
+}
+
 QString ComponentMapEditorManager::runtimeAddress() const
 {
     return m_runtimeClient ? m_runtimeClient->address() : QString();

@@ -34,6 +34,37 @@ private slots:
         QVERIFY(facade.removeComponent(cloneId));
         QCOMPARE(facade.graph()->componentCount(), 1);
     }
+
+    void runtimeCatalogReplacesProviderOwnedComponentMetadata()
+    {
+        ComponentMapEditorFacade facade;
+        SampleComponentTypeProvider provider;
+        QString error;
+        QVERIFY2(facade.registerComponentType(&provider, &error), qPrintable(error));
+        QVERIFY(facade.typeRegistry()->hasComponentType(
+            QLatin1String(SampleComponentTypeProvider::TypeProcess)));
+
+        QVariantMap descriptor;
+        descriptor.insert(QStringLiteral("identity"), QStringLiteral("runtime.network.transform"));
+        descriptor.insert(QStringLiteral("version"), QStringLiteral("2.1.0"));
+        descriptor.insert(QStringLiteral("source"), QStringLiteral("network"));
+        descriptor.insert(QStringLiteral("title"), QStringLiteral("Runtime Transform"));
+        descriptor.insert(QStringLiteral("defaultProperties"),
+                         QVariantMap{{QStringLiteral("mode"), QStringLiteral("safe")}});
+
+        facade.replaceComponentTypesFromRuntimeCatalog(QVariantList{descriptor});
+
+        QVERIFY(facade.typeRegistry()->hasRuntimeCatalog());
+        QCOMPARE(facade.typeRegistry()->componentTypeIds(),
+                 QStringList{QStringLiteral("runtime.network.transform")});
+        QCOMPARE(facade.typeRegistry()->componentTypeDescriptor(
+                     QStringLiteral("runtime.network.transform")), descriptor);
+        QCOMPARE(facade.typeRegistry()->defaultComponentProperties(
+                     QStringLiteral("runtime.network.transform")).value(QStringLiteral("mode")),
+                 QVariant(QStringLiteral("safe")));
+        QVERIFY(!facade.typeRegistry()->hasComponentType(
+            QLatin1String(SampleComponentTypeProvider::TypeProcess)));
+    }
 };
 
 QTEST_MAIN(tst_EditorFacadeContract)

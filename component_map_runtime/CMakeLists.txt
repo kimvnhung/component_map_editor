@@ -19,6 +19,8 @@ set(COMPONENT_MAP_RUNTIME_HEADERS
     include/component_map_runtime/ComponentContract.h
     include/component_map_runtime/ComponentDiscoveryTypes.h
     include/component_map_runtime/ComponentCatalog.h
+    include/component_map_runtime/ComponentDiscovery.h
+    include/component_map_runtime/NetworkComponentSource.h
 )
 
 set(COMPONENT_MAP_RUNTIME_SOURCES
@@ -35,6 +37,7 @@ set(COMPONENT_MAP_RUNTIME_SOURCES
     src/ComponentContract.cpp
     src/ComponentDiscoveryTypes.cpp
     src/ComponentCatalog.cpp
+    src/ComponentDiscovery.cpp
 )
 
 add_library(cme_runtime_core STATIC

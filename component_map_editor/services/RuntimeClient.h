@@ -4,6 +4,10 @@
 #include <QByteArray>
 #include <QString>
 
+#include <component.pb.h>
+#include <QVariantList>
+#include <QVariantMap>
+
 #include <control.grpc.pb.h>
 #include <event.grpc.pb.h>
 #include <query.grpc.pb.h>
@@ -69,12 +73,19 @@ public:
     bool componentStatus(const QString &componentId,
                          cme::runtime::v1::ComponentStatusResponse *response,
                          QString *error = nullptr) const;
-    bool componentCatalog(const cme::runtime::v1::ComponentCatalogRequest &request,
-                          cme::runtime::v1::ComponentCatalogResponse *response,
-                          QString *error = nullptr) const;
     bool componentCatalog(const QString &identityFilter,
                           const QString &sourceFilter,
                           const QString &statusFilter,
+                          cme::runtime::v1::ComponentCatalogResponse *response,
+                          QString *error = nullptr) const;
+    static QVariantMap componentDescriptorMap(const cme::ComponentDescriptor &descriptor);
+    static QVariantList componentDescriptorMaps(const cme::runtime::v1::ComponentCatalogResponse &response);
+    bool componentCatalog(const QString &identityFilter,
+                          const QString &sourceFilter,
+                          const QString &statusFilter,
+                          QVariantList *descriptors,
+                          QString *error = nullptr) const;
+    bool componentCatalog(const cme::runtime::v1::ComponentCatalogRequest &request,
                           cme::runtime::v1::ComponentCatalogResponse *response,
                           QString *error = nullptr) const;
     bool eventHistory(int limit,
