@@ -4,7 +4,8 @@
 
 #include "component_map_runtime/RuntimeGrpcServer.h"
 #include "component_map_runtime/BuiltinFactoryExtension.h"
-
+#include "component_map_runtime/ComponentCatalog.h"
+#include "component_map_runtime/ComponentDiscoveryTypes.h"
 
 int main(int argc, char *argv[])
 {
@@ -25,11 +26,21 @@ int main(int argc, char *argv[])
     descriptor.set_mode(cme::runtime::v1::RUNTIME_MODE_BACKGROUND);
     cme::runtime::RuntimeService service(descriptor);
     cme::runtime::RuntimeHandlerRegistry registry;
+    cme::runtime::ComponentCatalog catalog;
     QString error;
     if (!registry.registerExtension(cme::runtime::makeBuiltinFactoryExtension(), &error))
     {
         qCritical().noquote() << error;
         return 1;
+    }
+    for (const auto &componentType : registry.componentTypes())
+    {
+        const auto descriptor = registry.descriptor(componentType);
+        if (!catalog.registerDescriptor(descriptor, nullptr))
+        {
+            qCritical().noquote() << "Unable to register built-in descriptor:" << componentType;
+            return 1;
+        }
     }
     cme::runtime::DeploymentManager deployment(&service, &registry);
     cme::runtime::RuntimePersistence persistence;
@@ -40,7 +51,7 @@ int main(int argc, char *argv[])
     }
     cme::runtime::RuntimeEngine engine(&service, &deployment, &registry, 64, &persistence);
     engine.setBackgroundExecution(true, 1);
-    cme::runtime::RuntimeGrpcServer server(&engine, &deployment, &service, &persistence);
+    cme::runtime::RuntimeGrpcServer server(&engine, &deployment, &service, &persistence, &catalog);
     if (!server.start(parser.value(addressOption), &error))
     {
         qCritical().noquote() << error;

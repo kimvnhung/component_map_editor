@@ -16,9 +16,9 @@ description: "Implementation tasks for core runtime component discovery"
 **Purpose**: Prepare the existing runtime, protobuf, editor, and test targets for the shared
 component discovery contract.
 
-- [ ] T001 Add the component discovery source and test file entries to `component_map_runtime/CMakeLists.txt` and `tests/CMakeLists.txt`
-- [ ] T002 [P] Define backward-compatible protobuf field numbering and migration rules for the component contract in `proto/component.proto` while preserving existing `ComponentType` compatibility
-- [ ] T003 [P] Add feature-level test fixtures for valid built-in, valid network, invalid, unavailable, and conflicting descriptors in `tests/fixtures/component_discovery_fixtures.h`
+- [X] T001 Add the component discovery source and test file entries to `component_map_runtime/CMakeLists.txt` and `tests/CMakeLists.txt`
+- [X] T002 [P] Define backward-compatible protobuf field numbering and migration rules for the component contract in `proto/component.proto` while preserving existing `ComponentType` compatibility
+- [X] T003 [P] Add feature-level test fixtures for valid built-in, valid network, invalid, unavailable, and conflicting descriptors in `tests/fixtures/component_discovery_fixtures.h`
 
 ---
 
@@ -30,15 +30,15 @@ foundation required by every user story.
 **Checkpoint**: No user story implementation starts until descriptor validation and catalog
 identity semantics are available.
 
-- [ ] T004 [P] Create descriptor value types for identity, source, version, status, trust state, display metadata, properties, output properties, ports, and execution metadata in `component_map_runtime/include/component_map_runtime/ComponentContract.h`
-- [ ] T005 [P] Implement property, output property, port, and execution descriptor validation rules in `component_map_runtime/src/ComponentContract.cpp` including required non-empty identity/version/contract version/source id and unique ids within each scope
-- [ ] T006 [P] Create stable component key, structured diagnostic, and lifecycle event types in `component_map_runtime/include/component_map_runtime/ComponentDiscoveryTypes.h`
-- [ ] T007 Implement deterministic identity/source/version conflict and equivalence helpers in `component_map_runtime/src/ComponentDiscoveryTypes.cpp`
-- [ ] T008 Create the catalog interface for snapshot, filtering, registration, refresh, status transition, removal, and diagnostic lookup in `component_map_runtime/include/component_map_runtime/ComponentCatalog.h`
-- [ ] T009 Implement idempotent catalog registration and refresh in `component_map_runtime/src/ComponentCatalog.cpp`; repeated equivalent descriptors for the same identity/source/version MUST produce one entry, while conflicting descriptors MUST be rejected deterministically
-- [ ] T010 Extend `component_map_runtime/include/component_map_runtime/RuntimeHandlerRegistry.h` so handler definitions reference the shared descriptor and executable status without breaking existing factory creation
-- [ ] T011 Update `component_map_runtime/src/RuntimeHandlerRegistry.cpp` to validate shared descriptors before registration and keep built-in handler execution bound to the catalog descriptor
-- [ ] T012 Add foundational unit coverage for contract validation, duplicate ids, invalid defaults, unsupported versions, identity conflicts, and idempotent refresh in `tests/tst_ComponentContract.cpp` and `tests/tst_ComponentCatalog.cpp`
+- [X] T004 [P] Create descriptor value types for identity, source, version, status, trust state, display metadata, properties, output properties, ports, and execution metadata in `component_map_runtime/include/component_map_runtime/ComponentContract.h`
+- [X] T005 [P] Implement property, output property, port, and execution descriptor validation rules in `component_map_runtime/src/ComponentContract.cpp` including required non-empty identity/version/contract version/source id and unique ids within each scope
+- [X] T006 [P] Create stable component key, structured diagnostic, and lifecycle event types in `component_map_runtime/include/component_map_runtime/ComponentDiscoveryTypes.h`
+- [X] T007 Implement deterministic identity/source/version conflict and equivalence helpers in `component_map_runtime/src/ComponentDiscoveryTypes.cpp`
+- [X] T008 Create the catalog interface for snapshot, filtering, registration, refresh, status transition, removal, and diagnostic lookup in `component_map_runtime/include/component_map_runtime/ComponentCatalog.h`
+- [X] T009 Implement idempotent catalog registration and refresh in `component_map_runtime/src/ComponentCatalog.cpp`; repeated equivalent descriptors for the same identity/source/version MUST produce one entry, while conflicting descriptors MUST be rejected deterministically
+- [X] T010 Extend `component_map_runtime/include/component_map_runtime/RuntimeHandlerRegistry.h` so handler definitions reference the shared descriptor and executable status without breaking existing factory creation
+- [X] T011 Update `component_map_runtime/src/RuntimeHandlerRegistry.cpp` to validate shared descriptors before registration and keep built-in handler execution bound to the catalog descriptor
+- [X] T012 Add foundational unit coverage for contract validation, duplicate ids, invalid defaults, unsupported versions, identity conflicts, and idempotent refresh in `tests/tst_ComponentContract.cpp` and `tests/tst_ComponentCatalog.cpp`
 
 ---
 
@@ -53,18 +53,19 @@ and source are returned without a UI-owned registry.
 
 ### Implementation
 
-- [ ] T013 [US1] Map existing built-in definitions in `component_map_runtime/src/BuiltinFactoryExtension.cpp` to complete shared descriptors with properties, output properties, ports, display metadata, and execution semantics
-- [ ] T014 [US1] Initialize the component catalog and register built-in descriptors during runtime startup in `component_map_runtime/main.cpp`
-- [ ] T015 [US1] Add catalog query request, response, descriptor, property schema, output property, port, execution, source, status, and diagnostic messages to `proto/component.proto`, including `builtin`/`remote_worker` modes, worker capability reference, protocol metadata, and credential exclusion
+- [X] T013 [US1] Map existing built-in definitions in `component_map_runtime/src/BuiltinFactoryExtension.cpp` to complete shared descriptors with properties, output properties, ports, display metadata, and execution semantics
+- [X] T014 [US1] Initialize the component catalog and register built-in descriptors during runtime startup in `component_map_runtime/main.cpp`
+- [X] T015 [US1] Add catalog query request, response, descriptor, property schema, output property, port, execution, source, status, and diagnostic messages to `proto/component.proto`, including `builtin`/`remote_worker` modes, worker capability reference, protocol metadata, and credential exclusion
 
 
-- [ ] T016 [US1] Add catalog query RPC and capability/contract-version negotiation messages to `proto/runtime.proto`
-- [ ] T017 [US1] Implement snapshot filtering by identity, source, status, and category in `component_map_runtime/src/ComponentCatalog.cpp`
-- [ ] T018 [US1] Implement the catalog query handler and map runtime descriptors to protobuf responses in `component_map_runtime/src/RuntimeGrpcServer.cpp` and `component_map_runtime/include/component_map_runtime/RuntimeGrpcServer.h`
-- [ ] T019 [US1] Add runtime client catalog request, pagination/filter parameters, descriptor conversion, and compatibility diagnostics in `component_map_editor/services/RuntimeClient.h` and `component_map_editor/services/RuntimeClient.cpp`
+- [X] T016 [US1] Add catalog query RPC and capability/contract-version negotiation messages to `proto/runtime.proto`
+- [X] T017 [US1] Implement snapshot filtering by identity, source, status, and category in `component_map_runtime/src/ComponentCatalog.cpp`
+- [X] T018 [US1] Implement the catalog query handler and map runtime descriptors to protobuf responses in `component_map_runtime/src/RuntimeGrpcServer.cpp` and `component_map_runtime/include/component_map_runtime/RuntimeGrpcServer.h`
+- [X] T019 [US1] Add runtime client catalog request, pagination/filter parameters, descriptor conversion, and compatibility diagnostics in `component_map_editor/services/RuntimeClient.h` and `component_map_editor/services/RuntimeClient.cpp`
 - [ ] T020 [US1] Replace UI-owned component metadata lookup with runtime catalog consumption in `component_map_editor/EditorFacade.h` and `component_map_editor/EditorFacade.cpp`
-- [ ] T021 [US1] Add catalog query integration tests for built-in descriptors and an empty catalog response in `tests/tst_RuntimeComponentCatalog.cpp`
+- [X] T021 [US1] Add catalog query integration tests for built-in descriptors and an empty catalog response in `tests/tst_RuntimeComponentCatalog.cpp`
 
+**Implementation note**: T020 remains open because the current editor facade has no runtime catalog ownership seam; implementing it requires the separate editor model integration scope described by US3 tasks T038-T042.
 **Checkpoint**: US1 is independently functional when the editor can render a built-in
 component exclusively from the runtime catalog.
 

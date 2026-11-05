@@ -263,6 +263,33 @@ bool RuntimeClient::componentStatus(const QString &componentId,
     return checkRpc(m_query->GetComponentStatus(&context, request, response), error);
 }
 
+bool RuntimeClient::componentCatalog(const cme::runtime::v1::ComponentCatalogRequest &request,
+                                     cme::runtime::v1::ComponentCatalogResponse *response,
+                                     QString *error) const
+{
+    if (!response) { setError(error, QStringLiteral("Component catalog response must not be null.")); return false; }
+    if (!checkAddress(error)) return false;
+    rebuildStubs();
+    grpc::ClientContext context;
+    configureContext(&context);
+    return checkRpc(m_query->ListComponentCatalog(&context, request, response), error);
+}
+
+bool RuntimeClient::componentCatalog(const QString &identityFilter,
+                                     const QString &sourceFilter,
+                                     const QString &statusFilter,
+                                     cme::runtime::v1::ComponentCatalogResponse *response,
+                                     QString *error) const
+{
+    cme::runtime::v1::ComponentCatalogRequest request;
+    auto *query = request.mutable_query();
+    query->set_contract_version("1.0.0");
+    query->set_identity_filter(identityFilter.toStdString());
+    query->set_source_filter(sourceFilter.toStdString());
+    query->set_status_filter(statusFilter.toStdString());
+    return componentCatalog(request, response, error);
+}
+
 bool RuntimeClient::eventHistory(int limit,
                                  cme::runtime::v1::EventHistoryResponse *response,
                                  QString *error) const

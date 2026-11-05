@@ -16,6 +16,9 @@ set(COMPONENT_MAP_RUNTIME_HEADERS
     include/component_map_runtime/FlattenCompiler.h
     include/component_map_runtime/RuntimeActorScheduler.h
     include/component_map_runtime/BuiltinFactoryExtension.h
+    include/component_map_runtime/ComponentContract.h
+    include/component_map_runtime/ComponentDiscoveryTypes.h
+    include/component_map_runtime/ComponentCatalog.h
 )
 
 set(COMPONENT_MAP_RUNTIME_SOURCES
@@ -29,6 +32,9 @@ set(COMPONENT_MAP_RUNTIME_SOURCES
     src/FlattenCompiler.cpp
     src/RuntimeActorScheduler.cpp
     src/BuiltinFactoryExtension.cpp
+    src/ComponentContract.cpp
+    src/ComponentDiscoveryTypes.cpp
+    src/ComponentCatalog.cpp
 )
 
 add_library(cme_runtime_core STATIC

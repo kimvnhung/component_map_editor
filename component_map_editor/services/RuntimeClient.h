@@ -69,6 +69,14 @@ public:
     bool componentStatus(const QString &componentId,
                          cme::runtime::v1::ComponentStatusResponse *response,
                          QString *error = nullptr) const;
+    bool componentCatalog(const cme::runtime::v1::ComponentCatalogRequest &request,
+                          cme::runtime::v1::ComponentCatalogResponse *response,
+                          QString *error = nullptr) const;
+    bool componentCatalog(const QString &identityFilter,
+                          const QString &sourceFilter,
+                          const QString &statusFilter,
+                          cme::runtime::v1::ComponentCatalogResponse *response,
+                          QString *error = nullptr) const;
     bool eventHistory(int limit,
                       cme::runtime::v1::EventHistoryResponse *response,
                       QString *error = nullptr) const;

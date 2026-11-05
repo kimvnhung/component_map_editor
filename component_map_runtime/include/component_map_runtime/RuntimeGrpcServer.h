@@ -3,6 +3,9 @@
 
 #include "component_map_runtime/RuntimeCore.h"
 #include "component_map_runtime/RuntimePersistence.h"
+#include "component_map_runtime/ComponentCatalog.h"
+#include "component_map_runtime/ComponentDiscoveryTypes.h"
+#include "component_map_runtime/RuntimeHandlerRegistry.h"
 
 #include <control.grpc.pb.h>
 #include <event.grpc.pb.h>
@@ -19,7 +22,8 @@ public:
     RuntimeGrpcServer(RuntimeEngine *engine,
                       DeploymentManager *deploymentManager,
                       RuntimeService *runtimeService,
-                      RuntimePersistence *persistence);
+                      RuntimePersistence *persistence,
+                      ComponentCatalog *catalog = nullptr);
     ~RuntimeGrpcServer();
 
     bool start(const QString &address, QString *error = nullptr);
@@ -61,6 +65,8 @@ private:
         explicit QueryService(RuntimeGrpcServer *owner) : m_owner(owner) {}
         grpc::Status GetComponentStatus(grpc::ServerContext *, const cme::runtime::v1::ComponentStatusRequest *,
                                         cme::runtime::v1::ComponentStatusResponse *) override;
+        grpc::Status ListComponentCatalog(grpc::ServerContext *, const cme::runtime::v1::ComponentCatalogRequest *,
+                                          cme::runtime::v1::ComponentCatalogResponse *) override;
         grpc::Status ListEventHistory(grpc::ServerContext *, const cme::runtime::v1::QueryRequest *,
                                       cme::runtime::v1::EventHistoryResponse *) override;
         grpc::Status ListRuntimeLogs(grpc::ServerContext *, const cme::runtime::v1::QueryRequest *,
@@ -75,6 +81,7 @@ private:
     DeploymentManager *m_deploymentManager;
     RuntimeService *m_runtimeService;
     RuntimePersistence *m_persistence;
+    ComponentCatalog *m_catalog = nullptr;
     ControlService m_controlService;
     EventService m_eventService;
     QueryService m_queryService;

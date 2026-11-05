@@ -2,6 +2,8 @@
 #define COMPONENT_MAP_RUNTIME_RUNTIME_HANDLER_REGISTRY_H
 
 #include "component_map_runtime/RuntimeTypes.h"
+#include "component_map_runtime/ComponentContract.h"
+#include "component_map_runtime/ComponentContract.h"
 
 #include <functional>
 #include <memory>
@@ -106,7 +108,12 @@ struct RuntimeComponentDefinition
     int stateSchemaVersion = 1;
     QStringList inputMessageTypes;
     QStringList outputMessageTypes;
+    ComponentDescriptor descriptor;
+    bool hasDescriptor = false;
 };
+
+ComponentDescriptor makeBuiltinDescriptor(const RuntimeComponentDefinition &definition,
+                                          const QString &sourceId);
 
 struct RuntimeExtensionPack
 {
@@ -128,11 +135,19 @@ public:
     QStringList componentTypes() const;
     RuntimeComponentDefinition definition(const QString &componentType) const;
     QString extensionFor(const QString &componentType) const;
+    ComponentDescriptor descriptor(const QString &componentType) const;
+    QStringList descriptorDiagnostics(const QString &componentType) const;
+    bool hasDescriptor(const QString &componentType) const;
+
+    // Existing factory creation remains the execution path for built-in handlers.
+    bool registerDescriptor(const QString &componentType, const ComponentDescriptor &descriptor,
+                            QString *error = nullptr);
 
 private:
     QHash<QString, Factory> m_factories;
     QHash<QString, RuntimeComponentDefinition> m_definitions;
     QHash<QString, QString> m_extensions;
+    QHash<QString, ComponentDescriptor> m_descriptors;
 };
 
 RuntimeExtensionPack makeBuiltinFactoryExtension();

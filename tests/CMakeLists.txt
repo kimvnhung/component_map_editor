@@ -972,6 +972,71 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# Component discovery contract and catalog foundation.
+qt_add_executable(tst_ComponentContract
+    tst_ComponentContract.cpp
+)
+
+target_link_libraries(tst_ComponentContract
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_ComponentContract
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_ComponentContract
+    COMMAND tst_ComponentContract
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_ComponentCatalog
+    tst_ComponentCatalog.cpp
+)
+
+target_link_libraries(tst_ComponentCatalog
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_ComponentCatalog
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_ComponentCatalog
+    COMMAND tst_ComponentCatalog
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Runtime catalog query contract coverage.
+qt_add_executable(tst_RuntimeComponentCatalog
+    tst_RuntimeComponentCatalog.cpp
+)
+
+target_link_libraries(tst_RuntimeComponentCatalog
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_RuntimeComponentCatalog
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RuntimeComponentCatalog
+    COMMAND tst_RuntimeComponentCatalog
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Phase 4 remains static-loading for MVP.
 
 # Phase 5: graph, port and route contract validation.

@@ -32,6 +32,28 @@ RuntimeComponentDefinition definition(const QString &type, const QString &handle
     result.handlerId = handler;
     result.inputMessageTypes = {QStringLiteral("test.event")};
     result.outputMessageTypes = {QStringLiteral("test.event")};
+
+    result.descriptor.identity = type;
+    result.descriptor.sourceId = QStringLiteral("component-map.factory");
+    result.descriptor.status = ComponentStatus::Available;
+    result.descriptor.trustState = TrustState::Trusted;
+    result.descriptor.title = type;
+    result.descriptor.category = QStringLiteral("factory");
+    result.descriptor.execution.mode = ExecutionMode::Builtin;
+    result.descriptor.execution.inputRequirements = result.inputMessageTypes;
+    result.descriptor.execution.outputGuarantees = result.outputMessageTypes;
+    result.descriptor.execution.errorBehavior = QStringLiteral("structured");
+    result.descriptor.properties.append({QStringLiteral("payload"), QStringLiteral("bytes"), false,
+                                         {}, {}, QStringLiteral("Payload"), {}});
+    result.descriptor.outputProperties.append({QStringLiteral("payload"), QStringLiteral("bytes"), false,
+                                                {}, {}, QStringLiteral("Payload"), {}});
+    result.descriptor.ports.append({QStringLiteral("input"), QStringLiteral("input"),
+                                    QStringLiteral("test.event"), QStringLiteral("single"), false,
+                                    QStringLiteral("Input"), {}});
+    result.descriptor.ports.append({QStringLiteral("output"), QStringLiteral("output"),
+                                    QStringLiteral("test.event"), QStringLiteral("single"), false,
+                                    QStringLiteral("Output"), {}});
+    result.hasDescriptor = true;
     return result;
 }
 }
@@ -47,7 +69,6 @@ RuntimeExtensionPack makeBuiltinFactoryExtension()
              std::pair{QStringLiteral("factory/store"), QStringLiteral("factory.store")},
              std::pair{QStringLiteral("factory/wash_machine"), QStringLiteral("factory.wash_machine")},
              std::pair{QStringLiteral("factory/seller"), QStringLiteral("factory.seller")},
-             // Compatibility fixture types used by the process-boundary vertical slice.
              std::pair{QStringLiteral("producer"), QStringLiteral("compat.producer")},
              std::pair{QStringLiteral("processor"), QStringLiteral("compat.processor")},
              std::pair{QStringLiteral("sink"), QStringLiteral("compat.sink")}})

@@ -19,11 +19,13 @@ namespace cme::runtime
 RuntimeGrpcServer::RuntimeGrpcServer(RuntimeEngine *engine,
                                      DeploymentManager *deploymentManager,
                                      RuntimeService *runtimeService,
-                                     RuntimePersistence *persistence)
+                                     RuntimePersistence *persistence,
+                                     ComponentCatalog *catalog)
     : m_engine(engine)
     , m_deploymentManager(deploymentManager)
     , m_runtimeService(runtimeService)
     , m_persistence(persistence)
+    , m_catalog(catalog)
     , m_controlService(this)
     , m_eventService(this)
     , m_queryService(this)
@@ -207,6 +209,103 @@ grpc::Status RuntimeGrpcServer::QueryService::GetComponentStatus(
     response->set_mailbox_depth(m_owner->m_engine->mailboxDepth(componentId));
     response->set_state(m_owner->m_engine->componentState(componentId).constData(),
                         m_owner->m_engine->componentState(componentId).size());
+    return grpc::Status::OK;
+}
+
+grpc::Status RuntimeGrpcServer::QueryService::ListComponentCatalog(
+    grpc::ServerContext *, const cme::runtime::v1::ComponentCatalogRequest *request,
+    cme::runtime::v1::ComponentCatalogResponse *response)
+{
+    if (!m_owner->m_catalog)
+        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Component catalog is not configured.");
+
+    CatalogFilter filter;
+    if (request->has_query())
+    {
+        const auto &query = request->query();
+        if (!query.identity_filter().empty())
+            filter.identity = QString::fromStdString(query.identity_filter());
+        if (!query.category_filter().empty())
+            filter.category = QString::fromStdString(query.category_filter());
+        if (!query.source_filter().empty())
+        {
+            filter.filterSource = true;
+            filter.source = QString::fromStdString(query.source_filter()) == QStringLiteral("network")
+                                ? ComponentSource::Network : ComponentSource::Builtin;
+        }
+        if (!query.status_filter().empty())
+        {
+            filter.filterStatus = true;
+            const QString status = QString::fromStdString(query.status_filter());
+            if (status == QStringLiteral("available")) filter.status = ComponentStatus::Available;
+            else if (status == QStringLiteral("unavailable")) filter.status = ComponentStatus::Unavailable;
+            else if (status == QStringLiteral("rejected")) filter.status = ComponentStatus::Rejected;
+            else if (status == QStringLiteral("removed")) filter.status = ComponentStatus::Removed;
+            else filter.status = ComponentStatus::Registered;
+        }
+    }
+
+    auto *catalogResponse = response->mutable_catalog();
+    catalogResponse->set_catalog_version(m_owner->m_catalog->snapshotVersion());
+    for (const auto &descriptor : m_owner->m_catalog->snapshot(filter))
+    {
+        auto *output = catalogResponse->add_components();
+        output->set_identity(descriptor.identity.toStdString());
+        output->set_version(descriptor.version.toStdString());
+        output->set_contract_version(descriptor.contractVersion.toStdString());
+        output->set_source(descriptor.source == ComponentSource::Network
+                               ? cme::COMPONENT_SOURCE_NETWORK : cme::COMPONENT_SOURCE_BUILTIN);
+        output->set_source_id(descriptor.sourceId.toStdString());
+        output->set_status(static_cast<cme::ComponentStatus>(static_cast<int>(descriptor.status) + 1));
+        output->set_trust_state(static_cast<cme::TrustState>(static_cast<int>(descriptor.trustState) + 1));
+        output->set_title(descriptor.title.toStdString());
+        output->set_category(descriptor.category.toStdString());
+        output->set_icon(descriptor.icon.toStdString());
+        output->set_shape(descriptor.shape.toStdString());
+        output->set_description(descriptor.description.toStdString());
+        output->set_default_width(descriptor.defaultWidth);
+        output->set_default_height(descriptor.defaultHeight);
+        for (const auto &property : descriptor.properties)
+        {
+            auto *item = output->add_properties();
+            item->set_id(property.id.toStdString());
+            item->set_type(property.type.toStdString());
+            item->set_required(property.required);
+            item->set_default_value(property.defaultValue.toStdString());
+            item->set_label(property.label.toStdString());
+            item->set_description(property.description.toStdString());
+            for (auto it = property.constraints.cbegin(); it != property.constraints.cend(); ++it)
+                (*item->mutable_constraints())[it.key().toStdString()] = it.value().toStdString();
+        }
+        for (const auto &port : descriptor.ports)
+        {
+            auto *item = output->add_ports();
+            item->set_id(port.id.toStdString());
+            item->set_direction(port.direction.toStdString());
+            item->set_payload_type(port.payloadType.toStdString());
+            item->set_cardinality(port.cardinality.toStdString());
+            item->set_required(port.required);
+            item->set_label(port.label.toStdString());
+            item->set_description(port.description.toStdString());
+        }
+        auto *execution = output->mutable_execution();
+        execution->set_mode(descriptor.execution.mode == ExecutionMode::RemoteWorker
+                                ? cme::COMPONENT_EXECUTION_MODE_REMOTE_WORKER
+                                : cme::COMPONENT_EXECUTION_MODE_BUILTIN);
+        for (const auto &value : descriptor.execution.capabilities)
+            execution->add_capabilities(value.toStdString());
+        for (const auto &value : descriptor.execution.inputRequirements)
+            execution->add_input_requirements(value.toStdString());
+        for (const auto &value : descriptor.execution.outputGuarantees)
+            execution->add_output_guarantees(value.toStdString());
+        execution->set_worker_capability_reference(descriptor.execution.workerCapabilityReference.toStdString());
+        execution->set_protocol(descriptor.execution.protocol.toStdString());
+        execution->set_timeout_ms(descriptor.execution.timeoutMs);
+        execution->set_supports_cancellation(descriptor.execution.supportsCancellation);
+        execution->set_retryable(descriptor.execution.retryable);
+        execution->set_idempotent(descriptor.execution.idempotent);
+        execution->set_error_behavior(descriptor.execution.errorBehavior.toStdString());
+    }
     return grpc::Status::OK;
 }
 
