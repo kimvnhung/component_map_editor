@@ -3,6 +3,65 @@
 
 #include <QtTest>
 
+#include "component_map_runtime/ComponentCatalog.h"
+#include "component_map_runtime/ComponentDiscovery.h"
+#include "component_map_runtime/NetworkComponentSource.h"
+
+#include <algorithm>
+#include <utility>
+
+namespace
+{
+class CatalogNetworkSource final : public cme::runtime::NetworkComponentSource
+{
+public:
+    CatalogNetworkSource(QString id, bool trusted, bool succeeds)
+        : m_id(std::move(id)), m_trusted(trusted), m_succeeds(succeeds)
+    {
+    }
+
+    QString sourceId() const override { return m_id; }
+
+    cme::runtime::DiscoverySourceConfig configuration() const override
+    {
+        cme::runtime::DiscoverySourceConfig config;
+        config.sourceId = m_id;
+        config.kind = cme::runtime::DiscoverySourceKind::Network;
+        config.endpoint = QStringLiteral("in-memory://catalog");
+        config.trusted = m_trusted;
+        return config;
+    }
+
+    cme::runtime::NetworkDiscoveryResult discover() override
+    {
+        cme::runtime::NetworkDiscoveryResult result;
+        result.success = m_succeeds;
+        if (m_succeeds)
+        {
+            cme::runtime::ComponentDescriptor descriptor;
+            descriptor.identity = m_id + QStringLiteral(".component");
+            descriptor.source = cme::runtime::ComponentSource::Network;
+            descriptor.sourceId = m_id;
+            descriptor.status = cme::runtime::ComponentStatus::Available;
+            descriptor.trustState = cme::runtime::TrustState::Trusted;
+            descriptor.execution.mode = cme::runtime::ExecutionMode::RemoteWorker;
+            descriptor.execution.workerCapabilityReference = QStringLiteral("worker.capability");
+            descriptor.execution.protocol = QStringLiteral("grpc");
+            descriptor.execution.errorBehavior = QStringLiteral("structured");
+            descriptor.execution.inputRequirements = {QStringLiteral("input")};
+            descriptor.execution.outputGuarantees = {QStringLiteral("output")};
+            result.descriptors.append(descriptor);
+        }
+        return result;
+    }
+
+private:
+    QString m_id;
+    bool m_trusted;
+    bool m_succeeds;
+};
+}
+
 using namespace cme::runtime;
 
 class RuntimeComponentCatalogTests final : public QObject
@@ -12,7 +71,25 @@ private slots:
     void emptyCatalogReturnsSuccessfulSnapshot();
     void builtInDescriptorContainsSharedMetadata();
     void categoryAndSourceFiltersAreIndependent();
+    void networkCatalogSourceIsolation();
 };
+
+void RuntimeComponentCatalogTests::networkCatalogSourceIsolation()
+{
+    ComponentCatalog catalog;
+    ComponentDiscovery discovery(&catalog);
+    CatalogNetworkSource healthy(QStringLiteral("healthy.source"), true, true);
+    CatalogNetworkSource failing(QStringLiteral("failing.source"), true, false);
+    QVERIFY(discovery.addSource(&healthy));
+    QVERIFY(discovery.addSource(&failing));
+    const auto results = discovery.refreshAll();
+    QCOMPARE(results.size(), 2);
+    QCOMPARE(results.at(0).sourceId, QStringLiteral("failing.source"));
+    QCOMPARE(results.at(1).sourceId, QStringLiteral("healthy.source"));
+    QVERIFY(!results.at(0).success);
+    QVERIFY(results.at(1).success);
+    QVERIFY(!catalog.snapshot().isEmpty());
+}
 
 static ComponentDescriptor builtIn(const QString &identity, const QString &category)
 {

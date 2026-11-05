@@ -1058,6 +1058,27 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_RemoteWorkerExecution
+    tst_RemoteWorkerExecution.cpp
+)
+
+target_link_libraries(tst_RemoteWorkerExecution
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_RemoteWorkerExecution
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RemoteWorkerExecution
+    COMMAND tst_RemoteWorkerExecution
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Phase 4 remains static-loading for MVP.
 
 # Phase 5: graph, port and route contract validation.

@@ -21,6 +21,7 @@ set(COMPONENT_MAP_RUNTIME_HEADERS
     include/component_map_runtime/ComponentCatalog.h
     include/component_map_runtime/ComponentDiscovery.h
     include/component_map_runtime/NetworkComponentSource.h
+    include/component_map_runtime/RemoteWorkerExecutor.h
 )
 
 set(COMPONENT_MAP_RUNTIME_SOURCES
@@ -38,6 +39,8 @@ set(COMPONENT_MAP_RUNTIME_SOURCES
     src/ComponentDiscoveryTypes.cpp
     src/ComponentCatalog.cpp
     src/ComponentDiscovery.cpp
+    src/NetworkComponentSource.cpp
+    src/RemoteWorkerExecutor.cpp
 )
 
 add_library(cme_runtime_core STATIC

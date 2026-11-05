@@ -19,6 +19,14 @@ struct NetworkDiscoveryResult
     bool hasUsableDescriptors() const;
 };
 
+QList<ComponentDiagnostic> validateNetworkComponentDescriptor(
+    const ComponentDescriptor &descriptor,
+    const DiscoverySourceConfig &sourceConfig);
+
+QList<ComponentDiagnostic> validateNetworkDiscoveryResult(
+    const NetworkDiscoveryResult &result,
+    const DiscoverySourceConfig &sourceConfig);
+
 inline bool NetworkDiscoveryResult::hasUsableDescriptors() const
 {
     return success && !descriptors.isEmpty();

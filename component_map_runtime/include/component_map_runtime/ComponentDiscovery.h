@@ -5,11 +5,16 @@
 #include "component_map_runtime/ComponentDiscoveryTypes.h"
 
 #include <QDateTime>
+#include <QHash>
 #include <QList>
+#include <QMutex>
 #include <QString>
 
 namespace cme::runtime
 {
+
+class ComponentCatalog;
+class NetworkComponentSource;
 
 enum class DiscoverySourceKind
 {
@@ -63,6 +68,39 @@ struct DiscoveryRefreshResult
     bool success = false;
 
     bool hasUsableDescriptors() const;
+};
+
+class ComponentDiscovery
+{
+public:
+    explicit ComponentDiscovery(ComponentCatalog *catalog = nullptr)
+        : m_catalog(catalog)
+    {
+    }
+
+    void setCatalog(ComponentCatalog *catalog) { m_catalog = catalog; }
+    bool addSource(NetworkComponentSource *source, QString *error = nullptr);
+    bool removeSource(const QString &sourceId);
+    QList<DiscoveryRefreshResult> refreshAll();
+    DiscoveryRefreshResult refreshSource(const QString &sourceId);
+    DiscoverySourceState sourceState(const QString &sourceId) const;
+    QStringList sourceIds() const;
+
+private:
+    struct SourceEntry
+    {
+        NetworkComponentSource *provider = nullptr;
+        DiscoverySourceState state;
+    };
+
+    DiscoveryRefreshResult refreshEntry(const QString &sourceId, SourceEntry &entry) const;
+    static void appendDiagnostic(DiscoveryRefreshResult &result, const QString &code,
+                                 const QString &message, bool retryable = false);
+
+    mutable QMutex m_mutex;
+    QHash<QString, SourceEntry> m_sources;
+    ComponentCatalog *m_catalog = nullptr; // non-owning runtime catalog
+
 };
 
 QString discoverySourceKindName(DiscoverySourceKind kind);

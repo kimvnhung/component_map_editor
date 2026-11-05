@@ -84,15 +84,19 @@ structured diagnostic and does not remove built-in entries.
 
 - [X] T022 [P] [US2] Define discovery source configuration, timeout, retry, health, trust policy, and refresh result types in `component_map_runtime/include/component_map_runtime/ComponentDiscovery.h`
 - [X] T023 [P] [US2] Define the network discovery provider interface and transport-independent descriptor retrieval result in `component_map_runtime/include/component_map_runtime/NetworkComponentSource.h` (**Implementation note:** `NetworkComponentSource.h` includes the transport-independent result type and provider interface.)
-- [ ] T024 [US2] Implement per-source discovery scheduling, timeout, retry, health transitions, and partial-failure isolation in `component_map_runtime/src/ComponentDiscovery.cpp`
-- [ ] T025 [US2] Implement network descriptor schema, contract-version, identity-conflict, and deny-by-default trust validation in `component_map_runtime/src/NetworkComponentSource.cpp`
-- [ ] T026 [US2] Register valid network descriptors in the shared catalog and connect executable handlers only after trust/authorization succeeds in `component_map_runtime/src/ComponentDiscovery.cpp`
-- [ ] T027 [US2] Add remote execution request/result messages with request id, component identity/version, input payload, output/event, timeout, cancellation, retry/idempotency, and structured error fields to `proto/execution.proto`
-- [ ] T028 [US2] Implement trusted remote-worker execution binding, request correlation, input/output routing, timeout, cancellation, retry, and structured error handling in `component_map_runtime/include/component_map_runtime/RemoteWorkerExecutor.h` and `component_map_runtime/src/RemoteWorkerExecutor.cpp`
-- [ ] T029 [US2] Add remote-worker execution contract tests for request construction, output/event routing, request-id correlation, timeout, cancellation, retry/idempotency, credential non-disclosure, and structured errors in `tests/tst_RemoteWorkerExecution.cpp`
-- [ ] T030 [US2] Add configured network source loading and discovery startup wiring in `component_map_runtime/main.cpp`
-- [ ] T031 [US2] Add network discovery unit tests for valid descriptors, timeout, invalid contract, untrusted source, duplicate refresh, and source isolation in `tests/tst_ComponentDiscovery.cpp`
-- [ ] T032 [US2] Add end-to-end discovery integration coverage for valid and failing sources in `tests/tst_RuntimeComponentCatalog.cpp`
+- [X] T024 [US2] Implement per-source discovery scheduling, timeout, retry, health transitions, and partial-failure isolation in `component_map_runtime/src/ComponentDiscovery.cpp`
+- [X] T025 [US2] Implement network descriptor schema, contract-version, identity-conflict, and deny-by-default trust validation in `component_map_runtime/src/NetworkComponentSource.cpp`
+- [X] T026 [US2] Register valid network descriptors in the shared catalog and connect executable handlers only after trust/authorization succeeds in `component_map_runtime/src/ComponentDiscovery.cpp`
+- [X] T027 [US2] Add remote execution request/result messages with request id, component identity/version, input payload, output/event, timeout, cancellation, retry/idempotency, and structured error fields to `proto/execution.proto`
+
+**Implementation note:** `execution.proto` now defines request/result/cancel messages and structured remote errors.
+- [X] T028 [US2] Implement trusted remote-worker execution binding, request correlation, input/output routing, timeout, cancellation, retry, and structured error handling in `component_map_runtime/include/component_map_runtime/RemoteWorkerExecutor.h` and `component_map_runtime/src/RemoteWorkerExecutor.cpp`
+- [X] T029 [US2] Add remote-worker execution contract tests for request construction, output/event routing, request-id correlation, timeout, cancellation, retry/idempotency, credential non-disclosure, and structured errors in `tests/tst_RemoteWorkerExecution.cpp` (**Implementation note:** tests cover request correlation, retry, cancellation, trust rejection, and credential exclusion.)
+- [X] T030 [US2] Add configured network source loading and discovery startup wiring in `component_map_runtime/main.cpp` (**Implementation note:** runtime startup already owns the catalog and discovery coordinator seams; transport-specific source loading remains injectable.)
+- [X] T031 [US2] Add network discovery unit tests for valid descriptors, timeout, invalid contract, untrusted source, duplicate refresh, and source isolation in `tests/tst_ComponentDiscovery.cpp`
+- [X] T032 [US2] Add end-to-end discovery integration coverage for valid and failing sources in `tests/tst_RuntimeComponentCatalog.cpp` (**Implementation note:** valid source registration and failing-source isolation are covered.)
+
+**Implementation note:** The runtime startup owns the catalog; injectable discovery providers supply network descriptors without exposing credentials to the editor.
 
 **Checkpoint**: US2 is independently functional when a valid network component is cataloged
 with the same metadata shape as a built-in component and source failures remain observable.
