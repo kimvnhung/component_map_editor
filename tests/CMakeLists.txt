@@ -359,111 +359,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_TraversalEngine
-    tst_TraversalEngine.cpp
-)
-
-target_link_libraries(tst_TraversalEngine
-    PRIVATE
-        Qt6::Test
-        cme_editor_ui_module
-)
-
-target_include_directories(tst_TraversalEngine
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_TraversalEngine
-    COMMAND tst_TraversalEngine
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-qt_add_executable(tst_ExecutionPlanBuilder
-    tst_ExecutionPlanBuilder.cpp
-)
-
-target_link_libraries(tst_ExecutionPlanBuilder
-    PRIVATE
-        Qt6::Test
-        cme_editor_compat
-)
-
-target_include_directories(tst_ExecutionPlanBuilder
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_ExecutionPlanBuilder
-    COMMAND tst_ExecutionPlanBuilder
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-qt_add_executable(tst_SequentialExecutionEngine
-    tst_SequentialExecutionEngine.cpp
-)
-
-target_link_libraries(tst_SequentialExecutionEngine
-    PRIVATE
-        Qt6::Test
-        cme_editor_compat
-)
-
-target_include_directories(tst_SequentialExecutionEngine
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_SequentialExecutionEngine
-    COMMAND tst_SequentialExecutionEngine
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-qt_add_executable(tst_ActorMailboxEngine
-    tst_ActorMailboxEngine.cpp
-)
-
-target_link_libraries(tst_ActorMailboxEngine
-    PRIVATE
-        Qt6::Test
-        cme_editor_compat
-)
-
-target_include_directories(tst_ActorMailboxEngine
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_ActorMailboxEngine
-    COMMAND tst_ActorMailboxEngine
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-qt_add_executable(tst_ActorEngineIntegration
-    tst_ActorEngineIntegration.cpp
-)
-
-target_link_libraries(tst_ActorEngineIntegration
-    PRIVATE
-        Qt6::Test
-        cme_editor_compat
-)
-
-target_include_directories(tst_ActorEngineIntegration
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_ActorEngineIntegration
-    COMMAND tst_ActorEngineIntegration
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_CompatibilityMigrationToolkit
     tst_CompatibilityMigrationToolkit.cpp
 )
@@ -529,51 +424,9 @@ add_test(
 # ── Phase 1: Execution Semantics v2 Compatibility ──────────────────────────
 # Ensures v1 providers still work unchanged through the v2 fallback adapter and
 # that simple linear graph timeline ordering remains deterministic.
-qt_add_executable(tst_Phase1ExecutionSemanticsV2Compatibility
-    tst_Phase1ExecutionSemanticsV2Compatibility.cpp
-)
-
-target_link_libraries(tst_Phase1ExecutionSemanticsV2Compatibility
-    PRIVATE
-        Qt6::Test
-        cme_editor_compat
-)
-
-target_include_directories(tst_Phase1ExecutionSemanticsV2Compatibility
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_Phase1ExecutionSemanticsV2Compatibility
-    COMMAND tst_Phase1ExecutionSemanticsV2Compatibility
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 2: Runtime Token Routing ─────────────────────────────────────────
 # Verifies feature-flagged per-edge token routing behavior in GraphExecutionSandbox
 # while preserving deterministic timeline sequence.
-qt_add_executable(tst_Phase2TokenRouting
-    tst_Phase2TokenRouting.cpp
-)
-
-target_link_libraries(tst_Phase2TokenRouting
-    PRIVATE
-        Qt6::Test
-        cme_editor_compat
-)
-
-target_include_directories(tst_Phase2TokenRouting
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_Phase2TokenRouting
-    COMMAND tst_Phase2TokenRouting
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 3: Connection Transport Metadata ─────────────────────────────────
 # Verifies optional transport metadata contract roundtrip, normalization
 # defaults, and deterministic validation diagnostics for malformed descriptors.
@@ -629,27 +482,6 @@ add_test(
 # ── Phase 5: Execution Observability ───────────────────────────────────────
 # Verifies stable debug snapshot structure, token telemetry counters, and
 # payload redaction in timeline/debug snapshot outputs.
-qt_add_executable(tst_Phase5ExecutionObservability
-    tst_Phase5ExecutionObservability.cpp
-)
-
-target_link_libraries(tst_Phase5ExecutionObservability
-    PRIVATE
-        Qt6::Test
-        cme_editor_compat
-)
-
-target_include_directories(tst_Phase5ExecutionObservability
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_Phase5ExecutionObservability
-    COMMAND tst_Phase5ExecutionObservability
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 5: ValidationService Typed Snapshot Migration ──────────────────────
 # Typed graph snapshot building with validation equivalence and legacy bridging.
 # Tests: typed snapshot building, severity/code enum mapping, snapshot roundtrips,
@@ -681,29 +513,6 @@ add_test(
 # Internal typed event enums/messages with legacy QVariantMap timeline exposure.
 # Tests: determinism, event ordering, and payload fields for start/step/pause/
 #        complete/error paths.
-qt_add_executable(tst_Phase6TypedExecutionEvents
-    tst_Phase6TypedExecutionEvents.cpp
-)
-
-target_link_libraries(tst_Phase6TypedExecutionEvents
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        cme_editor_compat
-)
-
-target_include_directories(tst_Phase6TypedExecutionEvents
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase6TypedExecutionEvents
-    COMMAND tst_Phase6TypedExecutionEvents
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 6: Cutover Readiness and Compatibility Window ───────────────────
 # Verifies default-on token transport, canary enablement in example/customize
 # entrypoints, and retention of v1 compatibility adapter during release window.
@@ -786,29 +595,6 @@ add_test(
 # ── Phase 11: Optional gRPC Template Descriptor Transport ──────────────────
 # Verifies latency/error SLO handling and graceful fallback to local templates
 # when gRPC descriptor transport is unavailable.
-qt_add_executable(tst_Phase11TemplateDescriptorTransport
-    tst_Phase11TemplateDescriptorTransport.cpp
-)
-
-target_link_libraries(tst_Phase11TemplateDescriptorTransport
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        cme_editor_ui_module
-)
-
-target_include_directories(tst_Phase11TemplateDescriptorTransport
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase11TemplateDescriptorTransport
-    COMMAND tst_Phase11TemplateDescriptorTransport
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_PropertySchemaNormalizedRowBaseline
     tst_PropertySchemaNormalizedRowBaseline.cpp
     ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizepropertyschemaprovider.cpp

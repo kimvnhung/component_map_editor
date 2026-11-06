@@ -69,7 +69,6 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     models/ComponentModel.h
     models/ConnectionModel.h
     models/GraphModel.h
-    models/TimelineModel.h
     routing/OrthogonalHeuristicStrategy.h
     routing/RouteTypes.h
     routing/RoutingEngine.h
@@ -150,7 +149,6 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     models/ComponentModel.cpp
     models/ConnectionModel.cpp
     models/GraphModel.cpp
-    models/TimelineModel.cpp
     routing/OrthogonalHeuristicStrategy.cpp
     routing/RoutingEngine.cpp
     routing/RoutingHelpers.cpp
@@ -196,8 +194,6 @@ set(COMPONENT_MAP_EDITOR_QML
     ui/qml/components/ReadOnlyPlainText.qml
     ui/qml/components/ResizableItem.qml
     ui/qml/items/Arrow.qml
-    ui/qml/items/TimelineItem.qml
-    ui/qml/panels/TimelinePanel.qml
     ui/qml/panels/RuntimeOverviewPanel.qml
     ui/qml/panels/DeploymentPanel.qml
     ui/qml/panels/ComponentStatusPanel.qml
@@ -307,75 +303,7 @@ target_compile_definitions(cme_editor_ui_module
         LOG_TAG="ComponentMapEditor"
 )
 
-# Optional compatibility target for the legacy local execution simulator.
-# The production editor target intentionally does not compile or link these files.
-add_library(cme_editor_compat STATIC)
+# NOTE: The legacy local execution simulator (GraphExecutionSandbox) and the
+# compatibility execution engine (cme_editor_compat target) were removed.
+# SDD forbids editor-side simulate/preview/execute — see feature 003-remove-dead-code.
 
-set(CME_EDITOR_COMPAT_HEADERS
-    adapters/ExecutionAdapter.h
-    compatibility/builders/ExecutionPlanBuilder.h
-    compatibility/extensions/CompositeExecutionProvider.h
-    compatibility/ExecutionMigrationFlags.h
-    preview/GraphExecutionSandbox.h
-    compatibility/execution_internal/ActorMailboxExecutionEngine.h
-    compatibility/execution_internal/ExecutionContext.h
-    compatibility/execution_internal/ExecutionPlan.h
-    compatibility/execution_internal/ExecutionRequest.h
-    compatibility/execution_internal/IExecutionEngine.h
-    compatibility/execution_internal/ProviderResultValidation.h
-    compatibility/execution_internal/SequentialExecutionEngine.h
-    compatibility/execution_internal/actor_mailbox/Actor.h
-    compatibility/execution_internal/actor_mailbox/ActorRegistry.h
-    compatibility/execution_internal/actor_mailbox/ActorScheduler.h
-    compatibility/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h
-    compatibility/execution_internal/actor_mailbox/Mailbox.h
-)
-
-set(CME_EDITOR_COMPAT_SOURCES
-    adapters/ExecutionAdapter.cpp
-    compatibility/builders/ExecutionPlanBuilder.cpp
-    compatibility/extensions/CompositeExecutionProvider.cpp
-    compatibility/ExecutionMigrationFlags.cpp
-    preview/GraphExecutionSandbox.cpp
-    compatibility/execution_internal/ActorMailboxExecutionEngine.cpp
-    compatibility/execution_internal/ProviderResultValidation.cpp
-    compatibility/execution_internal/SequentialExecutionEngine.cpp
-    compatibility/execution_internal/actor_mailbox/Actor.cpp
-    compatibility/execution_internal/actor_mailbox/ActorRegistry.cpp
-    compatibility/execution_internal/actor_mailbox/ActorScheduler.cpp
-    compatibility/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.cpp
-    compatibility/execution_internal/actor_mailbox/Mailbox.cpp
-)
-
-target_sources(cme_editor_compat PRIVATE
-    ${CME_EDITOR_COMPAT_HEADERS}
-    ${CME_EDITOR_COMPAT_SOURCES}
-)
-
-target_include_directories(cme_editor_compat
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_BINARY_DIR}/include
-        ${CMAKE_BINARY_DIR}/proto
-        ${CMAKE_BINARY_DIR}/proto/runtime
-)
-
-target_link_libraries(cme_editor_compat
-    PUBLIC
-        cme_editor_ui_module
-        cme_proto
-        cme_runtime_proto
-        Qt6::Core
-)
-
-target_compile_definitions(cme_editor_compat
-    PRIVATE
-        LOG_TAG="ComponentMapEditorCompat"
-)
-
-set_target_properties(cme_editor_compat PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-)
-
-# Keep simulator code available only to explicitly opted-in compatibility users.
-add_library(cme_editor_compat_alias ALIAS cme_editor_compat)
