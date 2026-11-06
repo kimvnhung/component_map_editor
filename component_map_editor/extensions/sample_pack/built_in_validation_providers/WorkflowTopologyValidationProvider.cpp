@@ -6,19 +6,27 @@
 
 namespace {
 
+// T026: `subPath` (default empty) carries an optional property/port sub-field
+// (e.g. "properties.<prop>", "ports.<portId>") for component-level issues.
+// When non-empty, an "entitySubPath" key is emitted so ValidationService can
+// build a path matching the runtime field_path shape (SC-001).
 QVariantMap makeIssue(const QString &code,
                       const QString &severity,
                       const QString &message,
                       const QString &entityType,
-                      const QString &entityId)
+                      const QString &entityId,
+                      const QString &subPath = {})
 {
-    return QVariantMap{
+    QVariantMap issue{
         { QStringLiteral("code"), code },
         { QStringLiteral("severity"), severity },
         { QStringLiteral("message"), message },
         { QStringLiteral("entityType"), entityType },
         { QStringLiteral("entityId"), entityId }
     };
+    if (!subPath.isEmpty())
+        issue[QStringLiteral("entitySubPath")] = subPath;
+    return issue;
 }
 
 } // namespace

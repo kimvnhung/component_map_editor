@@ -11,12 +11,19 @@ enum ValidationSeverity {
 }
 
 // ── Single validation issue (replaces the QVariantMap "issue" shape) ───────
+// Unified structured issue: `code` is normalized UPPER_SNAKE_CASE, `path`
+// uses stable entity identifiers (components/<id>, connections/<id>, graph),
+// never array indices.
 message ValidationIssue {
   string             code          = 1; // e.g. "CORE_NULL_GRAPH"
   ValidationSeverity severity      = 2;
   string             message       = 3;
   string             component_id  = 4; // empty when graph-level
   string             connection_id = 5; // empty when not connection-related
+  // New normalized-contract fields (added without renumbering existing fields).
+  string             path          = 6; // components/<componentId>... | connections/<connectionId>... | graph
+  map<string, string> details      = 7; // optional structured context
+  string             remediation   = 8; // optional suggestion
 }
 
 // ── Aggregate result returned by IValidationProvider ──────────────────────

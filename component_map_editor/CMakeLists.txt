@@ -12,6 +12,8 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     adapters/GraphAdapter.h
     adapters/PolicyAdapter.h
     adapters/ValidationAdapter.h
+    adapters/DeploymentValidationAdapter.h
+    services/DiagnosticCodeCatalog.h
     commands/GraphCommand.h
     commands/GraphCommands.h
     commands/UndoStack.h
@@ -99,6 +101,7 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     adapters/GraphAdapter.cpp
     adapters/PolicyAdapter.cpp
     adapters/ValidationAdapter.cpp
+    adapters/DeploymentValidationAdapter.cpp
     commands/GraphCommand.cpp
     commands/GraphCommands.cpp
     commands/UndoStack.cpp

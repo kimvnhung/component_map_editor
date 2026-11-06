@@ -23,14 +23,19 @@ public:
     void setValidationProviders(const QList<const IValidationProvider *> &providers);
     void rebuildValidationFromRegistry(const ExtensionContractRegistry &registry);
 
-    // Returns true if the graph has no structural errors.
+    // UI/text-only helper: returns true if the graph has no structural errors.
+    // NOT an inter-layer contract — upstream layers must use validationIssues().
     Q_INVOKABLE bool validate(GraphModel *graph);
 
-    // Returns raw provider issues (QVariantMap entries with keys like
-    // code, severity, message, entityType, entityId).
+    // Normalized structured contract (T008/T012/T014/T024): returns
+    // QVariantList of QVariantMap entries with keys "code" (normalized),
+    // "severity" ("error"/"warning"/"info"), "path" (stable entity
+    // identifier), "message", and optional "details"/"remediation".
+    // This is the inter-layer contract; only the UI layer formats it to text.
     Q_INVOKABLE QVariantList validationIssues(GraphModel *graph);
 
-    // Returns a list of human-readable error messages, empty if valid.
+    // UI/text-only helper: returns a list of human-readable error messages,
+    // empty if valid. NOT an inter-layer contract.
     Q_INVOKABLE QStringList validationErrors(GraphModel *graph);
 
 private:
