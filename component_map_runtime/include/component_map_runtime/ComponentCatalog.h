@@ -32,11 +32,14 @@ public:
     bool remove(const ComponentKey &key, ComponentDiagnostic *diagnostic = nullptr);
 
     QList<ComponentDescriptor> snapshot(const CatalogFilter &filter = {}) const;
+    QList<ComponentDescriptor> snapshotForSource(const QString &sourceId) const;
     ComponentDescriptor find(const QString &identity, const QString &version,
                              const QString &sourceId = {}) const;
     ComponentDescriptor resolve(const QString &identity, const QString &version,
                                 QString *error = nullptr) const;
     QList<ComponentDiagnostic> diagnostics(const ComponentKey &key) const;
+    void recordDiagnostic(const ComponentKey &key, const ComponentDiagnostic &diagnostic);
+    QList<ComponentDiagnostic> allDiagnostics() const;
     quint64 snapshotVersion() const;
 
 private:

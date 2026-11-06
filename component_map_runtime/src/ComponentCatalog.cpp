@@ -155,6 +155,13 @@ QList<ComponentDescriptor> ComponentCatalog::snapshot(const CatalogFilter &filte
     return result;
 }
 
+QList<ComponentDescriptor> ComponentCatalog::snapshotForSource(const QString &sourceId) const
+{
+    CatalogFilter filter;
+    filter.sourceId = sourceId.trimmed();
+    return snapshot(filter);
+}
+
 ComponentDescriptor ComponentCatalog::find(const QString &identity, const QString &version,
                                            const QString &sourceId) const
 {
@@ -224,6 +231,31 @@ QList<ComponentDiagnostic> ComponentCatalog::diagnostics(const ComponentKey &key
 {
     QReadLocker locker(&m_lock);
     return m_entries.value(key).diagnostics;
+}
+
+void ComponentCatalog::recordDiagnostic(const ComponentKey &key, const ComponentDiagnostic &diagnostic)
+{
+    if (!key.isValid() || !diagnostic.isValid())
+        return;
+    QWriteLocker locker(&m_lock);
+    auto entry = m_entries.find(key);
+    if (entry == m_entries.end())
+    {
+        Entry newEntry;
+        newEntry.diagnostics.append(diagnostic);
+        m_entries.insert(key, std::move(newEntry));
+        return;
+    }
+    entry->diagnostics.append(diagnostic);
+}
+
+QList<ComponentDiagnostic> ComponentCatalog::allDiagnostics() const
+{
+    QReadLocker locker(&m_lock);
+    QList<ComponentDiagnostic> result;
+    for (const auto &entry : m_entries)
+        result.append(entry.diagnostics);
+    return result;
 }
 
 quint64 ComponentCatalog::snapshotVersion() const

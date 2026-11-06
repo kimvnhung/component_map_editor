@@ -6,6 +6,18 @@
 
 #include <QMutexLocker>
 #include <QDateTime>
+#include <QElapsedTimer>
+#include <QThread>
+#include <QSet>
+#include <algorithm>
+#include <thread>
+#include <future>
+#include <chrono>
+
+namespace
+{
+using namespace std::chrono_literals;
+}
 
 namespace cme::runtime
 {
@@ -121,6 +133,9 @@ DiscoveryRefreshResult ComponentDiscovery::refreshEntry(const QString &sourceId,
     DiscoveryRefreshResult result;
     result.sourceId = sourceId;
     const DiscoverySourceConfig config = entry.provider->configuration();
+    const QList<ComponentDescriptor> previousDescriptors = m_catalog
+        ? m_catalog->snapshotForSource(sourceId)
+        : QList<ComponentDescriptor>{};
 
     auto persistEvent = [this](const QString &eventId,
                                          const ComponentKey &component,
@@ -155,18 +170,47 @@ DiscoveryRefreshResult ComponentDiscovery::refreshEntry(const QString &sourceId,
 
     NetworkDiscoveryResult discovery;
     const int attempts = qMax(1, config.retryPolicy.maxAttempts);
+    int backoffMs = qMax(0, config.retryPolicy.initialBackoffMs);
+    bool timedOut = false;
     for (int attempt = 0; attempt < attempts; ++attempt)
     {
-        discovery = entry.provider->discover();
+        const auto pending = std::async(std::launch::async, [provider = entry.provider]() {
+            return provider->discover();
+        }).share();
+        const auto waitResult = pending.wait_for(std::chrono::milliseconds(config.timeoutMs));
+        if (waitResult == std::future_status::timeout)
+        {
+            timedOut = true;
+            break;
+        }
+        discovery = pending.get();
         if (discovery.success)
             break;
+        if (attempt + 1 < attempts && backoffMs > 0)
+        {
+            QThread::msleep(static_cast<unsigned long>(backoffMs));
+            backoffMs = qMin(qMax(backoffMs * 2, backoffMs),
+                             qMax(config.retryPolicy.maxBackoffMs, backoffMs));
+        }
+    }
+    if (timedOut)
+    {
+        result.health = DiscoveryHealth::Timeout;
+        appendDiagnostic(result, QStringLiteral("discovery_timeout"),
+                         QStringLiteral("Discovery source exceeded its configured timeout."), true);
     }
 
     result.descriptors = discovery.descriptors;
     result.diagnostics = validateNetworkDiscoveryResult(discovery, config);
-    result.success = discovery.success && result.diagnostics.isEmpty();
-    result.health = result.success ? DiscoveryHealth::Healthy : DiscoveryHealth::Unavailable;
-    if (!discovery.success && result.diagnostics.isEmpty())
+    if (timedOut)
+        result.diagnostics.prepend(ComponentDiagnostic{
+            QStringLiteral("discovery_timeout"),
+            QStringLiteral("Discovery source exceeded its configured timeout."),
+            QString(), true});
+    result.success = !timedOut && discovery.success && result.diagnostics.isEmpty();
+    result.health = timedOut ? DiscoveryHealth::Timeout
+                             : (result.success ? DiscoveryHealth::Healthy : DiscoveryHealth::Unavailable);
+    if (!timedOut && !discovery.success && result.diagnostics.isEmpty())
         appendDiagnostic(result, QStringLiteral("discovery_failed"),
                          QStringLiteral("Discovery provider failed after retry attempts."), true);
 
@@ -182,16 +226,19 @@ DiscoveryRefreshResult ComponentDiscovery::refreshEntry(const QString &sourceId,
 
     if (result.success && m_catalog)
     {
+        QSet<ComponentKey> refreshedKeys;
         for (const ComponentDescriptor &descriptor : result.descriptors)
         {
             const bool existed = !m_catalog->find(descriptor.identity, descriptor.version,
                                                    descriptor.sourceId).identity.isEmpty();
+            refreshedKeys.insert(componentKey(descriptor));
             ComponentDiagnostic diagnostic;
             if (!m_catalog->refreshDescriptor(descriptor, &diagnostic))
             {
                 result.success = false;
                 result.health = DiscoveryHealth::Degraded;
                 result.diagnostics.append(diagnostic);
+                m_catalog->recordDiagnostic(componentKey(descriptor), diagnostic);
                 persistEvent(QStringLiteral("%1:%2:rejected").arg(sourceId, descriptor.identity),
                              componentKey(descriptor), DiscoveryEvent::Kind::Rejected,
                              ComponentStatus::Rejected, descriptor.contractVersion, {diagnostic});
@@ -205,6 +252,21 @@ DiscoveryRefreshResult ComponentDiscovery::refreshEntry(const QString &sourceId,
                          existed ? DiscoveryEvent::Kind::Refreshed
                                  : DiscoveryEvent::Kind::Registered,
                          descriptor.status, descriptor.contractVersion);
+        }
+
+        for (const ComponentDescriptor &previous : previousDescriptors)
+        {
+            const ComponentKey key = componentKey(previous);
+            if (refreshedKeys.contains(key))
+                continue;
+            ComponentDiagnostic diagnostic{
+                QStringLiteral("source_descriptor_missing"),
+                QStringLiteral("The source no longer publishes this component descriptor."),
+                QString(), true};
+            m_catalog->transitionStatus(key, ComponentStatus::Unavailable, &diagnostic);
+            persistEvent(QStringLiteral("%1:%2:unavailable").arg(sourceId, previous.identity),
+                         key, DiscoveryEvent::Kind::Unavailable, ComponentStatus::Unavailable,
+                         previous.contractVersion, {diagnostic});
         }
     }
     return result;

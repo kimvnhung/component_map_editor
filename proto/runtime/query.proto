@@ -5,7 +5,10 @@ import "component.proto";
 import "runtime.proto";
 
 message QueryRequest { int32 limit = 1; }
-message ComponentCatalogRequest { cme.ComponentCatalogQuery query = 1; }
+message ComponentCatalogRequest {
+  cme.ComponentCatalogQuery query = 1;
+  repeated string supported_contract_versions = 2;
+}
 message ComponentCatalogResponse { cme.ComponentCatalogResponse catalog = 1; }
 
 message ComponentCatalogDiagnosticResponse {

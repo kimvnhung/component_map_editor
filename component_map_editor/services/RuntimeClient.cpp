@@ -372,8 +372,10 @@ bool RuntimeClient::componentCatalog(const QString &identityFilter,
                                      QString *error) const
 {
     cme::runtime::v1::ComponentCatalogRequest request;
+    request.add_supported_contract_versions("1.0.0");
     auto *query = request.mutable_query();
     query->set_contract_version("1.0.0");
+    query->set_page_size(100);
     query->set_identity_filter(identityFilter.toStdString());
     query->set_source_filter(sourceFilter.toStdString());
     query->set_status_filter(statusFilter.toStdString());

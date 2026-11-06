@@ -220,6 +220,32 @@ grpc::Status RuntimeGrpcServer::QueryService::ListComponentCatalog(
         return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "Component catalog is not configured.");
 
     CatalogFilter filter;
+    int pageSize = 0;
+    int pageOffset = 0;
+    QString requestedContract = QStringLiteral("1.0.0");
+    if (!request->supported_contract_versions().empty())
+    {
+        requestedContract = QString::fromStdString(request->supported_contract_versions(0));
+    }
+    if (request->has_query())
+    {
+        requestedContract = request->query().contract_version().empty()
+            ? requestedContract : QString::fromStdString(request->query().contract_version());
+        pageSize = request->query().page_size();
+        bool pageOk = false;
+        pageOffset = QString::fromStdString(request->query().page_token()).toInt(&pageOk);
+        if (!pageOk)
+            pageOffset = 0;
+    }
+    if (requestedContract != QStringLiteral("1.0.0"))
+    {
+        auto *diagnostic = response->mutable_catalog()->add_diagnostics();
+        diagnostic->set_code("UNSUPPORTED_CONTRACT_VERSION");
+        diagnostic->set_message("Requested component contract version is not supported.");
+        diagnostic->set_field_path("query.contract_version");
+        diagnostic->set_retryable(false);
+        return grpc::Status::OK;
+    }
     if (request->has_query())
     {
         const auto &query = request->query();
@@ -247,8 +273,12 @@ grpc::Status RuntimeGrpcServer::QueryService::ListComponentCatalog(
 
     auto *catalogResponse = response->mutable_catalog();
     catalogResponse->set_catalog_version(m_owner->m_catalog->snapshotVersion());
-    for (const auto &descriptor : m_owner->m_catalog->snapshot(filter))
+    const QList<ComponentDescriptor> descriptors = m_owner->m_catalog->snapshot(filter);
+    const int begin = qBound(0, pageOffset, descriptors.size());
+    const int end = pageSize > 0 ? qMin(begin + pageSize, descriptors.size()) : descriptors.size();
+    for (int descriptorIndex = begin; descriptorIndex < end; ++descriptorIndex)
     {
+        const auto &descriptor = descriptors.at(descriptorIndex);
         auto *output = catalogResponse->add_components();
         output->set_identity(descriptor.identity.toStdString());
         output->set_version(descriptor.version.toStdString());
@@ -268,6 +298,18 @@ grpc::Status RuntimeGrpcServer::QueryService::ListComponentCatalog(
         for (const auto &property : descriptor.properties)
         {
             auto *item = output->add_properties();
+            item->set_id(property.id.toStdString());
+            item->set_type(property.type.toStdString());
+            item->set_required(property.required);
+            item->set_default_value(property.defaultValue.toStdString());
+            item->set_label(property.label.toStdString());
+            item->set_description(property.description.toStdString());
+            for (auto it = property.constraints.cbegin(); it != property.constraints.cend(); ++it)
+                (*item->mutable_constraints())[it.key().toStdString()] = it.value().toStdString();
+        }
+        for (const auto &property : descriptor.outputProperties)
+        {
+            auto *item = output->add_output_properties();
             item->set_id(property.id.toStdString());
             item->set_type(property.type.toStdString());
             item->set_required(property.required);
@@ -305,6 +347,16 @@ grpc::Status RuntimeGrpcServer::QueryService::ListComponentCatalog(
         execution->set_retryable(descriptor.execution.retryable);
         execution->set_idempotent(descriptor.execution.idempotent);
         execution->set_error_behavior(descriptor.execution.errorBehavior.toStdString());
+    }
+    if (pageSize > 0 && end < descriptors.size())
+        catalogResponse->set_next_page_token(QString::number(end).toStdString());
+    for (const auto &diagnostic : m_owner->m_catalog->allDiagnostics())
+    {
+        auto *outputDiagnostic = catalogResponse->add_diagnostics();
+        outputDiagnostic->set_code(diagnostic.code.toStdString());
+        outputDiagnostic->set_message(diagnostic.message.toStdString());
+        outputDiagnostic->set_field_path(diagnostic.fieldPath.toStdString());
+        outputDiagnostic->set_retryable(diagnostic.retryable);
     }
     return grpc::Status::OK;
 }
