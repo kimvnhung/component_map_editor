@@ -8,6 +8,12 @@
 
 **Input**: User description: "Chuẩn hóa structured validation issue. Hiện trạng: runtime đã tạo validation issue, nhưng một số đường UI/API còn chuyển kết quả thành chuỗi; semantics giữa editor và runtime chưa hoàn toàn thống nhất. Mục tiêu: dùng issue contract chung gồm code, severity, path, message và details/remediation tùy chọn; phân biệt lỗi chặn deployment với warning. Thay đổi cần làm: Chuẩn hóa model/protobuf và error codes dùng chung. Giữ structured issue xuyên exporter, client, runtime và manager; chỉ format thành text ở UI. Ổn định path để test và automation có thể tham chiếu. Acceptance: cùng một lỗi có code, severity và path tương thích ở editor/runtime; warning được hiển thị nhưng không làm mất dữ liệu cấu trúc."
 
+## Clarifications
+
+### Session 2026-11-06
+
+- Q: Khi issue tham chiếu component/connection/property cụ thể, `path` dùng định danh ổn định hay chỉ mục mảng? → A: Dùng định danh ổn định (componentId/connectionId); lỗi toàn graph dùng `graph`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Contract chung và error codes dùng chung (Priority: P1)
@@ -63,7 +69,7 @@ Dữ liệu validation issue MUST được giữ nguyên dạng cấu trúc xuy�
 
 - Khi một issue có `severity` không xác định hoặc thiếu, hệ thống MUST xử lý như lỗi chặn (fail-closed) thay vì bỏ qua.
 - Khi runtime nhận snapshot từ client không đáng tin cậy, runtime MUST validate lại và sinh issue structured riêng thay vì tin kết quả string của client.
-- Khi `path` không thể tính (ví dụ lỗi toàn graph, không thuộc node cụ thể), issue MUST dùng `path` biểu diễn root graph ổn định (ví dụ `graph`) thay vì để trống.
+- Khi `path` không thể tính (ví dụ lỗi toàn graph, không thuộc node cụ thể), issue MUST dùng `path` biểu diễn root graph ổn định (`graph`) thay vì để trống.
 - Khi cùng một lỗi logic sinh nhiều issue (ví dụ thiếu property và thiếu port), mỗi issue MUST có `path` riêng biệt để UI/automation phân biệt.
 - Khi warning tồn tại cùng error, kết quả validate MUST chứa cả hai, deployment bị chặn bởi error nhưng warning vẫn MUST hiển thị.
 
@@ -78,13 +84,13 @@ Dữ liệu validation issue MUST được giữ nguyên dạng cấu trúc xuy�
 - **FR-005**: System MUST distinguish error (chặn stage/activate) và warning (không chặn nhưng MUST được hiển thị và ghi nhận).
 - **FR-006**: Exporter, client, runtime và manager MUST preserve structured validation issues across boundaries; chỉ UI layer MAY format issue thành text để hiển thị.
 - **FR-007**: Shared contract MUST be usable both as internal model và as protobuf/public API representation without losing semantics (eventId/correlationId, identity, message type, payload, status, structured diagnostics).
-- **FR-008**: `path` MUST follow a stable, language-agnostic convention and MUST remain constant across runs and across editor/runtime for the same logical error; test/automation MUST be able to reference an issue by `code` + `path`.
+- **FR-008**: `path` MUST follow a stable, language-agnostic convention using the entity's stable identifier (ví dụ `components/<componentId>.properties.inputARef`, `connections/<connectionId>.source`) rather than array index; graph-wide errors MUST use `graph` as the path. `path` MUST remain constant across runs and across editor/runtime for the same logical error; test/automation MUST be able to reference an issue by `code` + `path`.
 - **FR-009**: System MUST NOT lose structured data when an issue is a warning; warning MUST remain queryable/inspectable alongside errors.
 - **FR-010**: System MUST return validation results as a structured list của issues (mỗi issue có `code`, `severity`, `path`, `message`, và tùy chọn `details`/`remediation`) thay vì a single concatenated string.
 
 ### Key Entities
 
-- **ValidationIssue**: đại diện một phát hiện của validation. Trường: `code`, `severity`, `path`, `message`, `details?`, `remediation?`. Là contract chung xuyên editor, runtime, client, exporter, manager.
+- **ValidationIssue**: đại diện một phát hiện của validation. Trường: `code`, `severity`, `path`, `message`, `details?`, `remediation?`. `path` dùng định danh ổn định của thực thể (componentId/connectionId) hoặc `graph` cho lỗi toàn graph. Là contract chung xuyên editor, runtime, client, exporter, manager.
 - **Severity**: giá trị `error` hoặc `warning`; quyết định có chặn deployment hay không.
 - **ErrorCodeCatalog**: danh mục mã lỗi dùng chung, versioned, ánh xạ mỗi lỗi logic sang `code` ổn định.
 - **ValidationResult**: danh sách `ValidationIssue` có phân biệt error/warning, có thể trả về từ editor validation và runtime `ValidateDeployment`.NdExployment`.
@@ -104,7 +110,7 @@ Dữ liệu validation issue MUST được giữ nguyên dạng cấu trúc xuy�
 
 - Shared contract đã tồn tại một phần (runtime đã sinh issue), nên feature này chuẩn hóa và mở rộng thay vì thiết kế từ đầu.
 - Internal model và protobuf/public API có thể ánh xạ 1-1 về cùng trường; không đổi semantics khi chuyển đổi.
-- `path` convention mặc định dùng cú pháp `components[<index>].properties.<prop>` / `connections[<index>].<field>` / `graph` cho lỗi root; convention cụ thể sẽ chốt trong implementation plan.
+- `path` convention đã chốt: dùng định danh ổn định của thực thể — `components/<componentId>.properties.<prop>` / `connections/<connectionId>.<field>` — và `graph` cho lỗi root; không dùng chỉ mục mảng để tránh thay đổi `path` khi thứ tự thực thể thay đổi.
 - UI layer là nơi duy nhất format issue thành text; các layer khác (exporter, client, runtime, manager) không cần sinh text.
 - Error-code catalog dùng chung được version qua protocol/schema version cơ chế đã có của hệ thống, không yêu cầu graph version.
 - Các đường API/protobuf hiện tại chưa chuẩn hóa sẽ được đưa về shared contract; không thêm graph-version requirement vào graph document.
