@@ -79,10 +79,7 @@ set(COMPONENT_MAP_EDITOR_HEADERS
     services/GraphSchema.h
     services/InvariantChecker.h
     services/MemoryMonitor.h
-    services/PerformanceBudgets.h
-    services/TraversalEngine.h
     services/ValidationService.h
-    transport/GrpcTemplateDescriptorTransport.h
     ui/GraphViewportItem.h
     ui/rendering/ComponentRenderPass.h
     ui/rendering/ConnectionRenderPass.h
@@ -158,10 +155,7 @@ set(COMPONENT_MAP_EDITOR_SOURCES
     services/GraphSchema.cpp
     services/InvariantChecker.cpp
     services/MemoryMonitor.cpp
-    services/PerformanceBudgets.cpp
-    services/TraversalEngine.cpp
     services/ValidationService.cpp
-    transport/GrpcTemplateDescriptorTransport.cpp
     ui/GraphViewportItem.cpp
     ui/rendering/ComponentRenderPass.cpp
     ui/rendering/ConnectionRenderPass.cpp
@@ -302,8 +296,4 @@ target_compile_definitions(cme_editor_ui_module
     PRIVATE
         LOG_TAG="ComponentMapEditor"
 )
-
-# NOTE: The legacy local execution simulator (GraphExecutionSandbox) and the
-# compatibility execution engine (cme_editor_compat target) were removed.
-# SDD forbids editor-side simulate/preview/execute — see feature 003-remove-dead-code.
 

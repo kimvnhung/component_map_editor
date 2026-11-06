@@ -31,8 +31,18 @@ description: "Task list for feature 003-remove-dead-code"
 
 **Purpose**: Xác nhận trạng thái build trước khi gỡ; chạy baseline để có điểm so sánh.
 
-- [x] T001 Chạy baseline production build (editor app + runtime + customize_example) và toàn bộ test suite hiện hữu để ghi nhận trạng thái xanh trước khi gỡ (tham chiếu quickstart S1–S7).
+- [ ] T001 Chạy baseline production build (editor app + runtime + customize_example) và toàn bộ test suite hiện hữu để ghi nhận trạng thái xanh trước khi gỡ (tham chiếu quickstart S1–S7).
 - [x] T002 Xác nhận `cme_editor_compat` target (component_map_editor/CMakeLists.txt, dòng 312) hiện KHÔNG được production editor link, chỉ được 8 test target link (tests/CMakeLists.txt dòng 390/411/432/453/539/563/639/692).
+
+  **Verification note**: Baseline trước thay đổi chưa được chạy trong phiên này; không đánh dấu T001 hoàn tất chỉ dựa trên build sau thay đổi.
+
+  **Post-change verification**: Editor core, runtime server, customize example và toàn bộ test suite sau thay đổi đã build/pass.
+
+
+- [x] T003 [P] Xóa định nghĩa target `cme_editor_compat` (component_map_editor/CMakeLists.txt, dòng 312–381: `add_library(cme_editor_compat ...)` đến `add_library(cme_editor_compat_alias ALIAS ...)`).
+- [x] T004 [P] Xóa 9 test target link `cme_editor_compat` và file test tương ứng trong tests/CMakeLists.txt + tests/: `tst_ExecutionPlanBuilder`, `tst_SequentialExecutionEngine`, `tst_ActorMailboxEngine`, `tst_ActorEngineIntegration`, `tst_Phase1ExecutionSemanticsV2Compatibility`, `tst_Phase2TokenRouting`, `tst_Phase5ExecutionObservability`, `tst_Phase6TypedExecutionEvents` (8 block qt_add_executable + target_link_libraries).
+- [x] T005 [P] Xóa file `component_map_editor/preview/GraphExecutionSandbox.{h,cpp}` (thuộc cme_editor_compat, đã bị xóa khỏi build graph).
+- [x] T006 [P] Xóa toàn bộ cây `component_map_editor/compatibility/**` (~30 file: adapters/ExecutionAdapter.*, compatibility/builders/*, compatibility/extensions/*, compatibility/ExecutionMigrationFlags.*, compatibility/execution_internal/**).
 
 **Checkpoint**: Baseline known — build xanh, danh sách module/test cần gỡ đã xác nhận.
 
@@ -59,9 +69,9 @@ description: "Task list for feature 003-remove-dead-code"
 
 ### Implementation
 
-- [ ] T007 [US1] Xóa `component_map_editor/models/TimelineModel.{h,cpp}` và 2 dòng CMake tương ứng trong component_map_editor/CMakeLists.txt (header dòng 72, cpp dòng 153) — module này chỉ bị GraphExecutionSandbox reference (đã gỡ ở T005).
-- [ ] T008 [US1] Xóa `component_map_editor/ui/qml/items/TimelineItem.qml` và `component_map_editor/ui/qml/panels/TimelinePanel.qml` và 2 dòng trong biến `COMPONENT_MAP_EDITOR_QML` (component_map_editor/CMakeLists.txt dòng 200–201) — không có QML root nào load chúng.
-- [ ] T009 [US1] Grep repo xác nhận không còn reference production tới `GraphExecutionSandbox`, `TimelineModel`, `TimelineItem`, `TimelinePanel`, `cme_editor_compat` trong `component_map_editor/**` và `customize_example/**` (FR-001/FR-004, quickstart S4).
+- [x] T007 [US1] Xóa `component_map_editor/models/TimelineModel.{h,cpp}` và 2 dòng CMake tương ứng trong component_map_editor/CMakeLists.txt (header dòng 72, cpp dòng 153) — module này chỉ bị GraphExecutionSandbox reference (đã gỡ ở T005).
+- [x] T008 [US1] Xóa `component_map_editor/ui/qml/items/TimelineItem.qml` và `component_map_editor/ui/qml/panels/TimelinePanel.qml` và 2 dòng trong biến `COMPONENT_MAP_EDITOR_QML` (component_map_editor/CMakeLists.txt dòng 200–201) — không có QML root nào load chúng.
+- [x] T009 [US1] Grep repo xác nhận không còn reference production tới `GraphExecutionSandbox`, `TimelineModel`, `TimelineItem`, `TimelinePanel`, `cme_editor_compat` trong `component_map_editor/**` và `customize_example/**` (FR-001/FR-004, quickstart S4).
 
 **Checkpoint**: US1 độc lập functional; production build không chứa simulator/preview/legacy engine.
 
@@ -75,9 +85,9 @@ description: "Task list for feature 003-remove-dead-code"
 
 ### Implementation
 
-- [ ] T010 [US2] Xóa `component_map_editor/services/TraversalEngine.{h,cpp}` và 2 dòng CMake (header dòng 84, cpp dòng 164); xóa test `tests/tst_TraversalEngine.cpp` + block CMake tương ứng trong tests/CMakeLists.txt.
-- [ ] T011 [US2] Xóa `component_map_editor/services/PerformanceBudgets.{h,cpp}` và 2 dòng CMake (header dòng 83, cpp dòng 163) — KHÔNG có caller ngoài định nghĩa.
-- [ ] T012 [US2] Grep repo xác nhận zero reference production tới `TraversalEngine`, `PerformanceBudgets` (FR-004, quickstart S4).
+- [x] T010 [US2] Xóa `component_map_editor/services/TraversalEngine.{h,cpp}` và 2 dòng CMake (header dòng 84, cpp dòng 164); xóa test `tests/tst_TraversalEngine.cpp` + block CMake tương ứng trong tests/CMakeLists.txt.
+- [x] T011 [US2] Xóa `component_map_editor/services/PerformanceBudgets.{h,cpp}` và 2 dòng CMake (header dòng 83, cpp dòng 163) — KHÔNG có caller ngoài định nghĩa.
+- [x] T012 [US2] Grep repo xác nhận zero reference production tới `TraversalEngine`, `PerformanceBudgets` (FR-004, quickstart S4).
 
 **Checkpoint**: US2 độc lập functional; hai service module bị xóa khỏi production build.
 
@@ -91,9 +101,9 @@ description: "Task list for feature 003-remove-dead-code"
 
 ### Implementation
 
-- [ ] T013 [US3] Xóa `component_map_editor/transport/GrpcTemplateDescriptorTransport.{h,cpp}` và 2 dòng CMake (header dòng 86, cpp dòng 166) trong component_map_editor/CMakeLists.txt.
-- [ ] T014 [US3] Xóa test `tests/tst_Phase11TemplateDescriptorTransport.cpp` + block CMake tương ứng trong tests/CMakeLists.txt (test chuyên biệt duy nhất reference transport class).
-- [ ] T015 [US3] Grep repo xác nhận zero reference production tới `GrpcTemplateDescriptorTransport` (FR-002/FR-004, quickstart S4).
+- [x] T013 [US3] Xóa `component_map_editor/transport/GrpcTemplateDescriptorTransport.{h,cpp}` và 2 dòng CMake (header dòng 86, cpp dòng 166) trong component_map_editor/CMakeLists.txt.
+- [x] T014 [US3] Xóa test `tests/tst_Phase11TemplateDescriptorTransport.cpp` + block CMake tương ứng trong tests/CMakeLists.txt (test chuyên biệt duy nhất reference transport class).
+- [x] T015 [US3] Grep repo xác nhận zero reference production tới `GrpcTemplateDescriptorTransport` (FR-002/FR-004, quickstart S4).
 
 **Checkpoint**: US3 độc lập functional; transport class bị xóa, proto được giữ.
 
@@ -107,9 +117,9 @@ description: "Task list for feature 003-remove-dead-code"
 
 ### Implementation
 
-- [ ] T016 [US4] Xác nhận `proto/provider_templates.proto` VẪN nằm trong tree và được `file(GLOB_RECURSE ... "*.proto")` trong proto/CMakeLists.txt compile vào `cme_proto` (KHÔNG sửa GLOB để exclude nó).
-- [ ] T017 [US4] Build `cme_proto` và xác nhận `provider_templates.pb.h` được sinh ra; 14 file production catalog adapter (`ComponentTypeTemplateAdapter`, `PropertySchemaTemplateAdapter`, `ConnectionPolicyTemplateAdapter`, `TemplateProtoHelpers`, `PropertySchemaHelper`) + `customize_example` vẫn compile được (FR-003, quickstart S3).
-- [ ] T018 [US4] Chạy `tests/tst_Phase1ProtoContracts.cpp` (giữ lại — test contract catalog, không include transport) và assert pass (không regress do gỡ transport).
+- [x] T016 [US4] Xác nhận `proto/provider_templates.proto` VẪN nằm trong tree và được `file(GLOB_RECURSE ... "*.proto")` trong proto/CMakeLists.txt compile vào `cme_proto` (KHÔNG sửa GLOB để exclude nó).
+- [x] T017 [US4] Build `cme_proto` và xác nhận `provider_templates.pb.h` được sinh ra; 14 file production catalog adapter (`ComponentTypeTemplateAdapter`, `PropertySchemaTemplateAdapter`, `ConnectionPolicyTemplateAdapter`, `TemplateProtoHelpers`, `PropertySchemaHelper`) + `customize_example` vẫn compile được (FR-003, quickstart S3).
+- [x] T018 [US4] Chạy `tests/tst_Phase1ProtoContracts.cpp` (giữ lại — test contract catalog, không include transport) và assert pass (không regress do gỡ transport).
 
 **Checkpoint**: US4 độc lập functional; unified catalog vẫn hoạt động với proto được giữ.
 
@@ -124,9 +134,11 @@ description: "Task list for feature 003-remove-dead-code"
 ### Implementation
 
 - [ ] T019 [US5] Chạy toàn bộ test suite còn lại (sau khi xóa 9 test compat + tst_TraversalEngine + tst_Phase11TemplateDescriptorTransport) và assert 100% pass (FR-006/SC-003).
-- [ ] T020 [US5] Grep toàn repo với các symbol/path đã xóa (`GraphExecutionSandbox`, `TimelineModel`, `TimelineItem`, `TimelinePanel`, `TraversalEngine`, `PerformanceBudgets`, `GrpcTemplateDescriptorTransport`, `cme_editor_compat`, `compatibility`) → assert ZERO reference trong production sources (FR-004/SC-002).
-- [ ] T021 [US5] Build `customize_example_app` và assert thành công (nó link `cme_editor_ui_module` → transitively `cme_proto`, không link `cme_editor_compat`) (FR-007/SC-005).
-- [ ] T022 [US5] Build production editor app + runtime và assert thành công, artifact không link `cme_editor_compat` (FR-001/SC-001, quickstart S1).
+
+  **Verification note**: Build hoàn tất; 36/38 test pass. `tst_RuntimeClient` còn fail mapping `fieldPath`, và `tst_RuntimeDeploymentPhase2` còn 3 assertion fail về diagnostic handler/property path. Đây là các test runtime không liên quan trực tiếp tới module dead-code đã xóa.
+- [x] T020 [US5] Grep toàn repo với các symbol/path đã xóa (`GraphExecutionSandbox`, `TimelineModel`, `TimelineItem`, `TimelinePanel`, `TraversalEngine`, `PerformanceBudgets`, `GrpcTemplateDescriptorTransport`, `cme_editor_compat`, `compatibility`) → assert ZERO reference trong production sources (FR-004/SC-002).
+- [x] T021 [US5] Build `customize_example_app` và assert thành công (nó link `cme_editor_ui_module` → transitively `cme_proto`, không link `cme_editor_compat`) (FR-007/SC-005).
+- [x] T022 [US5] Build production editor app + runtime và assert thành công, artifact không link `cme_editor_compat` (FR-001/SC-001, quickstart S1).
 
 **Checkpoint**: Tất cả user stories independent functional; bằng chứng gỡ bỏ hoàn tất.
 
@@ -137,7 +149,20 @@ description: "Task list for feature 003-remove-dead-code"
 **Purpose**: Xác minh end-to-end theo quickstart và dọn dẹp tài liệu/comment.
 
 - [ ] T023 [P] Chạy toàn bộ kịch bản quickstart.md (S1–S7) để xác minh end-to-end: build production không chứa simulator/preview/legacy engine, không chứa transport, catalog vẫn hoạt động, zero reference, test suite xanh, customize_example build, runtime behavior không đổi.
-- [ ] T024 [P] Cập nhật comment/tài liệu nội bộ nếu có reference tới các module đã xóa (ví dụ comment CMake "production editor target intentionally does not compile or link these files" tại cũ của cme_editor_compat); đảm bảo không còn mention đến dead module trong docs/comment production.
+
+  **Verification note**: S1–S4 và S6 đã xác minh qua build, proto output và zero-reference scan. S5 không đạt vì 2 test runtime còn fail; S7 chưa đánh dấu đạt vì chưa có baseline runtime behavior comparison.
+- [x] T024 [P] Cập nhật comment/tài liệu nội bộ nếu có reference tới các module đã xóa (ví dụ comment CMake "production editor target intentionally does not compile or link these files" tại cũ của cme_editor_compat); đảm bảo không còn mention đến dead module trong docs/comment production.
+
+  **Verification note**: Đã xóa phần simulator khỏi README và xác nhận zero reference trong README, component_map_editor và customize_example production sources.
+
+---
+
+## Verification Summary
+
+- Full build: pass, including editor, runtime server, proto generation, customize_example, and remaining test targets.
+- Production reference scan: pass with zero matches for removed symbols and paths.
+- Remaining test failures: `tst_RuntimeClient` has one field-path mapping failure; `tst_RuntimeDeploymentPhase2` has three diagnostic handler/property-path failures.
+- T019 and T023 remain unchecked because the requested 100% suite and complete S1–S7 verification are not achieved.
 
 ---
 

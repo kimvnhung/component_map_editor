@@ -51,19 +51,12 @@ void tst_Phase6CutoverReadiness::editorBuildSourcesExcludeExecutionStack()
 {
     const QString cmake = readTextFile(QStringLiteral("component_map_editor/CMakeLists.txt"));
     QVERIFY2(!cmake.isEmpty(), "Could not read editor CMake file");
-    const int compatIndex = cmake.indexOf(QStringLiteral("add_library(cme_editor_compat"));
-    QVERIFY2(compatIndex > 0, "Legacy simulator compatibility target is missing");
-    const QString productionTarget = cmake.left(compatIndex);
-    QVERIFY2(!productionTarget.contains(QStringLiteral("GraphExecutionSandbox.cpp")),
-             "Production editor target must not compile GraphExecutionSandbox");
-    QVERIFY2(!productionTarget.contains(QStringLiteral("ActorMailboxExecutionEngine.cpp")),
-             "Production editor target must not compile actor execution");
-    QVERIFY2(cmake.contains(QStringLiteral("cme_editor_compat")),
-             "Legacy simulator must be isolated in the compatibility target");
-    QVERIFY2(cmake.contains(QStringLiteral("GraphExecutionSandbox.cpp")),
-             "Compatibility target must retain simulator sources for legacy tests");
-    QVERIFY2(cmake.contains(QStringLiteral("ActorMailboxExecutionEngine.cpp")),
-             "Compatibility target must retain actor sources for legacy tests");
+    QVERIFY2(!cmake.contains(QStringLiteral("cme_editor_compat")),
+             "Legacy simulator compatibility target must be removed");
+    QVERIFY2(!cmake.contains(QStringLiteral("GraphExecutionSandbox")),
+             "Production editor must not reference GraphExecutionSandbox");
+    QVERIFY2(!cmake.contains(QStringLiteral("ActorMailboxExecutionEngine")),
+             "Production editor must not reference actor execution");
 }
 
 QTEST_MAIN(tst_Phase6CutoverReadiness)

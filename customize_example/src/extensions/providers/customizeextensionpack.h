@@ -9,7 +9,6 @@
 
 #include "customizecomponenttypeprovider.h"
 #include "customizeconnectionpolicyprovider.h"
-#include "customizeexecutionsanticsprovider.h"
 #include "customizepropertyschemaprovider.h"
 #include "customizevalidationprovider.h"
 #include "filecomponenttypeprovider.h"
@@ -51,7 +50,7 @@ private:
     CustomizeConnectionPolicyProvider m_connectionPolicyProvider;
     CustomizePropertySchemaProvider   m_propertySchemaProvider;
     CustomizeValidationProvider m_workflowValidationProvider;
-    CustomizeExecutionSemanticsProvider m_executionSemanticsProvider;
+    // Execution semantics are owned by the runtime boundary, not this editor example.
     // SampleActionProvider      m_actionProvider;
 };
 

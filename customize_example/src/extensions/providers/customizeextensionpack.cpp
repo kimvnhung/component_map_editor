@@ -49,12 +49,6 @@ bool CustomizeExtensionPack::registerProviders(ExtensionContractRegistry &regist
         return false;
     }
 
-    // if (!registry.registerActionProvider(&m_actionProvider, error))
-    //     return false;
-    if (!registry.registerExecutionSemanticsProvider(&m_executionSemanticsProvider, error))
-    {
-        return false;
-    }
-
+    // Execution semantics are registered by the runtime boundary.
     return true;
 }
