@@ -22,10 +22,11 @@ struct InvariantEntry {
 // ── InvariantChecker ──────────────────────────────────────────────────────────
 // Maintains a registry of named graph invariants and evaluates them on demand.
 //
-// The CommandGateway calls checkAll() before and after every command push:
-//   • Pre-check failure → command is rejected before it is ever executed.
-//   • Post-check failure → CommandGateway issues undo() to roll back the
-//     command that was already pushed and emits invariantViolated().
+// UI-facing controllers call checkAll() before and after graph mutations:
+//   • Pre-check failure → the user operation is rejected before execution.
+//   • Post-check failure → the UI mutation is rolled back and
+//     invariantViolated() is emitted.
+
 //
 // Thread-affinity: main thread only.
 class InvariantChecker : public QObject

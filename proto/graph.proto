@@ -10,6 +10,9 @@ message ComponentData {
   double              x                 = 4;
   double              y                 = 5;
   map<string, string> properties         = 6;
+  string              component_identity = 7;
+  string              component_version = 8;
+  string              metadata_snapshot = 9;
 }
 
 message ConnectionData {
@@ -22,7 +25,8 @@ message ConnectionData {
 
 // ── Full graph snapshot (used by ValidationService and persistence) ────────
 message GraphSnapshot {
-  repeated ComponentData  components  = 1;
-  repeated ConnectionData connections = 2;
-  string                  graph_id    = 3;
+  repeated ComponentData  components          = 1;
+  repeated ConnectionData connections         = 2;
+  string                  graph_id            = 3;
+  string                  start_component_id  = 4;
 }

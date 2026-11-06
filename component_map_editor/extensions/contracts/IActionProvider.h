@@ -14,16 +14,10 @@ public:
     virtual QString providerId() const = 0;
     virtual QStringList actionIds() const = 0;
 
-    // Returns metadata for presenting an action in UI.
+    // Returns metadata for presenting an action in the user interface.
+    // Actions are descriptive only; extensions cannot mutate graph state.
     // Expected keys include: id, title, category, icon, enabled.
     virtual QVariantMap actionDescriptor(const QString &actionId) const = 0;
-
-    // Produces a command request map consumed by core command gateway.
-    // Must not mutate graph state directly.
-    virtual bool invokeAction(const QString &actionId,
-                              const QVariantMap &context,
-                              QVariantMap *commandRequest,
-                              QString *error) const = 0;
 };
 
 #define COMPONENT_MAP_EDITOR_IID_ACTION_PROVIDER "ComponentMapEditor.Extensions.IActionProvider/1.0"

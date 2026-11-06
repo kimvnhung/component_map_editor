@@ -103,7 +103,9 @@ bool PublicApiContractAdapter::toPropertySchemaEntry(const QVariantMap &entry,
     out->set_type(type.toStdString());
     out->set_title(entry.value(QStringLiteral("title")).toString().toStdString());
     out->set_required(entry.value(QStringLiteral("required"), false).toBool());
-    out->set_editor_widget(entry.value(QStringLiteral("editor")).toString().toStdString());
+    const QString editorWidget = entry.value(QStringLiteral("editor"),
+                                               entry.value(QStringLiteral("widget"))).toString();
+    out->set_editor_widget(editorWidget.toStdString());
     out->set_section(entry.value(QStringLiteral("section")).toString().toStdString());
     out->set_order(entry.value(QStringLiteral("order"), 0).toInt());
     out->set_hint(entry.value(QStringLiteral("hint")).toString().toStdString());
@@ -134,6 +136,10 @@ bool PublicApiContractAdapter::toPropertySchemaEntry(const QVariantMap &entry,
         QStringLiteral("order"),
         QStringLiteral("hint"),
         QStringLiteral("options"),
+        QStringLiteral("dropdownOptions"),
+        QStringLiteral("widget"),
+        QStringLiteral("valid"),
+        QStringLiteral("schemaError"),
         QStringLiteral("validation"),
         QStringLiteral("visibleWhen")
     };

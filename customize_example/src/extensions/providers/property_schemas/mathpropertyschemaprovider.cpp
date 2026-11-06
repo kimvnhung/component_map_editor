@@ -6,200 +6,549 @@
 namespace
 {
 
-    using cme::runtime::SchemaFieldType;
-    using cme::runtime::SchemaFieldWidget;
-    using cme::runtime::SchemaFieldSection;
-    using cme::runtime::SchemaOptionsSource;
+using cme::runtime::SchemaFieldSection;
+using cme::runtime::SchemaFieldType;
+using cme::runtime::SchemaFieldWidget;
+using cme::runtime::SchemaOptionsSource;
 
-    const QString kTokenRefHint =
-        QStringLiteral("Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.");
-    const QString kOutputKeyHint =
-        QStringLiteral("Result field written by this component.");
-    const QString kErrorKeyHint =
-        QStringLiteral("Error field written when execution fails.");
+const QString kTokenRefHint = QStringLiteral(
+    "Choose an exact incoming token field reference. If no ref is selected, the fallback value below is used.");
+const QString kOutputKeyHint = QStringLiteral("Result field written by this component.");
+const QString kErrorKeyHint = QStringLiteral("Error field written when execution fails.");
 
-    cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
-    {
-        cme::templates::v1::PropertySchemaTemplateBundle bundle;
-        bundle.set_provider_id("customize.workflow.propertySchema.math");
-        bundle.set_schema_version("1.0.0");
+cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
+{
+    cme::templates::v1::PropertySchemaTemplateBundle bundle;
+    bundle.set_provider_id("customize.workflow.propertySchema.math");
+    bundle.set_schema_version("1.0.0");
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/add",
-        {
-            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", false, "Add Componnent", SchemaFieldWidget::TextField, SchemaFieldSection::General, 1),
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("sum"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/add",
+                                             {
+                                                 cme::helper::property_schemas::Field("title")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Title")
+                                                     .defaultValue("Add Componnent")
+                                                     .textField()
+                                                     .section(SchemaFieldSection::General)
+                                                     .order(1)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("inputARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/subtract",
-        {
-            cme::helper::property_schemas::makeField("title", SchemaFieldType::String, "Title", false, "Subtract Componnent", SchemaFieldWidget::TextField, SchemaFieldSection::General, 1),
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("difference"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+                                                 cme::helper::property_schemas::Field("inputBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("outputKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Output Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("sum"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(5)
+                                                     .hint(kOutputKeyHint)
+                                                     .build(),
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/multiply",
-        {
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("product"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+                                                 cme::helper::property_schemas::Field("errorKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Error Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("error"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(6)
+                                                     .hint(kErrorKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/divide",
-        {
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("quotient"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/subtract",
+                                             {cme::helper::property_schemas::Field("title")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Title")
+                                                  .defaultValue("Subtract Componnent")
+                                                  .textField()
+                                                  .section(SchemaFieldSection::General)
+                                                  .order(1)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("inputARef")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Input A Ref")
+                                                  .defaultValue(QString())
+                                                  .dropdown(cme::runtime::Options::tokenRef())
+                                                  .section(SchemaFieldSection::Context)
+                                                  .order(2)
+                                                  .hint(kTokenRefHint)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("inputBRef")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Input B Ref")
+                                                  .defaultValue(QString())
+                                                  .dropdown(cme::runtime::Options::tokenRef())
+                                                  .section(SchemaFieldSection::Context)
+                                                  .order(4)
+                                                  .hint(kTokenRefHint)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("outputKey")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Output Key")
+                                                  .required()
+                                                  .defaultValue(QStringLiteral("difference"))
+                                                  .textField()
+                                                  .section(SchemaFieldSection::Context)
+                                                  .order(5)
+                                                  .hint(kOutputKeyHint)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("errorKey")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Error Key")
+                                                  .required()
+                                                  .defaultValue(QStringLiteral("error"))
+                                                  .textField()
+                                                  .section(SchemaFieldSection::Context)
+                                                  .order(6)
+                                                  .hint(kErrorKeyHint)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("a")
+                                                  .type(SchemaFieldType::Number)
+                                                  .title("Fallback A")
+                                                  .defaultValue(0)
+                                                  .spinBox()
+                                                  .section(SchemaFieldSection::Fallback)
+                                                  .order(20)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("b")
+                                                  .type(SchemaFieldType::Number)
+                                                  .title("Fallback B")
+                                                  .defaultValue(0)
+                                                  .spinBox()
+                                                  .section(SchemaFieldSection::Fallback)
+                                                  .order(21)
+                                                  .build()});
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/sqrt",
-        {
-            cme::helper::property_schemas::makeField("inputRef", SchemaFieldType::String, "Input Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("sqrtS"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("S", SchemaFieldType::Number, "Fallback S", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/multiply",
+                                             {
+                                                 cme::helper::property_schemas::Field("inputARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("inputBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("outputKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Output Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("product"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(5)
+                                                     .hint(kOutputKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("errorKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Error Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("error"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(6)
+                                                     .hint(kErrorKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(1)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(1)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/mod",
-        {
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("result"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 1, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/divide",
+                                             {
+                                                 cme::helper::property_schemas::Field("inputARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("inputBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("outputKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Output Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("quotient"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(5)
+                                                     .hint(kOutputKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("errorKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Error Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("error"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(6)
+                                                     .hint(kErrorKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(1)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(1)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/less_than",
-        {
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("result"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/sqrt",
+                                             {cme::helper::property_schemas::Field("inputRef")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Input Ref")
+                                                  .defaultValue(QString())
+                                                  .dropdown(cme::runtime::Options::tokenRef())
+                                                  .section(SchemaFieldSection::Context)
+                                                  .order(2)
+                                                  .hint(kTokenRefHint)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("outputKey")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Output Key")
+                                                  .required()
+                                                  .defaultValue(QStringLiteral("sqrtS"))
+                                                  .textField()
+                                                  .section(SchemaFieldSection::Context)
+                                                  .order(5)
+                                                  .hint(kOutputKeyHint)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("errorKey")
+                                                  .type(SchemaFieldType::String)
+                                                  .title("Error Key")
+                                                  .required()
+                                                  .defaultValue(QStringLiteral("error"))
+                                                  .textField()
+                                                  .section(SchemaFieldSection::Context)
+                                                  .order(6)
+                                                  .hint(kErrorKeyHint)
+                                                  .build(),
+                                              cme::helper::property_schemas::Field("S")
+                                                  .type(SchemaFieldType::Number)
+                                                  .title("Fallback S")
+                                                  .defaultValue(0)
+                                                  .spinBox()
+                                                  .section(SchemaFieldSection::Fallback)
+                                                  .order(20)
+                                                  .build()});
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/less_or_equal",
-        {
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("result"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/mod",
+                                             {
+                                                 cme::helper::property_schemas::Field("inputARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("inputBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("outputKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Output Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("result"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(5)
+                                                     .hint(kOutputKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("errorKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Error Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("error"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(6)
+                                                     .hint(kErrorKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(1)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(1)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
 
-        cme::helper::property_schemas::addTarget(&bundle,
-                "component/math/equal",
-        {
-            cme::helper::property_schemas::makeField("inputARef", SchemaFieldType::String, "Input A Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 2,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("inputBRef", SchemaFieldType::String, "Input B Ref", false, QString(), SchemaFieldWidget::Dropdown, SchemaFieldSection::Context, 4,
-                    kTokenRefHint,
-            {}, {}, {},
-            SchemaOptionsSource::TokenKeyOptions),
-            cme::helper::property_schemas::makeField("outputKey", SchemaFieldType::String, "Output Key", true, QStringLiteral("result"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 5,
-                    kOutputKeyHint),
-            cme::helper::property_schemas::makeField("errorKey", SchemaFieldType::String, "Error Key", true, QStringLiteral("error"), SchemaFieldWidget::TextField, SchemaFieldSection::Context, 6,
-                    kErrorKeyHint),
-            cme::helper::property_schemas::makeField("a", SchemaFieldType::Number, "Fallback A", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 20),
-            cme::helper::property_schemas::makeField("b", SchemaFieldType::Number, "Fallback B", false, 0, SchemaFieldWidget::SpinBox, SchemaFieldSection::Fallback, 21)
-        });
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/less_than",
+                                             {
+                                                 cme::helper::property_schemas::Field("inputARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("inputBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("outputKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Output Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("result"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(5)
+                                                     .hint(kOutputKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("errorKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Error Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("error"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(6)
+                                                     .hint(kErrorKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
 
-        return bundle;
-    }
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/less_or_equal",
+                                             {
+                                                 cme::helper::property_schemas::Field("inputARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("inputBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("outputKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Output Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("result"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(5)
+                                                     .hint(kOutputKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("errorKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Error Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("error"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(6)
+                                                     .hint(kErrorKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
 
-    const cme::templates::v1::PropertySchemaTemplateBundle &schemaBundle()
-    {
-        static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
-        return kBundle;
-    }
+    cme::helper::property_schemas::addTarget(&bundle, "component/math/equal",
+                                             {
+                                                 cme::helper::property_schemas::Field("inputARef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input A Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(2)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("inputBRef")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Input B Ref")
+                                                     .defaultValue(QString())
+                                                     .dropdown(cme::runtime::Options::tokenRef())
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(4)
+                                                     .hint(kTokenRefHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("outputKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Output Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("result"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(5)
+                                                     .hint(kOutputKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("errorKey")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Error Key")
+                                                     .required()
+                                                     .defaultValue(QStringLiteral("error"))
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Context)
+                                                     .order(6)
+                                                     .hint(kErrorKeyHint)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("a")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback A")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(20)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("b")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Fallback B")
+                                                     .defaultValue(0)
+                                                     .spinBox()
+                                                     .section(SchemaFieldSection::Fallback)
+                                                     .order(21)
+                                                     .build(),
+                                             });
+
+    return bundle;
+}
+
+const cme::templates::v1::PropertySchemaTemplateBundle& schemaBundle()
+{
+    static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
+    return kBundle;
+}
 
 } // namespace
 
@@ -213,8 +562,7 @@ QStringList MathPropertySchemaProvider::schemaTargets() const
     return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaTargets(schemaBundle());
 }
 
-QVariantList MathPropertySchemaProvider::propertySchema(const QString &targetId) const
+QVariantList MathPropertySchemaProvider::propertySchema(const QString& targetId) const
 {
-    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(
-               schemaBundle(), targetId);
+    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(schemaBundle(), targetId);
 }

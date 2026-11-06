@@ -8,6 +8,8 @@ import "google/protobuf/struct.proto";
 // explicit typed contracts, while runtime interfaces can still expose
 // QVariant/QVariantMap for compatibility.
 
+
+
 message PropertySchemaFieldTemplate {
   string key = 1;
   string type = 2;

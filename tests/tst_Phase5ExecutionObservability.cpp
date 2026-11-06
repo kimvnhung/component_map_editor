@@ -4,8 +4,8 @@
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"
-#include "services/ExecutionMigrationFlags.h"
-#include "services/GraphExecutionSandbox.h"
+#include "compatibility/ExecutionMigrationFlags.h"
+#include "preview/GraphExecutionSandbox.h"
 
 namespace {
 
@@ -102,13 +102,11 @@ private slots:
 
 void tst_Phase5ExecutionObservability::init()
 {
-    cme::execution::MigrationFlags::resetDefaults();
     cme::execution::MigrationFlags::setTokenTransportEnabled(true);
 }
 
 void tst_Phase5ExecutionObservability::cleanup()
 {
-    cme::execution::MigrationFlags::resetDefaults();
 }
 
 void tst_Phase5ExecutionObservability::debugSnapshot_returnsStableStructure()

@@ -16,50 +16,18 @@ ApplicationWindow {
     visibility: Window.Maximized
     title: "My Graph Editor"
 
-    property var executionSandbox: editorManager.executionSandbox
     property int inspectorTabIndex: 0
 
-    function prettyJson(value) {
-        if (value === undefined || value === null)
-            return "{}";
-        return JSON.stringify(value, null, 2);
-    }
+    property GraphModel graph: editorFacade.graph
+    property UndoStack undoStack: editorFacade.undoStack
+    property ValidationService validator: editorFacade.validationService
+    property ExportService exporter: editorFacade.exportService
+    property TypeRegistry componentTypeRegistry: editorFacade.typeRegistry
+    property PropertySchemaRegistry propertySchemaRegistry: editorFacade.propertySchemaRegistry
+    property DynamicOptionsRegistry dynamicOptionsRegistry: editorFacade.dynamicOptionsRegistry
 
-    function timelineText(entries) {
-        if (!entries || entries.length === 0)
-            return "No execution events yet.";
-        var lines = [];
-        for (var i = 0; i < entries.length; ++i) {
-            var entry = entries[i];
-            var payload = {};
-            for (var key in entry) {
-                if (key === "event" || key === "tick")
-                    continue;
-                payload[key] = entry[key];
-            }
-            var suffix = Object.keys(payload).length ? "  " + JSON.stringify(payload) : "";
-            lines.push("[" + entry.tick + "] " + entry.event + suffix);
-        }
-        return lines.join("\n");
-    }
 
-    Component.onCompleted: {
-        if (executionSandbox) {
-            executionSandbox.graph = graph;
-        }
-    }
-
-    GraphModel {
-        id: graph
-    }
-
-    ValidationService {
-        id: validator
-    }
-
-    ExportService {
-        id: exporter
-    }
+    // ExportService is owned by the public editor facade.
 
     // -----------------------------------------------------------------------
     // Toolbar
@@ -105,6 +73,26 @@ ApplicationWindow {
                         statusLabel.color = "#c62828";
                     }
                 }
+            }
+
+            ToolButton {
+                text: "Deploy Runtime"
+                onClicked: {
+                    if (!editorManager.deployAndActivate(graph, graphVersionField.text)) {
+                        statusLabel.text = "✗ Runtime deploy failed: " + editorManager.runtimeLastError;
+                        statusLabel.color = "#c62828";
+                    } else {
+                        statusLabel.text = "✓ Graph deployed and activated";
+                        statusLabel.color = "#2e7d32";
+                    }
+                }
+            }
+
+            TextField {
+                id: graphVersionField
+                Layout.preferredWidth: 120
+                text: "v1"
+                placeholderText: "Graph version"
             }
 
             ToolButton {
@@ -181,7 +169,7 @@ ApplicationWindow {
             id: palettePanel
             Layout.preferredWidth: 250
             Layout.fillHeight: true
-            graph: graph
+            graph: window.graph
             canvas: canvas
             componentTypeRegistry: editorManager.componentTypeRegistry
         }
@@ -197,7 +185,7 @@ ApplicationWindow {
             id: canvas
             Layout.fillWidth: true
             Layout.fillHeight: true
-            graph: graph
+            graph: window.graph
             componentTypeRegistry: editorManager.componentTypeRegistry
         }
 
@@ -241,17 +229,18 @@ ApplicationWindow {
                         id: propertyPanel
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        graph: graph
+                        graph: window.graph
                         item: canvas ? (canvas.selectedConnection !== null ? canvas.selectedConnection : canvas.selectedComponent) : null
                         undoStack: canvas ? canvas.undoStack : null
                         propertySchemaRegistry: editorManager.propertySchemaRegistry
-                        providerOutputKeyHints: executionSandbox ? executionSandbox.providerOutputKeyHints : ({})
+                        dynamicOptionsRegistry: editorManager.dynamicOptionsRegistry
                     }
 
                     ExecutionPanel {
                         id: executionPanel
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        graph: window.graph
                         selectedComponentId: canvas ? (canvas.selectedComponent ? canvas.selectedComponent.id : "") : ""
                     }
                 }

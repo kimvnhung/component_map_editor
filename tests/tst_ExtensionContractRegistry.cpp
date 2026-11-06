@@ -149,10 +149,6 @@ private slots:
 
     void actionProviderExposesSetTaskPriorityId();
     void actionDescriptorContainsRequiredKeys();
-    void actionInvokeProducesCorrectCommandRequest();
-    void actionInvokeFailsWithMissingComponentId();
-    void actionInvokeFailsWithInvalidPriority();
-    void actionInvokeFailsWithUnknownActionId();
 
     void componentTypeProvidersReturnedInRegistrationOrder();
     void connectionPolicyProvidersReturnedInRegistrationOrder();
@@ -574,60 +570,6 @@ void ExtensionContractRegistryTests::actionDescriptorContainsRequiredKeys()
     QVERIFY(descriptor.contains(QStringLiteral("category")));
     QVERIFY(descriptor.contains(QStringLiteral("icon")));
     QVERIFY(descriptor.contains(QStringLiteral("enabled")));
-}
-
-void ExtensionContractRegistryTests::actionInvokeProducesCorrectCommandRequest()
-{
-    SampleActionProvider provider;
-    QVariantMap context;
-    context[QStringLiteral("componentId")] = QStringLiteral("process-42");
-    context[QStringLiteral("newPriority")] = QStringLiteral("high");
-    QVariantMap commandRequest;
-    QString error;
-    QVERIFY2(provider.invokeAction(
-        QString::fromLatin1(SampleActionProvider::ActionSetTaskPriority),
-        context, &commandRequest, &error), qPrintable(error));
-    QCOMPARE(commandRequest.value(QStringLiteral("commandType")).toString(),
-             QStringLiteral("setComponentProperty"));
-    QCOMPARE(commandRequest.value(QStringLiteral("componentId")).toString(),
-             QStringLiteral("process-42"));
-    QCOMPARE(commandRequest.value(QStringLiteral("propertyName")).toString(),
-             QStringLiteral("priority"));
-    QCOMPARE(commandRequest.value(QStringLiteral("newValue")).toString(),
-             QStringLiteral("high"));
-}
-
-void ExtensionContractRegistryTests::actionInvokeFailsWithMissingComponentId()
-{
-    SampleActionProvider provider;
-    QVariantMap context;
-    context[QStringLiteral("newPriority")] = QStringLiteral("low");
-    QString error;
-    QVERIFY(!provider.invokeAction(
-        QString::fromLatin1(SampleActionProvider::ActionSetTaskPriority),
-        context, nullptr, &error));
-    QVERIFY(!error.isEmpty());
-}
-
-void ExtensionContractRegistryTests::actionInvokeFailsWithInvalidPriority()
-{
-    SampleActionProvider provider;
-    QVariantMap context;
-    context[QStringLiteral("componentId")] = QStringLiteral("process-1");
-    context[QStringLiteral("newPriority")] = QStringLiteral("critical");
-    QString error;
-    QVERIFY(!provider.invokeAction(
-        QString::fromLatin1(SampleActionProvider::ActionSetTaskPriority),
-        context, nullptr, &error));
-    QVERIFY(!error.isEmpty());
-}
-
-void ExtensionContractRegistryTests::actionInvokeFailsWithUnknownActionId()
-{
-    SampleActionProvider provider;
-    QString error;
-    QVERIFY(!provider.invokeAction(QStringLiteral("nonexistent"), {}, nullptr, &error));
-    QVERIFY(!error.isEmpty());
 }
 
 void ExtensionContractRegistryTests::componentTypeProvidersReturnedInRegistrationOrder()

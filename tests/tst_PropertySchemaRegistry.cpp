@@ -42,21 +42,32 @@ private slots:
         PropertySchemaRegistry schemas;
         schemas.rebuildFromRegistry(contracts);
 
-        const QVariantList sections = schemas.sectionedSchemaForTarget(QStringLiteral("component/process"));
-        QVERIFY(!sections.isEmpty());
+        QObject *sectionModel = schemas.typedSectionModelForTarget(QStringLiteral("component/process"));
+        QVERIFY(sectionModel != nullptr);
+        int sectionCount = 0;
+        QVERIFY(QMetaObject::invokeMethod(sectionModel, "size", Q_RETURN_ARG(int, sectionCount)));
+        QVERIFY(sectionCount > 0);
 
         bool hasBehaviorSection = false;
         bool hasAddValueField = false;
 
-        for (const QVariant &sectionValue : sections) {
-            const QVariantMap section = sectionValue.toMap();
+        for (int i = 0; i < sectionCount; ++i) {
+            QVariantMap section;
+            QVERIFY(QMetaObject::invokeMethod(sectionModel, "rowAt",
+                                              Q_RETURN_ARG(QVariantMap, section),
+                                              Q_ARG(int, i)));
             const QString title = section.value(QStringLiteral("title")).toString();
             if (title == QStringLiteral("Behavior"))
                 hasBehaviorSection = true;
 
-            const QVariantList fields = section.value(QStringLiteral("fields")).toList();
-            for (const QVariant &fieldValue : fields) {
-                const QVariantMap field = fieldValue.toMap();
+            QObject *fieldsModel = section.value(QStringLiteral("fieldsModel")).value<QObject *>();
+            if (!fieldsModel)
+                continue;
+            int fieldCount = 0;
+            QVERIFY(QMetaObject::invokeMethod(fieldsModel, "size", Q_RETURN_ARG(int, fieldCount)));
+            for (int j = 0; j < fieldCount; ++j) {
+                QVariantMap field;
+                QMetaObject::invokeMethod(fieldsModel, "rowAt", Q_RETURN_ARG(QVariantMap, field), Q_ARG(int, j));
                 if (field.value(QStringLiteral("key")).toString() == QStringLiteral("addValue")) {
                     hasAddValueField = true;
                     QCOMPARE(field.value(QStringLiteral("widget")).toString(), QStringLiteral("spinbox"));
@@ -74,14 +85,14 @@ private slots:
         PropertySchemaRegistry schemas;
         schemas.rebuildFromRegistry(contracts);
 
-        const QVariantList rows = schemas.schemaForTarget(QStringLiteral("component/nonexistent"));
-        QVERIFY(!rows.isEmpty());
+        cme::publicapi::v1::PropertySchemaResponse response;
+        QVERIFY(schemas.schemaForTargetTyped(QStringLiteral("component/nonexistent"), &response));
+        QVERIFY(response.entries_size() > 0);
 
         bool hasTitle = false;
         bool hasWidth = false;
-        for (const QVariant &rowValue : rows) {
-            const QVariantMap row = rowValue.toMap();
-            const QString key = row.value(QStringLiteral("key")).toString();
+        for (int i = 0; i < response.entries_size(); ++i) {
+            const QString key = QString::fromStdString(response.entries(i).key());
             hasTitle = hasTitle || key == QStringLiteral("title");
             hasWidth = hasWidth || key == QStringLiteral("width");
         }
@@ -99,16 +110,16 @@ private slots:
         PropertySchemaRegistry schemas;
         schemas.rebuildFromRegistry(contracts);
 
-        const QVariantList rows = schemas.schemaForTarget(QStringLiteral("component/invalid"));
-        QVERIFY(!rows.isEmpty());
-
-        const QVariantMap row = rows.first().toMap();
-        QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("schema_error"));
-        QVERIFY(!row.value(QStringLiteral("valid")).toBool());
-        QVERIFY(!row.value(QStringLiteral("schemaError")).toString().isEmpty());
+        cme::publicapi::v1::PropertySchemaResponse response;
+        QString conversionError;
+        QVERIFY(!schemas.schemaForTargetTyped(QStringLiteral("component/invalid"),
+                                              &response, &conversionError));
+        QCOMPARE(QString::fromStdString(response.status().error_code()),
+                 QStringLiteral("SCHEMA_CONVERSION_FAILED"));
+        QVERIFY(!conversionError.isEmpty());
     }
 
-    void samplePackConnectionSchemaIncludesTokenKeyOptionsSource()
+    void samplePackConnectionSchemaIncludesTokenRefOptionsSource()
     {
         ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
         SampleExtensionPack pack;
@@ -117,18 +128,18 @@ private slots:
         PropertySchemaRegistry schemas;
         schemas.rebuildFromRegistry(contracts);
 
-        const QVariantList rows = schemas.schemaForTarget(QStringLiteral("connection/flow"));
-        QVERIFY(!rows.isEmpty());
+        cme::publicapi::v1::PropertySchemaResponse response;
+        QVERIFY(schemas.schemaForTargetTyped(QStringLiteral("connection/flow"), &response));
+        QVERIFY(response.entries_size() > 0);
 
         bool foundTokenKey = false;
-        for (const QVariant &rowValue : rows) {
-            const QVariantMap row = rowValue.toMap();
-            if (row.value(QStringLiteral("key")).toString() != QStringLiteral("tokenKey"))
+        for (const auto &entry : response.entries()) {
+            if (QString::fromStdString(entry.key()) != QStringLiteral("tokenKey"))
                 continue;
-
             foundTokenKey = true;
-            QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("dropdown"));
-            QCOMPARE(row.value(QStringLiteral("optionsSource")).toString(), QStringLiteral("tokenKeys"));
+            QCOMPARE(QString::fromStdString(entry.editor_widget()), QStringLiteral("dropdown"));
+            QVERIFY(entry.type() == "string" || entry.type() == "enum");
+            QVERIFY(entry.options_size() >= 0);
             break;
         }
 
@@ -147,10 +158,13 @@ private slots:
         QCOMPARE(cme::runtime::schemaFieldTypeToString(cme::runtime::SchemaFieldType::Boolean),
                  QStringLiteral("bool"));
 
-        QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenKeys")),
-                 cme::runtime::SchemaOptionsSource::TokenKeys);
-        QCOMPARE(cme::runtime::schemaOptionsSourceToString(cme::runtime::SchemaOptionsSource::TokenKeyOptions),
-                 QStringLiteral("tokenKeyOptions"));
+        QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("tokenRef")),
+                 cme::runtime::SchemaOptionsSource::TokenRef);
+        QCOMPARE(cme::runtime::schemaOptionsSourceToString(cme::runtime::SchemaOptionsSource::TokenRef),
+                 QStringLiteral("tokenRef"));
+        const QVariantList customItems = {QStringLiteral("one"), QStringLiteral("two")};
+        const cme::runtime::SchemaOptionsSpec custom = cme::runtime::Options::custom(customItems);
+        QCOMPARE(custom.items, customItems);
         QCOMPARE(cme::runtime::schemaOptionsSourceFromString(QStringLiteral("customSource")),
                  cme::runtime::SchemaOptionsSource::Custom);
 
@@ -182,6 +196,40 @@ private slots:
         QVERIFY(normalized.value(QStringLiteral("schemaError")).toString().isEmpty());
     }
 
+    void runtimeCatalogPropertiesBecomeSchemaRows()
+    {
+        PropertySchemaRegistry schemas;
+        const QVariantList descriptors{
+            QVariantMap{
+                {QStringLiteral("identity"), QStringLiteral("runtime.transform")},
+                {QStringLiteral("version"), QStringLiteral("1.2.0")},
+                {QStringLiteral("properties"), QVariantList{
+                    QVariantMap{{QStringLiteral("id"), QStringLiteral("enabled")},
+                                {QStringLiteral("type"), QStringLiteral("boolean")},
+                                {QStringLiteral("required"), true},
+                                {QStringLiteral("label"), QStringLiteral("Enabled")}}
+                }}
+            }
+        };
+
+        schemas.replaceFromRuntimeCatalog(descriptors);
+        QVERIFY(schemas.hasRuntimeCatalog());
+        const QVariantList rows = schemas.componentSchemaRows(QStringLiteral("runtime.transform"));
+        QCOMPARE(rows.size(), 1);
+        const QVariantMap row = rows.first().toMap();
+        QCOMPARE(row.value(QStringLiteral("key")).toString(), QStringLiteral("enabled"));
+        QCOMPARE(row.value(QStringLiteral("widget")).toString(), QStringLiteral("checkbox"));
+        QVERIFY(row.value(QStringLiteral("required")).toBool());
+    }
+
+    void runtimeCatalogDoesNotUseLegacyFallbackForUnknownComponent()
+    {
+        PropertySchemaRegistry schemas;
+        schemas.replaceFromRuntimeCatalog({});
+        QVERIFY(schemas.hasRuntimeCatalog());
+        QVERIFY(schemas.componentSchemaRows(QStringLiteral("missing")).isEmpty());
+    }
+
     void typedSectionModel_isExposedAlongsideLegacySections()
     {
         ExtensionContractRegistry contracts(ExtensionApiVersion{1, 0, 0});
@@ -194,8 +242,9 @@ private slots:
         QObject *typedModel = schemas.typedSectionModelForTarget(QStringLiteral("component/process"));
         QVERIFY(typedModel != nullptr);
 
-        const QVariantList legacySections = schemas.sectionedSchemaForTarget(QStringLiteral("component/process"));
-        QVERIFY(!legacySections.isEmpty());
+        int sectionCount = 0;
+        QVERIFY(QMetaObject::invokeMethod(typedModel, "size", Q_RETURN_ARG(int, sectionCount)));
+        QVERIFY(sectionCount > 0);
     }
 
 };

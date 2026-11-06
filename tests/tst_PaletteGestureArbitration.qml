@@ -128,7 +128,6 @@ TestCase {
         var ctx = makePaletteWithGraph();
         var palette = ctx.palette;
         var graph = ctx.graph;
-        palette.legacyDropFallbackEnabled = true;
         var canvas = makeCanvasMock(palette, graph, {
             "createOnDrop": false,
             "acceptDrop": false,

@@ -20,7 +20,7 @@
 #include "executors/customizemodexecutionprovider.h"
 #include "executors/customizelessthanexecutionprovider.h"
 
-#include "extensions/runtime/CompositeExecutionProvider.h"
+#include "compatibility/extensions/CompositeExecutionProvider.h"
 
 class CustomizeExecutionSemanticsProvider : public IExecutionSemanticsProvider
 {

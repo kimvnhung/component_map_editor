@@ -47,6 +47,58 @@ QVariant ComponentModel::dynamicPropertyValue(const QString &name) const
     return QObject::property(utf8Name.constData());
 }
 
+bool ComponentModel::applyRuntimeDescriptor(const QVariantMap &descriptor)
+{
+    const QString identity = descriptor.value(QStringLiteral("identity")).toString().trimmed();
+    const QString version = descriptor.value(QStringLiteral("version")).toString().trimmed();
+    if (identity.isEmpty() || version.isEmpty())
+        return false;
+
+    setComponentIdentity(identity);
+    setComponentVersion(version);
+    setType(identity);
+
+    if (descriptor.contains(QStringLiteral("title")))
+        setTitle(descriptor.value(QStringLiteral("title")).toString());
+    if (descriptor.contains(QStringLiteral("icon")))
+        setIcon(descriptor.value(QStringLiteral("icon")).toString());
+    if (descriptor.contains(QStringLiteral("shape")))
+        setShape(descriptor.value(QStringLiteral("shape")).toString());
+    if (descriptor.contains(QStringLiteral("defaultWidth")))
+        setWidth(descriptor.value(QStringLiteral("defaultWidth")).toReal());
+    if (descriptor.contains(QStringLiteral("defaultHeight")))
+        setHeight(descriptor.value(QStringLiteral("defaultHeight")).toReal());
+    if (descriptor.contains(QStringLiteral("properties")))
+        setProperties(descriptor.value(QStringLiteral("properties")).toList());
+    if (descriptor.contains(QStringLiteral("outputProperties")))
+        setOutputProperties(descriptor.value(QStringLiteral("outputProperties")).toList());
+    if (descriptor.contains(QStringLiteral("ports")))
+        setPorts(descriptor.value(QStringLiteral("ports")).toList());
+    if (descriptor.contains(QStringLiteral("execution")))
+        setExecutionMetadata(descriptor.value(QStringLiteral("execution")).toMap());
+    if (descriptor.contains(QStringLiteral("metadataSnapshot")))
+        setMetadataSnapshot(descriptor.value(QStringLiteral("metadataSnapshot")).toString());
+
+    const QVariantMap defaults = descriptor.value(QStringLiteral("defaultProperties")).toMap();
+    for (auto it = defaults.constBegin(); it != defaults.constEnd(); ++it)
+        setDynamicProperty(it.key(), it.value());
+    return true;
+}
+
+QVariantMap ComponentModel::runtimeDescriptor() const
+{
+    QVariantMap result;
+    result.insert(QStringLiteral("identity"), m_componentIdentity);
+    result.insert(QStringLiteral("version"), m_componentVersion);
+    result.insert(QStringLiteral("properties"), m_properties);
+    result.insert(QStringLiteral("outputProperties"), m_outputProperties);
+    result.insert(QStringLiteral("ports"), m_ports);
+    result.insert(QStringLiteral("execution"), m_executionMetadata);
+    if (!m_metadataSnapshot.isEmpty())
+        result.insert(QStringLiteral("metadataSnapshot"), m_metadataSnapshot);
+    return result;
+}
+
 QString ComponentModel::id() const { return m_id; }
 void ComponentModel::setId(const QString &id)
 {
@@ -141,4 +193,60 @@ void ComponentModel::setType(const QString &type)
     if (m_type == type) return;
     m_type = type;
     emit typeChanged();
+}
+
+QString ComponentModel::componentIdentity() const { return m_componentIdentity; }
+void ComponentModel::setComponentIdentity(const QString &identity)
+{
+    if (m_componentIdentity == identity) return;
+    m_componentIdentity = identity;
+    emit componentIdentityChanged();
+}
+
+QString ComponentModel::componentVersion() const { return m_componentVersion; }
+void ComponentModel::setComponentVersion(const QString &version)
+{
+    if (m_componentVersion == version) return;
+    m_componentVersion = version;
+    emit componentVersionChanged();
+}
+
+QString ComponentModel::metadataSnapshot() const { return m_metadataSnapshot; }
+void ComponentModel::setMetadataSnapshot(const QString &snapshot)
+{
+    if (m_metadataSnapshot == snapshot) return;
+    m_metadataSnapshot = snapshot;
+    emit metadataSnapshotChanged();
+}
+
+QVariantList ComponentModel::properties() const { return m_properties; }
+void ComponentModel::setProperties(const QVariantList &properties)
+{
+    if (m_properties == properties) return;
+    m_properties = properties;
+    emit propertiesChanged();
+}
+
+QVariantList ComponentModel::outputProperties() const { return m_outputProperties; }
+void ComponentModel::setOutputProperties(const QVariantList &properties)
+{
+    if (m_outputProperties == properties) return;
+    m_outputProperties = properties;
+    emit outputPropertiesChanged();
+}
+
+QVariantList ComponentModel::ports() const { return m_ports; }
+void ComponentModel::setPorts(const QVariantList &ports)
+{
+    if (m_ports == ports) return;
+    m_ports = ports;
+    emit portsChanged();
+}
+
+QVariantMap ComponentModel::executionMetadata() const { return m_executionMetadata; }
+void ComponentModel::setExecutionMetadata(const QVariantMap &metadata)
+{
+    if (m_executionMetadata == metadata) return;
+    m_executionMetadata = metadata;
+    emit executionMetadataChanged();
 }

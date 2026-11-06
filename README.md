@@ -60,7 +60,7 @@ component_map_editor/
   - PropertyPanel.qml: inspector panel for selected component/connection
 - commands/
   - UndoStack: custom undo/redo stack (no Qt Widgets dependency)
-  - GraphCommands: GraphCommand subclasses (Add/Remove/Move component & connection)
+  - GraphCommands: UI-only undo/redo commands for graph editing
 
 example/
 - standalone demo application
@@ -285,21 +285,16 @@ ValidationService API:
 
 Use validationIssues(graph) when UI needs to distinguish warnings from errors.
 
-## External API Contract (Typed First)
+## External API Contract
 
-For reuse outside this library, prefer typed protobuf entrypoints.
+External integrations may query read-only provider contracts and execution state. Graph creation and editing remain UI-only.
 
-- Command: `CommandGateway::executeTypedRequest(...)`, `executeTypedSystemCommand(...)`
-- Policy: `TypeRegistry::canConnect(const cme::ConnectionPolicyContext&, ...)`
-  and `normalizeConnectionProperties(const cme::ConnectionPolicyContext&, ...)`
-- Execution: `GraphExecutionSandbox::startTyped(...)`,
-  `componentStateTyped(...)`, `executionSnapshotTyped()`
-- Schema: `PropertySchemaRegistry::schemaForTargetTyped(...)`,
-  `componentSchemaTyped(...)`, `connectionSchemaTyped(...)`
-- Action invocation: `ActionInvocationService::invokeActionTyped(...)`
+- Policy: `TypeRegistry::canConnect(...)` and connection normalization.
+- Execution: `GraphExecutionSandbox` typed execution and snapshot APIs.
+- Schema: `PropertySchemaRegistry` typed schema APIs.
+- Persistence: `ExportService` remains available for the existing UI flow.
 
-The QVariant/QVariantMap entrypoints remain as compatibility wrappers for
-existing integrations and internal glue code.
+No external command gateway or transport can mutate the graph.
 
 ## Naming note
 

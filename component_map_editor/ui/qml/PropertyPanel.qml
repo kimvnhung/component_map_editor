@@ -8,11 +8,9 @@ Rectangle {
     id: root
 
     property GraphModel graph: null
-    property ComponentModel component: null
-    property ConnectionModel connection: null
+    // Internal model reference. This is used to determine which model is currently being inspected.
+    property var _model: null
     property UndoStack undoStack: null
-    property var providerOutputKeyHints: ({})
-    property TokenKeyCatalog tokenKeyCatalog: null
 
     // Unified entry point. Callers can set this to either a ComponentModel,
     // a ConnectionModel, or null. The handler dispatches to component/connection
@@ -22,103 +20,84 @@ Rectangle {
 
     onItemChanged: {
         if (!item) {
-            root.component = null
-            root.connection = null
-        } else if (item.sourceId !== undefined) {
-            root.connection = item
-            root.component = null
+            root._model = root.graph;
         } else {
-            root.component = item
-            root.connection = null
+            root._model = item;
         }
     }
+
+    readonly property bool isComponentModel: root._model && root._model.type !== undefined
+    readonly property bool isConnectionModel: root._model && root._model.sourceId !== undefined
+    readonly property bool isGraphModel: !isComponentModel && !isConnectionModel
+
     property PropertySchemaRegistry propertySchemaRegistry: null
-    readonly property PropertySchemaRegistry effectiveSchemaRegistry:
-        root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
-    readonly property TokenKeyCatalog effectiveTokenKeyCatalog:
-        root.tokenKeyCatalog ? root.tokenKeyCatalog : fallbackTokenKeyCatalog
+    readonly property PropertySchemaRegistry effectiveSchemaRegistry: root.propertySchemaRegistry ? root.propertySchemaRegistry : fallbackSchemaRegistry
 
-    readonly property var connectionSideModel: [
-        { text: "Auto", value: ConnectionModel.SideAuto },
-        { text: "Top", value: ConnectionModel.SideTop },
-        { text: "Right", value: ConnectionModel.SideRight },
-        { text: "Bottom", value: ConnectionModel.SideBottom },
-        { text: "Left", value: ConnectionModel.SideLeft }
-    ]
+    property DynamicOptionsRegistry dynamicOptionsRegistry: null
+    readonly property DynamicOptionsRegistry effectiveDynamicOptionsRegistry: root.dynamicOptionsRegistry ? root.dynamicOptionsRegistry : fallbackDynamicOptionsRegistry
 
-    readonly property string componentTarget: {
-        if (!root.component)
-            return ""
-        var typeId = root.component.type || "default"
-        return "component/" + typeId
+    readonly property string target: {
+        if (!root._model)
+            return "";
+
+        if (root._model.sourceId !== undefined)
+            return "connection/flow";
+
+        if (root._model.type !== undefined)
+            return "component/" + (root._model.type || "default");
+
+        // Need to same with componentId in GraphPropertySchemaProvider
+        return "graph";
     }
-
-    readonly property string connectionTarget: {
-        if (!root.connection)
-            return ""
-        return "connection/flow"
-    }
-
-    readonly property var activeSchemaSections: root.component !== null
-        ? root.sectionsForTarget(root.componentTarget)
-        : root.sectionsForTarget(root.connectionTarget)
 
     readonly property var activeSchemaSectionModel: {
         if (!root.effectiveSchemaRegistry)
-            return null
-        var targetId = root.component !== null ? root.componentTarget : root.connectionTarget
+            return null;
+        var targetId = root.target;
         if (!targetId || !targetId.length)
-            return null
-        return root.effectiveSchemaRegistry.typedSectionModelForTarget(targetId)
+            return null;
+        return root.effectiveSchemaRegistry.typedSectionModelForTarget(targetId);
     }
 
-    readonly property var dynamicFieldOptions: ({
-        "tokenKeys": root.effectiveTokenKeyCatalog
-            ? root.effectiveTokenKeyCatalog.tokenKeys
-            : [],
-        "tokenKeyOptions": root.effectiveTokenKeyCatalog
-            ? root.effectiveTokenKeyCatalog.tokenKeyOptions
-            : []
-    })
+    function updateProperty(propertyName, value) {
+        if (!root._model || !propertyName)
+            return;
 
-    function updateComponentProperty(propertyName, value) {
-        if (!root.component || !root.undoStack || !propertyName)
-            return
-        root.undoStack.pushSetComponentProperty(root.component, propertyName, value)
-    }
+        if (root.isComponentModel) {
+            if (!root.undoStack)
+                return;
+            root.undoStack.pushSetComponentProperty(root._model, propertyName, value);
+        } else if (root.isConnectionModel) {
+            if (!root.undoStack)
+                return;
+            if (propertyName === "sourceSide") {
+                root.undoStack.pushSetConnectionSides(root._model, value, root._model.targetSide);
+                return;
+            }
 
-    function updateConnectionProperty(propertyName, value) {
-        if (!root.connection || !root.undoStack || !propertyName)
-            return
+            if (propertyName === "targetSide") {
+                root.undoStack.pushSetConnectionSides(root._model, root._model.sourceSide, value);
+                return;
+            }
 
-        if (propertyName === "sourceSide") {
-            root.undoStack.pushSetConnectionSides(root.connection, value, root.connection.targetSide)
-            return
+            root.undoStack.pushSetConnectionProperty(root._model, propertyName, value);
+        } else if (root.isGraphModel) {
+            if (!root.undoStack)
+                return;
+            root.undoStack.pushSetGraphProperty(root._model, propertyName, value);
         }
-
-        if (propertyName === "targetSide") {
-            root.undoStack.pushSetConnectionSides(root.connection, root.connection.sourceSide, value)
-            return
-        }
-
-        root.undoStack.pushSetConnectionProperty(root.connection, propertyName, value)
-    }
-
-    function sectionsForTarget(targetId) {
-        if (root.effectiveSchemaRegistry)
-            return root.effectiveSchemaRegistry.sectionedSchemaForTarget(targetId)
-        return []
     }
 
     PropertySchemaRegistry {
         id: fallbackSchemaRegistry
     }
 
-    TokenKeyCatalog {
-        id: fallbackTokenKeyCatalog
+    DynamicOptionsRegistry {
+        id: fallbackDynamicOptionsRegistry
         graph: root.graph
-        providerOutputKeyHints: root.providerOutputKeyHints
-        targetComponentId: root.component ? root.component.id : ""
+        propertySchemaRegistry: root.effectiveSchemaRegistry
+        // TODO: Need to improve this, without hard-coding grah as the targetComponentId
+        targetComponentId: root.isComponentModel ? root._model.id : "graph"
     }
 
     color: "#ffffff"
@@ -141,54 +120,23 @@ Rectangle {
             bottomPadding: 4
         }
 
-        Loader {
-            active: root.component !== null || root.connection !== null
+        SchemaFormRenderer {
             Layout.fillWidth: true
-            sourceComponent: unifiedInspector
-        }
-
-        Component {
-            id: unifiedInspector
-
-            SchemaFormRenderer {
-                width: parent ? parent.width : 0
-                schemaSections: root.activeSchemaSections
-                schemaSectionModel: root.activeSchemaSectionModel
-                modelObject: root.component !== null ? root.component : root.connection
-                expectedModelObjectId: root.component !== null
-                    ? root.component.id
-                    : (root.connection !== null ? root.connection.id : "")
-                expectedSchemaTarget: root.component !== null
-                    ? root.componentTarget
-                    : root.connectionTarget
-                readOnly: root.undoStack === null
-                sideModel: root.connectionSideModel
-                dynamicOptions: root.dynamicFieldOptions
-                onPropertyEditRequested: function(propertyName, value, sourceModelObject) {
-                    var activeModelObject = root.component !== null ? root.component : root.connection
-                    if (sourceModelObject !== activeModelObject)
-                        return
-
-                    if (root.component !== null)
-                        root.updateComponentProperty(propertyName, value)
-                    else
-                        root.updateConnectionProperty(propertyName, value)
-                }
+            schemaSectionModel: root.activeSchemaSectionModel
+            modelObject: root._model
+            expectedModelObjectId: root.isGraphModel ? "graph" : root._model.id
+            readOnly: root.undoStack === null
+            dynamicOptions: root.effectiveDynamicOptionsRegistry.targetSourceOptions
+            onPropertyEditRequested: function (propertyName, value, sourceModelObject) {
+                var activeModelObject = root._model;
+                if (sourceModelObject !== activeModelObject)
+                    return;
+                root.updateProperty(propertyName, value);
             }
         }
 
         Label {
-            visible: root.component === null && root.connection === null
-            text: "Select a component or connection\nto view its properties."
-            wrapMode: Text.WordWrap
-            color: "#aaa"
-            font.pixelSize: 12
-            Layout.fillWidth: true
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        Label {
-            visible: (root.component !== null || root.connection !== null) && root.undoStack === null
+            visible: (!root.isGraphModel) && root.undoStack === null
             text: "Inspector is read-only because UndoStack is not available."
             color: "#b26a00"
             font.pixelSize: 11
@@ -196,6 +144,8 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        Item { Layout.fillHeight: true }
+        Item {
+            Layout.fillHeight: true
+        }
     }
 }

@@ -325,11 +325,15 @@ QString GraphEditorController::createComponentWithId(const QString &id,
     component->setHeight(d.height);
     component->setShape(d.shape);
 
-    // Apply type-specific extra default properties (e.g. priority, condition).
+    // Runtime catalog descriptors are authoritative when available. Legacy
+    // provider defaults remain supported for descriptors without an identity/version.
     if (m_typeRegistry && m_typeRegistry->hasComponentType(typeId)) {
-        const QVariantMap extras = m_typeRegistry->defaultComponentProperties(typeId);
-        for (auto it = extras.constBegin(); it != extras.constEnd(); ++it)
-            component->setProperty(it.key().toUtf8().constData(), it.value());
+        const QVariantMap descriptor = m_typeRegistry->componentTypeDescriptor(typeId);
+        if (!component->applyRuntimeDescriptor(descriptor)) {
+            const QVariantMap extras = m_typeRegistry->defaultComponentProperties(typeId);
+            for (auto it = extras.constBegin(); it != extras.constEnd(); ++it)
+                component->setProperty(it.key().toUtf8().constData(), it.value());
+        }
     }
 
     m_undoStack->pushAddComponent(m_graph, component);
@@ -379,9 +383,12 @@ QString GraphEditorController::createPaletteComponent(const QString &typeId,
     component->setShape(d.shape);
 
     if (m_typeRegistry && m_typeRegistry->hasComponentType(typeId)) {
-        const QVariantMap extras = m_typeRegistry->defaultComponentProperties(typeId);
-        for (auto it = extras.constBegin(); it != extras.constEnd(); ++it)
-            component->setProperty(it.key().toUtf8().constData(), it.value());
+        const QVariantMap descriptor = m_typeRegistry->componentTypeDescriptor(typeId);
+        if (!component->applyRuntimeDescriptor(descriptor)) {
+            const QVariantMap extras = m_typeRegistry->defaultComponentProperties(typeId);
+            for (auto it = extras.constBegin(); it != extras.constEnd(); ++it)
+                component->setProperty(it.key().toUtf8().constData(), it.value());
+        }
     }
 
     m_undoStack->pushAddComponent(m_graph, component);

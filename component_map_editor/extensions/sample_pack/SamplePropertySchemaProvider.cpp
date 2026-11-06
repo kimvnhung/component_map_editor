@@ -1,169 +1,279 @@
 #include "SamplePropertySchemaProvider.h"
 
-namespace {
+#include "extensions/runtime/templates/PropertySchemaTemplateAdapter.h"
+#include "utils/PropertySchemaHelper.h"
 
-QVariantMap entry(const char *key, const char *type, const char *title,
-                  bool required, const QVariant &defaultValue,
-                  const char *editor)
+namespace
 {
-    return QVariantMap{
-        { QStringLiteral("key"),          QString::fromLatin1(key) },
-        { QStringLiteral("type"),         QString::fromLatin1(type) },
-        { QStringLiteral("title"),        QString::fromLatin1(title) },
-        { QStringLiteral("required"),     required },
-        { QStringLiteral("defaultValue"), defaultValue },
-        { QStringLiteral("editor"),       QString::fromLatin1(editor) }
-    };
+
+using cme::runtime::SchemaFieldSection;
+using cme::runtime::SchemaFieldType;
+using cme::runtime::SchemaFieldWidget;
+
+cme::templates::v1::PropertySchemaTemplateBundle buildTemplateBundle()
+{
+    cme::templates::v1::PropertySchemaTemplateBundle bundle;
+    bundle.set_provider_id("sample.workflow.propertySchema");
+    bundle.set_schema_version("1.0.0");
+
+    cme::helper::property_schemas::addTarget(
+        &bundle, "component/start",
+        {
+            cme::helper::property_schemas::Field("title")
+                .type(SchemaFieldType::String)
+                .title("Title")
+                .required()
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Identity)
+                .order(1)
+                .hint("Human-friendly label shown on the graph.")
+                .build(),
+            cme::helper::property_schemas::Field("inputNumber")
+                .type(SchemaFieldType::Number)
+                .title("Input Number")
+                .required()
+                .defaultValue(0)
+                .spinBox(-1000000, 1000000)
+                .section(SchemaFieldSection::Behavior)
+                .order(20)
+                .hint("Seed number consumed by the start component when simulation begins.")
+                .build(),
+            cme::helper::property_schemas::Field("icon")
+                .type(SchemaFieldType::String)
+                .title("Icon")
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Appearance)
+                .order(30)
+                .hint("FontAwesome icon key, for example 'play' or 'stop'.")
+                .build(),
+            cme::helper::property_schemas::Field("color")
+                .type(SchemaFieldType::String)
+                .title("Color")
+                .required()
+                .defaultValue(QStringLiteral("#66bb6a"))
+                .textField()
+                .section(SchemaFieldSection::Appearance)
+                .order(31)
+                .build(),
+            cme::helper::property_schemas::Field("shape")
+                .type(SchemaFieldType::Enum)
+                .title("Shape")
+                .required()
+                .defaultValue(QStringLiteral("rounded"))
+                .dropdown(cme::runtime::Options::custom({QStringLiteral("rounded"), QStringLiteral("rectangle")}))
+                .section(SchemaFieldSection::Appearance)
+                .order(32)
+                .build(),
+        });
+
+    cme::helper::property_schemas::addTarget(&bundle, "component/process",
+                                             {
+                                                 cme::helper::property_schemas::Field("title")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Title")
+                                                     .required()
+                                                     .defaultValue(QString())
+                                                     .textField()
+                                                     .section(SchemaFieldSection::Identity)
+                                                     .order(1)
+                                                     .hint("Display title used in the component body.")
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("description")
+                                                     .type(SchemaFieldType::String)
+                                                     .title("Description")
+                                                     .defaultValue(QString())
+                                                     .textArea()
+                                                     .section(SchemaFieldSection::Behavior)
+                                                     .order(20)
+                                                     .hint("Optional implementation notes for this process.")
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("addValue")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Add Value")
+                                                     .required()
+                                                     .defaultValue(9)
+                                                     .spinBox(-1000000, 1000000)
+                                                     .section(SchemaFieldSection::Behavior)
+                                                     .order(21)
+                                                     .hint("Number added to the current simulation value (default +9).")
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("x")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("X")
+                                                     .required()
+                                                     .defaultValue(0)
+                                                     .spinBox(-50000, 50000)
+                                                     .section(SchemaFieldSection::Layout)
+                                                     .order(40)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("y")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Y")
+                                                     .required()
+                                                     .defaultValue(0)
+                                                     .spinBox(-50000, 50000)
+                                                     .section(SchemaFieldSection::Layout)
+                                                     .order(41)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("width")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Width")
+                                                     .required()
+                                                     .defaultValue(160)
+                                                     .spinBox(40, 1200)
+                                                     .section(SchemaFieldSection::Layout)
+                                                     .order(42)
+                                                     .build(),
+                                                 cme::helper::property_schemas::Field("height")
+                                                     .type(SchemaFieldType::Number)
+                                                     .title("Height")
+                                                     .required()
+                                                     .defaultValue(96)
+                                                     .spinBox(40, 1200)
+                                                     .section(SchemaFieldSection::Layout)
+                                                     .order(43)
+                                                     .build(),
+                                             });
+
+    cme::helper::property_schemas::addTarget(
+        &bundle, "component/stop",
+        {
+            cme::helper::property_schemas::Field("title")
+                .type(SchemaFieldType::String)
+                .title("Title")
+                .required()
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Identity)
+                .order(1)
+                .build(),
+            cme::helper::property_schemas::Field("description")
+                .type(SchemaFieldType::String)
+                .title("Description")
+                .defaultValue(QString())
+                .textArea()
+                .section(SchemaFieldSection::Behavior)
+                .order(20)
+                .hint("Optional notes shown in the inspector.")
+                .build(),
+            cme::helper::property_schemas::Field("icon")
+                .type(SchemaFieldType::String)
+                .title("Icon")
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Appearance)
+                .order(30)
+                .hint("FontAwesome icon key, for example 'stop' or 'flag-checkered'.")
+                .build(),
+            cme::helper::property_schemas::Field("color")
+                .type(SchemaFieldType::String)
+                .title("Color")
+                .required()
+                .defaultValue(QStringLiteral("#ef5350"))
+                .textField()
+                .section(SchemaFieldSection::Appearance)
+                .order(31)
+                .build(),
+        });
+
+    const QVariantList sideOptions{
+        QVariantMap{{QStringLiteral("text"), QStringLiteral("Auto")}, {QStringLiteral("value"), -1}},
+        QVariantMap{{QStringLiteral("text"), QStringLiteral("Top")}, {QStringLiteral("value"), 0}},
+        QVariantMap{{QStringLiteral("text"), QStringLiteral("Right")}, {QStringLiteral("value"), 1}},
+        QVariantMap{{QStringLiteral("text"), QStringLiteral("Bottom")}, {QStringLiteral("value"), 2}},
+        QVariantMap{{QStringLiteral("text"), QStringLiteral("Left")}, {QStringLiteral("value"), 3}}};
+    cme::helper::property_schemas::addTarget(
+        &bundle, "connection/flow",
+        {
+            cme::helper::property_schemas::Field("label")
+                .type(SchemaFieldType::String)
+                .title("Label")
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Identity)
+                .order(0)
+                .build(),
+            cme::helper::property_schemas::Field("id")
+                .type(SchemaFieldType::String)
+                .title("Connection ID")
+                .required()
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Identity)
+                .order(1)
+                .build(),
+            cme::helper::property_schemas::Field("sourceId")
+                .type(SchemaFieldType::String)
+                .title("Source Component ID")
+                .required()
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Identity)
+                .order(2)
+                .build(),
+            cme::helper::property_schemas::Field("targetId")
+                .type(SchemaFieldType::String)
+                .title("Target Component ID")
+                .required()
+                .defaultValue(QString())
+                .textField()
+                .section(SchemaFieldSection::Identity)
+                .order(3)
+                .build(),
+            cme::helper::property_schemas::Field("sourceSide")
+                .type(SchemaFieldType::Enum)
+                .title("Source Side")
+                .required()
+                .defaultValue(-1)
+                .dropdown(cme::runtime::Options::custom(sideOptions))
+                .section(SchemaFieldSection::Routing)
+                .order(20)
+                .build(),
+            cme::helper::property_schemas::Field("targetSide")
+                .type(SchemaFieldType::Enum)
+                .title("Target Side")
+                .required()
+                .defaultValue(-1)
+                .dropdown(cme::runtime::Options::custom(sideOptions))
+                .section(SchemaFieldSection::Routing)
+                .order(21)
+                .build(),
+            cme::helper::property_schemas::Field("tokenKey")
+                .type(SchemaFieldType::String)
+                .title("Token Key")
+                .defaultValue(QString())
+                .dropdown(cme::runtime::Options::tokenRef())
+                .section(SchemaFieldSection::Routing)
+                .order(22)
+                .hint("Routing token key used for connection payload selection. Token options are sourced from "
+                      "connection token keys, execution-state keys, and schema key defaults.")
+                .build(),
+        });
+
+    return bundle;
 }
 
-QVariantMap withSection(QVariantMap row,
-                        const char *section,
-                        int order,
-                        const QString &hint = QString(),
-                        const QVariantMap &validation = {},
-                        const QVariantMap &visibleWhen = {},
-                        const QVariantList &options = {})
+const cme::templates::v1::PropertySchemaTemplateBundle& schemaBundle()
 {
-    row.insert(QStringLiteral("section"), QString::fromLatin1(section));
-    row.insert(QStringLiteral("order"), order);
-    if (!hint.isEmpty())
-        row.insert(QStringLiteral("hint"), hint);
-    if (!validation.isEmpty())
-        row.insert(QStringLiteral("validation"), validation);
-    if (!visibleWhen.isEmpty())
-        row.insert(QStringLiteral("visibleWhen"), visibleWhen);
-    if (!options.isEmpty())
-        row.insert(QStringLiteral("options"), options);
-    return row;
-}
-
-QVariantMap withOptionsSource(QVariantMap row, const QString &optionsSource)
-{
-    if (!optionsSource.isEmpty())
-        row.insert(QStringLiteral("optionsSource"), optionsSource);
-    return row;
-}
-
-QVariantMap withTokenKeyOptions(QVariantMap row)
-{
-    return withOptionsSource(row, QStringLiteral("tokenKeys"));
+    static const cme::templates::v1::PropertySchemaTemplateBundle kBundle = buildTemplateBundle();
+    return kBundle;
 }
 
 } // namespace
 
 QString SamplePropertySchemaProvider::providerId() const
 {
-    return QStringLiteral("sample.workflow.propertySchema");
+    return cme::runtime::templates::PropertySchemaTemplateAdapter::providerId(schemaBundle());
 }
 
 QStringList SamplePropertySchemaProvider::schemaTargets() const
 {
-    return {
-        QStringLiteral("component/start"),
-        QStringLiteral("component/process"),
-        QStringLiteral("component/stop"),
-        QStringLiteral("connection/flow")
-    };
+    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaTargets(schemaBundle());
 }
 
-QVariantList SamplePropertySchemaProvider::propertySchema(const QString &targetId) const
+QVariantList SamplePropertySchemaProvider::propertySchema(const QString& targetId) const
 {
-    if (targetId == QStringLiteral("component/start")) {
-        return {
-            withSection(entry("title", "string", "Title", true, QString(), "textfield"),
-                        "Identity", 1,
-                        QStringLiteral("Human-friendly label shown on the graph.")),
-            withSection(entry("inputNumber", "number", "Input Number", true, 0, "spinbox"),
-                        "Behavior", 20,
-                        QStringLiteral("Seed number consumed by the start component when simulation begins."),
-                        QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
-            withSection(entry("icon", "string", "Icon", false, QString(), "textfield"),
-                        "Appearance", 30,
-                        QStringLiteral("FontAwesome icon key, for example 'play' or 'stop'.")),
-            withSection(entry("color", "string", "Color", true, QStringLiteral("#66bb6a"), "textfield"),
-                        "Appearance", 31),
-            withSection(entry("shape", "enum", "Shape", true, QStringLiteral("rounded"), "dropdown"),
-                        "Appearance", 32,
-                        QString(),
-                        {},
-                        {},
-                        QVariantList{ QStringLiteral("rounded"), QStringLiteral("rectangle") })
-        };
-    }
-
-    if (targetId == QStringLiteral("component/process")) {
-        return {
-            withSection(entry("title", "string", "Title", true, QString(), "textfield"),
-                        "Identity", 1,
-                        QStringLiteral("Display title used in the component body.")),
-            withSection(entry("description", "string", "Description", false, QString(), "textarea"),
-                        "Behavior", 20,
-                        QStringLiteral("Optional implementation notes for this process.")),
-            withSection(entry("addValue", "number", "Add Value", true, 9, "spinbox"),
-                        "Behavior", 21,
-                        QStringLiteral("Number added to the current simulation value (default +9)."),
-                        QVariantMap{{QStringLiteral("min"), -1000000}, {QStringLiteral("max"), 1000000}}),
-            withSection(entry("x", "number", "X", true, 0, "spinbox"),
-                        "Layout", 40,
-                        QString(),
-                        QVariantMap{{QStringLiteral("min"), -50000}, {QStringLiteral("max"), 50000}}),
-            withSection(entry("y", "number", "Y", true, 0, "spinbox"),
-                        "Layout", 41,
-                        QString(),
-                        QVariantMap{{QStringLiteral("min"), -50000}, {QStringLiteral("max"), 50000}}),
-            withSection(entry("width", "number", "Width", true, 160, "spinbox"),
-                        "Layout", 42,
-                        QString(),
-                        QVariantMap{{QStringLiteral("min"), 40}, {QStringLiteral("max"), 1200}}),
-            withSection(entry("height", "number", "Height", true, 96, "spinbox"),
-                        "Layout", 43,
-                        QString(),
-                        QVariantMap{{QStringLiteral("min"), 40}, {QStringLiteral("max"), 1200}})
-        };
-    }
-
-    if (targetId == QStringLiteral("component/stop")) {
-        return {
-            withSection(entry("title", "string", "Title", true, QString(), "textfield"),
-                        "Identity", 1),
-            withSection(entry("description", "string", "Description", false, QString(), "textarea"),
-                        "Behavior", 20,
-                        QStringLiteral("Optional notes shown in the inspector.")),
-            withSection(entry("icon", "string", "Icon", false, QString(), "textfield"),
-                        "Appearance", 30,
-                        QStringLiteral("FontAwesome icon key, for example 'stop' or 'flag-checkered'.")),
-            withSection(entry("color", "string", "Color", true, QStringLiteral("#ef5350"), "textfield"),
-                        "Appearance", 31)
-        };
-    }
-
-    if (targetId == QStringLiteral("connection/flow")) {
-        const QVariantList sideOptions{
-            QVariantMap{{QStringLiteral("text"), QStringLiteral("Auto")},   {QStringLiteral("value"), -1}},
-            QVariantMap{{QStringLiteral("text"), QStringLiteral("Top")},    {QStringLiteral("value"),  0}},
-            QVariantMap{{QStringLiteral("text"), QStringLiteral("Right")},  {QStringLiteral("value"),  1}},
-            QVariantMap{{QStringLiteral("text"), QStringLiteral("Bottom")}, {QStringLiteral("value"),  2}},
-            QVariantMap{{QStringLiteral("text"), QStringLiteral("Left")},   {QStringLiteral("value"),  3}}
-        };
-        return {
-            withSection(entry("label", "string", "Label", false, QString(), "textfield"),
-                        "Identity", 0),
-            withSection(entry("id", "string", "Connection ID", true, QString(), "textfield"),
-                        "Identity", 1),
-            withSection(entry("sourceId", "string", "Source Component ID", true, QString(), "textfield"),
-                        "Identity", 2),
-            withSection(entry("targetId", "string", "Target Component ID", true, QString(), "textfield"),
-                        "Identity", 3),
-            withSection(entry("sourceSide", "enum", "Source Side", true, -1, "dropdown"),
-                        "Routing", 20, QString(), {}, {}, sideOptions),
-            withSection(entry("targetSide", "enum", "Target Side", true, -1, "dropdown"),
-                        "Routing", 21, QString(), {}, {}, sideOptions),
-            withTokenKeyOptions(
-                withSection(entry("tokenKey", "string", "Token Key", false, QString(), "dropdown"),
-                            "Routing", 22,
-                            QStringLiteral("Routing token key used for connection payload selection. Token options are sourced from connection token keys, execution-state keys, and schema key defaults.")))
-        };
-    }
-
-    return {};
+    return cme::runtime::templates::PropertySchemaTemplateAdapter::schemaForTarget(schemaBundle(), targetId);
 }

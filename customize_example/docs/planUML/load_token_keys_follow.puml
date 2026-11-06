@@ -1,74 +1,46 @@
 @startuml
-title PropertyPanel loads Token Keys (refactored TokenKeyCatalog pipeline)
+title PropertyPanel loads tokenRef options through DynamicOptionsRegistry
 
 actor User
 participant "PropertyPanel" as PP
-participant "TokenKeyCatalog" as TKC
+participant "DynamicOptionsRegistry" as DOR
 participant "GraphModel" as GM
 participant "ConnectionModel[*]" as CM
 participant "SchemaFormRenderer" as SFR
 
-User -> PP : Select component CRC
-PP -> TKC : setTargetComponentId("CRC")
-PP -> TKC : setGraph(currentGraph)
-PP -> TKC : setExecutionStateSnapshot(componentState(CRC))
-PP -> TKC : refresh()
+User -> PP : Select component
+PP -> DOR : setTargetComponentId(component.id)
+PP -> DOR : setGraph(currentGraph)
+PP -> DOR : refresh()
 
 group refresh() orchestration
-TKC -> TKC : incomingSourceByTokenId()
-TKC -> GM : connectionList()
-loop incoming connections for CRC
-TKC -> CM : read id, sourceId, targetId
-TKC -> TKC : sourceByIncomingTokenId[id] = sourceId
+DOR -> GM : connectionList()
+loop incoming connections for target component
+DOR -> CM : read id, sourceId, targetId
+DOR -> GM : resolve source component
+DOR -> DOR : read declared output keys
+DOR -> DOR : append tokenRef option\n(text, value, key, tokenId, sourceId)
+end
+DOR -> DOR : sort options by text
+DOR -> DOR : register source "tokenRef"
+DOR -> PP : emit targetSourceOptionsChanged
 end
 
-TKC -> TKC : collectRuntimeOptions(sourceByIncomingTokenId)
-alt incomingTokenPayloads available
-TKC -> TKC : appendOption(payloadKey, tokenId, sourceId)
-note right
-value = tokenId::key
-text = key (sourceId)
-end note
-else no runtime payload keys
-TKC -> TKC : collectInputStateFallback()
-alt inputState has keys
-TKC -> TKC : appendOption(key, "", "")
-else still empty
-TKC -> TKC : collectConsumedTokenIdFallback()
-alt consumedIncomingTokenIds exists
-TKC -> TKC : appendOption(tokenId, "", "")
-else still empty
-TKC -> TKC : collectConnectionFallback()
-TKC -> GM : connectionList()
-TKC -> CM : read tokenKey + sourceId
-TKC -> TKC : appendOption(tokenKey, "", sourceId)
-end
-end
-end
-end
+PP -> PP : dynamicOptions = registry.targetSourceOptions
+PP -> SFR : pass schemaSectionModel + dynamicOptions
 
-TKC -> TKC : sortedKeys(keySet)
-TKC -> TKC : sortedOptionsByText(optionRows)
-TKC -> TKC : publishOptions(keys, options)
-TKC -> PP : emit tokenKeysChanged / tokenKeyOptionsChanged
-
-PP -> PP : dynamicFieldOptions = { tokenKeys, tokenKeyOptions }
-PP -> SFR : pass dynamicFieldOptions
-
-alt field.optionsSource = tokenKeyOptions
-SFR -> SFR : ComboBox model = tokenKeyOptions
+alt field.dropdownOptions.sourceKey = tokenRef
+SFR -> SFR : ComboBox model = dynamicOptions.tokenRef
 note right
 Object rows:
 text, value, key,
 tokenId, sourceId
 end note
-else field.optionsSource = tokenKeys
-SFR -> SFR : ComboBox model = tokenKeys
-note right
-Legacy string list
-for backward compatibility
-end note
+else field has another sourceKey
+SFR -> SFR : Resolve dynamicOptions[sourceKey]
+else field has no sourceKey
+SFR -> SFR : Use static items or normal widget
 end
 
-SFR -> User : Show token-key candidates in dropdown
+SFR -> User : Show token-ref candidates in dropdown
 @enduml

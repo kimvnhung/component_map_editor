@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package cme.runtime.v1;
+
+import "component.proto";
+
+// Phase 1 runtime-process contract. The messages describe lifecycle and
+// identity only; event routing and streaming are added by the runtime phase.
+
+enum RuntimeMode {
+  RUNTIME_MODE_UNSPECIFIED = 0;
+  RUNTIME_MODE_BACKGROUND = 1;
+  RUNTIME_MODE_EMBEDDED = 2;
+}
+
+enum RuntimeStatus {
+  RUNTIME_STATUS_UNSPECIFIED = 0;
+  RUNTIME_STATUS_STOPPED = 1;
+  RUNTIME_STATUS_STARTING = 2;
+  RUNTIME_STATUS_RUNNING = 3;
+  RUNTIME_STATUS_STOPPING = 4;
+  RUNTIME_STATUS_FAILED = 5;
+}
+
+message RuntimeDescriptor {
+  string runtime_id = 1;
+  string protocol_version = 2;
+  string graph_version = 3;
+  RuntimeMode mode = 4;
+}
+
+message RuntimeStatusSnapshot {
+  RuntimeDescriptor runtime_descriptor = 1;
+  RuntimeStatus status = 2;
+  string message = 3;
+}
+
+message RuntimeControlRequest {
+  RuntimeDescriptor runtime_descriptor = 1;
+  string reason = 2;
+}
+
+message RuntimeControlResponse {
+  bool success = 1;
+  RuntimeStatusSnapshot snapshot = 2;
+  string error_code = 3;
+  string error_message = 4;
+}
+
+message ComponentCatalogCapabilityNegotiation {
+  repeated string supported_contract_versions = 1;
+  repeated string supported_execution_modes = 2;
+}
+
+message ComponentCatalogQueryContract {
+  string contract_version = 1;
+  string identity_filter = 2;
+  string source_filter = 3;
+  string status_filter = 4;
+  string category_filter = 5;
+}
+
+message ComponentCatalogQueryRequest {
+  ComponentCatalogCapabilityNegotiation capability = 1;
+  ComponentCatalogQueryContract query = 2;
+}
+
+message ComponentCatalogQueryResponse {
+  string selected_contract_version = 1;
+  repeated string diagnostics = 2;
+}
+
+enum ComponentDiscoveryLifecycleKind {
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_UNSPECIFIED = 0;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REGISTERED = 1;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REFRESHED = 2;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_UNAVAILABLE = 3;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REJECTED = 4;
+  COMPONENT_DISCOVERY_LIFECYCLE_KIND_REMOVED = 5;
+}
+
+message ComponentDiscoveryLifecycleEvent {
+  string event_id = 1;
+  string source_id = 2;
+  string component_identity = 3;
+  string version = 4;
+  string kind = 5;
+  string status = 6;
+  int64 occurred_at_unix_ms = 7;
+  string contract_version = 8;
+  repeated cme.ComponentDiagnostic diagnostics = 9;
+}
+
+message ComponentDiscoveryLifecycleQuery {
+  string source_id = 1;
+  string component_identity = 2;
+  string version = 3;
+  string kind = 4;
+  int32 limit = 5;
+  string page_token = 6;
+}
+
+message ComponentDiscoveryLifecycleHistory {
+  repeated ComponentDiscoveryLifecycleEvent events = 1;
+  string next_page_token = 2;
+}
+
+message ComponentDiscoveryLifecycleSubscription {
+  ComponentDiscoveryLifecycleQuery query = 1;
+}
+
+message ComponentDiscoveryLifecycleBatch {
+  repeated ComponentDiscoveryLifecycleEvent events = 1;
+}
+
+enum ComponentDiscoveryLifecycleStatus {
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_UNSPECIFIED = 0;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_ACTIVE = 1;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_UNAVAILABLE = 2;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_REJECTED = 3;
+  COMPONENT_DISCOVERY_LIFECYCLE_STATUS_REMOVED = 4;
+}

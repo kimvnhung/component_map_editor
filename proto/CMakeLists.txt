@@ -1,10 +1,11 @@
 # proto/CMakeLists.txt
-# Generates C++ protobuf code from the 5 .proto files and packages them into
+# Generates C++ protobuf code from the .proto files and packages them into
 # a static library (cme_proto) that other targets can link against.
 
 cmake_minimum_required(VERSION 3.21)
 
 file(GLOB_RECURSE PROTO_FILES CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
+list(FILTER PROTO_FILES EXCLUDE REGEX "^runtime/")
 
 add_library(cme_proto STATIC
     ${PROTO_SRCS}

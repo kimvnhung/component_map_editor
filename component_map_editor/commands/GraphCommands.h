@@ -16,15 +16,15 @@
 class AddComponentCommand : public GraphCommand
 {
 public:
-    AddComponentCommand(GraphModel *graph, ComponentModel *component);
+    AddComponentCommand(GraphModel* graph, ComponentModel* component);
     ~AddComponentCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel *m_graph;
-    ComponentModel  *m_component;
-    bool             m_owned = false; // true while the command owns the component
+    GraphModel* m_graph;
+    ComponentModel* m_component;
+    bool m_owned = false; // true while the command owns the component
 };
 
 // ---------------------------------------------------------------------------
@@ -33,16 +33,16 @@ private:
 class RemoveComponentCommand : public GraphCommand
 {
 public:
-    RemoveComponentCommand(GraphModel *graph, const QString &componentId);
+    RemoveComponentCommand(GraphModel* graph, const QString& componentId);
     ~RemoveComponentCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel     *m_graph;
-    QString         m_componentId;
-    ComponentModel *m_component = nullptr;
-    bool            m_owned = false;
+    GraphModel* m_graph;
+    QString m_componentId;
+    ComponentModel* m_component = nullptr;
+    bool m_owned = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -53,19 +53,21 @@ class MoveComponentCommand : public GraphCommand
 public:
     static constexpr int CommandId = 1001;
 
-    MoveComponentCommand(GraphModel *graph, const QString &componentId,
-                         qreal oldX, qreal oldY, qreal newX, qreal newY);
+    MoveComponentCommand(GraphModel* graph, const QString& componentId, qreal oldX, qreal oldY, qreal newX, qreal newY);
 
     void undo() override;
     void redo() override;
-    bool mergeWith(const GraphCommand *newer) override;
-    int  id() const override { return CommandId; }
+    bool mergeWith(const GraphCommand* newer) override;
+    int id() const override
+    {
+        return CommandId;
+    }
 
 private:
-    GraphModel *m_graph;
-    QString     m_componentId;
-    qreal       m_oldX, m_oldY;
-    qreal       m_newX, m_newY;
+    GraphModel* m_graph;
+    QString m_componentId;
+    qreal m_oldX, m_oldY;
+    qreal m_newX, m_newY;
 };
 
 // ---------------------------------------------------------------------------
@@ -74,15 +76,15 @@ private:
 class AddConnectionCommand : public GraphCommand
 {
 public:
-    AddConnectionCommand(GraphModel *graph, ConnectionModel *connection);
+    AddConnectionCommand(GraphModel* graph, ConnectionModel* connection);
     ~AddConnectionCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel      *m_graph;
-    ConnectionModel *m_connection;
-    bool             m_owned = false;
+    GraphModel* m_graph;
+    ConnectionModel* m_connection;
+    bool m_owned = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -91,16 +93,16 @@ private:
 class RemoveConnectionCommand : public GraphCommand
 {
 public:
-    RemoveConnectionCommand(GraphModel *graph, const QString &connectionId);
+    RemoveConnectionCommand(GraphModel* graph, const QString& connectionId);
     ~RemoveConnectionCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel      *m_graph;
-    QString          m_connectionId;
-    ConnectionModel *m_connection = nullptr;
-    bool             m_owned = false;
+    GraphModel* m_graph;
+    QString m_connectionId;
+    ConnectionModel* m_connection = nullptr;
+    bool m_owned = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -109,10 +111,8 @@ private:
 class SetConnectionSidesCommand : public GraphCommand
 {
 public:
-    SetConnectionSidesCommand(ConnectionModel *connection,
-                              ConnectionModel::Side oldSourceSide,
-                              ConnectionModel::Side oldTargetSide,
-                              ConnectionModel::Side newSourceSide,
+    SetConnectionSidesCommand(ConnectionModel* connection, ConnectionModel::Side oldSourceSide,
+                              ConnectionModel::Side oldTargetSide, ConnectionModel::Side newSourceSide,
                               ConnectionModel::Side newTargetSide);
 
     void undo() override;
@@ -132,17 +132,17 @@ private:
 class RemoveComponentWithConnectionsCommand : public GraphCommand
 {
 public:
-    RemoveComponentWithConnectionsCommand(GraphModel *graph, const QString &componentId);
+    RemoveComponentWithConnectionsCommand(GraphModel* graph, const QString& componentId);
     ~RemoveComponentWithConnectionsCommand() override;
     void undo() override;
     void redo() override;
 
 private:
-    GraphModel *m_graph;
+    GraphModel* m_graph;
     QString m_componentId;
-    ComponentModel *m_component = nullptr;
+    ComponentModel* m_component = nullptr;
     QList<QString> m_connectionIds;
-    QList<ConnectionModel *> m_connections;
+    QList<ConnectionModel*> m_connections;
     bool m_componentOwned = false;
     bool m_connectionsOwned = false;
 };
@@ -155,7 +155,8 @@ class MoveComponentsCommand : public GraphCommand
 public:
     static constexpr int CommandId = 1002;
 
-    struct MoveEntry {
+    struct MoveEntry
+    {
         QString componentId;
         qreal oldX = 0.0;
         qreal oldY = 0.0;
@@ -163,15 +164,18 @@ public:
         qreal newY = 0.0;
     };
 
-    MoveComponentsCommand(GraphModel *graph, const QList<MoveEntry> &entries);
+    MoveComponentsCommand(GraphModel* graph, const QList<MoveEntry>& entries);
 
     void undo() override;
     void redo() override;
-    bool mergeWith(const GraphCommand *newer) override;
-    int id() const override { return CommandId; }
+    bool mergeWith(const GraphCommand* newer) override;
+    int id() const override
+    {
+        return CommandId;
+    }
 
 private:
-    GraphModel *m_graph;
+    GraphModel* m_graph;
     QList<MoveEntry> m_entries;
 };
 
@@ -183,20 +187,16 @@ class SetComponentGeometryCommand : public GraphCommand
 public:
     static constexpr int CommandId = 1003;
 
-    SetComponentGeometryCommand(ComponentModel *component,
-                                qreal oldX,
-                                qreal oldY,
-                                qreal oldWidth,
-                                qreal oldHeight,
-                                qreal newX,
-                                qreal newY,
-                                qreal newWidth,
-                                qreal newHeight);
+    SetComponentGeometryCommand(ComponentModel* component, qreal oldX, qreal oldY, qreal oldWidth, qreal oldHeight,
+                                qreal newX, qreal newY, qreal newWidth, qreal newHeight);
 
     void undo() override;
     void redo() override;
-    bool mergeWith(const GraphCommand *newer) override;
-    int id() const override { return CommandId; }
+    bool mergeWith(const GraphCommand* newer) override;
+    int id() const override
+    {
+        return CommandId;
+    }
 
 private:
     QPointer<ComponentModel> m_component;
@@ -218,15 +218,16 @@ class SetComponentPropertyCommand : public GraphCommand
 public:
     static constexpr int CommandId = 2001;
 
-    SetComponentPropertyCommand(ComponentModel *component,
-                                const QByteArray &propertyName,
-                                const QVariant &oldValue,
-                                const QVariant &newValue);
+    SetComponentPropertyCommand(ComponentModel* component, const QByteArray& propertyName, const QVariant& oldValue,
+                                const QVariant& newValue);
 
     void undo() override;
     void redo() override;
-    bool mergeWith(const GraphCommand *newer) override;
-    int id() const override { return CommandId; }
+    bool mergeWith(const GraphCommand* newer) override;
+    int id() const override
+    {
+        return CommandId;
+    }
 
 private:
     QPointer<ComponentModel> m_component;
@@ -243,15 +244,16 @@ class SetConnectionPropertyCommand : public GraphCommand
 public:
     static constexpr int CommandId = 2002;
 
-    SetConnectionPropertyCommand(ConnectionModel *connection,
-                                 const QByteArray &propertyName,
-                                 const QVariant &oldValue,
-                                 const QVariant &newValue);
+    SetConnectionPropertyCommand(ConnectionModel* connection, const QByteArray& propertyName, const QVariant& oldValue,
+                                 const QVariant& newValue);
 
     void undo() override;
     void redo() override;
-    bool mergeWith(const GraphCommand *newer) override;
-    int id() const override { return CommandId; }
+    bool mergeWith(const GraphCommand* newer) override;
+    int id() const override
+    {
+        return CommandId;
+    }
 
 private:
     QPointer<ConnectionModel> m_connection;
@@ -260,4 +262,29 @@ private:
     QVariant m_newValue;
 };
 
+// ---------------------------------------------------------------------------
+// SetGraphPropertyCommand
+// ---------------------------------------------------------------------------
+class SetGraphPropertyCommand : public GraphCommand
+{
+public:
+    static constexpr int CommandId = 2003;
+
+    SetGraphPropertyCommand(GraphModel* graph, const QByteArray& propertyName, const QVariant& oldValue,
+                            const QVariant& newValue);
+
+    void undo() override;
+    void redo() override;
+    bool mergeWith(const GraphCommand* newer) override;
+    int id() const override
+    {
+        return CommandId;
+    }
+
+private:
+    QPointer<GraphModel> m_graph;
+    QByteArray m_propertyName;
+    QVariant m_oldValue;
+    QVariant m_newValue;
+};
 #endif // GRAPHCOMMANDS_H

@@ -1,6 +1,6 @@
 #include <QtTest>
 
-#include "services/GraphExecutionSandbox.h"
+#include "preview/GraphExecutionSandbox.h"
 #include "models/GraphModel.h"
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"

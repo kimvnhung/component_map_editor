@@ -2,12 +2,94 @@ cmake_minimum_required(VERSION 3.21)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickTest Test)
 
+# Runtime discovery lifecycle events are exposed as timeline rows without changing
+# the saved component identity/version reference.
+qt_add_executable(tst_TimelineDiscoveryLifecycle
+    tst_TimelineDiscoveryLifecycle.cpp
+)
+
+target_include_directories(tst_TimelineDiscoveryLifecycle
+    PRIVATE ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+target_link_libraries(tst_TimelineDiscoveryLifecycle
+    PRIVATE Qt6::Test cme_editor_core
+)
+
+add_test(
+    NAME tst_TimelineDiscoveryLifecycle
+    COMMAND tst_TimelineDiscoveryLifecycle
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Public editor facade contract covers generic authoring operations.
+qt_add_executable(tst_EditorFacadeContract
+    tst_EditorFacadeContract.cpp
+)
+
+target_link_libraries(tst_EditorFacadeContract
+    PRIVATE
+        Qt6::Test
+        cme_editor_ui_module
+)
+
+add_test(
+    NAME tst_EditorFacadeContract
+    COMMAND tst_EditorFacadeContract
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Example-app domain authoring workflow uses only the editor public facade.
+qt_add_executable(tst_CustomizeExampleAuthoring
+    tst_CustomizeExampleAuthoring.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizecomponenttypeprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizeconnectionpolicyprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizevalidationprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/validators/workflowvalidationprovider.cpp
+)
+
+target_link_libraries(tst_CustomizeExampleAuthoring
+    PRIVATE
+        Qt6::Test
+        cme_editor_ui_module
+)
+
+target_include_directories(tst_CustomizeExampleAuthoring
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/customize_example/src
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+)
+
+add_test(
+    NAME tst_CustomizeExampleAuthoring
+    COMMAND tst_CustomizeExampleAuthoring
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# QML module contract test verifies the library's public import surface.
+qt_add_executable(tst_EditorQmlModuleContract
+    tst_EditorQmlModuleContract.cpp
+)
+
+target_link_libraries(tst_EditorQmlModuleContract
+    PRIVATE
+        Qt6::Test
+        Qt6::Quick
+        cme_editor_ui_module
+)
+
+add_test(
+    NAME tst_EditorQmlModuleContract
+    COMMAND tst_EditorQmlModuleContract
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # The ComponentMapEditor QML module output lives one level above its
 # auto-generated sub-folder (e.g. <build>/component_map_editor/ contains
 # the ComponentMapEditor/ dir).  Pass that parent path to the test binary so
 # the QML engine can resolve the import.
 set(COMPONENT_MAP_EDITOR_IMPORT_DIR
-    "$<TARGET_FILE_DIR:libComponentMapEditor>/../.."
+    "$<TARGET_FILE_DIR:cme_editor_ui_module>/../.."
     CACHE INTERNAL "")
 
 qt_add_executable(tst_InteractionStateManager
@@ -53,7 +135,7 @@ target_link_libraries(tst_InteractionStateManager
     PRIVATE
         Qt6::Quick
         Qt6::QuickTest
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 add_test(
@@ -62,14 +144,61 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+qt_add_executable(tst_DeploymentGraphExporter
+    tst_DeploymentGraphExporter.cpp
+)
+
+target_link_libraries(tst_DeploymentGraphExporter
+    PRIVATE
+        Qt6::Test
+        cme_editor_ui_module
+)
+
+target_include_directories(tst_DeploymentGraphExporter
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_DeploymentGraphExporter
+    COMMAND tst_DeploymentGraphExporter
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_RuntimeClient
+    tst_RuntimeClient.cpp
+)
+
+target_link_libraries(tst_RuntimeClient
+    PRIVATE
+        Qt6::Test
+        cme_runtime_client
+        cme_runtime_proto
+        gRPC::grpc++
+)
+
+target_include_directories(tst_RuntimeClient
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto/runtime
+)
+
+add_test(
+    NAME tst_RuntimeClient
+    COMMAND tst_RuntimeClient
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 qt_add_executable(tst_PersistenceValidation
     tst_PersistenceValidation.cpp
 )
 
+
 target_link_libraries(tst_PersistenceValidation
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_PersistenceValidation
@@ -83,27 +212,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_GraphModelIndexing
-    tst_GraphModelIndexing.cpp
-)
-
-target_link_libraries(tst_GraphModelIndexing
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_GraphModelIndexing
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_GraphModelIndexing
-    COMMAND tst_GraphModelIndexing
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_ExtensionContractRegistry
     tst_ExtensionContractRegistry.cpp
 )
@@ -111,7 +219,7 @@ qt_add_executable(tst_ExtensionContractRegistry
 target_link_libraries(tst_ExtensionContractRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_ExtensionContractRegistry
@@ -132,7 +240,7 @@ qt_add_executable(tst_ExtensionStartupLoader
 target_link_libraries(tst_ExtensionStartupLoader
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_ExtensionStartupLoader
@@ -153,7 +261,7 @@ qt_add_executable(tst_TypeRegistry
 target_link_libraries(tst_TypeRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_TypeRegistry
@@ -174,7 +282,7 @@ qt_add_executable(tst_GraphEditorController
 target_link_libraries(tst_GraphEditorController
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_GraphEditorController
@@ -195,7 +303,7 @@ qt_add_executable(tst_PropertySchemaRegistry
 target_link_libraries(tst_PropertySchemaRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_PropertySchemaRegistry
@@ -209,24 +317,24 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_TokenKeyCatalog
-    tst_TokenKeyCatalog.cpp
+qt_add_executable(tst_DynamicOptionsRegistry
+    tst_DynamicOptionsRegistry.cpp
 )
 
-target_link_libraries(tst_TokenKeyCatalog
+target_link_libraries(tst_DynamicOptionsRegistry
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
-target_include_directories(tst_TokenKeyCatalog
+target_include_directories(tst_DynamicOptionsRegistry
     PRIVATE
         ${CMAKE_SOURCE_DIR}/component_map_editor
 )
 
 add_test(
-    NAME tst_TokenKeyCatalog
-    COMMAND tst_TokenKeyCatalog
+    NAME tst_DynamicOptionsRegistry
+    COMMAND tst_DynamicOptionsRegistry
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -237,7 +345,7 @@ qt_add_executable(tst_RuleCompilerRuntime
 target_link_libraries(tst_RuleCompilerRuntime
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_RuleCompilerRuntime
@@ -258,7 +366,7 @@ qt_add_executable(tst_TraversalEngine
 target_link_libraries(tst_TraversalEngine
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_TraversalEngine
@@ -272,24 +380,24 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_GraphExecutionSandbox
-    tst_GraphExecutionSandbox.cpp
+qt_add_executable(tst_ExecutionPlanBuilder
+    tst_ExecutionPlanBuilder.cpp
 )
 
-target_link_libraries(tst_GraphExecutionSandbox
+target_link_libraries(tst_ExecutionPlanBuilder
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
-target_include_directories(tst_GraphExecutionSandbox
+target_include_directories(tst_ExecutionPlanBuilder
     PRIVATE
         ${CMAKE_SOURCE_DIR}/component_map_editor
 )
 
 add_test(
-    NAME tst_GraphExecutionSandbox
-    COMMAND tst_GraphExecutionSandbox
+    NAME tst_ExecutionPlanBuilder
+    COMMAND tst_ExecutionPlanBuilder
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -300,7 +408,7 @@ qt_add_executable(tst_SequentialExecutionEngine
 target_link_libraries(tst_SequentialExecutionEngine
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_SequentialExecutionEngine
@@ -321,7 +429,7 @@ qt_add_executable(tst_ActorMailboxEngine
 target_link_libraries(tst_ActorMailboxEngine
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_ActorMailboxEngine
@@ -342,7 +450,7 @@ qt_add_executable(tst_ActorEngineIntegration
 target_link_libraries(tst_ActorEngineIntegration
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_ActorEngineIntegration
@@ -356,27 +464,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_SecurityGuardrails
-    tst_SecurityGuardrails.cpp
-)
-
-target_link_libraries(tst_SecurityGuardrails
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_SecurityGuardrails
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_SecurityGuardrails
-    COMMAND tst_SecurityGuardrails
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_CompatibilityMigrationToolkit
     tst_CompatibilityMigrationToolkit.cpp
 )
@@ -384,7 +471,7 @@ qt_add_executable(tst_CompatibilityMigrationToolkit
 target_link_libraries(tst_CompatibilityMigrationToolkit
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_CompatibilityMigrationToolkit
@@ -398,27 +485,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_PerformanceScaleHardening
-    tst_PerformanceScaleHardening.cpp
-)
-
-target_link_libraries(tst_PerformanceScaleHardening
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_PerformanceScaleHardening
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_PerformanceScaleHardening
-    COMMAND tst_PerformanceScaleHardening
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 qt_add_executable(tst_QaMatrixRunner
     tst_QaMatrixRunner.cpp
 )
@@ -426,7 +492,7 @@ qt_add_executable(tst_QaMatrixRunner
 target_link_libraries(tst_QaMatrixRunner
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_QaMatrixRunner
@@ -440,58 +506,9 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# ── Phase 0: Baseline and Freeze ──────────────────────────────────────────────
-# This test suite locks in all pre-migration contracts (command names, schema
-# keys, extension IIDs, performance budgets, behavioral guarantees).
-# Run this at the start of every migration phase to prove no regression.
-qt_add_executable(tst_Phase0Baseline
-    tst_Phase0Baseline.cpp
-)
-
-target_link_libraries(tst_Phase0Baseline
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase0Baseline
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_Phase0Baseline
-    COMMAND tst_Phase0Baseline
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-# ── Phase 0: Design B Baseline Freeze ───────────────────────────────────────
-# Captures baseline metrics and invariants with token transport migration flag
-# disabled (default-off compatibility path).
-qt_add_executable(tst_Phase0DesignBBaselineFreeze
-    tst_Phase0DesignBBaselineFreeze.cpp
-)
-
-target_link_libraries(tst_Phase0DesignBBaselineFreeze
-    PRIVATE
-        Qt6::Test
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase0DesignBBaselineFreeze
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-)
-
-add_test(
-    NAME tst_Phase0DesignBBaselineFreeze
-    COMMAND tst_Phase0DesignBBaselineFreeze
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 1: Protobuf Contract Foundation ─────────────────────────────────
 # Encode/decode roundtrip tests for every proto message type defined in proto/.
-# Links only cme_proto (no libComponentMapEditor dependency) — these are pure
+# Links only cme_proto (no cme_editor_ui_module dependency) — these are pure
 # protobuf contract tests, independent of Qt runtime.
 qt_add_executable(tst_Phase1ProtoContracts
     tst_Phase1ProtoContracts.cpp
@@ -519,7 +536,7 @@ qt_add_executable(tst_Phase1ExecutionSemanticsV2Compatibility
 target_link_libraries(tst_Phase1ExecutionSemanticsV2Compatibility
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase1ExecutionSemanticsV2Compatibility
@@ -533,32 +550,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# ── Phase 2: Compatibility Adapter Layer ──────────────────────────────────
-# Roundtrip conversion tests: QVariantMap <-> protobuf for all contract types.
-# Tests required-field validation, type mismatch handling, and error handling.
-qt_add_executable(tst_Phase2AdapterLayer
-    tst_Phase2AdapterLayer.cpp
-)
-
-target_link_libraries(tst_Phase2AdapterLayer
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase2AdapterLayer
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase2AdapterLayer
-    COMMAND tst_Phase2AdapterLayer
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 2: Runtime Token Routing ─────────────────────────────────────────
 # Verifies feature-flagged per-edge token routing behavior in GraphExecutionSandbox
 # while preserving deterministic timeline sequence.
@@ -569,7 +560,7 @@ qt_add_executable(tst_Phase2TokenRouting
 target_link_libraries(tst_Phase2TokenRouting
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase2TokenRouting
@@ -594,7 +585,7 @@ target_link_libraries(tst_Phase3ConnectionTransportMetadata
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase3ConnectionTransportMetadata
@@ -620,7 +611,7 @@ target_link_libraries(tst_Phase4PolicyMigration
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase4PolicyMigration
@@ -635,32 +626,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# ── Phase 4: Composite Graph as Reusable Component ─────────────────────────
-# Verifies composite execution as a reusable subgraph, nested composite support,
-# recursion guard diagnostics, and performance tolerance against a baseline graph.
-qt_add_executable(tst_Phase4CompositeExecutionProvider
-    tst_Phase4CompositeExecutionProvider.cpp
-)
-
-target_link_libraries(tst_Phase4CompositeExecutionProvider
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase4CompositeExecutionProvider
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase4CompositeExecutionProvider
-    COMMAND tst_Phase4CompositeExecutionProvider
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 5: Execution Observability ───────────────────────────────────────
 # Verifies stable debug snapshot structure, token telemetry counters, and
 # payload redaction in timeline/debug snapshot outputs.
@@ -671,7 +636,7 @@ qt_add_executable(tst_Phase5ExecutionObservability
 target_link_libraries(tst_Phase5ExecutionObservability
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase5ExecutionObservability
@@ -697,7 +662,7 @@ target_link_libraries(tst_Phase5ValidationMigration
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase5ValidationMigration
@@ -724,7 +689,7 @@ target_link_libraries(tst_Phase6TypedExecutionEvents
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_compat
 )
 
 target_include_directories(tst_Phase6TypedExecutionEvents
@@ -749,7 +714,11 @@ qt_add_executable(tst_Phase6CutoverReadiness
 target_link_libraries(tst_Phase6CutoverReadiness
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_editor_ui_module
+)
+
+target_compile_definitions(tst_Phase6CutoverReadiness PRIVATE
+    CME_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 target_include_directories(tst_Phase6CutoverReadiness
@@ -773,7 +742,7 @@ target_link_libraries(tst_Phase7ExtensionContractV2Parallel
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase7ExtensionContractV2Parallel
@@ -788,61 +757,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# ── Phase 8: Hardcoded String Cleanup ────────────────────────────────────────
-# Static-check tests: verify forbidden raw literals are absent from core modules.
-qt_add_executable(tst_Phase8HardcodedStringCleanup
-    tst_Phase8HardcodedStringCleanup.cpp
-)
-
-target_compile_definitions(tst_Phase8HardcodedStringCleanup PRIVATE
-    CME_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
-
-target_link_libraries(tst_Phase8HardcodedStringCleanup
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase8HardcodedStringCleanup
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase8HardcodedStringCleanup
-    COMMAND tst_Phase8HardcodedStringCleanup
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-# ── Phase 9: Optional gRPC Transport Enablement ─────────────────────────────
-# Transport facade smoke tests (success/failure/cancel/timeout) while keeping
-# in-process mode as default path.
-qt_add_executable(tst_Phase9GrpcTransportEnablement
-    tst_Phase9GrpcTransportEnablement.cpp
-)
-
-target_link_libraries(tst_Phase9GrpcTransportEnablement
-    PRIVATE
-        Qt6::Test
-        cme_proto
-        libComponentMapEditor
-)
-
-target_include_directories(tst_Phase9GrpcTransportEnablement
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/component_map_editor
-        ${CMAKE_BINARY_DIR}/proto
-)
-
-add_test(
-    NAME tst_Phase9GrpcTransportEnablement
-    COMMAND tst_Phase9GrpcTransportEnablement
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 # ── Phase 10: Cutover and Legacy Retirement ────────────────────────────────
 # Deprecation + cutover checks to keep typed-first core path and monitor
 # compatibility-window legacy registrations.
@@ -854,7 +768,7 @@ target_link_libraries(tst_Phase10CutoverLegacyRetirement
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase10CutoverLegacyRetirement
@@ -880,7 +794,7 @@ target_link_libraries(tst_Phase11TemplateDescriptorTransport
     PRIVATE
         Qt6::Test
         cme_proto
-        libComponentMapEditor
+        cme_editor_ui_module
 )
 
 target_include_directories(tst_Phase11TemplateDescriptorTransport
@@ -895,40 +809,377 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-qt_add_executable(tst_CustomizeExampleMathWorkflows
-    tst_CustomizeExampleMathWorkflows.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizeexecutionsanticsprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizestartexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizestopexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeaddexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizesubtractexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizemultiplyexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizedivideexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeifelseexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeloopexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeerrorhandlerexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizeequalexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelessorequalexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelessthanexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizelogicandexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizemodexecutionprovider.cpp
-    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/executors/customizesqrtexecutionprovider.cpp
+qt_add_executable(tst_PropertySchemaNormalizedRowBaseline
+    tst_PropertySchemaNormalizedRowBaseline.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/customizepropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/connectionpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/controlpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/mathpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/startstoppropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/systempropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers/property_schemas/workflowpropertyschemaprovider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/factory_pack/providers/FactoryPropertySchemaProvider.cpp
+    ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/factory_pack/providers/FactoryComponentTypeProvider.cpp
 )
 
-target_link_libraries(tst_CustomizeExampleMathWorkflows
+target_link_libraries(tst_PropertySchemaNormalizedRowBaseline
     PRIVATE
         Qt6::Test
-        libComponentMapEditor
+        cme_proto
+        cme_editor_ui_module
 )
 
-target_include_directories(tst_CustomizeExampleMathWorkflows
+target_include_directories(tst_PropertySchemaNormalizedRowBaseline
     PRIVATE
         ${CMAKE_SOURCE_DIR}/component_map_editor
+        ${CMAKE_BINARY_DIR}/proto
         ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/providers
+        ${CMAKE_SOURCE_DIR}/customize_example/src/extensions/factory_pack/providers
+)
+
+target_compile_definitions(tst_PropertySchemaNormalizedRowBaseline
+    PRIVATE
+        CME_SCHEMA_BASELINE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/baseline/property_schema_normalized_rows.json"
 )
 
 add_test(
-    NAME tst_CustomizeExampleMathWorkflows
-    COMMAND tst_CustomizeExampleMathWorkflows
+    NAME tst_PropertySchemaNormalizedRowBaseline
+    COMMAND tst_PropertySchemaNormalizedRowBaseline
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# ── Phase 1: Runtime process boundary ───────────────────────────────────────
+qt_add_executable(tst_RuntimeServicePhase1
+    tst_RuntimeServicePhase1.cpp
+)
+
+target_link_libraries(tst_RuntimeServicePhase1
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeServicePhase1
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeServicePhase1
+    COMMAND tst_RuntimeServicePhase1
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# ── Phase 2: Deployment graph contract ──────────────────────────────────────
+qt_add_executable(tst_RuntimeDeploymentPhase2
+    tst_RuntimeDeploymentPhase2.cpp
+)
+
+target_link_libraries(tst_RuntimeDeploymentPhase2
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeDeploymentPhase2
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeDeploymentPhase2
+    COMMAND tst_RuntimeDeploymentPhase2
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 1 runtime process remains optional and is intentionally not linked into tests.
+
+# ── Phase 3: Runtime core vertical slice ─────────────────────────────────────
+qt_add_executable(tst_RuntimeCorePhase3
+    tst_RuntimeCorePhase3.cpp
+)
+
+target_link_libraries(tst_RuntimeCorePhase3
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeCorePhase3
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeCorePhase3
+    COMMAND tst_RuntimeCorePhase3
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 3 scheduler contract: actor serialization, parallelism and backpressure.
+qt_add_executable(tst_RuntimeActorSchedulerPhase3
+    tst_RuntimeActorSchedulerPhase3.cpp
+)
+
+target_link_libraries(tst_RuntimeActorSchedulerPhase3
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_RuntimeActorSchedulerPhase3
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RuntimeActorSchedulerPhase3
+    COMMAND tst_RuntimeActorSchedulerPhase3
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Persistence and IPC remain later Phase 3 integration work.
+
+# ── Phase 4: SQLite persistence and recovery ─────────────────────────────────
+qt_add_executable(tst_RuntimePersistencePhase4
+    tst_RuntimePersistencePhase4.cpp
+)
+
+target_link_libraries(tst_RuntimePersistencePhase4
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+        cme_proto
+)
+
+target_include_directories(tst_RuntimePersistencePhase4
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimePersistencePhase4
+    COMMAND tst_RuntimePersistencePhase4
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 4: runtime extension pack and handler registry contract.
+qt_add_executable(tst_RuntimeExtensionPhase4
+    tst_RuntimeExtensionPhase4.cpp
+)
+
+target_link_libraries(tst_RuntimeExtensionPhase4
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_RuntimeExtensionPhase4
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RuntimeExtensionPhase4
+    COMMAND tst_RuntimeExtensionPhase4
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Component discovery contract and catalog foundation.
+qt_add_executable(tst_ComponentContract
+    tst_ComponentContract.cpp
+)
+
+target_link_libraries(tst_ComponentContract
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_ComponentContract
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_ComponentContract
+    COMMAND tst_ComponentContract
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_ComponentCatalog
+    tst_ComponentCatalog.cpp
+)
+
+target_link_libraries(tst_ComponentCatalog
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_ComponentCatalog
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_ComponentCatalog
+    COMMAND tst_ComponentCatalog
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Runtime catalog query contract coverage.
+qt_add_executable(tst_RuntimeComponentCatalog
+    tst_RuntimeComponentCatalog.cpp
+)
+
+target_link_libraries(tst_RuntimeComponentCatalog
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_RuntimeComponentCatalog
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RuntimeComponentCatalog
+    COMMAND tst_RuntimeComponentCatalog
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_ComponentDiscovery
+    tst_ComponentDiscovery.cpp
+)
+
+target_link_libraries(tst_ComponentDiscovery
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_ComponentDiscovery
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_ComponentDiscovery
+    COMMAND tst_ComponentDiscovery
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+qt_add_executable(tst_RemoteWorkerExecution
+    tst_RemoteWorkerExecution.cpp
+)
+
+target_link_libraries(tst_RemoteWorkerExecution
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_RemoteWorkerExecution
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+)
+
+add_test(
+    NAME tst_RemoteWorkerExecution
+    COMMAND tst_RemoteWorkerExecution
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 4 remains static-loading for MVP.
+
+# Phase 5: graph, port and route contract validation.
+qt_add_executable(tst_RuntimeRouteContractPhase5
+    tst_RuntimeRouteContractPhase5.cpp
+)
+
+target_link_libraries(tst_RuntimeRouteContractPhase5
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+)
+
+target_include_directories(tst_RuntimeRouteContractPhase5
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeRouteContractPhase5
+    COMMAND tst_RuntimeRouteContractPhase5
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 4 intentionally has no retry scheduler or dead-letter queue.
+# ── Phase 5: gRPC process boundary ───────────────────────────────────────────
+qt_add_executable(tst_RuntimeProcessPhase5
+    tst_RuntimeProcessPhase5.cpp
+)
+
+target_link_libraries(tst_RuntimeProcessPhase5
+    PRIVATE
+        Qt6::Core
+        Qt6::Test
+        cme_runtime_proto
+        gRPC::grpc++
+)
+
+target_compile_definitions(tst_RuntimeProcessPhase5
+    PRIVATE
+        COMPONENT_MAP_RUNTIME_PROCESS_EXECUTABLE="$<TARGET_FILE:cme_runtime_server>"
+)
+
+add_dependencies(tst_RuntimeProcessPhase5 cme_runtime_server)
+
+add_test(
+    NAME tst_RuntimeProcessPhase5
+    COMMAND tst_RuntimeProcessPhase5
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 5 intentionally uses localhost plaintext gRPC without streaming or TLS.
+
+# ── Phase 6: Nested graph / composite component contract ─────────────────────
+qt_add_executable(tst_RuntimeNestedGraphPhase6
+    tst_RuntimeNestedGraphPhase6.cpp
+)
+
+target_link_libraries(tst_RuntimeNestedGraphPhase6
+    PRIVATE
+        Qt6::Test
+        cme_runtime_core
+        cme_proto
+)
+
+target_include_directories(tst_RuntimeNestedGraphPhase6
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/component_map_runtime/include
+        ${CMAKE_BINARY_DIR}/proto
+)
+
+add_test(
+    NAME tst_RuntimeNestedGraphPhase6
+    COMMAND tst_RuntimeNestedGraphPhase6
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Phase 6 covers versioned composite validation and deterministic flatten compilation.
+# Hierarchical persistence and runtime status aggregation remain follow-up work.
+
+# Phase 6 compiler tests are included in tst_RuntimeNestedGraphPhase6.
+
+# Phase 5 intentionally uses localhost plaintext gRPC without streaming or TLS.

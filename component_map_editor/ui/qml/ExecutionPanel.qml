@@ -3,170 +3,58 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import ComponentMapEditor
 
-ColumnLayout {
+ScrollView {
     id: root
-    property var executionSandbox: editorManager.executionSandbox
     property string selectedComponentId: ""
+    property var graph
+    property var selectedStatus: ({})
+    property var history: []
+    property var logs: []
+    property var rejections: []
+    clip: true
 
-    Layout.fillWidth: true
-    spacing: 10
-    Layout.margins: 10
+    ColumnLayout {
+        width: root.availableWidth
+        spacing: 12
+        anchors.margins: 10
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
 
-    function prettyJson(value) {
-        if (value === undefined || value === null)
-            return "{}";
-        return JSON.stringify(value, null, 2);
-    }
-
-    Label {
-        Layout.fillWidth: true
-        text: "Graph Execution"
-        font.bold: true
-        font.pixelSize: 13
-        horizontalAlignment: Text.AlignHCenter
-        topPadding: 10
-    }
-
-    Label {
-        Layout.fillWidth: true
-        wrapMode: Text.WordWrap
-        color: "#666"
-        text: "Step through the graph using the loaded execution semantics.\nStart → Step nodes one by one, or Run to complete all at once."
-    }
-
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: 4
-
-        Button {
-            text: "Start"
-            onClicked: {
-                if (!executionSandbox)
-                    return;
-                if (executionSandbox.start()) {
-                    statusLabel.text = "Sandbox initialized";
-                    statusLabel.color = "#1565c0";
-                } else {
-                    statusLabel.text = "Start failed: " + executionSandbox.lastError;
-                    statusLabel.color = "#c62828";
-                }
-            }
+        RuntimeOverviewPanel { manager: editorManager }
+        DeploymentPanel { manager: editorManager; graph: root.graph; graphVersion: "v1" }
+        ComponentStatusPanel {
+            manager: editorManager
+            componentId: root.selectedComponentId
+            status: root.selectedStatus
         }
+        EventHistoryPanel { manager: editorManager; entries: root.history }
+        RuntimeLogPanel { manager: editorManager; entries: root.logs }
+        RejectionPanel { manager: editorManager; entries: root.rejections }
 
-        Button {
-            text: "Step"
-            enabled: executionSandbox && executionSandbox.status !== "completed" && executionSandbox.status !== "error"
-            onClicked: {
-                if (!executionSandbox)
-                    return;
-                if (executionSandbox.status === "idle")
-                    executionSandbox.start();
-                executionSandbox.step();
-            }
-        }
-
-        Button {
-            text: "Run"
-            enabled: executionSandbox && executionSandbox.status !== "completed" && executionSandbox.status !== "error"
-            onClicked: {
-                if (!executionSandbox)
-                    return;
-                if (executionSandbox.status === "idle") {
-                    if (!executionSandbox.start())
-                        return;
-                }
-                executionSandbox.run();
-            }
-        }
-
-        Button {
-            text: "Reset"
-            onClicked: {
-                if (executionSandbox)
-                    executionSandbox.reset();
-            }
-        }
-    }
-
-    GridLayout {
-        Layout.fillWidth: true
-        columns: 2
-        columnSpacing: 8
-        rowSpacing: 4
-
-        Label {
-            text: "Status"
-            font.bold: true
-        }
-        Label {
-            text: executionSandbox ? executionSandbox.status : "unavailable"
-        }
-
-        Label {
-            text: "Tick"
-            font.bold: true
-        }
-        Label {
-            text: executionSandbox ? String(executionSandbox.currentTick) : "0"
-        }
-
-        Label {
-            text: "Summary"
-            font.bold: true
-        }
-        ReadOnlyPlainText {
-            preferredHeight: 96
-            panelText: executionSandbox ? prettyJson(executionSandbox.snapshotSummary()) : "{}"
-        }
-
-        Label {
-            text: "Last Error"
-            font.bold: true
-            visible: executionSandbox && executionSandbox.lastError.length > 0
-        }
         Label {
             Layout.fillWidth: true
-            wrapMode: Text.WordWrap
+            visible: editorManager && editorManager.runtimeLastError.length > 0
             color: "#c62828"
-            visible: executionSandbox && executionSandbox.lastError.length > 0
-            text: executionSandbox ? executionSandbox.lastError : ""
+            wrapMode: Text.WordWrap
+            text: editorManager ? editorManager.runtimeLastError : ""
         }
     }
 
-    Label {
-        Layout.fillWidth: true
-        text: "Execution State"
-        font.bold: true
-    }
-
-    ReadOnlyPlainText {
-        preferredHeight: 140
-        panelText: executionSandbox ? prettyJson(executionSandbox.executionState) : "{}"
-    }
-
-    Label {
-        Layout.fillWidth: true
-        text: "Selected Component State"
-        font.bold: true
-    }
-
-    ReadOnlyPlainText {
-        preferredHeight: 140
-        panelText: selectedComponentState()
-    }
-
-    TimelinePanel {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 250
-        model: executionSandbox ? executionSandbox.timeline : []
-    }
-
-    function selectedComponentState() {
-        if (!selectedComponentId || selectedComponentId.length === 0)
-            return "Select a component to inspect its execution state.";
-        var state = executionSandbox.componentState(root.selectedComponentId);
-        if (!state || Object.keys(state).length === 0)
-            return "No execution state for '" + root.selectedComponentId + "'.";
-        return prettyJson(state);
+    Timer {
+        interval: editorManager ? editorManager.runtimePollIntervalMs : 2000
+        repeat: true
+        running: visible && editorManager !== null
+        onTriggered: {
+            if (!editorManager)
+                return;
+            editorManager.refreshRuntimeStatus();
+            root.history = editorManager.runtimeEventHistory(50);
+            root.logs = editorManager.runtimeLogs(50);
+            root.rejections = editorManager.runtimeRejections(50);
+            if (root.selectedComponentId.length > 0)
+                root.selectedStatus = editorManager.runtimeComponentStatus(root.selectedComponentId);
+        }
     }
 }

@@ -3,7 +3,6 @@
 
 #include <QVector>
 
-#include <functional>
 #include <memory>
 
 #include "RouteTypes.h"
@@ -14,25 +13,6 @@ public:
     virtual ~IRouteStrategy() = default;
     virtual QVector<QPointF> compute(const RouteRequest &request,
                                      const RoutingContext &context) const = 0;
-};
-
-class LegacyCompositeRouteStrategy : public IRouteStrategy
-{
-public:
-    using LegacyRouteFunction =
-        std::function<QVector<QPointF>(ConnectionModel *connection,
-                                       ComponentModel *sourceComponent,
-                                       ComponentModel *targetComponent,
-                                       const QList<ComponentModel *> &components,
-                                       const ConnectionRouteMeta *routeMeta)>;
-
-    explicit LegacyCompositeRouteStrategy(LegacyRouteFunction legacyRouteFunction);
-
-    QVector<QPointF> compute(const RouteRequest &request,
-                             const RoutingContext &context) const override;
-
-private:
-    LegacyRouteFunction m_legacyRouteFunction;
 };
 
 class RoutingEngine

@@ -3,6 +3,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
+#include <limits>
 
 #define MAX_VISIBLE_ROWS 1000
 
@@ -185,6 +186,30 @@ QVariantList TimelineModel::toVariantList() const
     return list;
 }
 
+void TimelineModel::appendDiscoveryLifecycleEvents(const QVariantList &events)
+{
+    for (const QVariant &value : events)
+    {
+        const QVariantMap event = value.toMap();
+        const QString eventId = event.value(QStringLiteral("eventId")).toString();
+        const QString kind = event.value(QStringLiteral("kind")).toString();
+        const QString identity = event.value(QStringLiteral("componentIdentity")).toString();
+        const QString version = event.value(QStringLiteral("componentVersion")).toString();
+        if (eventId.isEmpty() || kind.isEmpty())
+            continue;
+
+        QVariantMap payload = event;
+        payload.insert(QStringLiteral("eventId"), eventId);
+        payload.insert(QStringLiteral("componentIdentity"), identity);
+        payload.insert(QStringLiteral("componentVersion"), version);
+        payload.insert(QStringLiteral("source"), QStringLiteral("runtime.discovery"));
+        const qint64 occurredAt = event.value(QStringLiteral("occurredAtUnixMs")).toLongLong();
+        const int tick = static_cast<int>(qBound<qint64>(
+            static_cast<qint64>(std::numeric_limits<int>::min()), occurredAt,
+            static_cast<qint64>(std::numeric_limits<int>::max())));
+        append(TimelineEventEntry{QStringLiteral("discovery.") + kind, tick, payload});
+    }
+}
 
 void TimelineModel::append(TimelineEventEntry &&entry)
 {

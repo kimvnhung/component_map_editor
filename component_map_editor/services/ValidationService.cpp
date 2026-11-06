@@ -159,7 +159,8 @@ QVariantMap ValidationService::buildGraphSnapshot(GraphModel *graph) const
 
     return QVariantMap{
         { QStringLiteral("components"), components },
-        { QStringLiteral("connections"), connections }
+        { QStringLiteral("connections"), connections },
+        { QStringLiteral("startComponentId"), graph ? graph->startComponentId().trimmed() : QString() }
     };
 }
 
@@ -171,6 +172,8 @@ cme::GraphSnapshot ValidationService::buildTypedGraphSnapshot(GraphModel *graph)
     if (!graph)
         return snapshot;
 
+    snapshot.set_start_component_id(graph->startComponentId().trimmed().toStdString());
+
     // Convert components
     const QList<ComponentModel *> componentList = graph->componentList();
     for (ComponentModel *component : componentList) {
@@ -180,6 +183,10 @@ cme::GraphSnapshot ValidationService::buildTypedGraphSnapshot(GraphModel *graph)
         auto *componentData = snapshot.add_components();
         componentData->set_id(component->id().toStdString());
         componentData->set_type_id(component->type().toStdString());
+        componentData->set_title(component->title().toStdString());
+        componentData->set_component_identity(component->componentIdentity().toStdString());
+        componentData->set_component_version(component->componentVersion().toStdString());
+        componentData->set_metadata_snapshot(component->metadataSnapshot().toStdString());
         componentData->set_x(component->x());
         componentData->set_y(component->y());
 
