@@ -22,6 +22,13 @@ class ComponentModel : public QObject
     Q_PROPERTY(QString shape READ shape WRITE setShape NOTIFY shapeChanged FINAL)
     Q_PROPERTY(QString color READ color WRITE setColor NOTIFY colorChanged FINAL)
     Q_PROPERTY(QString type READ type WRITE setType NOTIFY typeChanged FINAL)
+    Q_PROPERTY(QString componentIdentity READ componentIdentity WRITE setComponentIdentity NOTIFY componentIdentityChanged FINAL)
+    Q_PROPERTY(QString componentVersion READ componentVersion WRITE setComponentVersion NOTIFY componentVersionChanged FINAL)
+    Q_PROPERTY(QString metadataSnapshot READ metadataSnapshot WRITE setMetadataSnapshot NOTIFY metadataSnapshotChanged FINAL)
+    Q_PROPERTY(QVariantList properties READ properties WRITE setProperties NOTIFY propertiesChanged FINAL)
+    Q_PROPERTY(QVariantList outputProperties READ outputProperties WRITE setOutputProperties NOTIFY outputPropertiesChanged FINAL)
+    Q_PROPERTY(QVariantList ports READ ports WRITE setPorts NOTIFY portsChanged FINAL)
+    Q_PROPERTY(QVariantMap executionMetadata READ executionMetadata WRITE setExecutionMetadata NOTIFY executionMetadataChanged FINAL)
 
 public:
     explicit ComponentModel(QObject *parent = nullptr);
@@ -34,39 +41,46 @@ public:
     Q_INVOKABLE bool setDynamicProperty(const QString &name, const QVariant &value);
     Q_INVOKABLE bool hasDynamicProperty(const QString &name) const;
     Q_INVOKABLE QVariant dynamicPropertyValue(const QString &name) const;
+    Q_INVOKABLE bool applyRuntimeDescriptor(const QVariantMap &descriptor);
+    Q_INVOKABLE QVariantMap runtimeDescriptor() const;
 
     QString id() const;
     void setId(const QString &id);
-
     QString title() const;
     void setTitle(const QString &title);
-
     QString content() const;
     void setContent(const QString &content);
-
     QString icon() const;
     void setIcon(const QString &icon);
-
     qreal x() const;
     void setX(qreal x);
-
     qreal y() const;
     void setY(qreal y);
-
     qreal width() const;
     void setWidth(qreal width);
-
     qreal height() const;
     void setHeight(qreal height);
-
     QString shape() const;
     void setShape(const QString &shape);
-
     QString color() const;
     void setColor(const QString &color);
-
     QString type() const;
     void setType(const QString &type);
+
+    QString componentIdentity() const;
+    void setComponentIdentity(const QString &identity);
+    QString componentVersion() const;
+    void setComponentVersion(const QString &version);
+    QString metadataSnapshot() const;
+    void setMetadataSnapshot(const QString &snapshot);
+    QVariantList properties() const;
+    void setProperties(const QVariantList &properties);
+    QVariantList outputProperties() const;
+    void setOutputProperties(const QVariantList &properties);
+    QVariantList ports() const;
+    void setPorts(const QVariantList &ports);
+    QVariantMap executionMetadata() const;
+    void setExecutionMetadata(const QVariantMap &metadata);
 
 signals:
     void idChanged();
@@ -80,6 +94,13 @@ signals:
     void shapeChanged();
     void colorChanged();
     void typeChanged();
+    void componentIdentityChanged();
+    void componentVersionChanged();
+    void metadataSnapshotChanged();
+    void propertiesChanged();
+    void outputPropertiesChanged();
+    void portsChanged();
+    void executionMetadataChanged();
 
 private:
     QString m_id;
@@ -93,6 +114,13 @@ private:
     QString m_shape{ QStringLiteral("rounded") };
     QString m_color{ QStringLiteral("#4fc3f7") };
     QString m_type{ QStringLiteral("default") };
+    QString m_componentIdentity;
+    QString m_componentVersion;
+    QString m_metadataSnapshot;
+    QVariantList m_properties;
+    QVariantList m_outputProperties;
+    QVariantList m_ports;
+    QVariantMap m_executionMetadata;
 };
 
 #endif // COMPONENTMODEL_H

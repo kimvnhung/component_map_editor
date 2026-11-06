@@ -23,7 +23,14 @@ public:
     // Rebuilds the in-memory schema cache from registered providers.
     void rebuildFromRegistry(const ExtensionContractRegistry &registry);
 
+    // Runtime descriptors are authoritative after a successful catalog refresh.
+    // Provider schemas remain available as the offline fallback until then.
+    void replaceFromRuntimeCatalog(const QVariantList &descriptors);
+    bool hasRuntimeCatalog() const { return m_hasRuntimeCatalog; }
+
     Q_INVOKABLE bool hasTarget(const QString &targetId) const;
+    Q_INVOKABLE QVariantList schemaRowsForTarget(const QString &targetId) const;
+    Q_INVOKABLE QVariantList componentSchemaRows(const QString &componentIdentity) const;
 
     // Typed external entrypoint. Preferred for integrations outside the library.
     bool schemaForTargetTyped(const QString &targetId,
@@ -61,7 +68,9 @@ private:
     QVariantList resolvedSchemaRows(const QString &targetId) const;
 
     QHash<QString, QVariantList> m_rowsByTarget;
+    QHash<QString, QVariantList> m_runtimeRowsByIdentity;
     QHash<QString, cme::runtime::SchemaSectionListModel *> m_sectionModelsByTarget;
+    bool m_hasRuntimeCatalog = false;
 };
 
 #endif // PROPERTYSCHEMAREGISTRY_H

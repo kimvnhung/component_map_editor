@@ -23,6 +23,12 @@ namespace cme::adapter
 
         proto_out.set_id(variant["id"].toString().toStdString());
         proto_out.set_type_id(variant["typeId"].toString().toStdString());
+        if (variant.contains("componentIdentity"))
+            proto_out.set_component_identity(variant.value("componentIdentity").toString().toStdString());
+        if (variant.contains("componentVersion"))
+            proto_out.set_component_version(variant.value("componentVersion").toString().toStdString());
+        if (variant.contains("metadataSnapshot"))
+            proto_out.set_metadata_snapshot(variant.value("metadataSnapshot").toString().toStdString());
 
         bool ok_x = false, ok_y = false;
         double x = variant.value("x", 0.0).toDouble(&ok_x);
@@ -159,6 +165,12 @@ namespace cme::adapter
         QVariantMap result;
         result["id"] = QString::fromStdString(proto.id());
         result["typeId"] = QString::fromStdString(proto.type_id());
+        if (!proto.component_identity().empty())
+            result["componentIdentity"] = QString::fromStdString(proto.component_identity());
+        if (!proto.component_version().empty())
+            result["componentVersion"] = QString::fromStdString(proto.component_version());
+        if (!proto.metadata_snapshot().empty())
+            result["metadataSnapshot"] = QString::fromStdString(proto.metadata_snapshot());
         result["x"] = proto.x();
         result["y"] = proto.y();
 

@@ -1,6 +1,6 @@
 #include <QtTest>
 
-#include "extensions/contracts/builders/ExecutionPlanBuilder.h"
+#include "compatibility/builders/ExecutionPlanBuilder.h"
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"

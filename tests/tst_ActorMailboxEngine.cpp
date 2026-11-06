@@ -7,9 +7,9 @@
 #include "models/ComponentModel.h"
 #include "models/ConnectionModel.h"
 #include "models/GraphModel.h"
-#include "services/execution_internal/SequentialExecutionEngine.h"
-#include "services/execution_internal/actor_mailbox/ActorScheduler.h"
-#include "services/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h"
+#include "compatibility/execution_internal/SequentialExecutionEngine.h"
+#include "compatibility/execution_internal/actor_mailbox/ActorScheduler.h"
+#include "compatibility/execution_internal/actor_mailbox/GraphSnapshotActorAdapter.h"
 #include "utils/GraphHelper.h"
 
 using cme::actor::ActorScheduler;

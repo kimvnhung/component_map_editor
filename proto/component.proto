@@ -21,3 +21,134 @@ message ComponentType {
   repeated string providedOutputKeys = 10;
   map<string, string> defaultProperties = 11;
 }
+
+enum ComponentSource {
+  COMPONENT_SOURCE_UNSPECIFIED = 0;
+  COMPONENT_SOURCE_BUILTIN = 1;
+  COMPONENT_SOURCE_NETWORK = 2;
+}
+
+enum ComponentStatus {
+  COMPONENT_STATUS_UNSPECIFIED = 0;
+  COMPONENT_STATUS_REGISTERED = 1;
+  COMPONENT_STATUS_AVAILABLE = 2;
+  COMPONENT_STATUS_UNAVAILABLE = 3;
+  COMPONENT_STATUS_REJECTED = 4;
+  COMPONENT_STATUS_REMOVED = 5;
+}
+
+enum TrustState {
+  TRUST_STATE_UNSPECIFIED = 0;
+  TRUST_STATE_UNKNOWN = 1;
+  TRUST_STATE_TRUSTED = 2;
+  TRUST_STATE_REJECTED = 3;
+}
+
+enum ComponentExecutionMode {
+  COMPONENT_EXECUTION_MODE_UNSPECIFIED = 0;
+  COMPONENT_EXECUTION_MODE_BUILTIN = 1;
+  COMPONENT_EXECUTION_MODE_REMOTE_WORKER = 2;
+}
+
+message ComponentPropertySchema {
+  string id = 1;
+  string type = 2;
+  bool required = 3;
+  string default_value = 4;
+  map<string, string> constraints = 5;
+  string label = 6;
+  string description = 7;
+}
+
+message ComponentPortContract {
+  string id = 1;
+  string direction = 2;
+  string payload_type = 3;
+  string cardinality = 4;
+  bool required = 5;
+  string label = 6;
+  string description = 7;
+}
+
+message ComponentExecutionDescriptor {
+  ComponentExecutionMode mode = 1;
+  repeated string capabilities = 2;
+  repeated string input_requirements = 3;
+  repeated string output_guarantees = 4;
+  string worker_capability_reference = 5;
+  string protocol = 6;
+  int32 timeout_ms = 7;
+  bool supports_cancellation = 8;
+  bool retryable = 9;
+  bool idempotent = 10;
+  string error_behavior = 11;
+}
+
+message ComponentDiagnostic {
+  string code = 1;
+  string message = 2;
+  string field_path = 3;
+  bool retryable = 4;
+}
+
+message ComponentDescriptor {
+  string identity = 1;
+  string version = 2;
+  string contract_version = 3;
+  ComponentSource source = 4;
+  string source_id = 5;
+  ComponentStatus status = 6;
+  TrustState trust_state = 7;
+  string title = 8;
+  string category = 9;
+  string icon = 10;
+  string shape = 11;
+  string description = 12;
+  int32 default_width = 13;
+  int32 default_height = 14;
+  repeated ComponentPropertySchema properties = 15;
+  repeated ComponentPropertySchema output_properties = 16;
+  repeated ComponentPortContract ports = 17;
+  ComponentExecutionDescriptor execution = 18;
+  repeated ComponentDiagnostic diagnostics = 19;
+}
+
+message ComponentCatalogQuery {
+  string contract_version = 1;
+  string identity_filter = 2;
+  string source_filter = 3;
+  string status_filter = 4;
+  string category_filter = 5;
+  bool include_rejected = 6;
+  int32 page_size = 7;
+  string page_token = 8;
+}
+
+message ComponentCatalogResponse {
+  uint64 catalog_version = 1;
+  repeated ComponentDescriptor components = 2;
+  string next_page_token = 3;
+  repeated ComponentDiagnostic diagnostics = 4;
+}
+
+message ComponentCatalogRequest {
+  ComponentCatalogQuery query = 1;
+  repeated string supported_contract_versions = 2;
+}
+
+message ComponentCatalogReply {
+  ComponentCatalogResponse response = 1;
+  string selected_contract_version = 2;
+  repeated ComponentDiagnostic compatibility_diagnostics = 3;
+}
+
+message ComponentDiscoveryEvent {
+  string event_id = 1;
+  string timestamp = 2;
+  string source_id = 3;
+  string component_identity = 4;
+  string version = 5;
+  string kind = 6;
+  ComponentStatus status = 7;
+  repeated ComponentDiagnostic diagnostics = 8;
+}

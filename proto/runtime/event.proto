@@ -1,0 +1,19 @@
+syntax = "proto3";
+package cme.runtime.v1;
+
+message PublishEventRequest {
+  string event_id = 1;
+  string idempotency_key = 2;
+  string message_type = 3;
+  string target_component_id = 4;
+  bytes payload = 5;
+}
+message PublishEventResponse {
+  bool accepted = 1;
+  bool duplicate = 2;
+  string error_code = 3;
+  string error_message = 4;
+}
+service RuntimeEvents {
+  rpc PublishEvent(PublishEventRequest) returns (PublishEventResponse);
+}

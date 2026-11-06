@@ -44,6 +44,11 @@ void PropertySchemaRegistry::rebuildFromRegistry(const ExtensionContractRegistry
     qDeleteAll(m_sectionModelsByTarget);
     m_sectionModelsByTarget.clear();
 
+    if (m_hasRuntimeCatalog) {
+        emit schemasChanged();
+        return;
+    }
+
     const QList<const IPropertySchemaProvider *> providers = registry.propertySchemaProviders();
     for (const IPropertySchemaProvider *provider : providers) {
         if (!provider)
@@ -67,9 +72,99 @@ void PropertySchemaRegistry::rebuildFromRegistry(const ExtensionContractRegistry
     emit schemasChanged();
 }
 
+void PropertySchemaRegistry::replaceFromRuntimeCatalog(const QVariantList &descriptors)
+{
+    m_runtimeRowsByIdentity.clear();
+    m_rowsByTarget.clear();
+    qDeleteAll(m_sectionModelsByTarget);
+    m_sectionModelsByTarget.clear();
+
+    for (const QVariant &value : descriptors) {
+        const QVariantMap descriptor = value.toMap();
+        const QString identity = descriptor.value(QStringLiteral("identity")).toString().trimmed();
+        if (identity.isEmpty())
+            continue;
+
+        QVariantList rows;
+        int order = 0;
+        for (const QVariant &propertyValue : descriptor.value(QStringLiteral("properties")).toList()) {
+            QVariantMap property = propertyValue.toMap();
+            const QString key = property.value(QStringLiteral("id")).toString().trimmed();
+            if (key.isEmpty())
+                continue;
+
+            const QString type = property.value(QStringLiteral("type"), QStringLiteral("string")).toString();
+            const bool required = property.value(QStringLiteral("required")).toBool();
+            const QVariant defaultValue = property.value(QStringLiteral("default"));
+            QVariantList enumValues = property.value(QStringLiteral("enum")).toList();
+            if (enumValues.isEmpty())
+                enumValues = property.value(QStringLiteral("enumValues")).toList();
+            QString widget = QStringLiteral("textfield");
+            if (type == QStringLiteral("boolean") || type == QStringLiteral("bool"))
+                widget = QStringLiteral("checkbox");
+            else if (type == QStringLiteral("number") || type == QStringLiteral("integer"))
+                widget = QStringLiteral("spinbox");
+            else if (!enumValues.isEmpty())
+                widget = QStringLiteral("dropdown");
+            QVariantMap validation = property.value(QStringLiteral("validation")).toMap();
+            if (!enumValues.isEmpty())
+                validation.insert(QStringLiteral("enum"), enumValues);
+            for (const QString &constraint : {QStringLiteral("minimum"), QStringLiteral("maximum"),
+                                              QStringLiteral("minLength"), QStringLiteral("maxLength"),
+                                              QStringLiteral("pattern")}) {
+                if (property.contains(constraint))
+                    validation.insert(constraint, property.value(constraint));
+            }
+            const QString section = property.value(QStringLiteral("section"), QStringLiteral("Behavior")).toString();
+            const int fieldOrder = property.value(QStringLiteral("order"), order).toInt();
+            QVariantList options = property.value(QStringLiteral("options")).toList();
+            if (options.isEmpty())
+                options = enumValues;
+            QVariantMap extra;
+            if (!options.isEmpty())
+                extra.insert(QStringLiteral("dropdownOptions"), options);
+            if (property.contains(QStringLiteral("placeholder")))
+                extra.insert(QStringLiteral("placeholder"), property.value(QStringLiteral("placeholder")));
+            ++order;
+            rows.append(QVariantMap{
+                {QStringLiteral("key"), key},
+                {QStringLiteral("title"), property.value(QStringLiteral("label"), key)},
+                {QStringLiteral("type"), type},
+                {QStringLiteral("widget"), widget},
+                {QStringLiteral("required"), required},
+                {QStringLiteral("defaultValue"), defaultValue},
+                {QStringLiteral("section"), section},
+                {QStringLiteral("order"), fieldOrder},
+                {QStringLiteral("hint"), property.value(QStringLiteral("description"))},
+                {QStringLiteral("validation"), validation},
+                {QStringLiteral("visibleWhen"), property.value(QStringLiteral("visibleWhen"), QVariantMap())},
+                {QStringLiteral("options"), options},
+                {QStringLiteral("extra"), extra},
+                {QStringLiteral("valid"), true},
+                {QStringLiteral("schemaError"), QString()}
+            });
+        }
+
+        m_runtimeRowsByIdentity.insert(identity, normalizeRows(rows, QStringLiteral("component/%1").arg(identity)));
+    }
+
+    m_hasRuntimeCatalog = true;
+    emit schemasChanged();
+}
+
+QVariantList PropertySchemaRegistry::schemaRowsForTarget(const QString &targetId) const
+{
+    return resolvedSchemaRows(targetId);
+}
+
+QVariantList PropertySchemaRegistry::componentSchemaRows(const QString &componentIdentity) const
+{
+    return resolvedSchemaRows(QStringLiteral("component/%1").arg(componentIdentity));
+}
+
 bool PropertySchemaRegistry::hasTarget(const QString &targetId) const
 {
-    return m_rowsByTarget.contains(targetId);
+    return !resolvedSchemaRows(targetId).isEmpty();
 }
 
 bool PropertySchemaRegistry::schemaForTargetTyped(
@@ -293,6 +388,13 @@ QVariantList PropertySchemaRegistry::fallbackConnectionRows()
 
 QVariantList PropertySchemaRegistry::resolvedSchemaRows(const QString &targetId) const
 {
+    if (m_hasRuntimeCatalog && targetId.startsWith(QStringLiteral("component/"))) {
+        const QString identity = targetId.mid(QStringLiteral("component/").size());
+        if (m_runtimeRowsByIdentity.contains(identity))
+            return m_runtimeRowsByIdentity.value(identity);
+        return {};
+    }
+
     const QVariantList direct = m_rowsByTarget.value(targetId);
     if (!direct.isEmpty())
         return direct;

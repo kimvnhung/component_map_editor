@@ -26,6 +26,7 @@ class PersistenceValidationTests : public QObject
 private slots:
     void roundTripIsStable();
     void roundTripPreservesDynamicProperties();
+    void roundTripPreservesComponentReferenceSnapshot();
     void importsCanonicalCenterYDownCoordinates();
     void rejectsUnsupportedCoordinateSystem();
     void componentModelAcceptsDynamicProperties();
@@ -33,6 +34,30 @@ private slots:
     void validationRequiresExactlyOneStartAndStop();
     void validationRejectsDisconnectedWorkflow();
 };
+
+void PersistenceValidationTests::roundTripPreservesComponentReferenceSnapshot()
+{
+    GraphModel source;
+    auto *component = new ComponentModel(QStringLiteral("A"), QStringLiteral("Transform"), 0.0, 0.0);
+    component->setComponentIdentity(QStringLiteral("runtime.transform"));
+    component->setComponentVersion(QStringLiteral("2.1.0"));
+    component->setMetadataSnapshot(QStringLiteral("{\"identity\":\"runtime.transform\",\"version\":\"2.1.0\"}"));
+    source.addComponent(component);
+
+    ExportService persistence;
+    const QString json = persistence.exportToJson(&source);
+    QVERIFY(json.contains(QStringLiteral("componentIdentity")));
+    QVERIFY(json.contains(QStringLiteral("componentVersion")));
+    QVERIFY(json.contains(QStringLiteral("metadataSnapshot")));
+
+    GraphModel imported;
+    QVERIFY(persistence.importFromJson(&imported, json));
+    const ComponentModel *restored = imported.componentById(QStringLiteral("A"));
+    QVERIFY(restored != nullptr);
+    QCOMPARE(restored->componentIdentity(), QStringLiteral("runtime.transform"));
+    QCOMPARE(restored->componentVersion(), QStringLiteral("2.1.0"));
+    QCOMPARE(restored->metadataSnapshot(), component->metadataSnapshot());
+}
 
 void PersistenceValidationTests::roundTripIsStable()
 {

@@ -183,6 +183,10 @@ cme::GraphSnapshot ValidationService::buildTypedGraphSnapshot(GraphModel *graph)
         auto *componentData = snapshot.add_components();
         componentData->set_id(component->id().toStdString());
         componentData->set_type_id(component->type().toStdString());
+        componentData->set_title(component->title().toStdString());
+        componentData->set_component_identity(component->componentIdentity().toStdString());
+        componentData->set_component_version(component->componentVersion().toStdString());
+        componentData->set_metadata_snapshot(component->metadataSnapshot().toStdString());
         componentData->set_x(component->x());
         componentData->set_y(component->y());
 

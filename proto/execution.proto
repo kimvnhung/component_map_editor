@@ -32,7 +32,75 @@ message TimelineEvent {
 
 // ── Full execution snapshot emitted by GraphExecutionSandbox ──────────────
 message ExecutionSnapshot {
-  repeated TimelineEvent          events           = 1;
-  repeated ComponentExecutionState component_states = 2;
-  string                          session_id       = 3;
+  repeated TimelineEvent            events            = 1;
+  repeated ComponentExecutionState  component_states  = 2;
+  string                            session_id        = 3;
+}
+
+// Runtime-to-worker request for a trusted remote component.
+message RemoteExecutionRequest {
+  string request_id = 1;
+  string component_identity = 2;
+  string component_version = 3;
+  string worker_capability_reference = 4;
+  string graph_instance_id = 5;
+  bytes input_payload = 6;
+  map<string, string> configuration = 7;
+  int64 deadline_ms = 8;
+  string cancellation_token = 9;
+  int32 attempt = 10;
+  bool idempotent = 11;
+}
+
+enum RemoteExecutionStatus {
+  REMOTE_EXECUTION_STATUS_UNSPECIFIED = 0;
+  REMOTE_EXECUTION_STATUS_SUCCEEDED = 1;
+  REMOTE_EXECUTION_STATUS_FAILED = 2;
+  REMOTE_EXECUTION_STATUS_CANCELLED = 3;
+  REMOTE_EXECUTION_STATUS_TIMED_OUT = 4;
+}
+
+message RemoteExecutionError {
+  string code = 1;
+  string message = 2;
+  bool retryable = 3;
+  string field_path = 4;
+}
+
+message RemoteExecutionOutput {
+  string name = 1;
+  string type = 2;
+  bytes payload = 3;
+}
+
+message RemoteExecutionResult {
+  string request_id = 1;
+  string component_identity = 2;
+  string component_version = 3;
+  RemoteExecutionStatus status = 4;
+  repeated RemoteExecutionOutput outputs = 5;
+  bytes event_payload = 6;
+  RemoteExecutionError error = 7;
+  map<string, string> worker_metadata = 8;
+}
+
+message RemoteExecutionCancelRequest {
+  string request_id = 1;
+  string cancellation_token = 2;
+}
+
+message RemoteExecutionCancelResponse {
+  bool accepted = 1;
+  string error_code = 2;
+  string error_message = 3;
+}
+
+service RemoteWorkerExecution {
+  rpc Execute(RemoteExecutionRequest) returns (RemoteExecutionResult);
+  rpc Cancel(RemoteExecutionCancelRequest) returns (RemoteExecutionCancelResponse);
+}
+
+message RemoteExecutionContract {
+  string contract_version = 1;
+  repeated string supported_protocols = 2;
 }

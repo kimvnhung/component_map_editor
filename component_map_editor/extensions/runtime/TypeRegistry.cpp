@@ -11,6 +11,7 @@ TypeRegistry::TypeRegistry(QObject *parent)
 void TypeRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry)
 {
     const QStringList prevIds = m_orderedTypeIds;
+    m_hasRuntimeCatalog = false;
 
     m_descriptors.clear();
     m_defaults.clear();
@@ -59,6 +60,29 @@ void TypeRegistry::rebuildFromRegistry(const ExtensionContractRegistry &registry
     {
         emit componentTypesChanged();
     }
+}
+
+void TypeRegistry::replaceFromRuntimeCatalog(const QVariantList &descriptors)
+{
+    const QStringList previousIds = m_orderedTypeIds;
+    m_descriptors.clear();
+    m_defaults.clear();
+    m_orderedTypeIds.clear();
+
+    for (const QVariant &value : descriptors)
+    {
+        const QVariantMap descriptor = value.toMap();
+        const QString identity = descriptor.value(QStringLiteral("identity")).toString();
+        if (identity.isEmpty() || m_descriptors.contains(identity))
+            continue;
+        m_descriptors.insert(identity, descriptor);
+        m_defaults.insert(identity, descriptor.value(QStringLiteral("defaultProperties")).toMap());
+        m_orderedTypeIds.append(identity);
+    }
+
+    m_hasRuntimeCatalog = true;
+    if (previousIds != m_orderedTypeIds)
+        emit componentTypesChanged();
 }
 
 // ---------------------------------------------------------------------------

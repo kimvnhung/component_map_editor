@@ -50,6 +50,8 @@ public:
     * Emits componentTypesChanged() if the set of component types changes.
      */
     void rebuildFromRegistry(const ExtensionContractRegistry &registry);
+    void replaceFromRuntimeCatalog(const QVariantList &descriptors);
+    bool hasRuntimeCatalog() const { return m_hasRuntimeCatalog; }
 
     // ---------- Component-type lookups (O(1) after rebuild) -----------------
 
@@ -98,6 +100,10 @@ signals:
     void componentTypesChanged();
 
 private:
+    // Runtime descriptors are authoritative after a successful catalog refresh.
+    // Extension providers remain available as an offline fallback until then.
+    bool m_hasRuntimeCatalog = false;
+
     // Component-type cache (populated by rebuildFromRegistry)
     QHash<QString, QVariantMap> m_descriptors; // typeId → descriptor map
     QHash<QString, QVariantMap> m_defaults;    // typeId → default property map
