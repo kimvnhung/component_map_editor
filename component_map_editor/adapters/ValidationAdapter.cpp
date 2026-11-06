@@ -55,12 +55,20 @@ static void restoreConnectionFields(QVariantMap &connectionMap)
 
 // Legacy provider-internal shape -> stable path convention (T008/T016).
 // Providers emit "entityType" ("graph"/"component"/"connection") + "entityId".
-QString validationPathFor(const QString &entityType, const QString &entityId)
+QString validationPathFor(const QString &entityType,
+                          const QString &entityId,
+                          const QString &entitySubPath)
 {
     const QString trimmedType = entityType.trimmed();
     const QString trimmedId = entityId.trimmed();
+    const QString trimmedSubPath = entitySubPath.trimmed();
     if (trimmedType == QLatin1String("component") && !trimmedId.isEmpty())
+    {
+        // T026: match runtime field_path shape: "components/<id>.properties.<prop>"
+        if (!trimmedSubPath.isEmpty())
+            return QStringLiteral("components/") + trimmedId + QLatin1Char('.') + trimmedSubPath;
         return QStringLiteral("components/") + trimmedId;
+    }
     if (trimmedType == QLatin1String("connection") && !trimmedId.isEmpty())
         return QStringLiteral("connections/") + trimmedId;
     return QStringLiteral("graph");

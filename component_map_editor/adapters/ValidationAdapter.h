@@ -76,7 +76,16 @@ QString validationSeverityToString(cme::ValidationSeverity severity);
 /// Convention: "components/<entityId>", "connections/<entityId>", or "graph".
 /// Paths use entity identifiers only — never array indices — so they are
 /// invariant under entity reordering (T018).
-QString validationPathFor(const QString &entityType, const QString &entityId);
+///
+/// T026: when an optional subPath (e.g. "properties.<prop>" or
+/// "ports.<portId>") is supplied for a component, it is appended with a "."
+/// separator so the result matches the runtime field_path form exactly
+/// ("components/<id>.properties.<prop>" / "components/<id>.ports.<portId>").
+/// The subPath is only applied for component paths, keeping SC-001 shape
+/// parity with the runtime.
+QString validationPathFor(const QString &entityType,
+                          const QString &entityId,
+                          const QString &entitySubPath = {});
 
 // Parse a unified "path" back into its entity id.
 /// Returns the trailing entity id for "components/<id>..." and

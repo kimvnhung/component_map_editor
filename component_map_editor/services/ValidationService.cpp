@@ -57,7 +57,13 @@ QVariantMap normalizeProviderIssue(const QVariantMap &issue)
     if (!result.contains(QStringLiteral("path"))) {
         const QString entityType = result.value(QStringLiteral("entityType")).toString();
         const QString entityId = result.value(QStringLiteral("entityId")).toString();
-        result[QStringLiteral("path")] = cme::adapter::validationPathFor(entityType, entityId);
+        // T026: an optional "entitySubPath" (e.g. "properties.<prop>",
+        // "ports.<portId>") is carried by providers that point at a specific
+        // property/port. It is appended after the entity id so the emitted
+        // path matches the runtime field_path shape for SC-001 parity.
+        const QString entitySubPath = result.value(QStringLiteral("entitySubPath")).toString();
+        result[QStringLiteral("path")] =
+            cme::adapter::validationPathFor(entityType, entityId, entitySubPath);
     }
 
     return result;

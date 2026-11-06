@@ -192,3 +192,12 @@ Task: "T014 RuntimeClient passes structured issue via DeploymentValidationAdapte
 - Commit sau mỗi task hoặc nhóm logic.
 - Tránh: task mơ hồ, xung đột cùng file, dependency chéo phá vỡ independence.
 - Không tự giả định build/test command; lấy từ project root khi thực thi.
+
+---
+
+## Phase 7: Convergence
+
+**Purpose**: Đóng khoảng cách giữa spec/plan/tasks và code hiện tại. Phát hiện dựa trên đánh giá code thực tế (không chỉ tin trạng thái checkbox).
+
+- [x] T025 Align runtime validation codes with `DiagnosticCodeCatalog` per FR-002/SC-001 (T011, partial). Runtime `component_map_runtime/src/DeploymentValidator.cpp`, `DeploymentManager.cpp` và `FlattenCompiler.cpp` currently emit raw hardcoded code literals (e.g. `"REQUIRED_PROPERTY_MISSING"`, `"INSTANCE_ID_REQUIRED"`, `"GRAPH_VERSION_REQUIRED"`, `"COMPONENT_PROPERTY_REQUIRED"`-equivalent) instead of referencing `component_map_editor/services/DiagnosticCodeCatalog.h` constants or the shared normalize-mapped catalog. Map each runtime issue code to the corresponding `DiagnosticCodeCatalog` entry (or a runtime-local mirror of the same stable code) so the same logical error yields the same `code` as the editor (quickstart S1 / SC-001).
+- [x] T026 Emit editor validation path with the same depth as runtime per FR-008/SC-001 (T016, partial). Editor validation providers and `RuleRuntimeEngine` emit only `components/<id>` / `connections/<id>` (derived from `entityType`+`entityId`), while runtime emits `components/<id>.properties.<prop>` / `components/<id>.ports.<portId>`. Extend the editor path builder (e.g. `cme::adapter::validationPathFor` in `component_map_editor/adapters/ValidationAdapter.cpp` and the provider/rule `makeIssue` call sites) to carry the sub-field (property/port) so the path is identical in shape to the runtime `field_path` for the same logical error (quickstart S1 / SC-001).

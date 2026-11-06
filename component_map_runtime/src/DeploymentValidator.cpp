@@ -23,6 +23,15 @@ QString normalizeDiagnosticCode(const QString &code)
     return normalized;
 }
 
+// T025: Runtime-local mirror of cme::editor::DiagnosticCodeCatalog. The runtime
+// subproject is a separate static library with no include path into
+// component_map_editor/, so the shared code literals are duplicated here rather
+// than depending on the editor header. These values MUST stay in sync with the
+// editor's DiagnosticCodeCatalog — the same logical error must yield the same
+// code in both (SC-001).
+static constexpr char kComponentPropertyRequired[] = "COMPONENT_PROPERTY_REQUIRED";
+static constexpr char kMissingHandlerCapability[]   = "MISSING_HANDLER_CAPABILITY";
+
 void addIssue(DeploymentValidationResult *result,
               const char *code,
               const char *path,
@@ -187,7 +196,7 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
         }
         else if (m_registry && !m_registry->contains(QString::fromStdString(component.component_type())))
         {
-            addIssue(&result, "HANDLER_NOT_FOUND",
+            addIssue(&result, kMissingHandlerCapability,
                      (componentPath + QStringLiteral(".component_type")).toUtf8().constData(),
                      QStringLiteral("Component type has no registered handler."));
         }
@@ -236,7 +245,7 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
                         const auto propertyIt = component.properties().find(schema.id.toStdString());
                         const bool hasValue = propertyIt != component.properties().end();
                         if (schema.required && !hasValue && schema.defaultValue.isEmpty())
-                            addIssue(&result, "REQUIRED_PROPERTY_MISSING", propertyPath.toUtf8().constData(),
+                            addIssue(&result, kComponentPropertyRequired, propertyPath.toUtf8().constData(),
                                      QStringLiteral("Required component property is missing."));
                         if (hasValue)
                         {
