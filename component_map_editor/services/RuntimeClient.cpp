@@ -1,5 +1,9 @@
 #include "RuntimeClient.h"
 
+#include "DeploymentValidationAdapter.h"
+#include "DiagnosticCodeCatalog.h"
+#include "adapters/ValidationAdapter.h"
+
 #include <chrono>
 #include <QRegularExpression>
 
@@ -175,31 +179,20 @@ bool RuntimeClient::deployGraph(const cme::runtime::v1::DeploymentGraph &graph,
                             QString::fromStdString(local.error_message()), error);
 }
 
+// T002: delegate to the shared normalization helper so editor and runtime
+// normalize codes identically.
 QString RuntimeClient::stableDiagnosticCode(const QString &code)
 {
-    QString normalized = code.trimmed().toUpper();
-    normalized.replace(QRegularExpression(QStringLiteral("[^A-Z0-9_]+")), QStringLiteral("_"));
-    return normalized;
+    return cme::editor::normalizeDiagnosticCode(code);
 }
 
+// T007: map runtime issues to the unified shape (code, severity, path, message,
+// details) via the shared DeploymentValidationAdapter. RuntimeClient returns
+// structured issues; only the UI layer may format them to text.
 QVariantMap RuntimeClient::deploymentValidationIssueMap(
     const cme::runtime::v1::DeploymentValidationIssue &issue)
 {
-    QVariantMap result;
-    const QString fieldPath = QString::fromStdString(issue.field_path());
-    result.insert(QStringLiteral("code"), stableDiagnosticCode(QString::fromStdString(issue.code())));
-    result.insert(QStringLiteral("severity"), static_cast<int>(issue.severity()));
-    result.insert(QStringLiteral("fieldPath"), fieldPath);
-    result.insert(QStringLiteral("message"), QString::fromStdString(issue.message()));
-    if (!issue.component_identity().empty())
-        result.insert(QStringLiteral("componentIdentity"), QString::fromStdString(issue.component_identity()));
-    if (!issue.component_version().empty())
-        result.insert(QStringLiteral("componentVersion"), QString::fromStdString(issue.component_version()));
-    if (fieldPath.contains(QStringLiteral(".properties.")))
-        result.insert(QStringLiteral("propertyPath"), fieldPath.section(QStringLiteral(".properties."), 1));
-    if (fieldPath.contains(QStringLiteral(".ports.")))
-        result.insert(QStringLiteral("portPath"), fieldPath.section(QStringLiteral(".ports."), 1));
-    return result;
+    return cme::adapter::deploymentIssueToUnified(issue);
 }
 
 QVariantList RuntimeClient::deploymentValidationIssues(
@@ -212,15 +205,11 @@ QVariantList RuntimeClient::deploymentValidationIssues(
     return issues;
 }
 
+// T014/T024: map the editor's ValidationIssue proto to the unified structured
+// shape (code, severity string, path, message, details) — no string flattening.
 QVariantMap RuntimeClient::validationIssueMap(const cme::ValidationIssue &issue)
 {
-    QVariantMap result;
-    result.insert(QStringLiteral("code"), stableDiagnosticCode(QString::fromStdString(issue.code())));
-    result.insert(QStringLiteral("severity"), static_cast<int>(issue.severity()));
-    result.insert(QStringLiteral("message"), QString::fromStdString(issue.message()));
-    result.insert(QStringLiteral("componentId"), QString::fromStdString(issue.component_id()));
-    result.insert(QStringLiteral("connectionId"), QString::fromStdString(issue.connection_id()));
-    return result;
+    return cme::adapter::validationIssueToVariantMap(issue);
 }
 
 QVariantList RuntimeClient::validationIssues(const cme::GraphValidationResult &result)
@@ -253,10 +242,12 @@ QString RuntimeClient::portPathFromFieldPath(const QString &fieldPath)
         ? fieldPath.section(QStringLiteral(".ports."), 1) : QString();
 }
 
+// Backward-compat: derive the legacy propertyPath/portPath keys from the
+// unified "path" key when they are not already present.
 QVariantMap RuntimeClient::enrichValidationIssue(const QVariantMap &issue)
 {
     QVariantMap result = issue;
-    const QString fieldPath = issue.value(QStringLiteral("fieldPath")).toString();
+    const QString fieldPath = issue.value(QStringLiteral("path")).toString();
     if (!result.contains(QStringLiteral("propertyPath")))
         result.insert(QStringLiteral("propertyPath"), propertyPathFromFieldPath(fieldPath));
     if (!result.contains(QStringLiteral("portPath")))

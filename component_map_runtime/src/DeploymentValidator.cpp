@@ -1,6 +1,7 @@
 #include "component_map_runtime/DeploymentValidator.h"
 
 #include <QHash>
+#include <QRegularExpression>
 #include <QSet>
 #include <QString>
 #include <functional>
@@ -11,6 +12,17 @@ namespace
 {
 using namespace cme::runtime::v1;
 
+// T002: Duplicate of the editor's cme::editor::normalizeDiagnosticCode — the
+// runtime subproject is a separate static library with no include path into
+// component_map_editor/, so the tiny helper is duplicated rather than the
+// build restructured. Behavior MUST stay in sync (trim, upper, [^A-Z0-9_]+ -> "_").
+QString normalizeDiagnosticCode(const QString &code)
+{
+    QString normalized = code.trimmed().toUpper();
+    normalized.replace(QRegularExpression(QStringLiteral("[^A-Z0-9_]+")), QStringLiteral("_"));
+    return normalized;
+}
+
 void addIssue(DeploymentValidationResult *result,
               const char *code,
               const char *path,
@@ -20,7 +32,9 @@ void addIssue(DeploymentValidationResult *result,
               const QString &version = {})
 {
     auto *issue = result->add_issues();
-    issue->set_code(code);
+    // T010/T011: normalize the code so the runtime emits the same stable
+    // UPPER_SNAKE_CASE codes as the editor's DiagnosticCodeCatalog.
+    issue->set_code(normalizeDiagnosticCode(QString::fromLatin1(code)).toStdString());
     issue->set_severity(severity);
     issue->set_field_path(path);
     issue->set_message(message.toStdString());
@@ -64,8 +78,10 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
         const QString key = id + QStringLiteral("@") + version;
         if (id.isEmpty() || version.isEmpty())
         {
+            // T017: stable path — use the graph definition key, not the array index.
+            const QString defPath = key.isEmpty() ? QStringLiteral("graph_definitions") : (QStringLiteral("graph_definitions/") + key);
             addIssue(&result, "GRAPH_DEFINITION_VERSION_REQUIRED",
-                     QStringLiteral("graph_definitions[%1]").arg(i).toUtf8().constData(),
+                     defPath.toUtf8().constData(),
                      QStringLiteral("Graph definition id and version are required."));
             continue;
         }
@@ -122,7 +138,12 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
     {
         const auto &component = graph.components(i);
         const QString instanceId = QString::fromStdString(component.instance_id());
-        const QString componentPath = QStringLiteral("components[%1]").arg(i);
+        // T017: stable path — use the instance id, never the array index, so the
+        // path matches the editor's "components/<id>" convention and is invariant
+        // under reordering (SC-004).
+        const QString componentPath = instanceId.isEmpty()
+            ? QStringLiteral("components")
+            : (QStringLiteral("components/") + instanceId);
         if (instanceId.isEmpty())
         {
             addIssue(&result, "INSTANCE_ID_REQUIRED",
@@ -304,7 +325,10 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
         {
             const auto &port = component.ports(p);
             const QString portId = QString::fromStdString(port.port_id());
-            const QString portPath = componentPath + QStringLiteral(".ports[%1]").arg(p);
+            // T017: stable port path — prefer the port id, fall back to index.
+            const QString portPath = portId.isEmpty()
+                ? (componentPath + QStringLiteral(".ports"))
+                : (componentPath + QStringLiteral(".ports.") + portId);
             if (portId.isEmpty())
             {
                 addIssue(&result, "PORT_ID_REQUIRED",
@@ -345,8 +369,12 @@ cme::runtime::v1::DeploymentValidationResult DeploymentValidator::validate(
     for (int i = 0; i < graph.routes_size(); ++i)
     {
         const auto &route = graph.routes(i);
-        const QString routePath = QStringLiteral("routes[%1]").arg(i);
         const QString connectionId = QString::fromStdString(route.connection_id());
+        // T017: stable path — use the connection id (matches editor "connections/<id>"),
+        // never the array index. Fall back to "routes" when the id is empty.
+        const QString routePath = connectionId.isEmpty()
+            ? QStringLiteral("routes")
+            : (QStringLiteral("connections/") + connectionId);
         const QString sourceId = QString::fromStdString(route.source_instance_id());
         const QString targetId = QString::fromStdString(route.target_instance_id());
         const QString sourcePort = QString::fromStdString(route.source_port_id());

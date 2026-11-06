@@ -2,6 +2,7 @@
 
 #include "extensions/contracts/ExtensionContractRegistry.h"
 #include "adapters/ValidationAdapter.h"
+#include "DiagnosticCodeCatalog.h"
 
 ValidationService::ValidationService(QObject *parent)
     : QObject(parent)
@@ -39,16 +40,40 @@ QStringList ValidationService::validationErrors(GraphModel *graph)
     return errors;
 }
 
+namespace {
+
+// T008: normalize a single provider-issued QVariantMap into the unified shape:
+//   - "code" passes through normalizeDiagnosticCode (UPPER_SNAKE_CASE)
+//   - "path" is derived from the legacy "entityType"/"entityId" keys when the
+//     adapter did not already provide one
+QVariantMap normalizeProviderIssue(const QVariantMap &issue)
+{
+    QVariantMap result = issue;
+
+    if (result.contains(QStringLiteral("code")))
+        result[QStringLiteral("code")] =
+            cme::editor::normalizeDiagnosticCode(result.value(QStringLiteral("code")).toString());
+
+    if (!result.contains(QStringLiteral("path"))) {
+        const QString entityType = result.value(QStringLiteral("entityType")).toString();
+        const QString entityId = result.value(QStringLiteral("entityId")).toString();
+        result[QStringLiteral("path")] = cme::adapter::validationPathFor(entityType, entityId);
+    }
+
+    return result;
+}
+
+} // namespace
+
 QVariantList ValidationService::validationIssues(GraphModel *graph)
 {
     QVariantList issues;
     if (!graph) {
         issues.append(QVariantMap{
-            { QStringLiteral("code"), QStringLiteral("CORE_NULL_GRAPH") },
+            { QStringLiteral("code"), QString::fromUtf8(cme::editor::DiagnosticCodeCatalog::CoreNullGraph) },
             { QStringLiteral("severity"), cme::adapter::validationSeverityToString(cme::VALIDATION_SEVERITY_ERROR) },
             { QStringLiteral("message"), QStringLiteral("Graph is null") },
-            { QStringLiteral("entityType"), QStringLiteral("graph") },
-            { QStringLiteral("entityId"), QString() }
+            { QStringLiteral("path"), QStringLiteral("graph") }
         });
         return issues;
     }
@@ -67,12 +92,11 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
         QString providerError;
         if (!provider->validateGraph(typedSnapshot, &providerResult, &providerError)) {
             issues.append(QVariantMap{
-                { QStringLiteral("code"), QStringLiteral("CORE_VALIDATION_PROVIDER_ERROR") },
+                { QStringLiteral("code"), QString::fromUtf8(cme::editor::DiagnosticCodeCatalog::CoreValidationProviderError) },
                 { QStringLiteral("severity"), cme::adapter::validationSeverityToString(cme::VALIDATION_SEVERITY_ERROR) },
                 { QStringLiteral("message"), providerError.isEmpty() ? QStringLiteral("Validation provider failed")
                                                                       : providerError },
-                { QStringLiteral("entityType"), QStringLiteral("graph") },
-                { QStringLiteral("entityId"), QString() }
+                { QStringLiteral("path"), QStringLiteral("graph") }
             });
             continue;
         }
@@ -81,7 +105,7 @@ QVariantList ValidationService::validationIssues(GraphModel *graph)
             const QVariantMap issue = cme::adapter::validationIssueToVariantMap(providerResult.issues(i));
             if (issue.isEmpty())
                 continue;
-            issues.append(issue);
+            issues.append(normalizeProviderIssue(issue));
         }
     }
 

@@ -31,9 +31,9 @@ description: "Task list for feature 002-normalize-validation-issue"
 
 **Purpose**: Chuẩn bị contract chung và catalog; không thay đổi hành vi runtime/editor.
 
-- [ ] T001 Tạo `DiagnosticCodeCatalog` (header/enum tĩnh) trong `component_map_editor/services/DiagnosticCodeCatalog.h` định nghĩa các mã tối thiểu theo SDD F2.4: `CORE_NULL_GRAPH`, `CORE_VALIDATION_PROVIDER_ERROR`, `DUPLICATE_COMPONENT_ID`, `MISSING_DESCRIPTOR`, `MISSING_SCHEMA`, `INVALID_PORT_METADATA`, `MISSING_HANDLER_CAPABILITY`, `INCOMPATIBLE_COMPONENT_METADATA`, `PROVIDER_DISCOVERY_REGISTRATION_FAILURE`, `COMPONENT_PROPERTY_REQUIRED`.
-- [ ] T002 Đưa hàm `stableDiagnosticCode` (hiện ở `RuntimeClient.cpp`) thành shared util dùng chung cho editor và runtime; đảm bảo `code` normalize thành UPPER_SNAKE_CASE (trim, upper, `[^A-Z0-9_]+` → `_`).
-- [ ] T003 [P] Mở rộng `proto/validation.proto::ValidationIssue` thêm trường `path` (string, field 3), `details` (map<string,string>, field 5), `remediation` (string, field 6); giữ `code`, `severity`, `message`. Cập nhật `proto/CMakeLists.txt` nếu cần regenerate.
+- [x] T001 Tạo `DiagnosticCodeCatalog` (header/enum tĩnh) trong `component_map_editor/services/DiagnosticCodeCatalog.h` định nghĩa các mã tối thiểu theo SDD F2.4: `CORE_NULL_GRAPH`, `CORE_VALIDATION_PROVIDER_ERROR`, `DUPLICATE_COMPONENT_ID`, `MISSING_DESCRIPTOR`, `MISSING_SCHEMA`, `INVALID_PORT_METADATA`, `MISSING_HANDLER_CAPABILITY`, `INCOMPATIBLE_COMPONENT_METADATA`, `PROVIDER_DISCOVERY_REGISTRATION_FAILURE`, `COMPONENT_PROPERTY_REQUIRED`.
+- [x] T002 Đưa hàm `stableDiagnosticCode` (hiện ở `RuntimeClient.cpp`) thành shared util dùng chung cho editor và runtime; đảm bảo `code` normalize thành UPPER_SNAKE_CASE (trim, upper, `[^A-Z0-9_]+` → `_`).
+- [x] T003 [P] Mở rộng `proto/validation.proto::ValidationIssue` thêm trường `path` (string, field 3), `details` (map<string,string>, field 5), `remediation` (string, field 6); giữ `code`, `severity`, `message`. Cập nhật `proto/CMakeLists.txt` nếu cần regenerate.
 
 **Checkpoint**: Contract chung và catalog sẵn sàng; chưa thay đổi hành vi truyền tải issue.
 
@@ -43,10 +43,10 @@ description: "Task list for feature 002-normalize-validation-issue"
 
 **Purpose**: Adapter layer map 2 chiều giữa unified `ValidationIssue` và các shape cũ; bắt buộc trước mọi user story.
 
-- [ ] T004 [P] Trong `component_map_editor/adapters/ValidationAdapter.cpp`, cập nhật `validationIssueToVariantMap` để xuất khóa `path` (từ `component_id`/`connection_id` theo quy ước `components/<id>...` / `connections/<id>...` / `graph` khi rỗng) và giữ `code`, `severity`, `message`, `details`, `remediation`.
-- [ ] T005 [P] Cập nhật `variantMapToValidationIssue` (ValidationAdapter) để đọc `path` và map ngược thành `component_id`/`connection_id` tương ứng khi serialize sang proto, giữ tương thích wire.
-- [ ] T006 [P] Tạo `component_map_editor/adapters/DeploymentValidationAdapter.{h,cpp}` map 2 chiều `DeploymentValidationIssue` ↔ unified `ValidationIssue`: `field_path` → `path` (giữ nguyên định danh), `code` → `code` qua `stableDiagnosticCode`, `component_identity`/`component_version` → `details`.
-- [ ] T007 Cập nhật `RuntimeClient::deploymentValidationIssueMap` (`component_map_editor/services/RuntimeClient.cpp`) dùng `DeploymentValidationAdapter` để trả shape unified (`code`, `severity`, `path`, `message`, `details`) thay vì shape `fieldPath`/`componentIdentity` cũ.
+- [x] T004 [P] Trong `component_map_editor/adapters/ValidationAdapter.cpp`, cập nhật `validationIssueToVariantMap` để xuất khóa `path` (từ `component_id`/`connection_id` theo quy ước `components/<id>...` / `connections/<id>...` / `graph` khi rỗng) và giữ `code`, `severity`, `message`, `details`, `remediation`.
+- [x] T005 [P] Cập nhật `variantMapToValidationIssue` (ValidationAdapter) để đọc `path` và map ngược thành `component_id`/`connection_id` tương ứng khi serialize sang proto, giữ tương thích wire.
+- [x] T006 [P] Tạo `component_map_editor/adapters/DeploymentValidationAdapter.{h,cpp}` map 2 chiều `DeploymentValidationIssue` ↔ unified `ValidationIssue`: `field_path` → `path` (giữ nguyên định danh), `code` → `code` qua `stableDiagnosticCode`, `component_identity`/`component_version` → `details`.
+- [x] T007 Cập nhật `RuntimeClient::deploymentValidationIssueMap` (`component_map_editor/services/RuntimeClient.cpp`) dùng `DeploymentValidationAdapter` để trả shape unified (`code`, `severity`, `path`, `message`, `details`) thay vì shape `fieldPath`/`componentIdentity` cũ.
 
 **Checkpoint**: Mọi adapter map về unified shape; user story implementation có thể bắt đầu.
 
@@ -60,10 +60,10 @@ description: "Task list for feature 002-normalize-validation-issue"
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Cập nhật `ValidationService::validationIssues` (`component_map_editor/services/ValidationService.cpp`) sinh issue dùng `code` từ `DiagnosticCodeCatalog` (qua `stableDiagnosticCode`) và `path` theo quy ước định danh (`components/<componentId>...`, `connections/<connectionId>...`, `graph` cho `CORE_NULL_GRAPH`).
-- [ ] T009 [US1] Đảm bảo editor validation provider phát sinh `severity` hợp lệ (`ERROR`/`WARNING`/`INFO`); thiếu/không hợp lệ → `ERROR` (fail-closed) theo edge case trong spec.
-- [ ] T010 [US1] Tại runtime, đảm bảo `ValidateDeployment` sinh `DeploymentValidationIssue` với `code` qua `stableDiagnosticCode` và `field_path` dùng định danh thực thể (không chỉ mục), đồng bộ semantics với editor.
-- [ ] T011 [US1] Thêm mapping catalog → runtime issue trong `component_map_runtime/src/` (nơi sinh validation issue) để cùng lỗi logic ↔ cùng `code` (ví dụ `COMPONENT_PROPERTY_REQUIRED`).
+- [x] T008 [US1] Cập nhật `ValidationService::validationIssues` (`component_map_editor/services/ValidationService.cpp`) sinh issue dùng `code` từ `DiagnosticCodeCatalog` (qua `stableDiagnosticCode`) và `path` theo quy ước định danh (`components/<componentId>...`, `connections/<connectionId>...`, `graph` cho `CORE_NULL_GRAPH`).
+- [x] T009 [US1] Đảm bảo editor validation provider phát sinh `severity` hợp lệ (`ERROR`/`WARNING`/`INFO`); thiếu/không hợp lệ → `ERROR` (fail-closed) theo edge case trong spec.
+- [x] T010 [US1] Tại runtime, đảm bảo `ValidateDeployment` sinh `DeploymentValidationIssue` với `code` qua `stableDiagnosticCode` và `field_path` dùng định danh thực thể (không chỉ mục), đồng bộ semantics với editor.
+- [x] T011 [US1] Thêm mapping catalog → runtime issue trong `component_map_runtime/src/` (nơi sinh validation issue) để cùng lỗi logic ↔ cùng `code` (ví dụ `COMPONENT_PROPERTY_REQUIRED`).
 
 **Checkpoint**: US1 độc lập functional; cùng lỗi có code/severity/path tương thích editor/runtime.
 
@@ -77,10 +77,10 @@ description: "Task list for feature 002-normalize-validation-issue"
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Đảm bảo `ValidationService::validationIssues` trả `QVariantList` structured (không `QStringList` chuỗi) làm contract liên tầng; giữ `validationErrors()`/`validate()` chỉ làm tiện ích UI/text.
-- [ ] T013 [US2] Đảm bảo exporter (`component_map_editor/deployment/` hoặc tương đương) truyền issue structured vào deployment snapshot, không flatten thành chuỗi.
-- [ ] T014 [US2] Đảm bảo `RuntimeClient` truyền structured issue từ runtime về editor (qua `DeploymentValidationAdapter`) và manager xử lý structured list, chỉ UI format text.
-- [ ] T015 [US2] Đảm bảo trường tùy chọn `details`/`remediation` (nếu có) được giữ nguyên qua mọi boundary (không bị cắt bỏ).
+- [x] T012 [US2] Đảm bảo `ValidationService::validationIssues` trả `QVariantList` structured (không `QStringList` chuỗi) làm contract liên tầng; giữ `validationErrors()`/`validate()` chỉ làm tiện ích UI/text.
+- [x] T013 [US2] Đảm bảo exporter (`component_map_editor/deployment/` hoặc tương đương) truyền issue structured vào deployment snapshot, không flatten thành chuỗi.
+- [x] T014 [US2] Đảm bảo `RuntimeClient` truyền structured issue từ runtime về editor (qua `DeploymentValidationAdapter`) và manager xử lý structured list, chỉ UI format text.
+- [x] T015 [US2] Đảm bảo trường tùy chọn `details`/`remediation` (nếu có) được giữ nguyên qua mọi boundary (không bị cắt bỏ).
 
 **Checkpoint**: US1 + US2 independent functional; structured issue bảo toàn xuyên boundary.
 
@@ -94,9 +94,9 @@ description: "Task list for feature 002-normalize-validation-issue"
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Chuẩn hóa hàm sinh `path` tập trung (trong `ValidationAdapter` hoặc util) theo quy ước: `components/<componentId>.properties.<prop>`, `components/<componentId>.ports.<portId>`, `connections/<connectionId>.<field>`, `graph` cho lỗi root; KHÔNG dùng chỉ mục mảng.
-- [ ] T017 [US3] Đảm bảo editor và runtime dùng cùng hàm sinh `path` (hoặc map tương đương) để `path` đồng dạng (cùng cú pháp) giữa hai bên.
-- [ ] T018 [US3] Đảm bảo `path` không đổi khi thứ tự entity trong graph thay đổi (chỉ định danh) — coverage test qua reorder.
+- [x] T016 [US3] Chuẩn hóa hàm sinh `path` tập trung (trong `ValidationAdapter` hoặc util) theo quy ước: `components/<componentId>.properties.<prop>`, `components/<componentId>.ports.<portId>`, `connections/<connectionId>.<field>`, `graph` cho lỗi root; KHÔNG dùng chỉ mục mảng.
+- [x] T017 [US3] Đảm bảo editor và runtime dùng cùng hàm sinh `path` (hoặc map tương đương) để `path` đồng dạng (cùng cú pháp) giữa hai bên.
+- [x] T018 [US3] Đảm bảo `path` không đổi khi thứ tự entity trong graph thay đổi (chỉ định danh) — coverage test qua reorder.
 
 **Checkpoint**: Tất cả user stories independent functional; `path` ổn định và tham chiếu được.
 
@@ -106,12 +106,12 @@ description: "Task list for feature 002-normalize-validation-issue"
 
 **Purpose**: Edge cases, severity behavior, và xác minh end-to-end theo quickstart.
 
-- [ ] T019 [P] Xử lý edge case fail-closed: issue thiếu/không hợp lệ `severity` → `ERROR` (chặn) trong cả editor (`ValidationService::issueIsError`) và runtime.
-- [ ] T020 [P] Xử lý edge case runtime không tin client string: `ValidateDeployment` luôn re-validate snapshot và sinh structured issue riêng (FR-004).
-- [ ] T021 [P] Xử lý edge case warning đi cùng error: result giữ cả hai, deployment bị chặn bởi error nhưng warning vẫn hiển thị/ghi nhận (FR-005/FR-009, SDD D9).
-- [ ] T022 [P] Đảm bảo `GraphValidationResult.is_valid` = false khi có bất kỳ `ERROR` nào; warning không làm `is_valid=false`.
-- [ ] T023 Chạy các kịch bản validation trong `quickstart.md` (S1–S7) để xác minh end-to-end: code/severity/path tương thích, structured bảo toàn, warning không mất data, path ổn định, runtime re-validate, fail-closed.
-- [ ] T024 Cập nhật tài liệu/comment tại `ValidationService`, `RuntimeClient`, `ValidationAdapter` để ghi rõ hợp đồng issue chuẩn hóa (chỉ UI format text).
+- [x] T019 [P] Xử lý edge case fail-closed: issue thiếu/không hợp lệ `severity` → `ERROR` (chặn) trong cả editor (`ValidationService::issueIsError`) và runtime.
+- [x] T020 [P] Xử lý edge case runtime không tin client string: `ValidateDeployment` luôn re-validate snapshot và sinh structured issue riêng (FR-004).
+- [x] T021 [P] Xử lý edge case warning đi cùng error: result giữ cả hai, deployment bị chặn bởi error nhưng warning vẫn hiển thị/ghi nhận (FR-005/FR-009, SDD D9).
+- [x] T022 [P] Đảm bảo `GraphValidationResult.is_valid` = false khi có bất kỳ `ERROR` nào; warning không làm `is_valid=false`.
+- [x] T023 Chạy các kịch bản validation trong `quickstart.md` (S1–S7) để xác minh end-to-end: code/severity/path tương thích, structured bảo toàn, warning không mất data, path ổn định, runtime re-validate, fail-closed.
+- [x] T024 Cập nhật tài liệu/comment tại `ValidationService`, `RuntimeClient`, `ValidationAdapter` để ghi rõ hợp đồng issue chuẩn hóa (chỉ UI format text).
 
 ---
 
